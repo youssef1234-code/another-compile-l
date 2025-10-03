@@ -1,0 +1,85 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Backend",
+      "type": "shell",
+      "command": "cd backend && npm run dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*)$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Starting.*",
+          "endsPattern": "^.*Server started successfully.*"
+        }
+      },
+      "presentation": {
+        "group": "dev",
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Start Frontend",
+      "type": "shell",
+      "command": "cd event-manager && npm run dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*)$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*VITE.*",
+          "endsPattern": "^.*Local:.*"
+        }
+      },
+      "presentation": {
+        "group": "dev",
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Start Full Stack",
+      "dependsOn": [
+        "Start Backend",
+        "Start Frontend"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "presentation": {
+        "group": "dev"
+      }
+    },
+    {
+      "label": "Install Backend Dependencies",
+      "type": "shell",
+      "command": "cd backend && npm install",
+      "problemMatcher": []
+    },
+    {
+      "label": "Install Frontend Dependencies",
+      "type": "shell",
+      "command": "cd event-manager && npm install",
+      "problemMatcher": []
+    },
+    {
+      "label": "Install All Dependencies",
+      "dependsOn": [
+        "Install Backend Dependencies",
+        "Install Frontend Dependencies"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
