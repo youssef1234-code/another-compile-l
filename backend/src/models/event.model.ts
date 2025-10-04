@@ -7,16 +7,17 @@
  */
 
 import mongoose, { Schema, Document } from 'mongoose';
-import { EventTypeType, EventStatusType, FundingSourceType, FacultyType, GymSessionTypeType } from '../shared/types.js';
+import { EventType, EventStatus, FundingSource, Faculty, GymSessionType } from '@event-manager/shared';
 
 export interface IEvent extends Document {
   name: string;
-  type: EventTypeType;
+  type: keyof typeof EventType;
   description: string;
   startDate: Date;
   endDate: Date;
   location: string;
-  status: EventStatusType;
+  status: keyof typeof EventStatus;
+  isArchived: boolean;
   capacity?: number;
   registeredCount: number;
   registrationDeadline?: Date;
@@ -25,10 +26,11 @@ export interface IEvent extends Document {
   
   // Workshop specific
   fullAgenda?: string;
-  faculty?: FacultyType;
+  faculty?: keyof typeof Faculty;
   professors?: mongoose.Types.ObjectId[];
+  professorName?: string; // For search/display
   requiredBudget?: number;
-  fundingSource?: FundingSourceType;
+  fundingSource?: keyof typeof FundingSource;
   extraResources?: string;
   price?: number;
   
@@ -39,7 +41,7 @@ export interface IEvent extends Document {
   vendors?: mongoose.Types.ObjectId[];
   
   // Gym session specific
-  sessionType?: GymSessionTypeType;
+  sessionType?: keyof typeof GymSessionType;
   duration?: number;
   
   // Ratings
@@ -83,6 +85,11 @@ const eventSchema = new Schema<IEvent>(
       enum: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'PUBLISHED', 'CANCELLED', 'COMPLETED', 'ARCHIVED'],
       default: 'DRAFT',
     },
+    isArchived: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     capacity: Number,
     registeredCount: {
       type: Number,
@@ -109,6 +116,7 @@ const eventSchema = new Schema<IEvent>(
       type: Schema.Types.ObjectId,
       ref: 'User',
     }],
+    professorName: String, // For easier search and display
     requiredBudget: Number,
     fundingSource: {
       type: String,

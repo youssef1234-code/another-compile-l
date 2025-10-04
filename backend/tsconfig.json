@@ -19,8 +19,8 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["node"]
+    "types": ["node","jest"]
   },
-  "include": ["src/**/*"],
+  "include": ["src", "**/*.test.ts", "**/*.spec.ts"],
   "exclude": ["node_modules", "dist"]
 }

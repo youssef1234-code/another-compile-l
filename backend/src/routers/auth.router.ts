@@ -12,8 +12,7 @@ import {
   SignupAcademicSchema,
   SignupVendorSchema,
   LoginSchema,
-  UserRole,
-} from '../shared/types.js';
+} from '@event-manager/shared';
 import { User } from '../models/user.model.js';
 import {
   hashPassword,
@@ -405,7 +404,7 @@ export const authRouter = router({
    */
   adminGetUsers: adminProcedure
     .input(z.object({
-      role: UserRole.optional(),
+      role: z.enum(['STUDENT', 'STAFF', 'TA', 'PROFESSOR', 'VENDOR', 'ADMIN', 'EVENT_OFFICE']).optional(),
       status: z.enum(['ACTIVE', 'BLOCKED', 'PENDING_VERIFICATION']).optional(),
       page: z.number().default(1),
       limit: z.number().default(20),
@@ -431,4 +430,143 @@ export const authRouter = router({
         totalPages: Math.ceil(total / input.limit),
       };
     }),
+
+  /**
+   * Admin: Block user
+   */
+  blockUser: adminProcedure
+    .input(z.object({
+      userId: z.string(),
+      reason: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const user = await User.findById(input.userId);
+      
+      if (!user) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found',
+        });
+      }
+
+      if (user.role === 'ADMIN' || user.role === 'EVENT_OFFICE') {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Cannot block admin users',
+        });
+      }
+
+      user.isBlocked = true;
+      user.status = 'BLOCKED';
+      await user.save();
+
+      return {
+        message: 'User blocked successfully',
+        userId: (user._id as any).toString(),
+      };
+    }),
+
+  /**
+   * Admin: Unblock user
+   */
+  unblockUser: adminProcedure
+    .input(z.object({
+      userId: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const user = await User.findById(input.userId);
+      
+      if (!user) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found',
+        });
+      }
+
+      user.isBlocked = false;
+      user.status = 'ACTIVE';
+      await user.save();
+
+      return {
+        message: 'User unblocked successfully',
+        userId: (user._id as any).toString(),
+      };
+    }),
+
+  /**
+   * Admin: Verify academic role (Staff/TA/Professor)
+   */
+  verifyRole: adminProcedure
+    .input(z.object({
+      userId: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const user = await User.findById(input.userId);
+      
+      if (!user) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found',
+        });
+      }
+
+      if (!['STAFF', 'TA', 'PROFESSOR'].includes(user.role)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Only Staff, TA, and Professor roles need verification',
+        });
+      }
+
+      user.roleVerifiedByAdmin = true;
+      user.status = 'ACTIVE';
+      await user.save();
+
+      // TODO: Send email notification to user
+
+      return {
+        message: 'Role verified successfully',
+        userId: (user._id as any).toString(),
+      };
+    }),
+
+  /**
+   * Admin: Delete admin account
+   */
+  deleteAdminAccount: adminProcedure
+    .input(z.object({
+      userId: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const user = await User.findById(input.userId);
+      
+      if (!user) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found',
+        });
+      }
+
+      if (user.role !== 'ADMIN' && user.role !== 'EVENT_OFFICE') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Can only delete admin or event office accounts',
+        });
+      }
+
+      // Prevent deleting self
+      if ((user._id as any).toString() === ctx.user?._id?.toString()) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Cannot delete your own admin account',
+        });
+      }
+
+      await User.findByIdAndDelete(input.userId);
+
+      return {
+        message: 'Admin account deleted successfully',
+        userId: input.userId,
+      };
+    }),
 });
+

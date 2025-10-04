@@ -9,7 +9,6 @@ import { ROUTES } from '@/lib/constants';
 
 // Layouts
 import { AppLayout } from '@/components/layout/AppLayout';
-import { AuthLayout } from '@/components/layout/AuthLayout';
 
 // Pages
 import { LoginPage } from '@/features/auth/pages/LoginPage';
@@ -32,27 +31,22 @@ export const router = createBrowserRouter([
     path: '/',
     element: <Navigate to={ROUTES.DASHBOARD} replace />,
   },
+  // Auth Routes (no layout wrapper - each page handles its own layout)
   {
-    path: '/',
-    element: <AuthLayout />,
-    children: [
-      {
-        path: ROUTES.LOGIN,
-        element: <LoginPage />,
-      },
-      {
-        path: ROUTES.SIGNUP,
-        element: <SignupPage />,
-      },
-      {
-        path: ROUTES.SIGNUP_VENDOR,
-        element: <SignupVendorPage />,
-      },
-      {
-        path: ROUTES.VERIFY_EMAIL,
-        element: <VerifyEmailPage />,
-      },
-    ],
+    path: ROUTES.LOGIN,
+    element: <LoginPage />,
+  },
+  {
+    path: ROUTES.SIGNUP,
+    element: <SignupPage />,
+  },
+  {
+    path: ROUTES.SIGNUP_VENDOR,
+    element: <SignupVendorPage />,
+  },
+  {
+    path: ROUTES.VERIFY_EMAIL,
+    element: <VerifyEmailPage />,
   },
   {
     path: '/',

@@ -1,13 +1,14 @@
 /**
  * App Providers
  * 
- * Wraps the app with necessary providers (tRPC, TanStack Query, Router)
+ * Wraps the app with necessary providers (tRPC, TanStack Query, Router, Toast)
  * 
  * @module app/providers
  */
 
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'react-hot-toast';
 import { trpc, trpcClient } from '../lib/trpc';
 
 interface ProvidersProps {
@@ -31,6 +32,44 @@ export function Providers({ children }: ProvidersProps) {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         {children}
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              padding: '12px 16px',
+            },
+            success: {
+              style: {
+                background: '#10b981',
+                color: '#fff',
+              },
+              iconTheme: {
+                primary: '#fff',
+                secondary: '#10b981',
+              },
+            },
+            error: {
+              style: {
+                background: '#ef4444',
+                color: '#fff',
+              },
+              iconTheme: {
+                primary: '#fff',
+                secondary: '#ef4444',
+              },
+            },
+            loading: {
+              style: {
+                background: '#3b82f6',
+                color: '#fff',
+              },
+            },
+          }}
+        />
       </QueryClientProvider>
     </trpc.Provider>
   );

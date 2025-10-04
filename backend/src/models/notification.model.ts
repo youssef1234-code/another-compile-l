@@ -5,11 +5,11 @@
  */
 
 import mongoose, { Schema, Document } from 'mongoose';
-import { NotificationTypeType } from '../shared/types.js';
+import { NotificationType } from '@event-manager/shared';
 
 export interface INotification extends Document {
   user: mongoose.Types.ObjectId;
-  type: NotificationTypeType;
+  type: keyof typeof NotificationType;
   title: string;
   message: string;
   isRead: boolean;

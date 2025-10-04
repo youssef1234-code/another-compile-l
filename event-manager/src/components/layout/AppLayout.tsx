@@ -1,42 +1,44 @@
 /**
  * App Layout Component
  * 
- * Main layout with sidebar and header
- * 
- * @module components/layout/AppLayout
+ * Uses shadcn dashboard-01 block sidebar
+ * Provides consistent layout for all authenticated pages
  */
 
 import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { Header } from './Header';
-import { useUIStore } from '../../store/uiStore';
-import { cn } from '../../lib/utils';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { Separator } from '@/components/ui/separator';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+} from '@/components/ui/breadcrumb';
 
 export function AppLayout() {
-  const { sidebarCollapsed } = useUIStore();
-
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
-      {/* Sidebar */}
-      <Sidebar />
-
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <SidebarProvider>
+      <AppSidebar />
+      <main className="flex-1 flex flex-col w-full">
         {/* Header */}
-        <Header />
+        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage>Event Manager</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </header>
 
-        {/* Page Content */}
-        <main
-          className={cn(
-            'flex-1 overflow-y-auto p-6 transition-all duration-300',
-            sidebarCollapsed ? 'ml-16' : 'ml-64'
-          )}
-        >
-          <div className="mx-auto max-w-7xl">
-            <Outlet />
-          </div>
-        </main>
-      </div>
-    </div>
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto p-6">
+          <Outlet />
+        </div>
+      </main>
+    </SidebarProvider>
   );
 }

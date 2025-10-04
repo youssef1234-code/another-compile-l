@@ -7,18 +7,21 @@
  */
 
 import mongoose, { Schema, Document } from 'mongoose';
-import { UserRoleType, UserStatusType } from '../shared/types.js';
+import { UserRole, UserStatus } from '@event-manager/shared';
 
 export interface IUser extends Document {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
-  role: UserRoleType;
-  status: UserStatusType;
+  role: keyof typeof UserRole;
+  status: keyof typeof UserStatus;
   isVerified: boolean;
+  isBlocked: boolean;
+  roleVerifiedByAdmin: boolean;
   verificationToken?: string;
   verificationTokenExpires?: Date;
+  refreshToken?: string;
   
   // Academic users
   studentId?: string;
@@ -79,8 +82,21 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    roleVerifiedByAdmin: {
+      type: Boolean,
+      default: false,
+    },
     verificationToken: String,
     verificationTokenExpires: Date,
+    refreshToken: {
+      type: String,
+      select: false,
+    },
     
     // Academic users
     studentId: {

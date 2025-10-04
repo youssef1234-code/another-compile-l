@@ -2,10 +2,17 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Build Shared",
+      "type": "shell",
+      "command": "cd shared && npm run build",
+      "problemMatcher": []
+    },
+    {
       "label": "Start Backend",
       "type": "shell",
       "command": "cd backend && npm run dev",
       "isBackground": true,
+      "dependsOn": "Build Shared",
       "problemMatcher": {
         "pattern": {
           "regexp": "^(.*)$",
@@ -30,6 +37,7 @@
       "type": "shell",
       "command": "cd event-manager && npm run dev",
       "isBackground": true,
+      "dependsOn": "Build Shared",
       "problemMatcher": {
         "pattern": {
           "regexp": "^(.*)$",

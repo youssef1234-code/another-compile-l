@@ -25,8 +25,8 @@ const transporter = nodemailer.createTransport({
  */
 export const sendVerificationEmail = async (
   email: string,
-  firstName: string,
-  verificationToken: string
+  verificationToken: string,
+  name: string
 ): Promise<void> => {
   const verificationUrl = `${config.clientUrl}/verify-email?token=${verificationToken}`;
   
@@ -36,7 +36,7 @@ export const sendVerificationEmail = async (
     subject: 'Verify Your Email - Event Manager',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Welcome to Event Manager, ${firstName}!</h2>
+        <h2>Welcome to Event Manager, ${name}!</h2>
         <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${verificationUrl}" 

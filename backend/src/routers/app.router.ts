@@ -8,11 +8,12 @@
 
 import { router } from '../trpc/trpc.js';
 import { authRouter } from './auth.router.js';
+import { eventsRouter } from './events.router.js';
 
 export const appRouter = router({
   auth: authRouter,
+  events: eventsRouter,
   // Additional routers will be added here as development progresses
-  // events: eventsRouter,
   // registrations: registrationsRouter,
   // feedback: feedbackRouter,
   // notifications: notificationsRouter,
