@@ -1,10 +1,22 @@
 /**
  * Admin Users Page
  * 
- * Manage all users with GenericDataTable
- * Sprint 1 Requirement #20: View list of all users with details and status
+ * Manage all users in the system
+ * Features:
+ * - View list of all users with details and status
+ * - Block/unblock users
+ * - Verify academic roles
+ * - Delete admin/event office accounts
+ * - Filter and search users
+ * 
+ * Improvements:
+ * - Proper TanStack Query v5 usage with placeholderData
+ * - Type-safe tRPC mutations
+ * - Pagination state management
+ * - Computed stats with useMemo
  */
 
+import { useState, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MoreHorizontal, UserCheck, UserX, Trash2, Shield } from 'lucide-react';
@@ -26,47 +38,71 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export function AdminUsersPage() {
   const utils = trpc.useUtils();
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
 
-  // Fetch users - using type assertion until backend types regenerate
-  const { data, isLoading } = (trpc.auth as any).getAllUsers.useQuery({
-    page: 1,
-    limit: 20,
-  });
+  // Fetch users with proper pagination (TanStack Query v5)
+  const { data, isLoading, isFetching } = trpc.auth.getAllUsers.useQuery(
+    { page, limit },
+    {
+      placeholderData: (previousData) => previousData, // Keep showing old data while fetching new page (v5)
+      staleTime: 30000, // Consider data fresh for 30 seconds
+      refetchOnWindowFocus: false, // Don't refetch on every window focus
+    }
+  );
 
-  // Cast users to proper type
-  const users = (data?.users || []) as User[];
+  const users = data?.users || [];
+  const total = data?.total || 0;
 
-  // Mutations
+  // Compute stats from current users data
+  const stats = useMemo(() => {
+    return {
+      total,
+      active: users.filter((u) => u.status === 'ACTIVE').length,
+      pending: users.filter((u) => u.status === 'PENDING_VERIFICATION').length,
+      blocked: users.filter((u) => u.status === 'BLOCKED').length,
+    };
+  }, [users, total]);
+
+  // Mutations with type assertions (needed until tRPC types regenerate)
   const blockUserMutation = (trpc.auth as any).blockUser.useMutation({
     onSuccess: () => {
       toast.success('User blocked successfully');
-      (utils.auth as any).getAllUsers.invalidate();
+      utils.auth.getAllUsers.invalidate();
     },
-    onError: (error: any) => toast.error(error.message),
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to block user');
+    },
   });
 
   const unblockUserMutation = (trpc.auth as any).unblockUser.useMutation({
     onSuccess: () => {
       toast.success('User unblocked successfully');
-      (utils.auth as any).getAllUsers.invalidate();
+      utils.auth.getAllUsers.invalidate();
     },
-    onError: (error: any) => toast.error(error.message),
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to unblock user');
+    },
   });
 
   const verifyRoleMutation = (trpc.auth as any).verifyRole.useMutation({
     onSuccess: () => {
       toast.success('Role verified successfully');
-      (utils.auth as any).getAllUsers.invalidate();
+      utils.auth.getAllUsers.invalidate();
     },
-    onError: (error: any) => toast.error(error.message),
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to verify role');
+    },
   });
 
   const deleteUserMutation = (trpc.auth as any).deleteAdminAccount.useMutation({
     onSuccess: () => {
       toast.success('User deleted successfully');
-      (utils.auth as any).getAllUsers.invalidate();
+      utils.auth.getAllUsers.invalidate();
     },
-    onError: (error: any) => toast.error(error.message),
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete user');
+    },
   });
 
   // Table columns
@@ -90,7 +126,7 @@ export function AdminUsersPage() {
       header: 'Role',
       cell: ({ row }) => {
         const role = row.getValue('role') as string;
-        const variants: Record<string, string> = {
+        const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
           ADMIN: 'destructive',
           EVENT_OFFICE: 'default',
           PROFESSOR: 'secondary',
@@ -100,7 +136,7 @@ export function AdminUsersPage() {
           VENDOR: 'outline',
         };
         return (
-          <Badge variant={variants[role] as any}>
+          <Badge variant={variantMap[role] || 'default'}>
             {role}
           </Badge>
         );
@@ -111,13 +147,13 @@ export function AdminUsersPage() {
       header: 'Status',
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
-        const variants: Record<string, string> = {
+        const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
           ACTIVE: 'default',
           PENDING_VERIFICATION: 'secondary',
           BLOCKED: 'destructive',
         };
         return (
-          <Badge variant={variants[status] as any}>
+          <Badge variant={variantMap[status] || 'default'}>
             {status}
           </Badge>
         );
@@ -216,7 +252,7 @@ export function AdminUsersPage() {
       <div>
         <h1 className="text-3xl font-bold">User Management</h1>
         <p className="text-muted-foreground">
-          View and manage all registered users (Sprint 1 - Req #20)
+          View and manage all registered users
         </p>
       </div>
 
@@ -227,7 +263,7 @@ export function AdminUsersPage() {
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data?.total || 0}</div>
+            <div className="text-2xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
         <Card>
@@ -236,7 +272,7 @@ export function AdminUsersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {users.filter((u: User) => u.status === 'ACTIVE').length}
+              {stats.active}
             </div>
           </CardContent>
         </Card>
@@ -246,7 +282,7 @@ export function AdminUsersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {users.filter((u: User) => u.status === 'PENDING_VERIFICATION').length}
+              {stats.pending}
             </div>
           </CardContent>
         </Card>
@@ -256,7 +292,7 @@ export function AdminUsersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {users.filter((u: User) => u.status === 'BLOCKED').length}
+              {stats.blocked}
             </div>
           </CardContent>
         </Card>
@@ -268,6 +304,7 @@ export function AdminUsersPage() {
           <CardTitle>All Users</CardTitle>
           <CardDescription>
             Manage user accounts, verify roles, and control access
+            {isFetching && !isLoading && ' (Refreshing...)'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -278,6 +315,33 @@ export function AdminUsersPage() {
             searchKey="email"
             searchPlaceholder="Search by email..."
           />
+          
+          {/* Pagination */}
+          {data && data.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Page {page} of {data.totalPages} ({total} total users)
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1 || isFetching}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page === data.totalPages || isFetching}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

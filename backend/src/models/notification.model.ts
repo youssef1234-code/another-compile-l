@@ -4,20 +4,20 @@
  * @module models/notification.model
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import { NotificationType } from '@event-manager/shared';
+import { IBaseDocument, createBaseSchema } from './base.model';
 
-export interface INotification extends Document {
+export interface INotification extends IBaseDocument {
   user: mongoose.Types.ObjectId;
   type: keyof typeof NotificationType;
   title: string;
   message: string;
   isRead: boolean;
   relatedEntityId?: string;
-  createdAt: Date;
 }
 
-const notificationSchema = new Schema<INotification>(
+const notificationSchema = createBaseSchema<INotification>(
   {
     user: {
       type: Schema.Types.ObjectId,
@@ -53,7 +53,6 @@ const notificationSchema = new Schema<INotification>(
     relatedEntityId: String,
   },
   {
-    timestamps: { createdAt: true, updatedAt: false },
     toJSON: {
       transform: (_doc: any, ret: any) => {
         ret.id = ret._id.toString();
@@ -69,3 +68,4 @@ notificationSchema.index({ user: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, isRead: 1 });
 
 export const Notification = mongoose.model<INotification>('Notification', notificationSchema);
+

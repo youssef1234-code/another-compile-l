@@ -41,21 +41,21 @@ export function SignupVendorPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <motion.div
-        variants={pageVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        className="w-full max-w-2xl"
-      >
-        {/* Back Button */}
+    <div className="min-h-screen flex items-center justify-center py-6 px-4 bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="w-full max-w-4xl">
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6"
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
         >
+          {/* Back Button */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-4"
+          >
           <Button
             variant="ghost"
             size="sm"
@@ -77,14 +77,14 @@ export function SignupVendorPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mt-8 text-center space-y-4"
+          className="mt-4 text-center space-y-3"
         >
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
+              <span className="bg-gradient-to-br from-slate-50 to-slate-100 px-2 text-muted-foreground">
                 or
               </span>
             </div>
@@ -100,18 +100,9 @@ export function SignupVendorPage() {
               Sign up as Academic
             </Link>
           </div>
-
-          <div className="text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link
-              to={ROUTES.LOGIN}
-              className="font-medium text-primary hover:underline"
-            >
-              Sign in
-            </Link>
-          </div>
         </motion.div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }

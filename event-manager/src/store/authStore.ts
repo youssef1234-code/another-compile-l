@@ -18,6 +18,7 @@ interface AuthState {
   
   // Actions
   setAuth: (user: User, token: string, refreshToken: string) => void;
+  setUser: (user: User) => void;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
 }
@@ -31,27 +32,27 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       setAuth: (user, token, refreshToken) => {
-        // Store token in localStorage for tRPC headers
-        localStorage.setItem('auth-token', token);
-        
         set({
           user,
           token,
           refreshToken,
           isAuthenticated: true,
         });
+        // Note: Zustand persist middleware automatically stores in localStorage
+      },
+
+      setUser: (user) => {
+        set({ user });
       },
 
       logout: () => {
-        // Remove token from localStorage
-        localStorage.removeItem('auth-token');
-        
         set({
           user: null,
           token: null,
           refreshToken: null,
           isAuthenticated: false,
         });
+        // Note: Zustand persist middleware automatically removes from localStorage
       },
 
       updateUser: (updatedUser) =>

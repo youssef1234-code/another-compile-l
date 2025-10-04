@@ -7,8 +7,8 @@
  */
 
 import { initTRPC, TRPCError } from '@trpc/server';
-import { Context } from './context.js';
-import { IUser } from '../models/user.model.js';
+import { type Context } from './context.js';
+import { type IUser } from '../models/user.model.js';
 
 const t = initTRPC.context<Context>().create();
 
@@ -61,7 +61,7 @@ export const adminProcedure = protectedProcedure.use(async (opts: any) => {
 });
 
 /**
- * Events Office procedure
+ * Events Office procedure (includes ADMIN access)
  */
 export const eventsOfficeProcedure = protectedProcedure.use(async (opts: any) => {
   const { ctx } = opts;
@@ -76,11 +76,11 @@ export const eventsOfficeProcedure = protectedProcedure.use(async (opts: any) =>
 });
 
 /**
- * Professor procedure
+ * Professor procedure (includes ADMIN access)
  */
 export const professorProcedure = protectedProcedure.use(async (opts: any) => {
   const { ctx } = opts;
-  if (ctx.user.role !== 'PROFESSOR') {
+  if (ctx.user.role !== 'PROFESSOR' && ctx.user.role !== 'ADMIN') {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Only professors can access this resource',
@@ -91,11 +91,11 @@ export const professorProcedure = protectedProcedure.use(async (opts: any) => {
 });
 
 /**
- * Vendor procedure
+ * Vendor procedure (includes ADMIN access)
  */
 export const vendorProcedure = protectedProcedure.use(async (opts: any) => {
   const { ctx } = opts;
-  if (ctx.user.role !== 'VENDOR') {
+  if (ctx.user.role !== 'VENDOR' && ctx.user.role !== 'ADMIN') {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Only vendors can access this resource',

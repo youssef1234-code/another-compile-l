@@ -1,137 +1,76 @@
 import { User, type IUser } from '../models/user.model';
-import type { FilterQuery, UpdateQuery } from 'mongoose';
+import { BaseRepository } from './base.repository';
+import type { FilterQuery } from 'mongoose';
 
 /**
  * Repository Pattern for User entity
+ * Extends BaseRepository for common CRUD operations
  * Handles all database operations for users
  * Benefits: Centralized data access, easy testing, database independence
  */
-export class UserRepository {
+export class UserRepository extends BaseRepository<IUser> {
+  constructor() {
+    super(User);
+  }
+
   /**
    * Find user by email
    */
   async findByEmail(email: string): Promise<IUser | null> {
-    return User.findOne({ email }).exec();
-  }
-
-  /**
-   * Find user by ID
-   */
-  async findById(id: string): Promise<IUser | null> {
-    return User.findById(id).exec();
+    return this.findOne({ email } as FilterQuery<IUser>);
   }
 
   /**
    * Find user by verification token
    */
   async findByVerificationToken(token: string): Promise<IUser | null> {
-    return User.findOne({ verificationToken: token }).exec();
-  }
-
-  /**
-   * Create a new user
-   */
-  async create(userData: Partial<IUser>): Promise<IUser> {
-    const user = new User(userData);
-    return user.save();
-  }
-
-  /**
-   * Update user by ID
-   */
-  async update(id: string, updateData: UpdateQuery<IUser>): Promise<IUser | null> {
-    return User.findByIdAndUpdate(id, updateData, { new: true }).exec();
-  }
-
-  /**
-   * Delete user by ID
-   */
-  async delete(id: string): Promise<IUser | null> {
-    return User.findByIdAndDelete(id).exec();
-  }
-
-  /**
-   * Find all users with optional filters
-   */
-  async findAll(
-    filter: FilterQuery<IUser> = {},
-    options: {
-      skip?: number;
-      limit?: number;
-      sort?: Record<string, 1 | -1>;
-      select?: string;
-    } = {}
-  ): Promise<IUser[]> {
-    let query = User.find(filter);
-
-    if (options.select) {
-      query = query.select(options.select);
-    }
-
-    if (options.sort) {
-      query = query.sort(options.sort);
-    }
-
-    if (options.skip) {
-      query = query.skip(options.skip);
-    }
-
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-
-    return query.exec();
-  }
-
-  /**
-   * Count users with optional filter
-   */
-  async count(filter: FilterQuery<IUser> = {}): Promise<number> {
-    return User.countDocuments(filter).exec();
+    return this.findOne({ verificationToken: token } as FilterQuery<IUser>);
   }
 
   /**
    * Check if user exists by email
    */
   async existsByEmail(email: string): Promise<boolean> {
-    const count = await User.countDocuments({ email }).exec();
-    return count > 0;
+    return this.exists({ email } as FilterQuery<IUser>);
+  }
+
+  /**
+   * Find users by role
+   */
+  async findByRole(
+    role: string,
+    options: {
+      skip?: number;
+      limit?: number;
+      sort?: Record<string, 1 | -1>;
+    } = {}
+  ): Promise<IUser[]> {
+    return this.findAll({ role } as FilterQuery<IUser>, options);
   }
 
   /**
    * Check if user exists by student ID
    */
   async existsByStudentId(studentId: string): Promise<boolean> {
-    const count = await User.countDocuments({ studentId }).exec();
-    return count > 0;
-  }
-
-  /**
-   * Find users by role
-   */
-  async findByRole(role: string, options: {
-    skip?: number;
-    limit?: number;
-  } = {}): Promise<IUser[]> {
-    return this.findAll({ role }, options);
+    return this.exists({ studentId } as FilterQuery<IUser>);
   }
 
   /**
    * Find pending academic users (not verified)
    */
   async findPendingAcademic(): Promise<IUser[]> {
-    return User.find({
+    return this.findAll({
       role: { $in: ['Staff', 'TA', 'Professor'] },
       isVerified: false,
       roleVerifiedByAdmin: false
-    }).exec();
+    } as FilterQuery<IUser>);
   }
 
   /**
    * Block/Unblock user
    */
   async setBlockStatus(id: string, isBlocked: boolean): Promise<IUser | null> {
-    return this.update(id, { isBlocked });
+    return this.update(id, { isBlocked } as any);
   }
 
   /**
@@ -141,7 +80,7 @@ export class UserRepository {
     return this.update(id, {
       isVerified: true,
       verificationToken: null
-    });
+    } as any);
   }
 
   /**
@@ -150,14 +89,7 @@ export class UserRepository {
   async verifyRole(id: string): Promise<IUser | null> {
     return this.update(id, {
       roleVerifiedByAdmin: true
-    });
-  }
-
-  /**
-   * Bulk operations
-   */
-  async bulkCreate(users: Partial<IUser>[]): Promise<any[]> {
-    return User.insertMany(users) as any;
+    } as any);
   }
 
   /**
@@ -176,7 +108,7 @@ export class UserRepository {
           { email: searchRegex },
           { companyName: searchRegex }
         ]
-      },
+      } as FilterQuery<IUser>,
       options
     );
   }

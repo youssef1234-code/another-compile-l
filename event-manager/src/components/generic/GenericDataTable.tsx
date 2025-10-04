@@ -1,8 +1,17 @@
 /**
  * Generic Data Table Component
  * 
- * Fully featured data table with TanStack Table
- * Includes sorting, filtering, pagination, search, and custom actions
+ * Fully featured data table with TanStack Table v8 best practices
+ * Features:
+ * - ✅ Sorting (client-side & server-side)
+ * - ✅ Filtering (column filters & global search)
+ * - ✅ Pagination (client-side & server-side)
+ * - ✅ Column visibility
+ * - ✅ Row selection
+ * - ✅ Custom filters
+ * - ✅ Loading states
+ * - ✅ Empty states
+ * - ✅ Animations
  */
 
 import { useState } from 'react';
@@ -12,6 +21,9 @@ import type {
   ColumnFiltersState,
   SortingState,
   VisibilityState,
+  RowSelectionState,
+  PaginationState,
+  OnChangeFn,
 } from '@tanstack/react-table';
 import {
   flexRender,
@@ -65,19 +77,44 @@ export interface GenericDataTableProps<TData> {
   filters?: FilterConfig[];
   onFilterChange?: (filters: Record<string, string>) => void;
   
-  // Pagination
+  // Pagination (client-side or server-side)
   pagination?: {
+    // Client-side pagination
     pageSize?: number;
+    
+    // Server-side pagination
     pageIndex?: number;
     pageCount?: number;
-    onPageChange?: (page: number) => void;
+    total?: number;
+    onPaginationChange?: OnChangeFn<PaginationState>;
+    
+    // Display options
     showPageNumbers?: boolean;
+    showPageSizeSelector?: boolean;
+    pageSizeOptions?: number[];
+  };
+  
+  // Sorting (server-side)
+  sorting?: {
+    state?: SortingState;
+    onSortingChange?: OnChangeFn<SortingState>;
+    manualSorting?: boolean;
+  };
+  
+  // Row selection
+  rowSelection?: {
+    enabled?: boolean;
+    state?: RowSelectionState;
+    onRowSelectionChange?: OnChangeFn<RowSelectionState>;
   };
   
   // Empty state
   emptyStateIcon?: React.ReactNode;
   emptyStateTitle?: string;
   emptyStateDescription?: string;
+  
+  // Row actions
+  onRowClick?: (row: TData) => void;
   
   // Row animations
   animateRows?: boolean;
@@ -108,43 +145,65 @@ export function GenericDataTable<TData>({
   filters = [],
   onFilterChange,
   pagination,
+  sorting,
+  rowSelection,
   emptyStateIcon,
   emptyStateTitle = 'No results found',
   emptyStateDescription = 'Try adjusting your search or filters',
+  onRowClick,
   animateRows = true,
   className,
   tableClassName,
 }: GenericDataTableProps<TData>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  // Client-side state
+  const [internalSorting, setInternalSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [globalFilter, setGlobalFilter] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [internalRowSelection, setInternalRowSelection] = useState<RowSelectionState>({});
+  const [internalPagination, setInternalPagination] = useState<PaginationState>({
+    pageIndex: pagination?.pageIndex || 0,
+    pageSize: pagination?.pageSize || 10,
+  });
+
+  // Use server-side or client-side state
+  const sortingState = sorting?.state ?? internalSorting;
+  const rowSelectionState = rowSelection?.state ?? internalRowSelection;
+  const paginationState = pagination?.pageIndex !== undefined && pagination?.pageCount !== undefined
+    ? { pageIndex: pagination.pageIndex, pageSize: pagination.pageSize || 10 }
+    : internalPagination;
 
   const table = useReactTable({
     data,
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: pagination ? getPaginationRowModel() : undefined,
+    // Sorting
+    onSortingChange: sorting?.onSortingChange ?? setInternalSorting,
     getSortedRowModel: getSortedRowModel(),
+    manualSorting: sorting?.manualSorting,
+    // Filtering
+    onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
+    // Pagination
+    onPaginationChange: pagination?.onPaginationChange ?? setInternalPagination,
+    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: pagination?.pageCount !== undefined, // Server-side if pageCount provided
+    pageCount: pagination?.pageCount,
+    // Row Selection
+    onRowSelectionChange: rowSelection?.onRowSelectionChange ?? setInternalRowSelection,
+    enableRowSelection: rowSelection?.enabled,
+    // Column Visibility
+    onColumnVisibilityChange: setColumnVisibility,
+    // Core
+    getCoreRowModel: getCoreRowModel(),
     state: {
-      sorting,
+      sorting: sortingState,
       columnFilters,
       columnVisibility,
       globalFilter,
-    },
-    initialState: {
-      pagination: pagination
-        ? {
-            pageSize: pagination.pageSize || 10,
-            pageIndex: pagination.pageIndex || 0,
-          }
-        : undefined,
+      rowSelection: rowSelectionState,
+      pagination: paginationState,
     },
   });
 
@@ -272,7 +331,11 @@ export function GenericDataTable<TData>({
                         variants={rowVariants}
                         initial="hidden"
                         animate="visible"
-                        className="border-b transition-colors hover:bg-muted/50"
+                        onClick={() => onRowClick?.(row.original)}
+                        className={cn(
+                          "border-b transition-colors hover:bg-muted/50",
+                          onRowClick && "cursor-pointer"
+                        )}
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
@@ -284,7 +347,11 @@ export function GenericDataTable<TData>({
                         ))}
                       </motion.tr>
                     ) : (
-                      <TableRow key={row.id}>
+                      <TableRow 
+                        key={row.id}
+                        onClick={() => onRowClick?.(row.original)}
+                        className={cn(onRowClick && "cursor-pointer")}
+                      >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
                             {flexRender(
@@ -320,11 +387,65 @@ export function GenericDataTable<TData>({
 
           {/* Pagination */}
           {pagination && table.getRowModel().rows?.length > 0 && (
-            <div className="flex items-center justify-between space-x-2 py-4">
-              <div className="text-sm text-muted-foreground">
-                {table.getFilteredRowModel().rows.length} result(s) found
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between py-4">
+              {/* Results count and page size selector */}
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-muted-foreground">
+                  {pagination.total !== undefined ? (
+                    <>
+                      Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
+                      {Math.min(
+                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                        pagination.total
+                      )}{' '}
+                      of {pagination.total} results
+                    </>
+                  ) : (
+                    <>
+                      {table.getFilteredRowModel().rows.length} result(s)
+                    </>
+                  )}
+                </div>
+                
+                {/* Page size selector */}
+                {pagination.showPageSizeSelector && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Rows per page:</span>
+                    <Select
+                      value={String(table.getState().pagination.pageSize)}
+                      onValueChange={(value) => {
+                        table.setPageSize(Number(value));
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(pagination.pageSizeOptions || [10, 20, 30, 50, 100]).map((size) => (
+                          <SelectItem key={size} value={String(size)}>
+                            {size}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center space-x-2">
+
+              {/* Pagination controls */}
+              <div className="flex items-center gap-2">
+                {/* First page */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.setPageIndex(0)}
+                  disabled={!table.getCanPreviousPage()}
+                  className="hidden sm:flex"
+                >
+                  First
+                </Button>
+                
+                {/* Previous page */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -333,12 +454,18 @@ export function GenericDataTable<TData>({
                 >
                   Previous
                 </Button>
+                
+                {/* Page numbers */}
                 {pagination.showPageNumbers && (
-                  <div className="text-sm text-muted-foreground">
-                    Page {table.getState().pagination.pageIndex + 1} of{' '}
-                    {table.getPageCount()}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      Page {table.getState().pagination.pageIndex + 1} of{' '}
+                      {table.getPageCount()}
+                    </span>
                   </div>
                 )}
+                
+                {/* Next page */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -346,6 +473,17 @@ export function GenericDataTable<TData>({
                   disabled={!table.getCanNextPage()}
                 >
                   Next
+                </Button>
+                
+                {/* Last page */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                  disabled={!table.getCanNextPage()}
+                  className="hidden sm:flex"
+                >
+                  Last
                 </Button>
               </div>
             </div>

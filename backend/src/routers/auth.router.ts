@@ -1,83 +1,52 @@
 /**
  * Authentication Router
  * 
- * tRPC router for authentication operations
+ * tRPC router for authentication and user management operations
+ * 
+ * Features:
+ * - Public routes: signup, login, email verification
+ * - Protected routes: user profile, logout
+ * - Admin routes: user management, role verification
  * 
  * @module routers/auth.router
  */
 
 import { TRPCError } from '@trpc/server';
-import { router, publicProcedure, protectedProcedure, adminProcedure } from '../trpc/trpc.js';
+import { publicProcedure, protectedProcedure, adminProcedure, router } from '../trpc/trpc';
+import { userService } from '../services/user.service';
 import {
   SignupAcademicSchema,
   SignupVendorSchema,
   LoginSchema,
 } from '@event-manager/shared';
-import { User } from '../models/user.model.js';
+import { User } from '../models/user.model';
 import {
-  hashPassword,
   comparePassword,
   generateAccessToken,
   generateRefreshToken,
-  generateVerificationToken,
-} from '../utils/auth.util.js';
-import { sendVerificationEmail } from '../utils/email.util.js';
+  verifyRefreshToken,
+} from '../utils/auth.util';
 import { z } from 'zod';
 
-export const authRouter = router({
+// ==================== AUTHENTICATION ROUTES ====================
+
+const authRoutes = {
   /**
    * Academic user signup (Student/Staff/TA/Professor)
    */
   signupAcademic: publicProcedure
     .input(SignupAcademicSchema)
-    .mutation(async (opts: any) => {
-      const { input } = opts;
-      // Check if user exists
-      const existingUser = await User.findOne({ email: input.email });
-      if (existingUser) {
-        throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'User with this email already exists',
-        });
-      }
-
-      // Hash password
-      const hashedPassword = await hashPassword(input.password);
-
-      // Generate verification token
-      const verificationToken = generateVerificationToken();
-      const verificationTokenExpires = new Date();
-      verificationTokenExpires.setHours(verificationTokenExpires.getHours() + 24);
-
-      // Create user with PENDING_VERIFICATION status
-      // Admins will verify staff/TA/professor roles
-      const status = input.role === 'STUDENT' ? 'PENDING_VERIFICATION' : 'PENDING_VERIFICATION';
-
-      const user = await User.create({
+    .mutation(async ({ input }) => {
+      const result = await userService.signupAcademic({
         email: input.email,
-        password: hashedPassword,
+        password: input.password,
         firstName: input.firstName,
         lastName: input.lastName,
-        role: input.role,
-        status,
-        studentId: input.studentId,
-        staffId: input.staffId,
-        verificationToken,
-        verificationTokenExpires,
-        isVerified: false,
+        studentId: input.gucId || '', // Use gucId from schema
+        role: input.role as any,
       });
 
-      // Send verification email (for students)
-      if (input.role === 'STUDENT') {
-        await sendVerificationEmail(user.email, user.firstName, verificationToken);
-      }
-
-      return {
-        message: input.role === 'STUDENT' 
-          ? 'Registration successful! Please check your email to verify your account.'
-          : 'Registration submitted! An admin will verify your role and send you a verification email.',
-        userId: (user._id as any).toString(),
-      };
+      return result;
     }),
 
   /**
@@ -85,46 +54,18 @@ export const authRouter = router({
    */
   signupVendor: publicProcedure
     .input(SignupVendorSchema)
-    .mutation(async (opts) => {
-      const { input } = opts;
-      // Check if user exists
-      const existingUser = await User.findOne({ email: input.email });
-      if (existingUser) {
-        throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'User with this email already exists',
-        });
-      }
-
-      // Hash password
-      const hashedPassword = await hashPassword(input.password);
-
-      // Generate verification token
-      const verificationToken = generateVerificationToken();
-      const verificationTokenExpires = new Date();
-      verificationTokenExpires.setHours(verificationTokenExpires.getHours() + 24);
-
-      // Create vendor user
-      const user = await User.create({
+    .mutation(async ({ input }) => {
+      const result = await userService.signupVendor({
         email: input.email,
-        password: hashedPassword,
-        firstName: input.companyName.split(' ')[0] || 'Vendor',
-        lastName: 'Account',
-        role: 'VENDOR',
+        password: input.password,
+        firstName: input.firstName,
+        lastName: input.lastName,
         companyName: input.companyName,
-        status: 'PENDING_VERIFICATION',
-        verificationToken,
-        verificationTokenExpires,
-        isVerified: false,
+        taxCardImage: input.taxCardImage,
+        logoImage: input.logoImage,
       });
 
-      // Send verification email
-      await sendVerificationEmail(user.email, user.companyName || 'Vendor', verificationToken);
-
-      return {
-        message: 'Registration successful! Please check your email to verify your account.',
-        userId: (user._id as any).toString(),
-      };
+      return result;
     }),
 
   /**
@@ -132,29 +73,9 @@ export const authRouter = router({
    */
   verifyEmail: publicProcedure
     .input(z.object({ token: z.string() }))
-    .mutation(async (opts) => {
-      const { input } = opts;
-      const user = await User.findOne({
-        verificationToken: input.token,
-        verificationTokenExpires: { $gt: new Date() },
-      });
-
-      if (!user) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Invalid or expired verification token',
-        });
-      }
-
-      user.isVerified = true;
-      user.status = 'ACTIVE';
-      user.verificationToken = undefined;
-      user.verificationTokenExpires = undefined;
-      await user.save();
-
-      return {
-        message: 'Email verified successfully! You can now log in.',
-      };
+    .mutation(async ({ input }) => {
+      const result = await userService.verifyEmail(input.token);
+      return result;
     }),
 
   /**
@@ -162,8 +83,7 @@ export const authRouter = router({
    */
   login: publicProcedure
     .input(LoginSchema)
-    .mutation(async (opts) => {
-      const { input } = opts;
+    .mutation(async ({ input }) => {
       // Find user with password
       const user = await User.findOne({ email: input.email }).select('+password');
 
@@ -192,7 +112,7 @@ export const authRouter = router({
       }
 
       // Check if blocked
-      if (user.status === 'BLOCKED') {
+      if (user.isBlocked || user.status === 'BLOCKED') {
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Your account has been blocked',
@@ -216,9 +136,69 @@ export const authRouter = router({
   /**
    * Get current user
    */
-  me: protectedProcedure.query(async (opts) => {
-    return opts.ctx.user;
+  me: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.user;
   }),
+
+  /**
+   * Refresh access token using refresh token
+   */
+  refreshToken: publicProcedure
+    .input(z.object({ 
+      refreshToken: z.string().min(1, 'Refresh token is required') 
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        // Verify refresh token
+        const decoded = verifyRefreshToken(input.refreshToken);
+        
+        // Get user and check status
+        const user = await User.findById(decoded.userId);
+        
+        if (!user) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User not found',
+          });
+        }
+
+        // Check if user is blocked
+        if (user.isBlocked || user.status === 'BLOCKED') {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Your account has been blocked',
+          });
+        }
+
+        // Check if user is verified
+        if (!user.isVerified) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Please verify your email',
+          });
+        }
+        
+        // Generate new access token
+        const newAccessToken = generateAccessToken(
+          (user._id as any).toString(),
+          user.role
+        );
+        
+        // Rotate refresh token (security best practice)
+        const newRefreshToken = generateRefreshToken((user._id as any).toString());
+        
+        return {
+          token: newAccessToken,
+          refreshToken: newRefreshToken,
+          message: 'Token refreshed successfully',
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Invalid or expired refresh token',
+        });
+      }
+    }),
 
   /**
    * Logout (client-side token removal)
@@ -228,207 +208,129 @@ export const authRouter = router({
   }),
 
   /**
+   * Request password reset
+   */
+  requestPasswordReset: publicProcedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ input }) => {
+      return userService.requestPasswordReset(input.email);
+    }),
+
+  /**
+   * Reset password with token
+   */
+  resetPassword: publicProcedure
+    .input(
+      z.object({
+        token: z.string(),
+        newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return userService.resetPassword({
+        token: input.token,
+        newPassword: input.newPassword,
+      });
+    }),
+
+  /**
+   * Change password (authenticated users)
+   */
+  changePassword: protectedProcedure
+    .input(
+      z.object({
+        currentPassword: z.string(),
+        newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+
+      return userService.changePassword({
+        userId: (ctx.user._id as any).toString(),
+        currentPassword: input.currentPassword,
+        newPassword: input.newPassword,
+      });
+    }),
+
+  /**
+   * Update profile avatar
+   */
+  updateAvatar: protectedProcedure
+    .input(
+      z.object({
+        avatar: z.string(),
+        avatarType: z.enum(['upload', 'preset']),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+
+      return userService.updateAvatar({
+        userId: (ctx.user._id as any).toString(),
+        avatar: input.avatar,
+        avatarType: input.avatarType,
+      });
+    }),
+};
+
+// ==================== ADMIN USER MANAGEMENT ROUTES ====================
+
+const adminRoutes = {
+  /**
    * Admin: Verify staff/TA/professor role and send verification email
    */
-  adminVerifyRole: adminProcedure
+  verifyRole: adminProcedure
     .input(z.object({
       userId: z.string(),
-      role: z.enum(['STAFF', 'TA', 'PROFESSOR']),
     }))
-    .mutation(async (opts) => {
-      const { input } = opts;
-      const user = await User.findById(input.userId);
+    .mutation(async ({ input, ctx }) => {
+      const result = await userService.verifyRole({
+        userId: input.userId,
+        adminId: (ctx.user!._id as any).toString(),
+      });
 
-      if (!user) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'User not found',
-        });
-      }
-
-      if (user.role !== input.role) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Role mismatch',
-        });
-      }
-
-      // Generate new verification token
-      const verificationToken = generateVerificationToken();
-      const verificationTokenExpires = new Date();
-      verificationTokenExpires.setHours(verificationTokenExpires.getHours() + 24);
-
-      user.verificationToken = verificationToken;
-      user.verificationTokenExpires = verificationTokenExpires;
-      await user.save();
-
-      // Send verification email
-      await sendVerificationEmail(user.email, user.firstName, verificationToken);
-
-      return {
-        message: 'Verification email sent successfully',
-      };
+      return result;
     }),
 
   /**
    * Admin: Create admin or event office account
    */
-  adminCreateAccount: adminProcedure
+  createAdminAccount: adminProcedure
     .input(z.object({
+      name: z.string(),
       email: z.string().email(),
       password: z.string().min(8),
-      firstName: z.string(),
-      lastName: z.string(),
       role: z.enum(['ADMIN', 'EVENT_OFFICE']),
     }))
-    .mutation(async (opts) => {
-      const { input } = opts;
-      // Check if user exists
-      const existingUser = await User.findOne({ email: input.email });
-      if (existingUser) {
-        throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'User with this email already exists',
-        });
-      }
-
-      // Hash password
-      const hashedPassword = await hashPassword(input.password);
-
-      // Create user (already active and verified)
-      const user = await User.create({
+    .mutation(async ({ input, ctx }) => {
+      const result = await userService.createAdminAccount({
+        name: input.name,
         email: input.email,
-        password: hashedPassword,
-        firstName: input.firstName,
-        lastName: input.lastName,
+        password: input.password,
         role: input.role,
-        status: 'ACTIVE',
-        isVerified: true,
+        createdBy: (ctx.user!._id as any).toString(),
       });
 
-      return {
-        message: 'Account created successfully',
-        user: user.toJSON(),
-      };
+      return result;
     }),
 
   /**
    * Admin: Delete admin or event office account
    */
-  adminDeleteAccount: adminProcedure
+  deleteAdminAccount: adminProcedure
     .input(z.object({ userId: z.string() }))
-    .mutation(async (opts) => {
-      const { input, ctx } = opts;
-      const user = await User.findById(input.userId);
+    .mutation(async ({ input, ctx }) => {
+      const result = await userService.deleteAdminAccount({
+        userId: input.userId,
+        adminId: (ctx.user!._id as any).toString(),
+      });
 
-      if (!user) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'User not found',
-        });
-      }
-
-      // Prevent deleting yourself
-      if ((user._id as any).toString() === (ctx.user!._id as any).toString()) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'You cannot delete your own account',
-        });
-      }
-
-      // Only allow deleting admin/event office accounts
-      if (!['ADMIN', 'EVENT_OFFICE'].includes(user.role)) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Can only delete admin or event office accounts',
-        });
-      }
-
-      await User.findByIdAndDelete(input.userId);
-
-      return {
-        message: 'Account deleted successfully',
-      };
-    }),
-
-  /**
-   * Admin: Block user
-   */
-  adminBlockUser: adminProcedure
-    .input(z.object({ userId: z.string() }))
-    .mutation(async (opts) => {
-      const { input } = opts;
-      const user = await User.findById(input.userId);
-
-      if (!user) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'User not found',
-        });
-      }
-
-      user.status = 'BLOCKED';
-      await user.save();
-
-      return {
-        message: 'User blocked successfully',
-      };
-    }),
-
-  /**
-   * Admin: Unblock user
-   */
-  adminUnblockUser: adminProcedure
-    .input(z.object({ userId: z.string() }))
-    .mutation(async (opts) => {
-      const { input } = opts;
-      const user = await User.findById(input.userId);
-
-      if (!user) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'User not found',
-        });
-      }
-
-      user.status = 'ACTIVE';
-      await user.save();
-
-      return {
-        message: 'User unblocked successfully',
-      };
-    }),
-
-  /**
-   * Admin: Get all users
-   */
-  adminGetUsers: adminProcedure
-    .input(z.object({
-      role: z.enum(['STUDENT', 'STAFF', 'TA', 'PROFESSOR', 'VENDOR', 'ADMIN', 'EVENT_OFFICE']).optional(),
-      status: z.enum(['ACTIVE', 'BLOCKED', 'PENDING_VERIFICATION']).optional(),
-      page: z.number().default(1),
-      limit: z.number().default(20),
-    }))
-    .query(async (opts) => {
-      const { input } = opts;
-      const filter: any = {};
-      
-      if (input.role) filter.role = input.role;
-      if (input.status) filter.status = input.status;
-
-      const skip = (input.page - 1) * input.limit;
-
-      const [users, total] = await Promise.all([
-        User.find(filter).skip(skip).limit(input.limit).sort({ createdAt: -1 }),
-        User.countDocuments(filter),
-      ]);
-
-      return {
-        users,
-        total,
-        page: input.page,
-        totalPages: Math.ceil(total / input.limit),
-      };
+      return result;
     }),
 
   /**
@@ -437,33 +339,14 @@ export const authRouter = router({
   blockUser: adminProcedure
     .input(z.object({
       userId: z.string(),
-      reason: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
-      const user = await User.findById(input.userId);
-      
-      if (!user) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'User not found',
-        });
-      }
+    .mutation(async ({ input, ctx }) => {
+      const result = await userService.blockUser({
+        userId: input.userId,
+        adminId: (ctx.user!._id as any).toString(),
+      });
 
-      if (user.role === 'ADMIN' || user.role === 'EVENT_OFFICE') {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Cannot block admin users',
-        });
-      }
-
-      user.isBlocked = true;
-      user.status = 'BLOCKED';
-      await user.save();
-
-      return {
-        message: 'User blocked successfully',
-        userId: (user._id as any).toString(),
-      };
+      return result;
     }),
 
   /**
@@ -473,100 +356,140 @@ export const authRouter = router({
     .input(z.object({
       userId: z.string(),
     }))
-    .mutation(async ({ input }) => {
-      const user = await User.findById(input.userId);
-      
-      if (!user) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'User not found',
-        });
-      }
+    .mutation(async ({ input, ctx }) => {
+      const result = await userService.unblockUser({
+        userId: input.userId,
+        adminId: (ctx.user!._id as any).toString(),
+      });
 
-      user.isBlocked = false;
-      user.status = 'ACTIVE';
-      await user.save();
-
-      return {
-        message: 'User unblocked successfully',
-        userId: (user._id as any).toString(),
-      };
+      return result;
     }),
 
   /**
-   * Admin: Verify academic role (Staff/TA/Professor)
+   * Admin: Get all users with filters
    */
-  verifyRole: adminProcedure
+  getAllUsers: adminProcedure
     .input(z.object({
-      userId: z.string(),
+      role: z.string().optional(),
+      status: z.enum(['active', 'blocked', 'all']).optional(),
+      search: z.string().optional(),
+      page: z.number().optional().default(1),
+      limit: z.number().optional().default(20),
     }))
-    .mutation(async ({ input }) => {
-      const user = await User.findById(input.userId);
-      
-      if (!user) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'User not found',
-        });
-      }
+    .query(async ({ input }) => {
+      const result = await userService.getAllUsers({
+        page: input.page,
+        limit: input.limit,
+        role: input.role,
+        status: input.status,
+        search: input.search,
+      });
 
-      if (!['STAFF', 'TA', 'PROFESSOR'].includes(user.role)) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Only Staff, TA, and Professor roles need verification',
-        });
-      }
-
-      user.roleVerifiedByAdmin = true;
-      user.status = 'ACTIVE';
-      await user.save();
-
-      // TODO: Send email notification to user
-
-      return {
-        message: 'Role verified successfully',
-        userId: (user._id as any).toString(),
-      };
+      return result;
     }),
 
   /**
-   * Admin: Delete admin account
+   * Admin: Get pending academic users (need role verification)
    */
-  deleteAdminAccount: adminProcedure
+  getPendingAcademicUsers: adminProcedure
+    .query(async () => {
+      const result = await userService.getPendingAcademicUsers();
+      return result;
+    }),
+
+  /**
+   * Admin: Search users
+   */
+  searchUsers: adminProcedure
+    .input(z.object({
+      query: z.string(),
+      page: z.number().optional().default(1),
+      limit: z.number().optional().default(20),
+    }))
+    .query(async ({ input }) => {
+      const result = await userService.searchUsers(input.query, {
+        page: input.page,
+        limit: input.limit,
+      });
+
+      return result;
+    }),
+
+  /**
+   * Admin: Get users by role
+   */
+  getUsersByRole: adminProcedure
+    .input(z.object({
+      role: z.string(),
+      page: z.number().optional().default(1),
+      limit: z.number().optional().default(20),
+    }))
+    .query(async ({ input }) => {
+      const result = await userService.getUsersByRole(input.role, {
+        page: input.page,
+        limit: input.limit,
+      });
+
+      return result;
+    }),
+
+  /**
+   * Admin: Get pending vendor approvals
+   */
+  getPendingVendors: adminProcedure
+    .query(async () => {
+      const vendors = await userService.getPendingVendors();
+      return vendors;
+    }),
+
+  /**
+   * Admin: Approve or reject vendor
+   */
+  processVendorApproval: adminProcedure
     .input(z.object({
       userId: z.string(),
+      status: z.enum(['APPROVED', 'REJECTED']),
+      rejectionReason: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const user = await User.findById(input.userId);
-      
-      if (!user) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'User not found',
-        });
-      }
-
-      if (user.role !== 'ADMIN' && user.role !== 'EVENT_OFFICE') {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Can only delete admin or event office accounts',
-        });
-      }
-
-      // Prevent deleting self
-      if ((user._id as any).toString() === ctx.user?._id?.toString()) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Cannot delete your own admin account',
-        });
-      }
-
-      await User.findByIdAndDelete(input.userId);
-
-      return {
-        message: 'Admin account deleted successfully',
+      const result = await userService.processVendorApproval({
         userId: input.userId,
-      };
-    }),
-});
+        status: input.status,
+        rejectionReason: input.rejectionReason,
+        adminId: ctx.user!.id, // Non-null assertion - adminProcedure ensures user exists
+      });
 
+      return result;
+    }),
+};
+
+// ==================== EXPORT ROUTER ====================
+
+// Create the auth router with all routes
+export const authRouter = router({
+  // Authentication routes
+  signupAcademic: authRoutes.signupAcademic,
+  signupVendor: authRoutes.signupVendor,
+  verifyEmail: authRoutes.verifyEmail,
+  login: authRoutes.login,
+  me: authRoutes.me,
+  refreshToken: authRoutes.refreshToken,
+  logout: authRoutes.logout,
+  requestPasswordReset: authRoutes.requestPasswordReset,
+  resetPassword: authRoutes.resetPassword,
+  changePassword: authRoutes.changePassword,
+  updateAvatar: authRoutes.updateAvatar,
+  
+  // Admin routes
+  verifyRole: adminRoutes.verifyRole,
+  createAdminAccount: adminRoutes.createAdminAccount,
+  deleteAdminAccount: adminRoutes.deleteAdminAccount,
+  blockUser: adminRoutes.blockUser,
+  unblockUser: adminRoutes.unblockUser,
+  getAllUsers: adminRoutes.getAllUsers,
+  getPendingAcademicUsers: adminRoutes.getPendingAcademicUsers,
+  searchUsers: adminRoutes.searchUsers,
+  getUsersByRole: adminRoutes.getUsersByRole,
+  getPendingVendors: adminRoutes.getPendingVendors,
+  processVendorApproval: adminRoutes.processVendorApproval,
+});

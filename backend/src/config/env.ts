@@ -22,19 +22,16 @@ export const config = {
   
   // JWT
   jwtSecret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m', // Short-lived access tokens
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key',
-  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d', // Long-lived refresh tokens
   
-  // Email
-  smtp: {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587', 10),
-    secure: process.env.SMTP_SECURE === 'true',
-    user: process.env.SMTP_USER || '',
-    password: process.env.SMTP_PASSWORD || '',
+  // Email (Mailgun)
+  mailgun: {
+    apiKey: process.env.MAILGUN_API_KEY || '',
+    domain: process.env.MAILGUN_DOMAIN || '',
   },
-  emailFrom: process.env.EMAIL_FROM || 'noreply@eventmanager.com',
+  emailFrom: process.env.EMAIL_FROM || 'Event Manager <noreply@eventmanager.com>',
   
   // Stripe
   stripe: {

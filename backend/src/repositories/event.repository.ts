@@ -1,83 +1,39 @@
 import { Event, type IEvent } from '../models/event.model';
-import type { FilterQuery, UpdateQuery } from 'mongoose';
+import { BaseRepository } from './base.repository';
+import type { FilterQuery } from 'mongoose';
 
 /**
  * Repository Pattern for Event entity
+ * Extends BaseRepository for common CRUD operations
  * Handles all database operations for events
  */
-export class EventRepository {
+export class EventRepository extends BaseRepository<IEvent> {
+  constructor() {
+    super(Event);
+  }
+
   /**
-   * Find event by ID
+   * Find event by ID with population
    */
   async findById(id: string): Promise<IEvent | null> {
-    return Event.findById(id)
-      .populate('createdBy', 'firstName lastName email')
-      .populate('vendors', 'companyName email')
-      .exec();
+    return super.findById(id, ['createdBy', 'vendors']);
   }
 
   /**
-   * Create a new event
+   * Find all events with population
    */
-  async create(eventData: Partial<IEvent>): Promise<IEvent> {
-    const event = new Event(eventData);
-    return event.save();
-  }
-
-  /**
-   * Update event by ID
-   */
-  async update(id: string, updateData: UpdateQuery<IEvent>): Promise<IEvent | null> {
-    return Event.findByIdAndUpdate(id, updateData, { new: true }).exec();
-  }
-
-  /**
-   * Delete event by ID
-   */
-  async delete(id: string): Promise<IEvent | null> {
-    return Event.findByIdAndDelete(id).exec();
-  }
-
-  /**
-   * Find all events with filtering, sorting, and pagination
-   */
-  async findAll(
+  async findAllWithPopulate(
     filter: FilterQuery<IEvent> = {},
     options: {
       skip?: number;
       limit?: number;
       sort?: Record<string, 1 | -1>;
-      populate?: boolean;
     } = {}
   ): Promise<IEvent[]> {
-    let query = Event.find(filter);
-
-    if (options.populate) {
-      query = query
-        .populate('createdBy', 'firstName lastName email role')
-        .populate('vendors', 'companyName email');
-    }
-
-    if (options.sort) {
-      query = query.sort(options.sort);
-    }
-
-    if (options.skip) {
-      query = query.skip(options.skip);
-    }
-
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-
-    return query.exec();
-  }
-
-  /**
-   * Count events with optional filter
-   */
-  async count(filter: FilterQuery<IEvent> = {}): Promise<number> {
-    return Event.countDocuments(filter).exec();
+    return this.findAll(filter, {
+      ...options,
+      populate: ['createdBy', 'vendors'],
+    });
   }
 
   /**
@@ -88,12 +44,12 @@ export class EventRepository {
     limit?: number;
     sort?: Record<string, 1 | -1>;
   } = {}): Promise<IEvent[]> {
-    return this.findAll(
+    return this.findAllWithPopulate(
       {
         isArchived: false,
         startDate: { $gte: new Date() }
-      },
-      { ...options, populate: true }
+      } as FilterQuery<IEvent>,
+      options
     );
   }
 
@@ -105,7 +61,7 @@ export class EventRepository {
     limit?: number;
   } = {}): Promise<IEvent[]> {
     const searchRegex = new RegExp(query, 'i');
-    return this.findAll(
+    return this.findAllWithPopulate(
       {
         isArchived: false,
         $or: [
@@ -113,8 +69,8 @@ export class EventRepository {
           { description: searchRegex },
           { professorName: searchRegex }
         ]
-      },
-      { ...options, populate: true, sort: { startDate: 1 } }
+      } as FilterQuery<IEvent>,
+      { ...options, sort: { startDate: 1 } }
     );
   }
 
@@ -125,12 +81,12 @@ export class EventRepository {
     skip?: number;
     limit?: number;
   } = {}): Promise<IEvent[]> {
-    return this.findAll(
+    return this.findAllWithPopulate(
       {
         type,
         isArchived: false
-      },
-      { ...options, populate: true, sort: { startDate: 1 } }
+      } as FilterQuery<IEvent>,
+      { ...options, sort: { startDate: 1 } }
     );
   }
 
@@ -141,12 +97,12 @@ export class EventRepository {
     skip?: number;
     limit?: number;
   } = {}): Promise<IEvent[]> {
-    return this.findAll(
+    return this.findAllWithPopulate(
       {
         location,
         isArchived: false
-      },
-      { ...options, populate: true, sort: { startDate: 1 } }
+      } as FilterQuery<IEvent>,
+      { ...options, sort: { startDate: 1 } }
     );
   }
 
@@ -157,12 +113,12 @@ export class EventRepository {
     skip?: number;
     limit?: number;
   } = {}): Promise<IEvent[]> {
-    return this.findAll(
+    return this.findAllWithPopulate(
       {
         isArchived: false,
         startDate: { $gte: startDate, $lte: endDate }
-      },
-      { ...options, populate: true, sort: { startDate: 1 } }
+      } as FilterQuery<IEvent>,
+      { ...options, sort: { startDate: 1 } }
     );
   }
 
@@ -173,9 +129,9 @@ export class EventRepository {
     skip?: number;
     limit?: number;
   } = {}): Promise<IEvent[]> {
-    return this.findAll(
-      { createdBy: userId },
-      { ...options, populate: true, sort: { createdAt: -1 } }
+    return this.findAllWithPopulate(
+      { createdBy: userId } as FilterQuery<IEvent>,
+      { ...options, sort: { createdAt: -1 } }
     );
   }
 
@@ -186,9 +142,9 @@ export class EventRepository {
     skip?: number;
     limit?: number;
   } = {}): Promise<IEvent[]> {
-    return this.findAll(
-      { status },
-      { ...options, populate: true, sort: { createdAt: -1 } }
+    return this.findAllWithPopulate(
+      { status } as FilterQuery<IEvent>,
+      { ...options, sort: { createdAt: -1 } }
     );
   }
 
@@ -196,7 +152,7 @@ export class EventRepository {
    * Archive event
    */
   async archive(id: string): Promise<IEvent | null> {
-    return this.update(id, { isArchived: true });
+    return this.update(id, { isArchived: true } as any);
   }
 
   /**
@@ -214,7 +170,7 @@ export class EventRepository {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }): Promise<{ events: IEvent[]; total: number }> {
-    const filter: FilterQuery<IEvent> = { isArchived: false };
+    const filter: FilterQuery<IEvent> = { isArchived: false } as FilterQuery<IEvent>;
 
     // Text search
     if (params.query) {
@@ -223,33 +179,33 @@ export class EventRepository {
         { name: searchRegex },
         { description: searchRegex },
         { professorName: searchRegex }
-      ];
+      ] as any;
     }
 
     // Type filter
     if (params.type) {
-      filter.type = params.type;
+      filter.type = params.type as any;
     }
 
     // Location filter
     if (params.location) {
-      filter.location = params.location;
+      filter.location = params.location as any;
     }
 
     // Date range filter
     if (params.startDate || params.endDate) {
-      filter.startDate = {};
+      filter.startDate = {} as any;
       if (params.startDate) {
-        filter.startDate.$gte = params.startDate;
+        (filter.startDate as any).$gte = params.startDate;
       }
       if (params.endDate) {
-        filter.startDate.$lte = params.endDate;
+        (filter.startDate as any).$lte = params.endDate;
       }
     }
 
     // Status filter
     if (params.status) {
-      filter.status = params.status;
+      filter.status = params.status as any;
     }
 
     // Sorting
@@ -262,11 +218,10 @@ export class EventRepository {
 
     // Execute query with pagination
     const [events, total] = await Promise.all([
-      this.findAll(filter, {
+      this.findAllWithPopulate(filter, {
         skip: params.skip || 0,
         limit: params.limit || 10,
         sort,
-        populate: true
       }),
       this.count(filter)
     ]);
@@ -286,10 +241,10 @@ export class EventRepository {
     const now = new Date();
     
     const [total, upcoming, past, byType] = await Promise.all([
-      this.count({ isArchived: false }),
-      this.count({ isArchived: false, startDate: { $gte: now } }),
-      this.count({ isArchived: false, startDate: { $lt: now } }),
-      Event.aggregate([
+      this.count({ isArchived: false } as FilterQuery<IEvent>),
+      this.count({ isArchived: false, startDate: { $gte: now } } as FilterQuery<IEvent>),
+      this.count({ isArchived: false, startDate: { $lt: now } } as FilterQuery<IEvent>),
+      this.aggregate([
         { $match: { isArchived: false } },
         { $group: { _id: '$type', count: { $sum: 1 } } }
       ])

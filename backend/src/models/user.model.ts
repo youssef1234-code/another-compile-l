@@ -6,10 +6,11 @@
  * @module models/user.model
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import { UserRole, UserStatus } from '@event-manager/shared';
+import { type IBaseDocument, createBaseSchema } from './base.model';
 
-export interface IUser extends Document {
+export interface IUser extends IBaseDocument {
   email: string;
   password: string;
   firstName: string;
@@ -21,7 +22,13 @@ export interface IUser extends Document {
   roleVerifiedByAdmin: boolean;
   verificationToken?: string;
   verificationTokenExpires?: Date;
-  refreshToken?: string;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
+  // Note: Refresh tokens are NOT stored in database for security
+  
+  // Profile
+  avatar?: string; // File ID or preset avatar identifier
+  avatarType?: 'upload' | 'preset';
   
   // Academic users
   studentId?: string;
@@ -33,15 +40,14 @@ export interface IUser extends Document {
   taxCardUrl?: string;
   logoUrl?: string;
   taxCardVerified?: boolean;
+  vendorApprovalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  vendorRejectionReason?: string;
   
   // Favorites
   favoriteEvents?: mongoose.Types.ObjectId[];
-  
-  createdAt: Date;
-  updatedAt: Date;
 }
 
-const userSchema = new Schema<IUser>(
+const userSchema = createBaseSchema<IUser>(
   {
     email: {
       type: String,
@@ -74,7 +80,7 @@ const userSchema = new Schema<IUser>(
     },
     status: {
       type: String,
-      enum: ['ACTIVE', 'BLOCKED', 'PENDING_VERIFICATION'],
+      enum: ['ACTIVE', 'BLOCKED', 'PENDING_VERIFICATION', 'PENDING_APPROVAL'],
       default: 'PENDING_VERIFICATION',
       index: true,
     },
@@ -93,9 +99,15 @@ const userSchema = new Schema<IUser>(
     },
     verificationToken: String,
     verificationTokenExpires: Date,
-    refreshToken: {
+    passwordResetToken: String,
+    passwordResetExpires: Date,
+    
+    // Profile
+    avatar: String,
+    avatarType: {
       type: String,
-      select: false,
+      enum: ['upload', 'preset'],
+      default: 'preset',
     },
     
     // Academic users
@@ -123,6 +135,12 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    vendorApprovalStatus: {
+      type: String,
+      enum: ['PENDING', 'APPROVED', 'REJECTED'],
+      default: 'PENDING',
+    },
+    vendorRejectionReason: String,
     
     // Favorites
     favoriteEvents: [{
@@ -131,7 +149,6 @@ const userSchema = new Schema<IUser>(
     }],
   },
   {
-    timestamps: true,
     toJSON: {
       transform: (_doc: any, ret: any) => {
         ret.id = ret._id.toString();
@@ -147,3 +164,4 @@ const userSchema = new Schema<IUser>(
 // Indexes are defined inline in schema fields
 
 export const User = mongoose.model<IUser>('User', userSchema);
+

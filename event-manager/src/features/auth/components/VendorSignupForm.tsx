@@ -1,8 +1,7 @@
 /**
- * Vendor Signimport { trpc } from '@/lib/trpc';
-import { toast } from 'react-hot-toast';
-import { Loader2, Building2, Mail, Lock, Briefcase, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';orm Component
+ * Vendor Signup Form Component
+ * 
+ * Refactored to use GenericForm for consistent UI/UX
  * 
  * Features:
  * - React Hook Form with Zod validation
@@ -10,49 +9,13 @@ import { Button } from '@/components/ui/button';orm Component
  * - Real-time validation feedback
  * - Toast notifications
  * - Loading states
- * 
- * Design Patterns:
- * - Controlled Component Pattern
- * - Custom Hook Pattern
  */
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
-import { Loader2, Building2, Mail, Lock, Briefcase,User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.4,
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { opacity: 1, x: 0 }
-};
+import { Building2, Mail, Lock, Briefcase, User } from 'lucide-react';
+import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
 
 // Zod Schema
 const vendorSignupSchema = z.object({
@@ -84,25 +47,13 @@ const vendorSignupSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type VendorSignupForm = z.infer<typeof vendorSignupSchema>;
+type VendorSignupFormData = z.infer<typeof vendorSignupSchema>;
 
 interface VendorSignupFormProps {
   onSuccess?: () => void;
 }
 
 export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
-  const form = useForm<VendorSignupForm>({
-    resolver: zodResolver(vendorSignupSchema),
-    defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      companyName: '',
-    },
-  });
-
   const signupMutation = trpc.auth.signupVendor.useMutation({
     onSuccess: (data) => {
       toast.success(data.message, {
@@ -115,7 +66,6 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
         icon: '📧',
       });
       
-      form.reset();
       onSuccess?.();
     },
     onError: (error) => {
@@ -125,7 +75,7 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
     }
   });
 
-  const onSubmit = (data: VendorSignupForm) => {
+  const handleSubmit = (data: VendorSignupFormData) => {
     signupMutation.mutate({
       email: data.email,
       password: data.password,
@@ -135,216 +85,86 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
     });
   };
 
+  const fields: FormFieldConfig[] = [
+    {
+      name: 'firstName',
+      label: 'First Name',
+      type: 'text',
+      placeholder: 'John',
+      icon: <User className="h-4 w-4" />,
+    },
+    {
+      name: 'lastName',
+      label: 'Last Name',
+      type: 'text',
+      placeholder: 'Doe',
+      icon: <User className="h-4 w-4" />,
+    },
+    {
+      name: 'email',
+      label: 'Company Email',
+      type: 'email',
+      placeholder: 'contact@acme.com',
+      description: 'Official company email address',
+      icon: <Mail className="h-4 w-4" />,
+      colSpan: 2,
+    },
+    {
+      name: 'companyName',
+      label: 'Company Name',
+      type: 'text',
+      placeholder: 'Acme Corporation',
+      description: 'Your official company or business name',
+      icon: <Building2 className="h-4 w-4" />,
+      colSpan: 2,
+    },
+    {
+      name: 'password',
+      label: 'Password',
+      type: 'password',
+      placeholder: '••••••••',
+      icon: <Lock className="h-4 w-4" />,
+    },
+    {
+      name: 'confirmPassword',
+      label: 'Confirm Password',
+      type: 'password',
+      placeholder: '••••••••',
+      icon: <Lock className="h-4 w-4" />,
+    },
+  ];
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <Card className="border-0 shadow-none">
-        <CardHeader className="space-y-1 pb-6">
-          <motion.div variants={itemVariants} className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Building2 className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle className="text-2xl font-bold">Vendor Signup</CardTitle>
-          </motion.div>
-          <motion.div variants={itemVariants}>
-            <CardDescription>
-              Register your company to participate in GUC events
-            </CardDescription>
-          </motion.div>
-
-          <motion.div
-            variants={itemVariants}
-            className="mt-4"
-          >
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-              <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-              <div className="text-sm text-blue-800 dark:text-blue-200">
-                <p className="font-medium">What's next?</p>
-                <p className="text-blue-700 dark:text-blue-300 mt-1">
-                  After registration, you'll be able to upload your tax card and logo, then apply to participate in bazaars and booth setups.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </CardHeader>
-
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-              {/* Name Fields */}
-              <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            placeholder="John" 
-                            className="pl-10"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            placeholder="Doe" 
-                            className="pl-10"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-
-              {/* Company Name */}
-              <motion.div variants={itemVariants}>
-                <FormField
-                  control={form.control}
-                  name="companyName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            placeholder="Acme Corporation" 
-                            className="pl-10"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormDescription>
-                        Your official company or business name
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-
-              {/* Email Field */}
-              <motion.div variants={itemVariants}>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company Email</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            type="email" 
-                            placeholder="contact@acme.com"
-                            className="pl-10"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormDescription>
-                        Official company email address
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-
-              {/* Password Fields */}
-              <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            type="password" 
-                            placeholder="••••••••" 
-                            className="pl-10"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            type="password" 
-                            placeholder="••••••••"
-                            className="pl-10"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-
-              {/* Submit Button */}
-              <motion.div variants={itemVariants} className="pt-2">
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  size="lg"
-                  disabled={signupMutation.isPending}
-                >
-                  {signupMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    <>
-                      <Building2 className="mr-2 h-4 w-4" />
-                      Create Vendor Account
-                    </>
-                  )}
-                </Button>
-              </motion.div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <GenericForm
+      title="Vendor Signup"
+      description="Register your company to participate in GUC events"
+      icon={<Building2 className="h-6 w-6 text-primary" />}
+      fields={fields}
+      schema={vendorSignupSchema}
+      onSubmit={handleSubmit}
+      defaultValues={{
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        companyName: '',
+      }}
+      submitButtonText="Create Vendor Account"
+      submitButtonIcon={<Building2 className="h-4 w-4" />}
+      isLoading={signupMutation.isPending}
+      columns={2}
+      gridGap={3}
+      formSpacing={3}
+      conditionalAlerts={[
+        {
+          condition: () => true, // Always show for vendor signup
+          variant: 'info',
+          icon: <Briefcase className="h-5 w-5" />,
+          title: "What's next?",
+          message: "After registration, you'll be able to upload your tax card and logo, then apply to participate in bazaars and booth setups.",
+        },
+      ]}
+    />
   );
 }

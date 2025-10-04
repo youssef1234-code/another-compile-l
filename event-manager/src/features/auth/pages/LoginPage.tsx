@@ -69,6 +69,15 @@ export function LoginPage() {
               type: 'password',
               placeholder: '••••••••',
               icon: <Lock className="h-4 w-4" />,
+              helperText: (
+                <button
+                  type="button"
+                  onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
+                  className="text-sm text-neutral-600 hover:text-neutral-900 underline-offset-4 hover:underline"
+                >
+                  Forgot password?
+                </button>
+              ),
             },
           ]}
           onSubmit={handleSubmit}

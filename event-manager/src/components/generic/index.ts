@@ -19,6 +19,17 @@ export type { BadgeVariant } from './StatusBadge';
 export { GenericDataTable } from './GenericDataTable';
 export type { GenericDataTableProps, FilterConfig } from './GenericDataTable';
 
+export { AvatarPicker } from './AvatarPicker';
+export type { AvatarPickerProps } from './AvatarPicker';
+
+
+export { SortableHeader, createSortableColumn } from './SortableHeader';
+
 export { GenericForm } from './GenericForm';
-export type { GenericFormProps, FormFieldConfig, FieldType } from './GenericForm';
+export type { 
+  GenericFormProps, 
+  FormFieldConfig, 
+  FieldType,
+  ConditionalAlert 
+} from './GenericForm';
 

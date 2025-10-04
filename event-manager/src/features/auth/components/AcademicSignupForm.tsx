@@ -1,6 +1,8 @@
 /**
  * Academic Signup Form Component
  * 
+ * Refactored to use GenericForm for consistent UI/UX
+ * 
  * Features:
  * - React Hook Form with Zod validation
  * - Framer Motion animations
@@ -8,57 +10,13 @@
  * - Role-based conditional rendering
  * - Toast notifications
  * - Loading states with animations
- * 
- * Design Patterns:
- * - Controlled Component Pattern
- * - Custom Hook Pattern
- * - Presenter Pattern
  */
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
-import { Loader2, GraduationCap, UserCheck, Mail, Lock, User, IdCard } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.4,
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { opacity: 1, x: 0 }
-};
+import { GraduationCap, UserCheck, Mail, Lock, User, IdCard } from 'lucide-react';
+import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
 
 // Zod Schema
 const academicSignupSchema = z.object({
@@ -88,26 +46,13 @@ const academicSignupSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type AcademicSignupForm = z.infer<typeof academicSignupSchema>;
+type AcademicSignupFormData = z.infer<typeof academicSignupSchema>;
 
 interface AcademicSignupFormProps {
   onSuccess?: () => void;
 }
 
 export function AcademicSignupForm({ onSuccess }: AcademicSignupFormProps) {
-  const form = useForm<AcademicSignupForm>({
-    resolver: zodResolver(academicSignupSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-      confirmPassword: '',
-      firstName: '',
-      lastName: '',
-      studentId: '',
-      role: 'STUDENT'
-    }
-  });
-
   const signupMutation = trpc.auth.signupAcademic.useMutation({
     onSuccess: (data) => {
       toast.success(data.message, {
@@ -122,7 +67,6 @@ export function AcademicSignupForm({ onSuccess }: AcademicSignupFormProps) {
         });
       }
       
-      form.reset();
       onSuccess?.();
     },
     onError: (error) => {
@@ -132,7 +76,7 @@ export function AcademicSignupForm({ onSuccess }: AcademicSignupFormProps) {
     }
   });
 
-  const onSubmit = (data: AcademicSignupForm) => {
+  const handleSubmit = (data: AcademicSignupFormData) => {
     signupMutation.mutate({
       email: data.email,
       password: data.password,
@@ -143,259 +87,98 @@ export function AcademicSignupForm({ onSuccess }: AcademicSignupFormProps) {
     });
   };
 
-  const selectedRole = form.watch('role');
-  const requiresApproval = selectedRole && ['STAFF', 'TA', 'PROFESSOR'].includes(selectedRole);
+  const fields: FormFieldConfig[] = [
+    {
+      name: 'firstName',
+      label: 'First Name',
+      type: 'text',
+      placeholder: 'John',
+      icon: <User className="h-4 w-4" />,
+    },
+    {
+      name: 'lastName',
+      label: 'Last Name',
+      type: 'text',
+      placeholder: 'Doe',
+      icon: <User className="h-4 w-4" />,
+    },
+    {
+      name: 'email',
+      label: 'GUC Email',
+      type: 'email',
+      placeholder: 'john.doe@student.guc.edu.eg',
+      description: 'Use your official GUC email address',
+      icon: <Mail className="h-4 w-4" />,
+      colSpan: 2,
+    },
+    {
+      name: 'studentId',
+      label: 'Student/Staff ID',
+      type: 'text',
+      placeholder: '12345',
+      icon: <IdCard className="h-4 w-4" />,
+    },
+    {
+      name: 'role',
+      label: 'Role',
+      type: 'select',
+      placeholder: 'Select your role',
+      options: [
+        { value: 'STUDENT', label: 'Student' },
+        { value: 'STAFF', label: 'Staff' },
+        { value: 'TA', label: 'Teaching Assistant' },
+        { value: 'PROFESSOR', label: 'Professor' },
+      ],
+    },
+    {
+      name: 'password',
+      label: 'Password',
+      type: 'password',
+      placeholder: '••••••••',
+      icon: <Lock className="h-4 w-4" />,
+    },
+    {
+      name: 'confirmPassword',
+      label: 'Confirm Password',
+      type: 'password',
+      placeholder: '••••••••',
+      icon: <Lock className="h-4 w-4" />,
+    },
+  ];
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <Card className="border-0 shadow-none">
-        <CardHeader className="space-y-1 pb-4">
-          <motion.div variants={itemVariants} className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <GraduationCap className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle className="text-2xl font-bold">Academic Signup</CardTitle>
-          </motion.div>
-          <motion.div variants={itemVariants}>
-            <CardDescription>
-              Create your account using your GUC email address
-            </CardDescription>
-          </motion.div>
-          
-          {requiresApproval && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-3"
-            >
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-                <UserCheck className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                <div className="text-sm text-blue-800 dark:text-blue-200">
-                  <p className="font-medium">Admin approval required</p>
-                  <p className="text-blue-700 dark:text-blue-300 mt-1">
-                    Staff, TA, and Professor accounts require verification by an administrator before activation.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </CardHeader>
-
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-              {/* Name Fields */}
-              <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            placeholder="John" 
-                            className="pl-10 w-full"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <div className="min-h-[20px]">
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            placeholder="Doe" 
-                            className="pl-10 w-full"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <div className="min-h-[20px]">
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-
-              {/* Email Field */}
-              <motion.div variants={itemVariants}>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>GUC Email</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            type="email" 
-                            placeholder="john.doe@student.guc.edu.eg"
-                            className="pl-10 w-full"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormDescription>
-                        Use your official GUC email address
-                      </FormDescription>
-                      <div className="min-h-[20px]">
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-
-              {/* Student/Staff ID and Role */}
-              <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="studentId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Student/Staff ID</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <IdCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            placeholder="12345" 
-                            className="pl-10 w-full"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <div className="min-h-[20px]">
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select your role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="STUDENT">Student</SelectItem>
-                          <SelectItem value="STAFF">Staff</SelectItem>
-                          <SelectItem value="TA">Teaching Assistant</SelectItem>
-                          <SelectItem value="PROFESSOR">Professor</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="min-h-[20px]">
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-
-              {/* Password Fields */}
-              <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            type="password" 
-                            placeholder="••••••••" 
-                            className="pl-10 w-full"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <div className="min-h-[20px]">
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            type="password" 
-                            placeholder="••••••••"
-                            className="pl-10 w-full"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <div className="min-h-[20px]">
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-
-              {/* Submit Button */}
-              <motion.div variants={itemVariants} className="pt-1">
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  size="lg"
-                  disabled={signupMutation.isPending}
-                >
-                  {signupMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    <>
-                      <GraduationCap className="mr-2 h-4 w-4" />
-                      Create Account
-                    </>
-                  )}
-                </Button>
-              </motion.div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <GenericForm
+      title="Academic Signup"
+      description="Create your account using your GUC email address"
+      icon={<GraduationCap className="h-6 w-6 text-primary" />}
+      fields={fields}
+      schema={academicSignupSchema}
+      onSubmit={handleSubmit}
+      defaultValues={{
+        email: '',
+        password: '',
+        confirmPassword: '',
+        firstName: '',
+        lastName: '',
+        studentId: '',
+        role: 'STUDENT',
+      }}
+      submitButtonText="Create Account"
+      submitButtonIcon={<GraduationCap className="h-4 w-4" />}
+      isLoading={signupMutation.isPending}
+      columns={2}
+      gridGap={3}
+      formSpacing={3}
+      conditionalAlerts={[
+        {
+          condition: (values) => 
+            values.role && ['STAFF', 'TA', 'PROFESSOR'].includes(values.role),
+          variant: 'info',
+          icon: <UserCheck className="h-5 w-5" />,
+          title: 'Admin approval required',
+          message: 'Staff, TA, and Professor accounts require verification by an administrator before activation.',
+        },
+      ]}
+    />
   );
 }

@@ -1,13 +1,108 @@
-import { eventRepository } from '../repositories/event.repository';
+import { EventRepository, eventRepository } from '../repositories/event.repository';
+import { BaseService } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IEvent } from '../models/event.model';
+import type { FilterQuery } from 'mongoose';
 
 /**
  * Service Layer for Events
+ * Extends BaseService for common business logic
  * Implements business logic for event management
  * Design Pattern: Service Layer + Repository Pattern
  */
-export class EventService {
+export class EventService extends BaseService<IEvent, EventRepository> {
+  constructor(repository: EventRepository) {
+    super(repository);
+  }
+
+  /**
+   * Get entity name for error messages
+   */
+  protected getEntityName(): string {
+    return 'Event';
+  }
+
+  /**
+   * Override findById to ensure non-null return
+   */
+  async findById(id: string, populate?: string | string[]): Promise<IEvent> {
+    const event = await super.findById(id, populate);
+    if (!event) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Event not found'
+      });
+    }
+    return event;
+  }
+
+  /**
+   * Validate before create
+   * Business Rule: Check event date validations
+   */
+  protected async validateCreate(data: Partial<IEvent>): Promise<void> {
+    if (data.startDate && data.endDate && data.startDate > data.endDate) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Start date must be before end date'
+      });
+    }
+
+    if (data.registrationDeadline && data.startDate && data.registrationDeadline > data.startDate) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Registration deadline must be before start date'
+      });
+    }
+
+    if (data.capacity && data.capacity < 0) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Capacity must be a positive number'
+      });
+    }
+  }
+
+  /**
+   * Validate before update
+   */
+  protected async validateUpdate(
+    _id: string,
+    updateData: Partial<IEvent>,
+    existing: IEvent
+  ): Promise<void> {
+    const startDate = updateData.startDate || existing.startDate;
+    const endDate = updateData.endDate || existing.endDate;
+    const registrationDeadline = updateData.registrationDeadline || existing.registrationDeadline;
+
+    if (startDate && endDate && startDate > endDate) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Start date must be before end date'
+      });
+    }
+
+    if (registrationDeadline && startDate && registrationDeadline > startDate) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Registration deadline must be before start date'
+      });
+    }
+  }
+
+  /**
+   * Validate before delete
+   */
+  protected async validateDelete(_id: string, existing: IEvent): Promise<void> {
+    // Check if event has started
+    if (existing.startDate < new Date()) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Cannot delete an event that has already started'
+      });
+    }
+  }
+
   /**
    * Get all upcoming events with search and filters
    * Business Rule: Only show non-archived events by default
@@ -33,7 +128,7 @@ export class EventService {
     const skip = (page - 1) * limit;
 
     // Use advanced search from repository
-    const { events, total } = await eventRepository.advancedSearch({
+    const { events, total } = await this.repository.advancedSearch({
       query: params.search,
       type: params.type,
       location: params.location,
@@ -71,8 +166,8 @@ export class EventService {
     const limit = options.limit || 10;
     const skip = (page - 1) * limit;
 
-    const events = await eventRepository.search(query, { skip, limit });
-    const total = (await eventRepository.search(query)).length;
+    const events = await this.repository.search(query, { skip, limit });
+    const total = (await this.repository.search(query)).length;
 
     return {
       events: events.map(event => this.formatEvent(event)),
@@ -84,14 +179,7 @@ export class EventService {
    * Get event by ID
    */
   async getEventById(id: string): Promise<any> {
-    const event = await eventRepository.findById(id);
-    if (!event) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Event not found'
-      });
-    }
-
+    const event = await this.findById(id);
     return this.formatEvent(event);
   }
 
@@ -109,16 +197,30 @@ export class EventService {
     const limit = options.limit || 10;
     const skip = (page - 1) * limit;
 
-    const events = await eventRepository.findUpcoming({ skip, limit });
-    const total = await eventRepository.count({
+    const events = await this.repository.findUpcoming({ skip, limit });
+    const total = await this.repository.count({
       isArchived: false,
       startDate: { $gte: new Date() }
-    });
+    } as FilterQuery<IEvent>);
 
     return {
       events: events.map(event => this.formatEvent(event)),
       total
     };
+  }
+
+  /**
+   * Archive event (soft delete alternative)
+   */
+  async archiveEvent(id: string): Promise<IEvent> {
+    const event = await this.repository.archive(id);
+    if (!event) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Event not found'
+      });
+    }
+    return event;
   }
 
   /**
@@ -130,7 +232,47 @@ export class EventService {
     past: number;
     byType: Record<string, number>;
   }> {
-    return eventRepository.getStatistics();
+    return this.repository.getStatistics();
+  }
+
+  /**
+   * Get events by type
+   */
+  async getEventsByType(type: string, options: {
+    page?: number;
+    limit?: number;
+  } = {}): Promise<{ events: any[]; total: number }> {
+    const page = options.page || 1;
+    const limit = options.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const events = await this.repository.findByType(type, { skip, limit });
+    const total = await this.repository.count({ type, isArchived: false } as FilterQuery<IEvent>);
+
+    return {
+      events: events.map(event => this.formatEvent(event)),
+      total
+    };
+  }
+
+  /**
+   * Get events by location
+   */
+  async getEventsByLocation(location: string, options: {
+    page?: number;
+    limit?: number;
+  } = {}): Promise<{ events: any[]; total: number }> {
+    const page = options.page || 1;
+    const limit = options.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const events = await this.repository.findByLocation(location, { skip, limit });
+    const total = await this.repository.count({ location, isArchived: false } as FilterQuery<IEvent>);
+
+    return {
+      events: events.map(event => this.formatEvent(event)),
+      total
+    };
   }
 
   /**
@@ -173,4 +315,4 @@ export class EventService {
 }
 
 // Singleton instance
-export const eventService = new EventService();
+export const eventService = new EventService(eventRepository);

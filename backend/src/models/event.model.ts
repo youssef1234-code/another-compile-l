@@ -6,10 +6,11 @@
  * @module models/event.model
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import { EventType, EventStatus, FundingSource, Faculty, GymSessionType } from '@event-manager/shared';
+import { type IBaseDocument, createBaseSchema } from './base.model';
 
-export interface IEvent extends Document {
+export interface IEvent extends IBaseDocument {
   name: string;
   type: keyof typeof EventType;
   description: string;
@@ -21,7 +22,6 @@ export interface IEvent extends Document {
   capacity?: number;
   registeredCount: number;
   registrationDeadline?: Date;
-  createdBy: mongoose.Types.ObjectId;
   restrictedTo?: string[];
   
   // Workshop specific
@@ -47,12 +47,9 @@ export interface IEvent extends Document {
   // Ratings
   averageRating?: number;
   totalRatings?: number;
-  
-  createdAt: Date;
-  updatedAt: Date;
 }
 
-const eventSchema = new Schema<IEvent>(
+const eventSchema = createBaseSchema<IEvent>(
   {
     name: {
       type: String,
@@ -96,11 +93,6 @@ const eventSchema = new Schema<IEvent>(
       default: 0,
     },
     registrationDeadline: Date,
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
     restrictedTo: [{
       type: String,
       enum: ['STUDENT', 'STAFF', 'TA', 'PROFESSOR'],
@@ -157,7 +149,6 @@ const eventSchema = new Schema<IEvent>(
     },
   },
   {
-    timestamps: true,
     toJSON: {
       transform: (_doc: any, ret: any) => {
         ret.id = ret._id.toString();
@@ -177,3 +168,4 @@ eventSchema.index({ createdBy: 1 });
 eventSchema.index({ name: 'text', description: 'text' });
 
 export const Event = mongoose.model<IEvent>('Event', eventSchema);
+

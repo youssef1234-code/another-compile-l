@@ -20,6 +20,18 @@ const app = express();
 // MIDDLEWARE
 // ============================================================================
 
+// HTTPS enforcement in production
+if (config.nodeEnv === 'production') {
+  app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // Check if request is via HTTPS
+    const proto = req.header('x-forwarded-proto');
+    if (proto !== 'https') {
+      return res.redirect(301, `https://${req.header('host')}${req.url}`);
+    }
+    next();
+  });
+}
+
 // CORS
 app.use(
   cors({

@@ -4,9 +4,10 @@
  * @module models/registration.model
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
+import { IBaseDocument, createBaseSchema } from './base.model';
 
-export interface IEventRegistration extends Document {
+export interface IEventRegistration extends IBaseDocument {
   event: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
   paymentStatus: 'PENDING' | 'COMPLETED' | 'REFUNDED' | 'FAILED';
@@ -15,11 +16,9 @@ export interface IEventRegistration extends Document {
   stripePaymentIntentId?: string;
   certificateIssued: boolean;
   attended: boolean;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
-const registrationSchema = new Schema<IEventRegistration>(
+const registrationSchema = createBaseSchema<IEventRegistration>(
   {
     event: {
       type: Schema.Types.ObjectId,
@@ -55,7 +54,6 @@ const registrationSchema = new Schema<IEventRegistration>(
     },
   },
   {
-    timestamps: true,
     toJSON: {
       transform: (_doc: any, ret: any) => {
         ret.id = ret._id.toString();
@@ -71,3 +69,4 @@ const registrationSchema = new Schema<IEventRegistration>(
 registrationSchema.index({ event: 1, user: 1 }, { unique: true });
 
 export const EventRegistration = mongoose.model<IEventRegistration>('EventRegistration', registrationSchema);
+

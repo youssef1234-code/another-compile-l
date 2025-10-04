@@ -8,6 +8,9 @@
 
 import { z } from 'zod';
 
+// Export avatar utilities
+export * from './avatars';
+
 // ============================================================================
 // ENUMS
 // ============================================================================
@@ -29,9 +32,18 @@ export const UserStatus = {
   INACTIVE: 'INACTIVE',
   BLOCKED: 'BLOCKED',
   PENDING_VERIFICATION: 'PENDING_VERIFICATION',
+  PENDING_APPROVAL: 'PENDING_APPROVAL', // For vendors awaiting admin approval
 } as const;
 
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
+
+export const VendorApprovalStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const;
+
+export type VendorApprovalStatus = (typeof VendorApprovalStatus)[keyof typeof VendorApprovalStatus];
 
 export const EventType = {
   WORKSHOP: 'WORKSHOP',
@@ -124,20 +136,74 @@ export const NotificationType = {
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
 
 // ============================================================================
+// REUSABLE VALIDATION SCHEMAS (Define first to avoid forward references)
+// ============================================================================
+
+/**
+ * Email validation with GUC domain checking
+ * Use this for academic users (students, staff, TAs, professors)
+ */
+export const GUCEmailSchema = z
+  .string()
+  .email('Invalid email address')
+  .refine(
+    (email) => email.endsWith('@guc.edu.eg') || email.endsWith('@student.guc.edu.eg'),
+    { message: 'Must use a GUC email address (@guc.edu.eg or @student.guc.edu.eg)' }
+  );
+
+/**
+ * Standard email validation (no domain restriction)
+ * Use this for vendors and external users
+ */
+export const EmailSchema = z
+  .string()
+  .email('Invalid email address');
+
+/**
+ * Password validation with strength requirements
+ * Requires: 8+ chars, uppercase, lowercase, number, special char
+ */
+export const StrongPasswordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+
+/**
+ * Basic password validation (for login, less strict)
+ */
+export const PasswordSchema = z
+  .string()
+  .min(1, 'Password is required');
+
+/**
+ * GUC ID validation (format: XX-XXXX or XX-XXXXX)
+ */
+export const GUCIdSchema = z
+  .string()
+  .regex(/^\d{2}-\d{4,5}$/, 'Invalid GUC ID format (e.g., 43-1234)');
+
+/**
+ * Phone number validation (Egyptian format)
+ */
+export const PhoneNumberSchema = z
+  .string()
+  .regex(/^(\+20)?1[0125]\d{8}$/, 'Invalid Egyptian phone number');
+
+/**
+ * URL validation
+ */
+export const URLSchema = z.string().url('Invalid URL format');
+
+// ============================================================================
 // USER SCHEMAS
 // ============================================================================
 
 export const SignupAcademicSchema = z.object({
-  email: z.string().email('Invalid email address')
-    .refine(
-      (email: string) => email.endsWith('@guc.edu.eg') || email.endsWith('@student.guc.edu.eg'),
-      'Must be a valid GUC email address'
-    ),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
+  email: GUCEmailSchema, // Use reusable schema
+  password: StrongPasswordSchema, // Use reusable schema
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   role: z.enum(['STUDENT', 'STAFF', 'TA', 'PROFESSOR']),
@@ -147,22 +213,28 @@ export const SignupAcademicSchema = z.object({
 export type SignupAcademicInput = z.infer<typeof SignupAcademicSchema>;
 
 export const SignupVendorSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
+  email: EmailSchema, // Regular email (not GUC)
+  password: StrongPasswordSchema, // Use reusable schema
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   companyName: z.string().min(2, 'Company name must be at least 2 characters'),
+  taxCardImage: z.string().optional(), // Base64 image - TODO: Make required in Sprint 2
+  logoImage: z.string().optional(), // Base64 image (optional)
 });
 
 export type SignupVendorInput = z.infer<typeof SignupVendorSchema>;
 
+export const VendorApprovalSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  status: z.enum(['APPROVED', 'REJECTED']),
+  rejectionReason: z.string().optional(),
+});
+
+export type VendorApprovalInput = z.infer<typeof VendorApprovalSchema>;
+
 export const LoginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: EmailSchema,
+  password: PasswordSchema,
 });
 
 export type LoginInput = z.infer<typeof LoginSchema>;
@@ -172,19 +244,15 @@ export const UpdateUserSchema = z.object({
   lastName: z.string().min(2).optional(),
   companyName: z.string().min(2).optional(),
   bio: z.string().max(500).optional(),
-  phone: z.string().optional(),
-  avatar: z.string().url().optional(),
+  phone: PhoneNumberSchema.optional(),
+  avatar: URLSchema.optional(),
 });
 
 export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
 
 export const ChangePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
+  currentPassword: PasswordSchema,
+  newPassword: StrongPasswordSchema,
 });
 
 export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
@@ -351,10 +419,13 @@ export interface User {
   roleVerifiedByAdmin: boolean;
   isVerified: boolean;
   gucId?: string;
+  studentId?: string;
+  staffId?: string;
   companyName?: string;
   bio?: string;
   phone?: string;
   avatar?: string;
+  avatarType?: 'upload' | 'preset';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -446,4 +517,124 @@ export interface ErrorResponse {
   error: string;
   message: string;
   statusCode: number;
+}
+
+// ============================================================================
+// VALIDATION HELPERS & COMMON PATTERNS
+// ============================================================================
+
+// Date range validation helper
+export const createDateRangeSchema = (fieldName = 'date') =>
+  z.object({
+    startDate: z.coerce.date(),
+    endDate: z.coerce.date(),
+  }).refine(
+    (data) => data.endDate > data.startDate,
+    {
+      message: `End ${fieldName} must be after start ${fieldName}`,
+      path: ['endDate'],
+    }
+  );
+
+// Price range validation helper
+export const createPriceRangeSchema = () =>
+  z.object({
+    minPrice: z.number().nonnegative('Price cannot be negative').optional(),
+    maxPrice: z.number().nonnegative('Price cannot be negative').optional(),
+  }).refine(
+    (data) => {
+      if (data.minPrice !== undefined && data.maxPrice !== undefined) {
+        return data.maxPrice >= data.minPrice;
+      }
+      return true;
+    },
+    {
+      message: 'Maximum price must be greater than or equal to minimum price',
+      path: ['maxPrice'],
+    }
+  );
+
+// Pagination params schema (reusable)
+export const PaginationSchema = z.object({
+  page: z.number().int().positive().default(1),
+  limit: z.number().int().positive().max(100).default(20),
+});
+
+// Sort params schema (reusable)
+export const SortSchema = z.object({
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+// Search params schema (reusable)
+export const SearchSchema = z.object({
+  search: z.string().trim().optional(),
+});
+
+// ID param schema (reusable)
+export const IdSchema = z.object({
+  id: z.string().min(1, 'ID is required'),
+});
+
+// Bulk IDs schema (reusable)
+export const BulkIdsSchema = z.object({
+  ids: z.array(z.string()).min(1, 'At least one ID is required'),
+});
+
+// ============================================================================
+// VALIDATION ERROR FORMATTING
+// ============================================================================
+
+/**
+ * Format Zod validation errors into a user-friendly format
+ */
+export function formatZodError(error: z.ZodError): Record<string, string> {
+  const formatted: Record<string, string> = {};
+  
+  error.errors.forEach((err) => {
+    const path = err.path.join('.');
+    formatted[path] = err.message;
+  });
+  
+  return formatted;
+}
+
+/**
+ * Validate data against a schema and return formatted errors
+ */
+export function validateSchema<T>(
+  schema: z.ZodSchema<T>,
+  data: unknown
+): { success: true; data: T } | { success: false; errors: Record<string, string> } {
+  const result = schema.safeParse(data);
+  
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  
+  return { success: false, errors: formatZodError(result.error) };
+}
+
+// ============================================================================
+// TYPE GUARDS
+// ============================================================================
+
+export function isGUCEmail(email: string): boolean {
+  return email.endsWith('@guc.edu.eg') || email.endsWith('@student.guc.edu.eg');
+}
+
+export function isStudentEmail(email: string): boolean {
+  return email.endsWith('@student.guc.edu.eg');
+}
+
+export function isStaffEmail(email: string): boolean {
+  return email.endsWith('@guc.edu.eg');
+}
+
+export function isValidGUCId(id: string): boolean {
+  return /^\d{2}-\d{4,5}$/.test(id);
+}
+
+export function isEgyptianPhone(phone: string): boolean {
+  return /^(\+20)?1[0125]\d{8}$/.test(phone);
 }

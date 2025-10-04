@@ -4,25 +4,23 @@
  * @module models/feedback.model
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
+import { IBaseDocument, createBaseSchema } from './base.model';
 
-export interface IRating extends Document {
+export interface IRating extends IBaseDocument {
   event: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
   rating: number;
-  createdAt: Date;
 }
 
-export interface IComment extends Document {
+export interface IComment extends IBaseDocument {
   event: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
   content: string;
   isDeleted: boolean;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
-const ratingSchema = new Schema<IRating>(
+const ratingSchema = createBaseSchema<IRating>(
   {
     event: {
       type: Schema.Types.ObjectId,
@@ -42,7 +40,6 @@ const ratingSchema = new Schema<IRating>(
     },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false },
     toJSON: {
       transform: (_doc: any, ret: any) => {
         ret.id = ret._id.toString();
@@ -54,7 +51,7 @@ const ratingSchema = new Schema<IRating>(
   }
 );
 
-const commentSchema = new Schema<IComment>(
+const commentSchema = createBaseSchema<IComment>(
   {
     event: {
       type: Schema.Types.ObjectId,
@@ -77,7 +74,6 @@ const commentSchema = new Schema<IComment>(
     },
   },
   {
-    timestamps: true,
     toJSON: {
       transform: (_doc: any, ret: any) => {
         ret.id = ret._id.toString();
@@ -95,3 +91,4 @@ commentSchema.index({ event: 1 });
 
 export const Rating = mongoose.model<IRating>('Rating', ratingSchema);
 export const Comment = mongoose.model<IComment>('Comment', commentSchema);
+

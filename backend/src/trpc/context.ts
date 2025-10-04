@@ -6,9 +6,9 @@
  * @module trpc/context
  */
 
-import { CreateExpressContextOptions } from '@trpc/server/adapters/express';
+import { type CreateExpressContextOptions } from '@trpc/server/adapters/express';
 import { verifyAccessToken } from '../utils/auth.util.js';
-import { User, IUser } from '../models/user.model.js';
+import { User, type IUser } from '../models/user.model.js';
 
 /**
  * Create context for each request
