@@ -141,7 +141,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       studentId: data.studentId,
       role: data.role,
       verificationToken,
-      isVerified: data.role === 'STUDENT', // Students auto-verified
+      isVerified: false, // All users need email verification
       roleVerifiedByAdmin: data.role === 'STUDENT', // Students don't need admin approval
       isBlocked: false,
       status: 'PENDING_VERIFICATION'
@@ -270,6 +270,66 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
 
     return {
       message: 'Email verified successfully! You can now log in.',
+    };
+  }
+
+  /**
+   * Resend verification email
+   * Business Rule: 5-minute cooldown between resend attempts
+   */
+  async resendVerificationEmail(email: string): Promise<{ message: string; canResendAfter?: Date }> {
+    const user = await userRepository.findByEmail(email);
+
+    if (!user) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'No account found with this email',
+      });
+    }
+
+    // Check if already verified
+    if (user.isVerified) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Your email is already verified. Please try logging in.',
+      });
+    }
+
+    // Check cooldown (5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const lastEmailSent = (user as any).verificationEmailSentAt;
+
+    if (lastEmailSent && new Date(lastEmailSent) > fiveMinutesAgo) {
+      const canResendAfter = new Date(new Date(lastEmailSent).getTime() + 5 * 60 * 1000);
+      const waitTimeSeconds = Math.ceil((canResendAfter.getTime() - Date.now()) / 1000);
+      
+      throw new TRPCError({
+        code: 'TOO_MANY_REQUESTS',
+        message: `Please wait ${waitTimeSeconds} seconds before requesting another verification email`,
+      });
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
+    // Update user with new token and timestamp
+    await this.update((user._id as mongoose.Types.ObjectId).toString(), {
+      verificationToken,
+      verificationEmailSentAt: new Date(),
+    } as any);
+
+    // Send verification email
+    const verificationUrl = `${config.clientUrl}/verify-email?token=${verificationToken}`;
+    await mailService.sendVerificationEmail(user.email, {
+      name: `${user.firstName} ${user.lastName}`,
+      verificationUrl,
+      expiresIn: '24 hours',
+    });
+
+    console.log(`✓ Verification email resent to ${user.email}`);
+
+    return {
+      message: 'Verification email sent! Please check your inbox.',
     };
   }
 

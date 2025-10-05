@@ -22,6 +22,7 @@ export interface IUser extends IBaseDocument {
   roleVerifiedByAdmin: boolean;
   verificationToken?: string;
   verificationTokenExpires?: Date;
+  verificationEmailSentAt?: Date;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
   // Note: Refresh tokens are NOT stored in database for security
@@ -99,6 +100,7 @@ const userSchema = createBaseSchema<IUser>(
     },
     verificationToken: String,
     verificationTokenExpires: Date,
+    verificationEmailSentAt: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
     

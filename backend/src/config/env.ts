@@ -43,6 +43,10 @@ export const config = {
   // Other
   bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '10', 10),
   verificationTokenExpires: process.env.VERIFICATION_TOKEN_EXPIRES || '24h',
+  
+  // Default Admin Account
+  adminEmail: process.env.ADMIN_EMAIL || 'admin@email.com',
+  adminPassword: process.env.ADMIN_PASSWORD || 'admin',
 } as const;
 
 export const isProduction = config.nodeEnv === 'production';

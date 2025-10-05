@@ -4,6 +4,7 @@
  * Clean login using GenericForm with LoginSchema
  */
 
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { GenericForm } from '@/components/generic';
@@ -16,6 +17,7 @@ import { Mail, Lock } from 'lucide-react';
 export function LoginPage() {
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
+  const [currentEmail, setCurrentEmail] = useState(''); // Store email for error handling
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
@@ -31,7 +33,24 @@ export function LoginPage() {
       });
       navigate(ROUTES.DASHBOARD);
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.log('Login error:', error); // Debug log
+      
+      // Check if error is due to unverified email
+      // tRPC error structure: error.data.code and error.message
+      if (error.message?.includes('verify your email')) {
+        // Extract email from login input
+        toast.error('Please verify your email first', {
+          icon: '📧',
+          duration: 5000,
+        });
+        // Redirect to verification page with the email from the form
+        navigate(`/request-verification?email=${encodeURIComponent(currentEmail)}`, {
+          state: { fromLogin: true } // Mark as coming from login redirect
+        });
+        return;
+      }
+
       toast.error(error.message || 'Login failed', {
         icon: '❌',
         duration: 4000,
@@ -45,6 +64,7 @@ export function LoginPage() {
   });
 
   const handleSubmit = async (data: LoginInput) => {
+    setCurrentEmail(data.email); // Store email for error handling
     loginMutation.mutate(data);
   };
 

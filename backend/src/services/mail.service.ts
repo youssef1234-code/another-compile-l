@@ -502,6 +502,7 @@ export class MailgunService extends BaseMailService {
     this.mailgun = mg.client({
       username: 'api',
       key: config.mailgun.apiKey,
+      url: 'https://api.eu.mailgun.net'
     });
     
     this.domain = config.mailgun.domain;

@@ -79,6 +79,17 @@ const authRoutes = {
     }),
 
   /**
+   * Resend verification email
+   * Business Rule: 5-minute cooldown between requests
+   */
+  resendVerificationEmail: publicProcedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ input }) => {
+      const result = await userService.resendVerificationEmail(input.email);
+      return result;
+    }),
+
+  /**
    * Login
    */
   login: publicProcedure
@@ -108,6 +119,10 @@ const authRoutes = {
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Please verify your email before logging in',
+          cause: { 
+            email: user.email,
+            requiresVerification: true 
+          },
         });
       }
 
@@ -471,6 +486,7 @@ export const authRouter = router({
   signupAcademic: authRoutes.signupAcademic,
   signupVendor: authRoutes.signupVendor,
   verifyEmail: authRoutes.verifyEmail,
+  resendVerificationEmail: authRoutes.resendVerificationEmail,
   login: authRoutes.login,
   me: authRoutes.me,
   refreshToken: authRoutes.refreshToken,

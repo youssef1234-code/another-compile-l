@@ -6,12 +6,14 @@
  */
 
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Users, DollarSign, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, ArrowRight, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/lib/constants';
+import { trpc } from '@/lib/trpc';
 
 type EventType = 'WORKSHOP' | 'TRIP' | 'BAZAAR' | 'CONFERENCE' | 'GYM_SESSION' | 'OTHER';
 type EventLocation = 'ON_CAMPUS' | 'OFF_CAMPUS';
@@ -57,8 +59,36 @@ const cardVariants = {
 };
 
 export function EventCard({ event, index = 0 }: EventCardProps) {
+  const utils = trpc.useUtils();
   const isFull = event.registeredCount >= event.capacity;
   const availableSpots = event.capacity - event.registeredCount;
+
+  // Check if user is already registered
+  const { data: registrationStatus } = trpc.events.isRegistered.useQuery(
+    { eventId: event.id },
+    { enabled: !event.isArchived }
+  );
+
+  const isRegistered = registrationStatus?.isRegistered || false;
+
+  // Register mutation
+  const registerMutation = trpc.events.registerForEvent.useMutation({
+    onSuccess: () => {
+      toast.success('Successfully registered for event!');
+      utils.events.getEvents.invalidate();
+      utils.events.isRegistered.invalidate();
+      utils.events.getMyRegistrations.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to register for event');
+    },
+  });
+
+  const handleRegister = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    registerMutation.mutate({ eventId: event.id });
+  };
 
   return (
     <motion.div
@@ -155,10 +185,28 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
           </div>
         </CardContent>
 
-        <CardFooter>
-          <Button asChild className="w-full group/button" disabled={event.isArchived}>
+        <CardFooter className="gap-2">
+          {!event.isArchived && !isRegistered && (
+            <Button 
+              onClick={handleRegister}
+              disabled={isFull || registerMutation.isPending}
+              className="flex-1"
+              variant={isFull ? "outline" : "default"}
+            >
+              {registerMutation.isPending ? 'Registering...' : isFull ? 'Full' : 'Register'}
+            </Button>
+          )}
+          
+          {isRegistered && (
+            <Button disabled className="flex-1" variant="outline">
+              <Check className="mr-2 h-4 w-4" />
+              Registered
+            </Button>
+          )}
+          
+          <Button asChild variant="outline" className="flex-1 group/button">
             <Link to={`${ROUTES.EVENTS}/${event.id}`}>
-              View Details
+              Details
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/button:translate-x-1" />
             </Link>
           </Button>

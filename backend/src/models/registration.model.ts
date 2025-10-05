@@ -5,7 +5,8 @@
  */
 
 import mongoose, { Schema } from 'mongoose';
-import { IBaseDocument, createBaseSchema } from './base.model';
+import type { IBaseDocument } from './base.model';
+import { createBaseSchema } from './base.model';
 
 export interface IEventRegistration extends IBaseDocument {
   event: mongoose.Types.ObjectId;

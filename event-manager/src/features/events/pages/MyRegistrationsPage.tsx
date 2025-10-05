@@ -64,14 +64,45 @@ export function MyRegistrationsPage() {
 
   // Fetch user's registrations
   const { data, isLoading } = trpc.events.getMyRegistrations.useQuery(
-    {},
+    {
+      page: 1,
+      limit: 100,
+      status: 'all',
+    },
     {
       staleTime: 30000,
       refetchOnWindowFocus: false,
     }
   );
 
-  const registrations = (data?.registrations || []) as Registration[];
+  // Transform backend data to frontend format
+  const registrations: Registration[] = useMemo(() => {
+    if (!data?.registrations) return [];
+    
+    return data.registrations.map((reg: any) => {
+      const eventStartDate = new Date(reg.event.startDate);
+      const now = new Date();
+      const twoWeeksInMs = 14 * 24 * 60 * 60 * 1000;
+      const timeUntilEvent = eventStartDate.getTime() - now.getTime();
+      
+      return {
+        id: reg._id || reg.id,
+        event: {
+          id: reg.event._id || reg.event.id,
+          name: reg.event.name,
+          type: reg.event.type,
+          location: reg.event.location,
+          startDate: reg.event.startDate,
+          endDate: reg.event.endDate,
+          price: reg.event.price,
+        },
+        registrationDate: reg.createdAt,
+        paymentStatus: reg.paymentStatus,
+        status: reg.isDeleted ? 'CANCELLED' : 'ACTIVE',
+        canCancel: timeUntilEvent >= twoWeeksInMs && !reg.isDeleted,
+      };
+    });
+  }, [data]);
 
   // Stats
   const stats = useMemo(() => {

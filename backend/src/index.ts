@@ -11,6 +11,7 @@ import cors from 'cors';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { config } from './config/env.js';
 import { connectDatabase } from './config/database.js';
+import { runSeeders } from './config/seed.js';
 import { createContext } from './trpc/context.js';
 import { appRouter } from './routers/app.router.js';
 
@@ -91,6 +92,9 @@ const startServer = async () => {
   try {
     // Connect to database
     await connectDatabase();
+    
+    // Run database seeders (create default admin account)
+    await runSeeders();
     
     // Start Express server
     app.listen(config.port, () => {

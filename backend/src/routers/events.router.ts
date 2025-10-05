@@ -14,6 +14,7 @@
 import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router } from '../trpc/trpc';
 import { createSearchSchema } from './base.router';
 import { eventService } from '../services/event.service';
+import { registrationService } from '../services/registration.service';
 import {
   CreateEventSchema,
   UpdateEventSchema,
@@ -165,15 +166,15 @@ const eventRoutes = {
     .input(z.object({
       page: z.number().min(1).optional().default(1),
       limit: z.number().min(1).max(100).optional().default(100),
+      status: z.enum(['upcoming', 'past', 'all']).optional().default('all'),
     }))
-    .query(async ({ input }) => {
-      // Mock data for now - implement actual service method later
-      return {
-        registrations: [],
-        total: 0,
+    .query(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      return registrationService.getMyRegistrations(userId, {
         page: input.page,
-        totalPages: 0,
-      };
+        limit: input.limit,
+        status: input.status,
+      });
     }),
 
   /**
@@ -183,11 +184,13 @@ const eventRoutes = {
     .input(z.object({
       eventId: z.string(),
     }))
-    .mutation(async () => {
-      // Mock implementation - implement actual service method later
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      const registration = await registrationService.registerForEvent(userId, input.eventId);
       return {
         success: true,
-        message: 'Registration successful',
+        message: 'Successfully registered for event',
+        registration,
       };
     }),
 
@@ -198,12 +201,38 @@ const eventRoutes = {
     .input(z.object({
       registrationId: z.string(),
     }))
-    .mutation(async () => {
-      // Mock implementation - implement actual service method later
-      return {
-        success: true,
-        message: 'Registration cancelled successfully',
-      };
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      return registrationService.cancelRegistration(userId, input.registrationId);
+    }),
+
+  /**
+   * Check if user is registered for an event - AUTHENTICATED users only
+   */
+  isRegistered: protectedProcedure
+    .input(z.object({
+      eventId: z.string(),
+    }))
+    .query(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      const isRegistered = await registrationService.isUserRegistered(userId, input.eventId);
+      return { isRegistered };
+    }),
+
+  /**
+   * Get event registrations - EVENT_OFFICE and ADMIN only
+   */
+  getEventRegistrations: eventsOfficeProcedure
+    .input(z.object({
+      eventId: z.string(),
+      page: z.number().min(1).optional().default(1),
+      limit: z.number().min(1).max(100).optional().default(100),
+    }))
+    .query(async ({ input }) => {
+      return registrationService.getEventRegistrations(input.eventId, {
+        page: input.page,
+        limit: input.limit,
+      });
     }),
 };
 

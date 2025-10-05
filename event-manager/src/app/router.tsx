@@ -15,6 +15,7 @@ import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { SignupPage } from '@/features/auth/pages/SignupPage';
 import { SignupVendorPage } from '@/features/auth/pages/SignupVendorPage';
 import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage';
+import { RequestVerificationPage } from '@/features/auth/pages/RequestVerificationPage';
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 
@@ -100,6 +101,10 @@ export const router = createBrowserRouter([
   {
     path: ROUTES.VERIFY_EMAIL,
     element: <VerifyEmailPage />,
+  },
+  {
+    path: '/request-verification',
+    element: <RequestVerificationPage />,
   },
   {
     path: ROUTES.FORGOT_PASSWORD,
