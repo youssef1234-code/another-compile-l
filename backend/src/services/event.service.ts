@@ -356,11 +356,13 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       });
     }
 
-    // Check for overlapping sessions
-    await this.assertNoGymOverlap({
-      startDate: data.startDate as Date,
-      endDate: data.endDate as Date
-    });
+    // different statuses will make this thought much harder to include at this point
+    
+    // // Check for overlapping sessions
+    // await this.assertNoGymOverlap({
+    //   startDate: data.startDate as Date,
+    //   endDate: data.endDate as Date
+    // });
     return this.create(data, options);
   }
 
