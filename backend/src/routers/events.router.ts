@@ -245,7 +245,6 @@ const eventRoutes = {
       description: z.string().optional(),
       sessionType: z.nativeEnum(GymSessionType),
       startDate: z.coerce.date(),
-      endDate: z.coerce.date(),
       capacity: z.number().int().positive(),
       duration: z.number().int().positive(),
     }))
@@ -255,6 +254,7 @@ const eventRoutes = {
         {
           ...input,
           type: 'GYM_SESSION',
+          endDate: new Date(input.startDate.getTime() + input.duration * 60000),
           location: 'Gym',
         },
         { userId }
