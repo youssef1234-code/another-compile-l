@@ -3,6 +3,7 @@ import { BaseService } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IEvent } from '../models/event.model';
 import type { FilterQuery } from 'mongoose';
+import { EventStatus, GymSessionType } from '@event-manager/shared';
 
 /**
  * Service Layer for Events
@@ -312,7 +313,63 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       updatedAt: event.updatedAt
     };
   }
+  // Gym specific functions 
+
+
+ private async assertNoGymOverlap(params: {
+  startDate: Date;
+  endDate: Date;
+}) {
+  const q: FilterQuery<IEvent> = {
+    type: 'GYM_SESSION',
+    status: 'ACTIVE',
+    startDate: { $lt: params.endDate },
+                  endDate: { $gt: params.startDate },
+    isArchived: false
+  };
+  const clash = await this.repository.findOne(q);
+  if (clash) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
+  }
 }
+
+
+  /**
+   * Create a new gym session with overlap validation
+   */
+  async createGymSession(
+    data: Partial<IEvent>,
+    options?: { userId?: string }
+  ): Promise<IEvent> {
+    // Ensure type is GYM_SESSION
+    if (data.type !== 'GYM_SESSION') {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Event type must be GYM_SESSION'
+      });
+    }
+    // Validate sessionType, startDate, endDate
+    if (!data.sessionType || !data.startDate || !data.capacity || !data.duration) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'sessionType, startDate, capacity, and duration are required'
+      });
+    }
+
+    // Check for overlapping sessions
+    await this.assertNoGymOverlap({
+      startDate: data.startDate as Date,
+      endDate: data.endDate as Date
+    });
+    return this.create(data, options);
+  }
+
+
+}
+
+
+
+
 
 // Singleton instance
 export const eventService = new EventService(eventRepository);

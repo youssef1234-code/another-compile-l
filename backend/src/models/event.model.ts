@@ -132,7 +132,7 @@ const eventSchema = createBaseSchema<IEvent>(
     // Gym session specific
     sessionType: {
       type: String,
-      enum: ['YOGA', 'PILATES', 'AEROBICS', 'ZUMBA', 'CROSS_CIRCUIT', 'KICK_BOXING'],
+      enum: GymSessionType,
     },
     duration: Number,
     

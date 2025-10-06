@@ -19,6 +19,7 @@ import {
   CreateEventSchema,
   UpdateEventSchema,
   EventFilterSchema,
+  GymSessionType,
 } from '@event-manager/shared';
 import { z } from 'zod';
 
@@ -233,6 +234,31 @@ const eventRoutes = {
         page: input.page,
         limit: input.limit,
       });
+    }),
+
+    /**
+     * Create a gym session - EVENT_OFFICE and ADMIN only
+     */
+    createGymSession: eventsOfficeProcedure
+    .input(z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      sessionType: z.nativeEnum(GymSessionType),
+      startDate: z.coerce.date(),
+      endDate: z.coerce.date(),
+      capacity: z.number().int().positive(),
+      duration: z.number().int().positive(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      return eventService.createGymSession(
+        {
+          ...input,
+          type: 'GYM_SESSION',
+          location: 'Gym',
+        },
+        { userId }
+      );
     }),
 };
 
