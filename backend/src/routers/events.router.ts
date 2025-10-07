@@ -20,6 +20,8 @@ import {
   UpdateEventSchema,
   EventFilterSchema,
   GymSessionType,
+  EventStatus,
+  createGymSessionSchema,
 } from '@event-manager/shared';
 import { z } from 'zod';
 
@@ -240,14 +242,7 @@ const eventRoutes = {
      * Create a gym session - EVENT_OFFICE and ADMIN only
      */
     createGymSession: eventsOfficeProcedure
-    .input(z.object({
-      name: z.string(),
-      description: z.string().optional(),
-      sessionType: z.nativeEnum(GymSessionType),
-      startDate: z.coerce.date(),
-      capacity: z.number().int().positive(),
-      duration: z.number().int().positive(),
-    }))
+    .input(createGymSessionSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx.user!._id as any).toString();
       return eventService.createGymSession(
@@ -256,6 +251,7 @@ const eventRoutes = {
           type: 'GYM_SESSION',
           endDate: new Date(input.startDate.getTime() + input.duration * 60000),
           location: 'Gym',
+          status: EventStatus.DRAFT,
         },
         { userId }
       );

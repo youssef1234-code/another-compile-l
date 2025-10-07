@@ -302,6 +302,16 @@ export const EventFilterSchema = z.object({
 
 export type EventFilterInput = z.infer<typeof EventFilterSchema>;
 
+export const createGymSessionSchema = z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      sessionType: z.nativeEnum(GymSessionType),
+      startDate: z.coerce.date(),
+      capacity: z.number().int().positive(),
+      duration: z.number().int().positive(),
+});
+export type CreateGymSessionInput = z.infer<typeof createGymSessionSchema>;
+
 // ============================================================================
 // REGISTRATION SCHEMAS
 // ============================================================================
