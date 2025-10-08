@@ -4,7 +4,6 @@
     "module": "ESNext",
     "lib": ["ES2022"],
     "moduleResolution": "bundler",
-    "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
@@ -21,6 +20,6 @@
     "allowSyntheticDefaultImports": true,
     "types": ["node","jest"]
   },
-  "include": ["src", "**/*.test.ts", "**/*.spec.ts"],
+  "include": ["src", "scripts", "**/*.test.ts", "**/*.spec.ts"],
   "exclude": ["node_modules", "dist"]
 }
