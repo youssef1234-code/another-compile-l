@@ -312,6 +312,26 @@ export const createGymSessionSchema = z.object({
 });
 export type CreateGymSessionInput = z.infer<typeof createGymSessionSchema>;
 
+
+export const updateGymSessionSchema = z.object({
+      id: z.string(),
+      startDate: z.coerce.date().optional(),
+      duration: z.number().int().positive().optional(),
+      capacity: z.number().int().positive().optional(),
+      status: z.nativeEnum(EventStatus).optional(),
+      sessionType: z.nativeEnum(GymSessionType).optional(),
+}).refine(
+  (v) =>
+    v.startDate != null ||
+    v.duration != null ||
+    v.capacity != null ||
+    v.status != null ||
+    v.sessionType != null,
+  { message: 'You need to update at least one field' }
+);
+
+export type UpdateGymSessionInput = z.infer<typeof updateGymSessionSchema>;
+
 // ============================================================================
 // REGISTRATION SCHEMAS
 // ============================================================================

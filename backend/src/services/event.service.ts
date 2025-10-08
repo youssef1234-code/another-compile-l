@@ -365,9 +365,55 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     return this.create(data, options);
   }
 
+  
+/**
+ * Update a gym session (allowed fields: startDate, duration)
+ */
+
+async updateGymSession(
+  id: string,
+  patch: { startDate?: Date; duration?: number, capacity?: number, status?: EventStatus, sessionType?: GymSessionType },
+  options?: { userId?: string }
+): Promise<IEvent> {
+
+  const existing = await this.repository.findById(id);
+  if (!existing) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'Event not found' });
+  }
+  if (existing.type !== 'GYM_SESSION') {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Not a gym session' });
+  }  
+
+  const nextStart = patch.startDate ?? existing.startDate;
+  const nextDuration = patch.duration ?? (existing as any).duration ?? 60;
+  if (nextDuration <= 0) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Duration must be positive' });
+  }
+  const nextEnd = new Date(nextStart.getTime() + nextDuration * 60_000);
+
+  // overlap validation (only if session is PUBLISHED)
+  if (patch.status === EventStatus.PUBLISHED ){
+    await this.assertNoGymOverlap({
+      startDate: nextStart,
+      endDate: nextEnd,
+    });  
+  }
+
+  const updated = await this.repository.update(
+    id,
+    {
+      startDate: nextStart,
+      endDate: nextEnd,
+      duration: nextDuration, 
+      capacity: patch.capacity,
+      status: patch.status,
+    },
+    options
+  );
+  return updated as IEvent;
 }
 
-
+}
 
 
 
