@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/lib/constants";
 import type { FieldType } from "@/components/generic/GenericForm";
 import { z } from "zod";
+import { toast } from "sonner";
 
 const fields = [
   { name: "name", label: "Bazaar Name", type: "text" as FieldType, required: true },
@@ -47,7 +48,23 @@ const schema = z.object({
 export function CreateBazaarPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const createBazaar = trpc.events.create.useMutation();
+  const utils = trpc.useUtils();
+  const createBazaar = trpc.events.create.useMutation({
+    onSuccess: (data) => {
+      // Invalidate events cache to show the new bazaar
+      utils.events.getEvents.invalidate();
+      utils.events.getUpcomingEvents.invalidate();
+      
+      // Show success message
+      toast.success("Bazaar created successfully!");
+      
+      // Navigate to the new event's details page
+      navigate(`${ROUTES.EVENTS}/${data.id}`);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create bazaar");
+    }
+  });
 
   // Only allow Events Office role
   if (!user || user.role !== "EVENT_OFFICE") {
@@ -68,7 +85,7 @@ export function CreateBazaarPage() {
       registrationDeadline: new Date(values.registrationDeadline),
       professorName: values.professorName, 
     });
-    navigate(ROUTES.EVENTS);
+    // Navigation is now handled in the onSuccess callback
   };
 
   return (

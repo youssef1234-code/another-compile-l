@@ -37,6 +37,18 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   }
 
   /**
+   * Override create to set appropriate status for events
+   */
+  async create(data: Partial<IEvent>, options?: any): Promise<IEvent> {
+    // Set status to PUBLISHED for bazaars created by EVENT_OFFICE users
+    if (data.type === 'BAZAAR' && !data.status) {
+      data.status = 'PUBLISHED';
+    }
+    
+    return super.create(data, options);
+  }
+
+  /**
    * Validate before create
    * Business Rule: Check event date validations
    */
@@ -286,10 +298,12 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       description: event.description,
       type: event.type,
       location: event.location,
+      locationDetails: event.locationDetails,
       startDate: event.startDate,
       endDate: event.endDate,
       registrationDeadline: event.registrationDeadline,
       capacity: event.capacity,
+      registeredCount: event.registeredCount,
       price: event.price,
       status: event.status,
       isArchived: event.isArchived,
