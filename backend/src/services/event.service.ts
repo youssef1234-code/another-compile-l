@@ -316,17 +316,22 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   // Gym specific functions 
 
 
- private async assertNoGymOverlap(params: {
+private async assertNoGymOverlap(params: {
+  sessionType: GymSessionType;
   startDate: Date;
   endDate: Date;
+  excludeId?: string;
 }) {
   const q: FilterQuery<IEvent> = {
     type: 'GYM_SESSION',
-    status: 'ACTIVE',
+    status: EventStatus.PUBLISHED, 
+    // sessionType: params.sessionType,  // this means that different session types can overlap
     startDate: { $lt: params.endDate },
-                  endDate: { $gt: params.startDate },
-    isArchived: false
+    endDate: { $gt: params.startDate },
+    isArchived: false,
   };
+  if (params.excludeId) (q as any)._id = { $ne: params.excludeId };
+
   const clash = await this.repository.findOne(q);
   if (clash) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
@@ -334,36 +339,37 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 }
 
 
+
   /**
    * Create a new gym session with overlap validation
    */
-  async createGymSession(
-    data: Partial<IEvent>,
-    options?: { userId?: string }
-  ): Promise<IEvent> {
-    // Ensure type is GYM_SESSION
-    if (data.type !== 'GYM_SESSION') {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Event type must be GYM_SESSION'
-      });
-    }
-    // Validate sessionType, startDate, endDate
-    if (!data.sessionType || !data.startDate || !data.capacity || !data.duration) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'sessionType, startDate, capacity, and duration are required'
-      });
-    }
-
-    // different statuses will make this thought much harder to include at this point
-    // // Check for overlapping sessions
-    // await this.assertNoGymOverlap({
-    //   startDate: data.startDate as Date,
-    //   endDate: data.endDate as Date
-    // });
-    return this.create(data, options);
+async createGymSession(
+  data: Partial<IEvent>,
+  options?: { userId?: string }
+): Promise<IEvent> {
+  if (data.type !== 'GYM_SESSION') {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event type must be GYM_SESSION' });
   }
+  if (!data.sessionType || !data.startDate || !data.capacity || !data.duration) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'sessionType, startDate, capacity, and duration are required'
+    });
+  }
+
+  const startDate = data.startDate as Date;
+  const duration = data.duration as number; // or durationMinutes
+  const endDate = new Date(startDate.getTime() + duration * 60_000);
+
+  await this.assertNoGymOverlap({
+    sessionType: data.sessionType as any,
+    startDate,
+    endDate
+  });
+
+  return this.create({ ...data, endDate }, options);
+}
+
 
   
 /**
@@ -394,6 +400,7 @@ async updateGymSession(
   // overlap validation (only if session is PUBLISHED)
   if (patch.status === EventStatus.PUBLISHED ){
     await this.assertNoGymOverlap({
+      sessionType: existing.sessionType as any,
       startDate: nextStart,
       endDate: nextEnd,
     });  

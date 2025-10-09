@@ -10,6 +10,7 @@ import { ChevronLeft, ChevronRight, RefreshCcw, Calendar as CalendarIcon, List a
 import { useAuthStore } from '@/store/authStore';
 import { UserRole, type Event } from '@event-manager/shared';
 import EditSessionDialog from "./components/EditSessionDialog";
+import { CreateGymSessionDialog } from "./components/CreateGymSessionDialog";
 
 const GYM_TYPES = [
   "YOGA","PILATES","AEROBICS","ZUMBA","CROSS_CIRCUIT","KICK_BOXING",
@@ -45,6 +46,7 @@ export function GymSchedulePage(){
   const [statusFilter,setStatusFilter] = useState<"ALL" | "PUBLISHED" | "CANCELLED">("ALL");
   const [view,setView] = useState<"TABLE"|"CALENDAR">("TABLE");
   const [editing, setEditing] = useState<any|null>(null); // session being edited
+  const [createOpen, setCreateOpen] = useState(false);
 
   const { user } = useAuthStore();
   const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.EVENT_OFFICE;
@@ -135,6 +137,12 @@ export function GymSchedulePage(){
         </Select>
       </div>
 
+      {isAdmin && (
+  <Button onClick={() => setCreateOpen(true)}>
+    + Create Session
+  </Button>
+)}
+
       {view === "TABLE" ? (
         <Card>
           <CardHeader><CardTitle>Monthly Sessions</CardTitle></CardHeader>
@@ -156,9 +164,9 @@ export function GymSchedulePage(){
                 <TableBody>
                   {rows.map((s:any)=> {
                     const start = asDate(s.startDate);
-const end = asDate(s.endDate);
-const duration = getDurationMin(s);
-const typeLabel = humanizeType(getSessionType(s));
+                    const end = asDate(s.endDate);
+                    const duration = getDurationMin(s);
+                    const typeLabel = humanizeType(getSessionType(s));
                     const status = s.status ?? "PUBLISHED";
                     return (
                       <TableRow key={s.id}>
@@ -206,6 +214,17 @@ const typeLabel = humanizeType(getSessionType(s));
           onSaved={()=> { setEditing(null); utils.events.getEvents.invalidate(); }}
         />
       )}
+
+      {isAdmin && (
+  <CreateGymSessionDialog
+    open={createOpen}
+    onOpenChange={setCreateOpen}
+    onCreated={() => {
+      // After creating, refresh the listing for the current month
+      refetch();
+    }}
+  />
+)}
     </div>
   );
 }
