@@ -5,12 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
+import { GymSessionType } from "@event-manager/shared";
 
-// If you have this enum in shared, import its values; otherwise keep this list:
-const GYM_TYPES = [
-  "YOGA","PILATES","AEROBICS","ZUMBA","CROSS_CIRCUIT","KICK_BOXING",
-  "CROSSFIT","CARDIO","STRENGTH","DANCE","MARTIAL_ARTS","OTHER",
-] as const;
 
 function toISOFromLocal(dateStr: string, timeStr: string) {
   // Interprets date+time as LOCAL time on the user's machine (Cairo in your case)
@@ -93,7 +89,7 @@ export function CreateGymSessionDialog({
             <Select value={sessionType} onValueChange={setSessionType}>
               <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
               <SelectContent>
-                {GYM_TYPES.map((t) => (
+                {Object.values(GymSessionType).map((t) => (
                   <SelectItem key={t} value={t}>{t.replaceAll("_", " ")}</SelectItem>
                 ))}
               </SelectContent>
