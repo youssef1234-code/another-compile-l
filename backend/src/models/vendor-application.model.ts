@@ -1,9 +1,9 @@
 /**
- * Event Model
+ * Vendor Application Model
  *
- * Mongoose schema for Event entity
+ * Mongoose schema for Vendor Application entity
  *
- * @module models/event.model
+ * @module models/vendor-application.model
  */
 
 import mongoose, { Schema } from "mongoose";

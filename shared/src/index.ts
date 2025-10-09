@@ -1,139 +1,156 @@
 /**
  * Shared Types and Schemas
- * 
+ *
  * This file contains all shared types, enums, and Zod schemas
  * used by both frontend and backend to ensure type consistency
  * and avoid duplication.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // Export avatar utilities
-export * from './avatars';
+export * from "./avatars";
 
 // ============================================================================
 // ENUMS
 // ============================================================================
 
 export const UserRole = {
-  STUDENT: 'STUDENT',
-  STAFF: 'STAFF',
-  TA: 'TA',
-  PROFESSOR: 'PROFESSOR',
-  VENDOR: 'VENDOR',
-  ADMIN: 'ADMIN',
-  EVENT_OFFICE: 'EVENT_OFFICE',
+  STUDENT: "STUDENT",
+  STAFF: "STAFF",
+  TA: "TA",
+  PROFESSOR: "PROFESSOR",
+  VENDOR: "VENDOR",
+  ADMIN: "ADMIN",
+  EVENT_OFFICE: "EVENT_OFFICE",
 } as const;
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export const UserStatus = {
-  ACTIVE: 'ACTIVE',
-  INACTIVE: 'INACTIVE',
-  BLOCKED: 'BLOCKED',
-  PENDING_VERIFICATION: 'PENDING_VERIFICATION',
-  PENDING_APPROVAL: 'PENDING_APPROVAL', // For vendors awaiting admin approval
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+  BLOCKED: "BLOCKED",
+  PENDING_VERIFICATION: "PENDING_VERIFICATION",
+  PENDING_APPROVAL: "PENDING_APPROVAL", // For vendors awaiting admin approval
 } as const;
 
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
 
 export const VendorApprovalStatus = {
-  PENDING: 'PENDING',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
 } as const;
 
-export type VendorApprovalStatus = (typeof VendorApprovalStatus)[keyof typeof VendorApprovalStatus];
+export type VendorApprovalStatus =
+  (typeof VendorApprovalStatus)[keyof typeof VendorApprovalStatus];
 
 export const EventType = {
-  WORKSHOP: 'WORKSHOP',
-  TRIP: 'TRIP',
-  BAZAAR: 'BAZAAR',
-  CONFERENCE: 'CONFERENCE',
-  GYM_SESSION: 'GYM_SESSION',
-  OTHER: 'OTHER',
+  WORKSHOP: "WORKSHOP",
+  TRIP: "TRIP",
+  BAZAAR: "BAZAAR",
+  CONFERENCE: "CONFERENCE",
+  GYM_SESSION: "GYM_SESSION",
+  OTHER: "OTHER",
 } as const;
 
 export type EventType = (typeof EventType)[keyof typeof EventType];
 
 export const EventLocation = {
-  ON_CAMPUS: 'ON_CAMPUS',
-  OFF_CAMPUS: 'OFF_CAMPUS',
+  ON_CAMPUS: "ON_CAMPUS",
+  OFF_CAMPUS: "OFF_CAMPUS",
 } as const;
 
 export type EventLocation = (typeof EventLocation)[keyof typeof EventLocation];
 
 export const RegistrationStatus = {
-  PENDING: 'PENDING',
-  CONFIRMED: 'CONFIRMED',
-  CANCELLED: 'CANCELLED',
-  ATTENDED: 'ATTENDED',
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  CANCELLED: "CANCELLED",
+  ATTENDED: "ATTENDED",
 } as const;
 
-export type RegistrationStatus = (typeof RegistrationStatus)[keyof typeof RegistrationStatus];
+export type RegistrationStatus =
+  (typeof RegistrationStatus)[keyof typeof RegistrationStatus];
 
 export const PaymentStatus = {
-  PENDING: 'PENDING',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED',
-  REFUNDED: 'REFUNDED',
+  PENDING: "PENDING",
+  COMPLETED: "COMPLETED",
+  FAILED: "FAILED",
+  REFUNDED: "REFUNDED",
 } as const;
 
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const EventStatus = {
-  DRAFT: 'DRAFT',
-  PUBLISHED: 'PUBLISHED',
-  CANCELLED: 'CANCELLED',
-  COMPLETED: 'COMPLETED',
+  DRAFT: "DRAFT",
+  PUBLISHED: "PUBLISHED",
+  CANCELLED: "CANCELLED",
+  COMPLETED: "COMPLETED",
 } as const;
 
 export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus];
 
 export const FundingSource = {
-  STUDENT_UNION: 'STUDENT_UNION',
-  SPONSORS: 'SPONSORS',
-  PAID: 'PAID',
-  FREE: 'FREE',
+  STUDENT_UNION: "STUDENT_UNION",
+  SPONSORS: "SPONSORS",
+  PAID: "PAID",
+  FREE: "FREE",
 } as const;
 
 export type FundingSource = (typeof FundingSource)[keyof typeof FundingSource];
 
 export const Faculty = {
-  IET: 'IET',
-  BUSINESS: 'BUSINESS',
-  PHARMACY: 'PHARMACY',
-  BIOTECHNOLOGY: 'BIOTECHNOLOGY',
-  APPLIED_ARTS: 'APPLIED_ARTS',
-  ALL: 'ALL',
+  IET: "IET",
+  BUSINESS: "BUSINESS",
+  PHARMACY: "PHARMACY",
+  BIOTECHNOLOGY: "BIOTECHNOLOGY",
+  APPLIED_ARTS: "APPLIED_ARTS",
+  ALL: "ALL",
 } as const;
 
 export type Faculty = (typeof Faculty)[keyof typeof Faculty];
 
 export const GymSessionType = {
-  CROSSFIT: 'CROSSFIT',
-  YOGA: 'YOGA',
-  PILATES: 'PILATES',
-  CARDIO: 'CARDIO',
-  STRENGTH: 'STRENGTH',
-  DANCE: 'DANCE',
-  MARTIAL_ARTS: 'MARTIAL_ARTS',
-  OTHER: 'OTHER',
+  CROSSFIT: "CROSSFIT",
+  YOGA: "YOGA",
+  PILATES: "PILATES",
+  CARDIO: "CARDIO",
+  STRENGTH: "STRENGTH",
+  DANCE: "DANCE",
+  MARTIAL_ARTS: "MARTIAL_ARTS",
+  OTHER: "OTHER",
 } as const;
 
-export type GymSessionType = (typeof GymSessionType)[keyof typeof GymSessionType];
+export type GymSessionType =
+  (typeof GymSessionType)[keyof typeof GymSessionType];
 
 export const NotificationType = {
-  INFO: 'INFO',
-  SUCCESS: 'SUCCESS',
-  WARNING: 'WARNING',
-  ERROR: 'ERROR',
-  EVENT_REMINDER: 'EVENT_REMINDER',
-  REGISTRATION_CONFIRMED: 'REGISTRATION_CONFIRMED',
-  ROLE_VERIFIED: 'ROLE_VERIFIED',
+  INFO: "INFO",
+  SUCCESS: "SUCCESS",
+  WARNING: "WARNING",
+  ERROR: "ERROR",
+  EVENT_REMINDER: "EVENT_REMINDER",
+  REGISTRATION_CONFIRMED: "REGISTRATION_CONFIRMED",
+  ROLE_VERIFIED: "ROLE_VERIFIED",
 } as const;
 
-export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
+export type NotificationType =
+  (typeof NotificationType)[keyof typeof NotificationType];
+
+export declare const BoothSize: {
+  readonly two_by_two: "2x2";
+  readonly four_by_four: "4x4";
+};
+export type BoothSize = (typeof BoothSize)[keyof typeof BoothSize];
+
+export declare const ApplicationType: {
+  readonly BAZAAR: "BAZAAR";
+  readonly PLATFORM: "PLATFORM";
+};
+export type ApplicationType =
+  (typeof ApplicationType)[keyof typeof ApplicationType];
 
 // ============================================================================
 // REUSABLE VALIDATION SCHEMAS (Define first to avoid forward references)
@@ -145,19 +162,21 @@ export type NotificationType = (typeof NotificationType)[keyof typeof Notificati
  */
 export const GUCEmailSchema = z
   .string()
-  .email('Invalid email address')
+  .email("Invalid email address")
   .refine(
-    (email) => email.endsWith('@guc.edu.eg') || email.endsWith('@student.guc.edu.eg'),
-    { message: 'Must use a GUC email address (@guc.edu.eg or @student.guc.edu.eg)' }
+    (email) =>
+      email.endsWith("@guc.edu.eg") || email.endsWith("@student.guc.edu.eg"),
+    {
+      message:
+        "Must use a GUC email address (@guc.edu.eg or @student.guc.edu.eg)",
+    },
   );
 
 /**
  * Standard email validation (no domain restriction)
  * Use this for vendors and external users
  */
-export const EmailSchema = z
-  .string()
-  .email('Invalid email address');
+export const EmailSchema = z.string().email("Invalid email address");
 
 /**
  * Password validation with strength requirements
@@ -165,37 +184,38 @@ export const EmailSchema = z
  */
 export const StrongPasswordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
-  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-  .regex(/[0-9]/, 'Password must contain at least one number')
-  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(
+    /[^A-Za-z0-9]/,
+    "Password must contain at least one special character",
+  );
 
 /**
  * Basic password validation (for login, less strict)
  */
-export const PasswordSchema = z
-  .string()
-  .min(1, 'Password is required');
+export const PasswordSchema = z.string().min(1, "Password is required");
 
 /**
  * GUC ID validation (format: XX-XXXX or XX-XXXXX)
  */
 export const GUCIdSchema = z
   .string()
-  .regex(/^\d{2}-\d{4,5}$/, 'Invalid GUC ID format (e.g., 43-1234)');
+  .regex(/^\d{2}-\d{4,5}$/, "Invalid GUC ID format (e.g., 43-1234)");
 
 /**
  * Phone number validation (Egyptian format)
  */
 export const PhoneNumberSchema = z
   .string()
-  .regex(/^(\+20)?1[0125]\d{8}$/, 'Invalid Egyptian phone number');
+  .regex(/^(\+20)?1[0125]\d{8}$/, "Invalid Egyptian phone number");
 
 /**
  * URL validation
  */
-export const URLSchema = z.string().url('Invalid URL format');
+export const URLSchema = z.string().url("Invalid URL format");
 
 // ============================================================================
 // USER SCHEMAS
@@ -204,9 +224,9 @@ export const URLSchema = z.string().url('Invalid URL format');
 export const SignupAcademicSchema = z.object({
   email: GUCEmailSchema, // Use reusable schema
   password: StrongPasswordSchema, // Use reusable schema
-  firstName: z.string().min(2, 'First name must be at least 2 characters'),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  role: z.enum(['STUDENT', 'STAFF', 'TA', 'PROFESSOR']),
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  role: z.enum(["STUDENT", "STAFF", "TA", "PROFESSOR"]),
   gucId: z.string().optional(),
 });
 
@@ -215,9 +235,9 @@ export type SignupAcademicInput = z.infer<typeof SignupAcademicSchema>;
 export const SignupVendorSchema = z.object({
   email: EmailSchema, // Regular email (not GUC)
   password: StrongPasswordSchema, // Use reusable schema
-  firstName: z.string().min(2, 'First name must be at least 2 characters'),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  companyName: z.string().min(2, 'Company name must be at least 2 characters'),
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  companyName: z.string().min(2, "Company name must be at least 2 characters"),
   taxCardImage: z.string().optional(), // Base64 image - TODO: Make required in Sprint 2
   logoImage: z.string().optional(), // Base64 image (optional)
 });
@@ -225,8 +245,8 @@ export const SignupVendorSchema = z.object({
 export type SignupVendorInput = z.infer<typeof SignupVendorSchema>;
 
 export const VendorApprovalSchema = z.object({
-  userId: z.string().min(1, 'User ID is required'),
-  status: z.enum(['APPROVED', 'REJECTED']),
+  userId: z.string().min(1, "User ID is required"),
+  status: z.enum(["APPROVED", "REJECTED"]),
   rejectionReason: z.string().optional(),
 });
 
@@ -262,10 +282,20 @@ export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 // ============================================================================
 
 export const CreateEventSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters').max(100),
-  description: z.string().min(20, 'Description must be at least 20 characters').max(2000),
-  type: z.enum(['WORKSHOP', 'TRIP', 'BAZAAR', 'CONFERENCE', 'GYM_SESSION', 'OTHER']),
-  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
+  title: z.string().min(5, "Title must be at least 5 characters").max(100),
+  description: z
+    .string()
+    .min(20, "Description must be at least 20 characters")
+    .max(2000),
+  type: z.enum([
+    "WORKSHOP",
+    "TRIP",
+    "BAZAAR",
+    "CONFERENCE",
+    "GYM_SESSION",
+    "OTHER",
+  ]),
+  location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]),
   locationDetails: z.string().min(5).max(200),
   date: z.coerce.date(),
   endDate: z.coerce.date().optional(),
@@ -290,8 +320,10 @@ export const EventFilterSchema = z.object({
   page: z.number().int().positive().default(1),
   limit: z.number().int().positive().max(100).default(12),
   search: z.string().optional(),
-  type: z.enum(['WORKSHOP', 'TRIP', 'BAZAAR', 'CONFERENCE', 'GYM_SESSION', 'OTHER']).optional(),
-  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']).optional(),
+  type: z
+    .enum(["WORKSHOP", "TRIP", "BAZAAR", "CONFERENCE", "GYM_SESSION", "OTHER"])
+    .optional(),
+  location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
   minPrice: z.number().nonnegative().optional(),
@@ -316,11 +348,13 @@ export type CreateRegistrationInput = z.infer<typeof CreateRegistrationSchema>;
 
 export const UpdateRegistrationStatusSchema = z.object({
   registrationId: z.string(),
-  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'ATTENDED']),
+  status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "ATTENDED"]),
   cancellationReason: z.string().max(500).optional(),
 });
 
-export type UpdateRegistrationStatusInput = z.infer<typeof UpdateRegistrationStatusSchema>;
+export type UpdateRegistrationStatusInput = z.infer<
+  typeof UpdateRegistrationStatusSchema
+>;
 
 // ============================================================================
 // ADMIN SCHEMAS
@@ -330,8 +364,20 @@ export const AdminUserFilterSchema = z.object({
   page: z.number().int().positive().default(1),
   limit: z.number().int().positive().max(100).default(20),
   search: z.string().optional(),
-  role: z.enum(['STUDENT', 'STAFF', 'TA', 'PROFESSOR', 'VENDOR', 'ADMIN', 'EVENT_OFFICE']).optional(),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED', 'PENDING_VERIFICATION']).optional(),
+  role: z
+    .enum([
+      "STUDENT",
+      "STAFF",
+      "TA",
+      "PROFESSOR",
+      "VENDOR",
+      "ADMIN",
+      "EVENT_OFFICE",
+    ])
+    .optional(),
+  status: z
+    .enum(["ACTIVE", "INACTIVE", "BLOCKED", "PENDING_VERIFICATION"])
+    .optional(),
   isBlocked: z.boolean().optional(),
   roleVerifiedByAdmin: z.boolean().optional(),
 });
@@ -362,7 +408,7 @@ export const CreateAdminSchema = z.object({
   password: z.string().min(8),
   firstName: z.string().min(2),
   lastName: z.string().min(2),
-  role: z.enum(['ADMIN', 'EVENT_OFFICE']),
+  role: z.enum(["ADMIN", "EVENT_OFFICE"]),
 });
 
 export type CreateAdminInput = z.infer<typeof CreateAdminSchema>;
@@ -402,7 +448,9 @@ export const MarkNotificationReadSchema = z.object({
   notificationId: z.string(),
 });
 
-export type MarkNotificationReadInput = z.infer<typeof MarkNotificationReadSchema>;
+export type MarkNotificationReadInput = z.infer<
+  typeof MarkNotificationReadSchema
+>;
 
 // ============================================================================
 // RESPONSE TYPES (for frontend)
@@ -425,7 +473,7 @@ export interface User {
   bio?: string;
   phone?: string;
   avatar?: string;
-  avatarType?: 'upload' | 'preset';
+  avatarType?: "upload" | "preset";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -471,7 +519,7 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
-  type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
+  type: "INFO" | "SUCCESS" | "WARNING" | "ERROR";
   isRead: boolean;
   link?: string;
   createdAt: Date;
@@ -524,35 +572,36 @@ export interface ErrorResponse {
 // ============================================================================
 
 // Date range validation helper
-export const createDateRangeSchema = (fieldName = 'date') =>
-  z.object({
-    startDate: z.coerce.date(),
-    endDate: z.coerce.date(),
-  }).refine(
-    (data) => data.endDate > data.startDate,
-    {
+export const createDateRangeSchema = (fieldName = "date") =>
+  z
+    .object({
+      startDate: z.coerce.date(),
+      endDate: z.coerce.date(),
+    })
+    .refine((data) => data.endDate > data.startDate, {
       message: `End ${fieldName} must be after start ${fieldName}`,
-      path: ['endDate'],
-    }
-  );
+      path: ["endDate"],
+    });
 
 // Price range validation helper
 export const createPriceRangeSchema = () =>
-  z.object({
-    minPrice: z.number().nonnegative('Price cannot be negative').optional(),
-    maxPrice: z.number().nonnegative('Price cannot be negative').optional(),
-  }).refine(
-    (data) => {
-      if (data.minPrice !== undefined && data.maxPrice !== undefined) {
-        return data.maxPrice >= data.minPrice;
-      }
-      return true;
-    },
-    {
-      message: 'Maximum price must be greater than or equal to minimum price',
-      path: ['maxPrice'],
-    }
-  );
+  z
+    .object({
+      minPrice: z.number().nonnegative("Price cannot be negative").optional(),
+      maxPrice: z.number().nonnegative("Price cannot be negative").optional(),
+    })
+    .refine(
+      (data) => {
+        if (data.minPrice !== undefined && data.maxPrice !== undefined) {
+          return data.maxPrice >= data.minPrice;
+        }
+        return true;
+      },
+      {
+        message: "Maximum price must be greater than or equal to minimum price",
+        path: ["maxPrice"],
+      },
+    );
 
 // Pagination params schema (reusable)
 export const PaginationSchema = z.object({
@@ -563,7 +612,7 @@ export const PaginationSchema = z.object({
 // Sort params schema (reusable)
 export const SortSchema = z.object({
   sortBy: z.string().optional(),
-  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 
 // Search params schema (reusable)
@@ -573,12 +622,12 @@ export const SearchSchema = z.object({
 
 // ID param schema (reusable)
 export const IdSchema = z.object({
-  id: z.string().min(1, 'ID is required'),
+  id: z.string().min(1, "ID is required"),
 });
 
 // Bulk IDs schema (reusable)
 export const BulkIdsSchema = z.object({
-  ids: z.array(z.string()).min(1, 'At least one ID is required'),
+  ids: z.array(z.string()).min(1, "At least one ID is required"),
 });
 
 // ============================================================================
@@ -590,12 +639,12 @@ export const BulkIdsSchema = z.object({
  */
 export function formatZodError(error: z.ZodError): Record<string, string> {
   const formatted: Record<string, string> = {};
-  
+
   error.errors.forEach((err) => {
-    const path = err.path.join('.');
+    const path = err.path.join(".");
     formatted[path] = err.message;
   });
-  
+
   return formatted;
 }
 
@@ -604,14 +653,16 @@ export function formatZodError(error: z.ZodError): Record<string, string> {
  */
 export function validateSchema<T>(
   schema: z.ZodSchema<T>,
-  data: unknown
-): { success: true; data: T } | { success: false; errors: Record<string, string> } {
+  data: unknown,
+):
+  | { success: true; data: T }
+  | { success: false; errors: Record<string, string> } {
   const result = schema.safeParse(data);
-  
+
   if (result.success) {
     return { success: true, data: result.data };
   }
-  
+
   return { success: false, errors: formatZodError(result.error) };
 }
 
@@ -620,15 +671,15 @@ export function validateSchema<T>(
 // ============================================================================
 
 export function isGUCEmail(email: string): boolean {
-  return email.endsWith('@guc.edu.eg') || email.endsWith('@student.guc.edu.eg');
+  return email.endsWith("@guc.edu.eg") || email.endsWith("@student.guc.edu.eg");
 }
 
 export function isStudentEmail(email: string): boolean {
-  return email.endsWith('@student.guc.edu.eg');
+  return email.endsWith("@student.guc.edu.eg");
 }
 
 export function isStaffEmail(email: string): boolean {
-  return email.endsWith('@guc.edu.eg');
+  return email.endsWith("@guc.edu.eg");
 }
 
 export function isValidGUCId(id: string): boolean {
