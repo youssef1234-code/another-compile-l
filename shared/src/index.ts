@@ -83,9 +83,14 @@ export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const EventStatus = {
   DRAFT: 'DRAFT',
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
   PUBLISHED: 'PUBLISHED',
   CANCELLED: 'CANCELLED',
   COMPLETED: 'COMPLETED',
+  ARCHIVED: 'ARCHIVED',
+  NEEDS_EDITS: 'NEEDS_EDITS',
 } as const;
 
 export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus];
@@ -262,12 +267,12 @@ export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 // ============================================================================
 
 export const CreateEventSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters').max(100),
+  name: z.string().min(5, 'Title must be at least 5 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters').max(2000),
   type: z.enum(['WORKSHOP', 'TRIP', 'BAZAAR', 'CONFERENCE', 'GYM_SESSION', 'OTHER']),
   location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
   locationDetails: z.string().min(5).max(200),
-  date: z.coerce.date(),
+  startDate: z.coerce.date(),
   endDate: z.coerce.date().optional(),
   capacity: z.number().int().positive().min(1),
   price: z.number().nonnegative().default(0),

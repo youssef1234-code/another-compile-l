@@ -10,6 +10,7 @@ import type { BaseRepository, PaginationOptions, PaginatedResult } from '../repo
 
 export interface ServiceOptions {
   userId?: string;
+  role?: string;
   skipValidation?: boolean;
 }
 
@@ -43,7 +44,7 @@ export abstract class BaseService<T extends Document, R extends BaseRepository<T
   async create(data: Partial<T>, options?: ServiceOptions): Promise<T> {
     // Validate before create
     if (!options?.skipValidation) {
-      await this.validateCreate(data);
+      await this.validateCreate(data, options);
     }
     
     // Add metadata
@@ -227,9 +228,14 @@ export abstract class BaseService<T extends Document, R extends BaseRepository<T
   /**
    * Validate before create
    */
+
+  protected async validateCreate(_data: Partial<T>): Promise<void>;
+  protected async validateCreate(_data: Partial<T>, _options?: ServiceOptions): Promise<void>;
+
   protected async validateCreate(_data: Partial<T>): Promise<void> {
     // Override in subclass
   }
+
 
   /**
    * Validate before update

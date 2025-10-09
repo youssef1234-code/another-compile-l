@@ -11,7 +11,7 @@
  * @module routers/events.router
  */
 
-import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router } from '../trpc/trpc';
+import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router, eventsOfficeProfessorProcedure } from '../trpc/trpc';
 import { createSearchSchema } from './base.router';
 import { eventService } from '../services/event.service';
 import { registrationService } from '../services/registration.service';
@@ -112,11 +112,11 @@ const eventRoutes = {
   /**
    * Create event - EVENT_OFFICE and ADMIN only
    */
-  create: eventsOfficeProcedure
+  create: eventsOfficeProfessorProcedure
     .input(CreateEventSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx.user!._id as any).toString();
-      return eventService.create(input, { userId });
+      return eventService.create(input, { userId, role: ctx.user!.role.toString() });
     }),
 
   /**
@@ -233,6 +233,42 @@ const eventRoutes = {
         page: input.page,
         limit: input.limit,
       });
+    }),
+
+    // Approve workshop - EVENT_OFFICE ONLY
+    approveWorkshop : eventsOfficeProcedure
+    .input(z.object({
+      eventId: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return eventService.approveWorkshop(input.eventId);
+    }),
+
+    // Reject Workshop - EVENT_OFFICE ONLY
+    rejectWorkshop : eventsOfficeProcedure
+    .input(z.object({
+      eventId: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return eventService.rejectWorkshop(input.eventId);
+    }),
+
+    // Workshop needs edits - EVENT_OFFICE ONLY
+    workshopNeedsEdits : eventsOfficeProcedure
+    .input(z.object({
+      eventId: z.string(),
+      feedback: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return eventService.editsNeededWorkshop(input.eventId);
+    }),
+
+    publishWorkshop : eventsOfficeProcedure
+    .input(z.object({
+      eventId: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return eventService.publishWorkshop(input.eventId);
     }),
 };
 
