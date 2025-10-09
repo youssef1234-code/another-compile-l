@@ -302,6 +302,39 @@ export const EventFilterSchema = z.object({
 
 export type EventFilterInput = z.infer<typeof EventFilterSchema>;
 
+
+export const CourtSport = {
+  BASKETBALL: "BASKETBALL",
+  TENNIS: "TENNIS",
+  FOOTBALL: "FOOTBALL",
+} as const;
+export type CourtSport = (typeof CourtSport)[keyof typeof CourtSport];
+
+export const CourtSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  sport: z.nativeEnum(CourtSport),
+  location: z.string().default("ON_CAMPUS"),
+  // optional capacity for team size etc. if needed
+});
+
+export const AvailabilityQuerySchema = z.object({
+  courtId: z.string().optional(),
+  sport: z.nativeEnum(CourtSport).optional(),
+  date: z.coerce.date(),                // day to check
+  slotMinutes: z.number().int().positive().default(60), // length of slot the user wants
+});
+
+export const CourtReservationCreateSchema = z.object({
+  courtId: z.string(),
+  startDate: z.coerce.date(),
+  duration: z.number().int().positive(),           // minutes
+});
+
+export const CourtReservationCancelSchema = z.object({
+  id: z.string(),
+});
+
 // ============================================================================
 // REGISTRATION SCHEMAS
 // ============================================================================
