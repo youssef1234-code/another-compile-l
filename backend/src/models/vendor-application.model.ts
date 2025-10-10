@@ -7,54 +7,94 @@
  */
 
 import mongoose, { Schema } from "mongoose";
-import { BoothSize, ApplicationType } from "@event-manager/shared";
+import {
+  BoothSize,
+  ApplicationType,
+  VendorApprovalStatus,
+} from "@event-manager/shared";
 import { type IBaseDocument, createBaseSchema } from "./base.model";
 
 export interface IVendorApplication extends IBaseDocument {
   vendor: mongoose.Types.ObjectId;
   names: string[];
-
   emails: string[];
-  boothSize: keyof typeof BoothSize;
+
   type: keyof typeof ApplicationType;
+  boothSize: keyof typeof BoothSize;
+  bazaar?: mongoose.Types.ObjectId;
+  location?: number;
+  duration?: number;
+  startDate?: Date;
+
+  status: keyof typeof VendorApprovalStatus;
 }
 
-const applicationSchema = createBaseSchema<IVendorApplication>({
-  vendor: {
-    type: Schema.Types.ObjectId,
-    ref: "User",
-  },
-  names: {
-    type: [String],
-    validate: {
-      validator: function (v) {
-        return v && v.length >= 1 && v.length <= 5;
-      },
-      message: "Must be between 1 and 5 people",
+const applicationSchema = createBaseSchema<IVendorApplication>(
+  {
+    vendor: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
-    required: true,
-  },
-  emails: {
-    type: [String],
-    validate: {
-      validator: function (v) {
-        return v && v.length >= 1 && v.length <= 5;
+    names: {
+      type: [String],
+      validate: {
+        validator: function (v) {
+          return v && v.length >= 1 && v.length <= 5;
+        },
+        message: "Must be between 1 and 5 people",
       },
-      message: "Must be between 1 and 5 emails",
+      required: true,
     },
-    required: true,
+    emails: {
+      type: [String],
+      validate: {
+        validator: function (v) {
+          return v && v.length >= 1 && v.length <= 5;
+        },
+        message: "Must be between 1 and 5 emails",
+      },
+      required: true,
+    },
+    type: {
+      type: String,
+      enum: ["BAZAAR", "PLATFORM"],
+      required: true,
+    },
+    boothSize: {
+      type: String,
+      enum: ["2x2", "4x4"],
+      required: true,
+    },
+    bazaar: {
+      type: Schema.Types.ObjectId,
+      ref: "Event",
+    },
+    location: Number,
+    duration: {
+      type: Number,
+      min: 1,
+      max: 4,
+    },
+    startDate: Date,
+    status: {
+      type: String,
+      enum: ["ACCEPTED", "PENDING", "REJECTED"],
+      required: true,
+    },
   },
-  boothSize: {
-    type: String,
-    enum: ["2x2", "4x4"],
+  {
+    toJSON: {
+      transform: (_doc: any, ret: any) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
   },
-  type: {
-    type: String,
-    enum: ["BAZAAR", "PLATFORM"],
-  },
-});
+);
 
 export const VendorApplication = mongoose.model<IVendorApplication>(
-  "Vendor Application",
+  "VendorApplication",
   applicationSchema,
 );
