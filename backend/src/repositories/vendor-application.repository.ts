@@ -22,7 +22,6 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
     options: {
       skip?: number;
       limit?: number;
-      sort?: Record<string, 1 | -1>;
     } = {},
   ): Promise<IVendorApplication[]> {
     return this.findAll(
@@ -39,7 +38,6 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
     options: {
       skip?: number;
       limit?: number;
-      sort?: Record<string, 1 | -1>;
     } = {},
   ): Promise<IVendorApplication[]> {
     return this.findAll(
@@ -56,7 +54,6 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
     options: {
       skip?: number;
       limit?: number;
-      sort?: Record<string, 1 | -1>;
     } = {},
   ): Promise<IVendorApplication[]> {
     return this.findAll(options);
@@ -66,7 +63,6 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
     options: {
       skip?: number;
       limit?: number;
-      sort?: Record<string, 1 | -1>;
     } = {},
   ): Promise<IVendorApplication[]> {
     return this.findAll(

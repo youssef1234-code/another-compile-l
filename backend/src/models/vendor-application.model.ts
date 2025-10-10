@@ -58,11 +58,13 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
     type: {
       type: String,
       enum: ["BAZAAR", "PLATFORM"],
+      default: "PLATFORM",
       required: true,
     },
     boothSize: {
       type: String,
-      enum: ["2x2", "4x4"],
+      enum: ["TWO_BY_TWO", "FOUR_BY_FOUR"],
+      default: "TWO_BY_TWO",
       required: true,
     },
     bazaar: {
@@ -78,7 +80,8 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
     startDate: Date,
     status: {
       type: String,
-      enum: ["ACCEPTED", "PENDING", "REJECTED"],
+      enum: ["APPROVED", "PENDING", "REJECTED"],
+      default: "PENDING",
       required: true,
     },
   },

@@ -140,8 +140,8 @@ export type NotificationType =
   (typeof NotificationType)[keyof typeof NotificationType];
 
 export declare const BoothSize: {
-  readonly two_by_two: "2x2";
-  readonly four_by_four: "4x4";
+  readonly TWO_BY_TWO: "TWO_BY_TWO";
+  readonly FOUR_BY_FOUR: "FOUR_BY_FOUR: ";
 };
 export type BoothSize = (typeof BoothSize)[keyof typeof BoothSize];
 
@@ -355,7 +355,26 @@ export const UpdateRegistrationStatusSchema = z.object({
 export type UpdateRegistrationStatusInput = z.infer<
   typeof UpdateRegistrationStatusSchema
 >;
+// ============================================================================
+// VENDOR APPLICATION SCHEMAS
+// ============================================================================
 
+export const CreateApplicationSchema = z.object({
+  names: z.array(z.string()).min(1).max(5),
+  emails: z.array(z.string().email()).min(1).max(5),
+
+  type: z.enum(["BAZAAR", "PLATFORM"]),
+  boothSize: z.enum(["TWO_BY_TWO", "FOUR_BY_FOUR"]),
+
+  bazaarId: z.string().optional(),
+  location: z.number().optional(),
+  duration: z.number().min(1).max(4).optional(),
+  startDate: z.coerce.date().optional(),
+
+  status: z.enum(["APPROVED", "REJECTED", "PENDING"]),
+});
+
+export type CreateApplicationSchema = z.infer<typeof CreateApplicationSchema>;
 // ============================================================================
 // ADMIN SCHEMAS
 // ============================================================================
