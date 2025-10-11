@@ -1,4 +1,3 @@
-
 import { GenericForm } from "@/components/generic/GenericForm";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/store/authStore";
@@ -53,13 +52,17 @@ export function CreateBazaarPage() {
     onSuccess: (data) => {
       // Invalidate events cache to show the new bazaar
       utils.events.getEvents.invalidate();
-      utils.events.getUpcomingEvents.invalidate();
       
       // Show success message
       toast.success("Bazaar created successfully!");
       
       // Navigate to the new event's details page
-      navigate(`${ROUTES.EVENTS}/${data.id}`);
+      if (data && typeof data === 'object' && 'id' in data) {
+        navigate(`${ROUTES.EVENTS}/${data.id}`);
+      } else {
+        // Fallback navigation
+        navigate(ROUTES.EVENTS);
+      }
     },
     onError: (error) => {
       toast.error(error.message || "Failed to create bazaar");
