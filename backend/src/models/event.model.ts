@@ -17,6 +17,7 @@ export interface IEvent extends IBaseDocument {
   startDate: Date;
   endDate: Date;
   location: string;
+  locationDetails?: string;
   status: keyof typeof EventStatus;
   isArchived: boolean;
   capacity?: number;
@@ -76,6 +77,9 @@ const eventSchema = createBaseSchema<IEvent>(
     location: {
       type: String,
       required: true,
+    },
+    locationDetails: {
+      type: String,
     },
     status: {
       type: String,

@@ -28,6 +28,7 @@ import { EventsPage } from '@/features/events/pages/EventsPage';
 import { EventDetailsPage } from '@/features/events/pages/EventDetailsPage';
 import { MyEventsPage } from '@/features/events/pages/MyEventsPage';
 import { FavoritesPage } from '@/features/events/pages/FavoritesPage';
+import { EditBazaarPage } from '@/features/events/pages/EditBazaarPage';
 import {
   MyRegistrationsPage,
   CreateWorkshopPage,
@@ -64,6 +65,7 @@ import {
 } from '@/features/admin/pages';
 
 // Events Office
+import { BazaarManagementPage } from '@/features/events-office/pages/BazaarManagementPage';
 import {
   WorkshopApprovalsPage,
   VendorPollsPage,
@@ -167,6 +169,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.CREATE_BAZAAR,
         element: <CreateBazaarPage />,
+      },
+      {
+        path: ROUTES.EDIT_BAZAAR,
+        element: <EditBazaarPage />,
       },
       {
         path: ROUTES.CREATE_CONFERENCE,
@@ -275,6 +281,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.QR_CODES,
         element: <QRCodesPage />,
+      },
+      {
+        path: ROUTES.BAZAAR_MANAGEMENT,
+        element: <BazaarManagementPage />,
       },
       
       // Wallet

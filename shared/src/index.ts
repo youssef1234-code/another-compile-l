@@ -262,12 +262,12 @@ export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 // ============================================================================
 
 export const CreateEventSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters').max(100),
+  name: z.string().min(5, 'Title must be at least 5 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters').max(2000),
   type: z.enum(['WORKSHOP', 'TRIP', 'BAZAAR', 'CONFERENCE', 'GYM_SESSION', 'OTHER']),
   location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
   locationDetails: z.string().min(5).max(200),
-  date: z.coerce.date(),
+  startDate: z.coerce.date(),
   endDate: z.coerce.date().optional(),
   capacity: z.number().int().positive().min(1),
   price: z.number().nonnegative().default(0),
@@ -275,6 +275,7 @@ export const CreateEventSchema = z.object({
   tags: z.array(z.string()).default([]),
   requirements: z.string().max(500).optional(),
   professorName: z.string().optional(), // For academic events
+  registrationDeadline: z.coerce.date().optional(),
 });
 
 export type CreateEventInput = z.infer<typeof CreateEventSchema>;
