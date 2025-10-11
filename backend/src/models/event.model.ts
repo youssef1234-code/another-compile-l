@@ -83,7 +83,7 @@ const eventSchema = createBaseSchema<IEvent>(
     },
     status: {
       type: String,
-      enum: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'PUBLISHED', 'CANCELLED', 'COMPLETED', 'ARCHIVED'],
+      enum: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'NEEDS_EDITS', 'REJECTED', 'PUBLISHED', 'CANCELLED', 'COMPLETED', 'ARCHIVED'],
       default: 'DRAFT',
     },
     isArchived: {
@@ -164,12 +164,22 @@ const eventSchema = createBaseSchema<IEvent>(
   }
 );
 
+
 // Indexes
 eventSchema.index({ type: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ startDate: 1 });
 eventSchema.index({ createdBy: 1 });
 eventSchema.index({ name: 'text', description: 'text' });
+
+eventSchema.pre('validate', function (next) {
+  if (this.isNew) {
+    if (this.type === 'WORKSHOP') {
+      this.status = 'PENDING_APPROVAL';
+    }
+  }
+  next();
+});
 
 export const Event = mongoose.model<IEvent>('Event', eventSchema);
 

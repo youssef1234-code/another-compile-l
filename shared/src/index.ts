@@ -83,9 +83,14 @@ export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const EventStatus = {
   DRAFT: 'DRAFT',
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
   PUBLISHED: 'PUBLISHED',
   CANCELLED: 'CANCELLED',
   COMPLETED: 'COMPLETED',
+  ARCHIVED: 'ARCHIVED',
+  NEEDS_EDITS: 'NEEDS_EDITS',
 } as const;
 
 export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus];
