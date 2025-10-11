@@ -289,15 +289,15 @@ export function GenericDataTable<TData>({
       )}
 
       {/* Table */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className={cn('rounded-md border', tableClassName)}>
+      <Card className="overflow-hidden shadow-sm border border-border/50">
+        <CardContent className="p-0">
+          <div className={cn('overflow-x-auto', tableClassName)}>
             <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
+                  <TableRow key={headerGroup.id} className="bg-muted/50 hover:bg-muted/70 border-b border-border">
                     {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
+                      <TableHead key={header.id} className="font-semibold text-foreground">
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -333,7 +333,7 @@ export function GenericDataTable<TData>({
                         animate="visible"
                         onClick={() => onRowClick?.(row.original)}
                         className={cn(
-                          "border-b transition-colors hover:bg-muted/50",
+                          "border-b transition-colors hover:bg-muted/50 dark:hover:bg-muted/30",
                           onRowClick && "cursor-pointer"
                         )}
                       >
@@ -350,7 +350,10 @@ export function GenericDataTable<TData>({
                       <TableRow 
                         key={row.id}
                         onClick={() => onRowClick?.(row.original)}
-                        className={cn(onRowClick && "cursor-pointer")}
+                        className={cn(
+                          "hover:bg-muted/50 dark:hover:bg-muted/30",
+                          onRowClick && "cursor-pointer"
+                        )}
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
@@ -367,12 +370,12 @@ export function GenericDataTable<TData>({
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="h-24 text-center"
+                      className="h-32 text-center"
                     >
-                      <div className="flex flex-col items-center gap-2">
-                        {emptyStateIcon || <Search className="h-8 w-8 text-muted-foreground" />}
+                      <div className="flex flex-col items-center gap-3 py-8">
+                        {emptyStateIcon || <Search className="h-12 w-12 text-muted-foreground opacity-50" />}
                         <div className="space-y-1">
-                          <p className="font-semibold">{emptyStateTitle}</p>
+                          <p className="font-semibold text-lg">{emptyStateTitle}</p>
                           <p className="text-sm text-muted-foreground">
                             {emptyStateDescription}
                           </p>

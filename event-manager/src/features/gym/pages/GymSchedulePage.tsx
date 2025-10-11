@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, RefreshCcw, Calendar as CalendarIcon, List as ListIcon, Edit3, XCircle, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCcw, Calendar as CalendarIcon, List as ListIcon, Edit3, Trash2 } from "lucide-react";
 import { useAuthStore } from '@/store/authStore';
-import { UserRole, type Event } from '@event-manager/shared';
+import { UserRole } from '@event-manager/shared';
 import EditSessionDialog from "./components/EditSessionDialog";
 import { CreateGymSessionDialog } from "./components/CreateGymSessionDialog";
 

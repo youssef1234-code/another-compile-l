@@ -11,7 +11,8 @@
     "lint": "eslint src --ext .ts",
     "type-check": "tsc --noEmit",
     "env:encrypt": "tsx scripts/encrypt-env.ts",
-    "env:decrypt": "tsx scripts/decrypt-env.ts"
+    "env:decrypt": "tsx scripts/decrypt-env.ts",
+    "seed:comprehensive": "tsx src/seed-runner.ts"
   },
   "keywords": [
     "event-management",

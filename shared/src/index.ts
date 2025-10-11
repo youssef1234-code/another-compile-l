@@ -288,6 +288,19 @@ export type CreateEventInput = z.infer<typeof CreateEventSchema>;
 export const UpdateEventSchema = CreateEventSchema.partial().extend({
   id: z.string(),
   isArchived: z.boolean().optional(),
+  status: z.enum([
+    'DRAFT',
+    'PENDING_APPROVAL',
+    'APPROVED',
+    'REJECTED',
+    'PUBLISHED',
+    'CANCELLED',
+    'COMPLETED',
+    'ARCHIVED',
+    'NEEDS_EDITS',
+  ]).optional(), // For approval workflow
+  rejectionReason: z.string().optional(),
+  revisionNotes: z.string().optional(),
 });
 
 export type UpdateEventInput = z.infer<typeof UpdateEventSchema>;
@@ -507,6 +520,8 @@ export interface Event {
   locationDetails: string;
   date: Date;
   endDate?: Date;
+  startDate?: Date;
+  registrationDeadline?: Date;
   capacity: number;
   registeredCount: number;
   price: number;
@@ -518,6 +533,19 @@ export interface Event {
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
+  // Workshop-specific fields
+  fullAgenda?: string;
+  faculty?: string;
+  professorParticipants?: string[];
+  requiredBudget?: number;
+  fundingSource?: string;
+  extraResources?: string;
+  // Conference-specific fields
+  conferenceWebsite?: string;
+  // Status for approval workflow
+  status?: string;
+  rejectionReason?: string;
+  revisionNotes?: string;
 }
 
 export interface Registration {

@@ -1,5 +1,5 @@
 import { EventRepository, eventRepository } from '../repositories/event.repository';
-import { BaseService, ServiceOptions } from './base.service';
+import { BaseService, type ServiceOptions } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IEvent } from '../models/event.model';
 import type { FilterQuery } from 'mongoose';
@@ -373,14 +373,15 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       if (workshop.type !== "WORKSHOP") {
         throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
       }
-      if (workshop.status == "PENDING_APPROVAL") {
-        const newWorkshop = await eventRepository.update(workshopId, { status: "APPROVED" });
-        return newWorkshop;
+      if (workshop.status !== "PENDING_APPROVAL") {
+        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval", 400);
       }
+      const newWorkshop = await eventRepository.update(workshopId, { status: "APPROVED" });
+      return newWorkshop;
     }
 
     async rejectWorkshop(workshopId: string) {
-      // Logic to approve the workshop
+      // Logic to reject the workshop
       const workshop = await eventRepository.findById(workshopId);
       if (!workshop) {
         throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
@@ -388,14 +389,15 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       if (workshop.type !== "WORKSHOP") {
         throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
       }
-      if (workshop.status == "PENDING_APPROVAL") {
-        const newWorkshop = await eventRepository.update(workshopId, { status: "REJECTED" });
-        return newWorkshop;
+      if (workshop.status !== "PENDING_APPROVAL") {
+        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval", 400);
       }
+      const newWorkshop = await eventRepository.update(workshopId, { status: "REJECTED" });
+      return newWorkshop;
     }
 
     async editsNeededWorkshop(workshopId: string) {
-      // Logic to approve the workshop
+      // Logic to request edits for the workshop
       const workshop = await eventRepository.findById(workshopId);
       if (!workshop) {
         throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
@@ -403,10 +405,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       if (workshop.type !== "WORKSHOP") {
         throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
       }
-      if (workshop.status == "PENDING_APPROVAL") {
-        const newWorkshop = await eventRepository.update(workshopId, { status: "NEEDS_EDITS" });
-        return newWorkshop;
+      if (workshop.status !== "PENDING_APPROVAL") {
+        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval", 400);
       }
+      const newWorkshop = await eventRepository.update(workshopId, { status: "NEEDS_EDITS" });
+      return newWorkshop;
     }
 
     async publishWorkshop(workshopId: string) {
@@ -418,10 +421,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       if (workshop.type !== "WORKSHOP") {
         throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
       }
-      if (workshop.status == "PENDING_APPROVAL") {
-        const newWorkshop = await eventRepository.update(workshopId, { status: "PUBLISHED" });
-        return newWorkshop;
+      if (workshop.status !== "APPROVED") {
+        throw new ServiceError("BAD_REQUEST", "Workshop must be approved before publishing", 400);
       }
+      const newWorkshop = await eventRepository.update(workshopId, { status: "PUBLISHED" });
+      return newWorkshop;
     }
 
 

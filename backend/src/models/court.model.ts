@@ -1,5 +1,5 @@
-import mongoose, { Schema } from "mongoose";
-import { createBaseSchema, IBaseDocument } from "./base.model";
+import mongoose from "mongoose";
+import { createBaseSchema, type IBaseDocument } from "./base.model";
 
 export interface ICourt extends IBaseDocument {
   name: string;

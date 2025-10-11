@@ -1,6 +1,5 @@
 import { BaseRepository } from "./base.repository";
 import { CourtReservation, type ICourtReservation } from "../models/court-reservation.model";
-import type mongoose from "mongoose";
 
 export class CourtReservationRepository extends BaseRepository<ICourtReservation> {
   constructor() { super(CourtReservation); }
