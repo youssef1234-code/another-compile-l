@@ -308,6 +308,35 @@ export const EventFilterSchema = z.object({
 
 export type EventFilterInput = z.infer<typeof EventFilterSchema>;
 
+export const createGymSessionSchema = z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      sessionType: z.nativeEnum(GymSessionType),
+      startDate: z.coerce.date(),
+      capacity: z.number().int().positive(),
+      duration: z.number().int().positive(),
+});
+export type CreateGymSessionInput = z.infer<typeof createGymSessionSchema>;
+
+
+export const updateGymSessionSchema = z.object({
+      id: z.string(),
+      startDate: z.coerce.date().optional(),
+      duration: z.number().int().positive().optional(),
+      capacity: z.number().int().positive().optional(),
+      status: z.nativeEnum(EventStatus).optional(),
+      sessionType: z.nativeEnum(GymSessionType).optional(),
+}).refine(
+  (v) =>
+    v.startDate != null ||
+    v.duration != null ||
+    v.capacity != null ||
+    v.status != null ||
+    v.sessionType != null,
+  { message: 'You need to update at least one field' }
+);
+
+export type UpdateGymSessionInput = z.infer<typeof updateGymSessionSchema>;
 
 export const CourtSport = {
   BASKETBALL: "BASKETBALL",

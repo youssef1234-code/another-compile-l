@@ -1,0 +1,115 @@
+
+import { useMemo, useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+
+function toLocalYMD(dt: Date){ const d=new Date(dt); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function toLocalHM(dt: Date){ const d=new Date(dt); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
+function buildDate(dateStr:string, hmStr:string){
+  const [y,m,d] = dateStr.split("-").map(Number);
+  const [H,MM] = hmStr.split(":").map(Number);
+  return new Date(y, m-1, d, H, MM, 0, 0); // local time
+}
+function humanizeType(t?: string) {
+  return (t ? String(t).replace(/_/g, " ") : "Gym Session");
+}
+function getSessionType(s: any) {
+  return s?.sessionType ?? s?.gymType ?? undefined;
+}
+function getDurationMin(s: any) {
+  return s?.duration ?? s?.durationMinutes ?? null;
+}
+function asDate(v: any) {
+  // handles string | Date
+  return v instanceof Date ? v : new Date(String(v));
+}
+
+
+export default function EditSessionDialog({
+  session,
+  onOpenChange,
+  onSaved,
+}: {
+  session: any;
+  onOpenChange: (open:boolean)=>void;
+  onSaved: ()=>void;
+}){
+  const start = new Date(session.startDate);
+  const [date, setDate] = useState(toLocalYMD(start));
+  const [time, setTime] = useState(toLocalHM(start));
+  const [duration, setDuration] = useState<number>(session.duration ?? session.durationMinutes ?? 60);
+  const [capacity, setCapacity] = useState<number>(session.capacity ?? 20);
+  const [status, setStatus] = useState<string>(session.status ?? "PUBLISHED");
+
+  const utils = trpc.useUtils();
+  const updateM = trpc.events.updateGymSession.useMutation({
+    onSuccess: () => { utils.events.getEvents.invalidate(); onSaved(); },
+  });
+
+  const saving = updateM.isPending;
+
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Session</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs">Date</label>
+              <Input type="date" value={date} onChange={(e)=> setDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs">Start time</label>
+              <Input type="time" value={time} onChange={(e)=> setTime(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-xs">Duration (min)</label>
+              <Input type="number" value={duration} min={15} max={240}
+                onChange={(e)=> setDuration(Number(e.target.value) || 0)} />
+            </div>
+            <div>
+              <label className="text-xs">Capacity</label>
+              <Input type="number" value={capacity} min={1}
+                onChange={(e)=> setCapacity(Number(e.target.value) || 0)} />
+            </div>
+            <div>
+              <label className="text-xs">Status</label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PUBLISHED">Published</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={()=> onOpenChange(false)}>Close</Button>
+            <Button
+              onClick={()=>{
+                const startDate = buildDate(date, time);
+                const patch: any = { startDate, duration, capacity, status };
+                // Remove unchanged fields (optional)
+                Object.keys(patch).forEach(k => patch[k] === undefined && delete patch[k]);
+                updateM.mutate({ id: session.id, ...patch });
+              }}
+              disabled={saving}
+            >
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

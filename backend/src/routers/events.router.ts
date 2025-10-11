@@ -19,9 +19,18 @@ import {
   CreateEventSchema,
   UpdateEventSchema,
   EventFilterSchema,
+  GymSessionType,
+  EventStatus,
+  createGymSessionSchema,
+  updateGymSessionSchema,
 } from '@event-manager/shared';
 import { z } from 'zod';
 
+function omitUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>;
+}
 // Define all routes with proper role-based access control
 const eventRoutes = {
   /**
@@ -234,6 +243,44 @@ const eventRoutes = {
         limit: input.limit,
       });
     }),
+
+    /**
+     * Create a gym session - EVENT_OFFICE and ADMIN only
+     */
+    createGymSession: eventsOfficeProcedure
+    .input(createGymSessionSchema)
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      return eventService.createGymSession(
+        {
+          ...input,
+          type: 'GYM_SESSION',
+          endDate: new Date(input.startDate.getTime() + input.duration * 60000),
+          location: 'Gym',
+          status: EventStatus.DRAFT,
+        },
+        { userId }
+      );
+    }),
+    
+
+    // UPDATE (edit date/time/duration/status/capacity only)
+  updateGymSession: eventsOfficeProcedure
+    .input(updateGymSessionSchema)
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      const { id, ...rest } = input;
+
+      const patch = omitUndefined({
+        startDate: rest.startDate,
+        duration: rest.duration,
+        capacity: rest.capacity,
+        status: rest.status,
+        sessionType: rest.sessionType,
+      });
+
+    return eventService.updateGymSession(id, patch, { userId });
+  }),
 
     // Approve workshop - EVENT_OFFICE ONLY
     approveWorkshop : eventsOfficeProcedure
