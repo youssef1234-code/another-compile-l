@@ -339,27 +339,27 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   // Gym specific functions 
 
 
-private async assertNoGymOverlap(params: {
-  sessionType: GymSessionType;
-  startDate: Date;
-  endDate: Date;
-  excludeId?: string;
-}) {
-  const q: FilterQuery<IEvent> = {
-    type: 'GYM_SESSION',
-    status: EventStatus.PUBLISHED, 
-    // sessionType: params.sessionType,  // this means that different session types can overlap
-    startDate: { $lt: params.endDate },
-    endDate: { $gt: params.startDate },
-    isArchived: false,
-  };
-  if (params.excludeId) (q as any)._id = { $ne: params.excludeId };
+  private async assertNoGymOverlap(params: {
+    sessionType: GymSessionType;
+    startDate: Date;
+    endDate: Date;
+    excludeId?: string;
+  }) {
+    const q: FilterQuery<IEvent> = {
+      type: 'GYM_SESSION',
+      status: EventStatus.PUBLISHED, 
+      // sessionType: params.sessionType,  // this means that different session types can overlap
+      startDate: { $lt: params.endDate },
+      endDate: { $gt: params.startDate },
+      isArchived: false,
+    };
+    if (params.excludeId) (q as any)._id = { $ne: params.excludeId };
 
-  const clash = await this.repository.findOne(q);
-  if (clash) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
+    const clash = await this.repository.findOne(q);
+    if (clash) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
+    }
   }
-}
 
   /**
    * APPROVAL WORKSHOP METHOD
@@ -423,7 +423,6 @@ private async assertNoGymOverlap(params: {
         return newWorkshop;
       }
     }
-  }
 
 
 
