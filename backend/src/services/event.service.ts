@@ -1,9 +1,10 @@
 import { EventRepository, eventRepository } from '../repositories/event.repository';
-import { BaseService } from './base.service';
+import { BaseService, ServiceOptions } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IEvent } from '../models/event.model';
 import type { FilterQuery } from 'mongoose';
 import { EventStatus, GymSessionType } from '@event-manager/shared';
+import { ServiceError } from '../errors/errors';
 
 /**
  * Service Layer for Events
@@ -38,10 +39,22 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   }
 
   /**
+   * Override create to set appropriate status for events
+   */
+  async create(data: Partial<IEvent>, options?: any): Promise<IEvent> {
+    // Set status to PUBLISHED for bazaars created by EVENT_OFFICE users
+    if (data.type === 'BAZAAR' && !data.status) {
+      data.status = 'PUBLISHED';
+    }
+    
+    return super.create(data, options);
+  }
+
+  /**
    * Validate before create
    * Business Rule: Check event date validations
    */
-  protected async validateCreate(data: Partial<IEvent>): Promise<void> {
+  protected async validateCreate(data: Partial<IEvent>, options?: ServiceOptions): Promise<void> {
     if (data.startDate && data.endDate && data.startDate > data.endDate) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -62,6 +75,14 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         message: 'Capacity must be a positive number'
       });
     }
+
+    if ( options?.role !== 'PROFESSOR' && data.type === 'WORKSHOP') {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Only professors can create workshops'
+      });
+    }
+
   }
 
   /**
@@ -287,10 +308,12 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       description: event.description,
       type: event.type,
       location: event.location,
+      locationDetails: event.locationDetails,
       startDate: event.startDate,
       endDate: event.endDate,
       registrationDeadline: event.registrationDeadline,
       capacity: event.capacity,
+      registeredCount: event.registeredCount,
       price: event.price,
       status: event.status,
       isArchived: event.isArchived,
@@ -337,6 +360,70 @@ private async assertNoGymOverlap(params: {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
   }
 }
+
+  /**
+   * APPROVAL WORKSHOP METHOD
+   */
+  async approveWorkshop(workshopId: string) {
+      // Logic to approve the workshop
+      const workshop = await eventRepository.findById(workshopId);
+      if (!workshop) {
+        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+      }
+      if (workshop.type !== "WORKSHOP") {
+        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+      }
+      if (workshop.status == "PENDING_APPROVAL") {
+        const newWorkshop = await eventRepository.update(workshopId, { status: "APPROVED" });
+        return newWorkshop;
+      }
+    }
+
+    async rejectWorkshop(workshopId: string) {
+      // Logic to approve the workshop
+      const workshop = await eventRepository.findById(workshopId);
+      if (!workshop) {
+        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+      }
+      if (workshop.type !== "WORKSHOP") {
+        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+      }
+      if (workshop.status == "PENDING_APPROVAL") {
+        const newWorkshop = await eventRepository.update(workshopId, { status: "REJECTED" });
+        return newWorkshop;
+      }
+    }
+
+    async editsNeededWorkshop(workshopId: string) {
+      // Logic to approve the workshop
+      const workshop = await eventRepository.findById(workshopId);
+      if (!workshop) {
+        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+      }
+      if (workshop.type !== "WORKSHOP") {
+        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+      }
+      if (workshop.status == "PENDING_APPROVAL") {
+        const newWorkshop = await eventRepository.update(workshopId, { status: "NEEDS_EDITS" });
+        return newWorkshop;
+      }
+    }
+
+    async publishWorkshop(workshopId: string) {
+      // Logic to publish the workshop
+      const workshop = await eventRepository.findById(workshopId);
+      if (!workshop) {
+        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+      }
+      if (workshop.type !== "WORKSHOP") {
+        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+      }
+      if (workshop.status == "PENDING_APPROVAL") {
+        const newWorkshop = await eventRepository.update(workshopId, { status: "PUBLISHED" });
+        return newWorkshop;
+      }
+    }
+  }
 
 
 

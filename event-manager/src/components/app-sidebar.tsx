@@ -26,7 +26,6 @@ import {
   ClipboardList,
   Vote,
   MapPin,
-  LogOut,
   type LucideIcon,
 } from "lucide-react"
 
@@ -43,10 +42,17 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuthStore } from "@/store/authStore"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { trpc } from "@/lib/trpc"
 import { toast } from "sonner"
 import { ROUTES } from "@/lib/constants"
@@ -56,6 +62,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { NavUser } from "@/components/nav-user"
 
 // Navigation structure based on user roles and requirements
 interface NavItem {
@@ -150,11 +157,12 @@ const navigationConfig: NavItem[] = [
   },
 ]
 
-export function AppSidebar() {
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
   const logoutMutation = trpc.auth.logout.useMutation()
+  const { state } = useSidebar()
 
   const handleLogout = async () => {
     try {
@@ -173,26 +181,21 @@ export function AppSidebar() {
     return user?.role && item.roles.includes(user.role)
   })
 
-  const getInitials = () => {
-    if (!user) return "U"
-    return `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
-  }
-
   const avatarSrc = user?.avatar ? getAvatarSrc(user.avatar, user.avatarType as 'upload' | 'preset') : undefined
 
   return (
-    <Sidebar variant="inset">
+    <Sidebar collapsible="icon" variant="inset" className="border-r bg-gradient-to-b from-sidebar/95 via-sidebar to-sidebar/98" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-neutral-900 text-neutral-50">
+              <Link to={ROUTES.DASHBOARD}>
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <GraduationCap className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">GUC Events</span>
-                  <span className="truncate text-xs text-neutral-500">Event Management</span>
+                  <span className="truncate text-xs text-muted-foreground">Event Management</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -216,23 +219,72 @@ export function AppSidebar() {
 
                 if (filteredItems.length === 0) return null
 
+                // Check if any sub-item is active
+                const hasActiveChild = filteredItems.some(subItem => location.pathname === subItem.url)
+                const isMainOrChildActive = isActive || hasActiveChild
+
+                // In collapsed mode, use DropdownMenu
+                if (state === "collapsed") {
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <SidebarMenuButton 
+                            tooltip={item.title}
+                            className={isMainOrChildActive ? "!bg-primary/10 !text-primary hover:!bg-primary/15 hover:!text-primary [&>svg]:!text-primary" : ""}
+                          >
+                            {item.icon && <item.icon className="size-4" />}
+                            <span>{item.title}</span>
+                            <ChevronRight className="ml-auto size-4" />
+                          </SidebarMenuButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="right" align="start" className="min-w-48">
+                          {filteredItems.map((subItem) => {
+                            const isSubActive = location.pathname === subItem.url
+                            return (
+                              <DropdownMenuItem key={subItem.title} asChild>
+                                <Link 
+                                  to={subItem.url}
+                                  className={isSubActive ? "!bg-primary/10 !text-primary font-medium [&>svg]:!text-primary" : ""}
+                                >
+                                  {subItem.icon && <subItem.icon className="mr-2 size-4" />}
+                                  <span>{subItem.title}</span>
+                                </Link>
+                              </DropdownMenuItem>
+                            )
+                          })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </SidebarMenuItem>
+                  )
+                }
+
+                // In expanded mode, use Collapsible - only highlight sub-items, not parent
                 return (
-                  <Collapsible key={item.title} asChild defaultOpen={isActive}>
+                  <Collapsible key={item.title} asChild defaultOpen={isMainOrChildActive} className="group/collapsible">
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={item.title}>
+                        <SidebarMenuButton 
+                          tooltip={item.title}
+                          size="default"
+                          className="h-10"
+                        >
                           {item.icon && <item.icon className="size-4" />}
                           <span>{item.title}</span>
-                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
-                      <CollapsibleContent>
+                      <CollapsibleContent className="overflow-hidden transition-all duration-200 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out]">
                         <SidebarMenuSub>
                           {filteredItems.map((subItem) => {
                             const isSubActive = location.pathname === subItem.url
                             return (
                               <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton asChild isActive={isSubActive}>
+                                <SidebarMenuSubButton 
+                                  asChild 
+                                  isActive={isSubActive}
+                                  className={isSubActive ? "!bg-primary/10 !text-primary hover:!bg-primary/15 hover:!text-primary h-9 [&>svg]:!text-primary font-medium" : "h-9"}
+                                >
                                   <Link to={subItem.url}>
                                     {subItem.icon && <subItem.icon className="size-4" />}
                                     <span>{subItem.title}</span>
@@ -250,7 +302,13 @@ export function AppSidebar() {
 
               return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={isActive} 
+                    tooltip={item.title}
+                    size="default"
+                    className={isActive ? "!bg-primary/10 !text-primary hover:!bg-primary/15 hover:!text-primary h-10 [&>svg]:!text-primary font-medium" : "h-10"}
+                  >
                     <Link to={item.url}>
                       {item.icon && <item.icon className="size-4" />}
                       <span>{item.title}</span>
@@ -264,36 +322,17 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link to="/profile">
-                <Avatar className="size-8">
-                  <AvatarImage src={avatarSrc} />
-                  <AvatarFallback className="bg-neutral-100 text-neutral-900">
-                    {getInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    {user?.firstName} {user?.lastName}
-                  </span>
-                  <span className="truncate text-xs text-neutral-500">{user?.email}</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={handleLogout}
-              disabled={logoutMutation.isPending}
-            >
-              <LogOut className="size-4" />
-              <span>{logoutMutation.isPending ? "Logging out..." : "Logout"}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <NavUser 
+          user={{
+            name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User',
+            email: user?.email || '',
+            avatar: avatarSrc || '',
+          }}
+          onLogout={handleLogout}
+          isLoggingOut={logoutMutation.isPending}
+        />
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

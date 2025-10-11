@@ -21,14 +21,14 @@ type EventLocation = 'ON_CAMPUS' | 'OFF_CAMPUS';
 interface EventCardProps {
   event: {
     id: string;
-    title: string;
+    name: string;
     description: string;
     type: EventType;
     location: EventLocation;
-    date: Date;
-    endDate?: Date;
+    startDate: string | Date;
+    endDate?: string | Date;
     capacity: number;
-    registeredCount: number;
+    registeredCount?: number;
     price: number;
     imageUrl?: string;
     isArchived?: boolean;
@@ -60,8 +60,9 @@ const cardVariants = {
 
 export function EventCard({ event, index = 0 }: EventCardProps) {
   const utils = trpc.useUtils();
-  const isFull = event.registeredCount >= event.capacity;
-  const availableSpots = event.capacity - event.registeredCount;
+  const registeredCount = event.registeredCount || 0;
+  const isFull = registeredCount >= event.capacity;
+  const availableSpots = event.capacity - registeredCount;
 
   // Check if user is already registered
   const { data: registrationStatus } = trpc.events.isRegistered.useQuery(
@@ -104,7 +105,7 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
           {event.imageUrl ? (
             <img
               src={event.imageUrl}
-              alt={event.title}
+              alt={event.name}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
             />
           ) : (
@@ -136,7 +137,7 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
 
         <CardHeader>
           <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors">
-            {event.title}
+            {event.name}
           </CardTitle>
           <CardDescription className="line-clamp-2">
             {event.description}
@@ -144,14 +145,18 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
         </CardHeader>
 
         <CardContent className="flex-1 space-y-3">
-          {/* Date */}
+          {/* Date and Time */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span>
-              {new Date(event.date).toLocaleDateString('en-US', {
+              {new Date(event.startDate).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
+              })} at {new Date(event.startDate).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
               })}
             </span>
           </div>

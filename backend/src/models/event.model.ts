@@ -17,6 +17,7 @@ export interface IEvent extends IBaseDocument {
   startDate: Date;
   endDate: Date;
   location: string;
+  locationDetails?: string;
   status: keyof typeof EventStatus;
   isArchived: boolean;
   capacity?: number;
@@ -77,9 +78,12 @@ const eventSchema = createBaseSchema<IEvent>(
       type: String,
       required: true,
     },
+    locationDetails: {
+      type: String,
+    },
     status: {
       type: String,
-      enum: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'PUBLISHED', 'CANCELLED', 'COMPLETED', 'ARCHIVED'],
+      enum: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'NEEDS_EDITS', 'REJECTED', 'PUBLISHED', 'CANCELLED', 'COMPLETED', 'ARCHIVED'],
       default: 'DRAFT',
     },
     isArchived: {
@@ -160,12 +164,22 @@ const eventSchema = createBaseSchema<IEvent>(
   }
 );
 
+
 // Indexes
 eventSchema.index({ type: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ startDate: 1 });
 eventSchema.index({ createdBy: 1 });
 eventSchema.index({ name: 'text', description: 'text' });
+
+eventSchema.pre('validate', function (next) {
+  if (this.isNew) {
+    if (this.type === 'WORKSHOP') {
+      this.status = 'PENDING_APPROVAL';
+    }
+  }
+  next();
+});
 
 export const Event = mongoose.model<IEvent>('Event', eventSchema);
 
