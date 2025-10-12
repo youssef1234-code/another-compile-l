@@ -1,8 +1,10 @@
-import { router, publicProcedure, protectedProcedure } from "../trpc/trpc";
+import { router, publicProcedure, protectedProcedure, eventsOfficeProcedure } from "../trpc/trpc";
 import { z } from "zod";
 import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
 import { AvailabilityQuerySchema, CourtReservationCreateSchema, CourtReservationCancelSchema } from "@event-manager/shared";
+import { DateTime } from "luxon";
+import { courtReservationRepository } from "../repositories/court-reservation.repository";
 
 export const courtsRouter = router({
   // list courts (optionally by sport)
@@ -18,17 +20,40 @@ export const courtsRouter = router({
     }),
 
   // availability for a day
-  availability: publicProcedure
-    .input(AvailabilityQuerySchema)
-    .query(async ({ input }) => {
-      const res = await courtService.getAvailability({
-        date: input.date,
-        sport: input.sport as any,
-        courtId: input.courtId,
-        slotMinutes: input.slotMinutes,
-      });
-      return res;
-    }),
+availability: protectedProcedure
+  .input(AvailabilityQuerySchema.extend({ slotMinutes: z.number().default(60) }))
+  .query(async ({ input, ctx }) => {
+    const rows = await courtService.getAvailability(input);
+    const me = (ctx.user!._id as any).toString();
+    return rows.map(r => ({
+      ...r,
+      booked: r.booked.map((b: any) => ({
+  id: b.id, startUtc: b.startUtc, endUtc: b.endUtc, hour: b.hour, status: b.status, byMe: b.userId === me
+})),
+
+    }));
+  }),
+
+
+  debugListReservations: eventsOfficeProcedure
+  .input(z.object({
+    courtId: z.string(),
+    date: z.coerce.date(),
+  }))
+  .query(async ({ input }) => {
+    const dayLocal = DateTime.fromJSDate(input.date, { zone: "Africa/Cairo" }).startOf("day");
+    const nextLocal = dayLocal.plus({ days: 1 });
+    const docs = await courtReservationRepository.findForCourtOnDay(
+      input.courtId, dayLocal.toUTC().toJSDate(), nextLocal.toUTC().toJSDate()
+    );
+    return docs.map(d => ({
+      id: d._id?.toString?.() ?? String(d._id),
+      startUtc: d.startDate.toISOString(),
+      endUtc: d.endDate.toISOString(),
+      status: d.status,
+      user: (d.user as any)?.toString?.() ?? String(d.user),
+    }));
+  }),
 
   // create reservation (student)
   reserve: protectedProcedure
