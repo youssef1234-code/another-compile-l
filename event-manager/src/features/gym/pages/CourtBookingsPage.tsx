@@ -9,12 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "react-hot-toast";
 import { CalendarSearch, Dumbbell } from "lucide-react";
 
-const SPORTS = ["BASKETBALL", "TENNIS", "FOOTBALL", "ALL"] as const;
+const SPORTS = ["ALL", "BASKETBALL", "TENNIS", "FOOTBALL"] as const;
 type SportFilter = typeof SPORTS[number];
-
-const [sport, setSport] = useState<SportFilter>("ALL");
-const [selectedCourtId, setSelectedCourtId] = useState<string | "ALL">("ALL");
-
 
 function toISOFromLocal(dateStr: string, timeStr: string) {
   const d = new Date(`${dateStr}T${timeStr}:00`);
@@ -22,7 +18,7 @@ function toISOFromLocal(dateStr: string, timeStr: string) {
 }
 
 const OPEN_HOUR = 8;
-const CLOSE_HOUR = 22; // last start hour shown is 21:00
+const CLOSE_HOUR = 22; // last start hour shown is 21:00,
 const HOURS = Array.from({ length: CLOSE_HOUR - OPEN_HOUR }, (_, i) => OPEN_HOUR + i);
 
 // A slot is "past" if its end time <= now + 1 minute
@@ -46,29 +42,22 @@ export function CourtBookingsPage() {
   const todayLocal = new Date();
   const defaultDate = todayLocal.toISOString().slice(0, 10); // YYYY-MM-DD
 
-  const [sport, setSport] = useState<(typeof SPORTS)[number]>("TENNIS");
+  const [sport, setSport] = useState<SportFilter>("ALL");
   const [dateStr, setDateStr] = useState<string>(defaultDate);
   const [selectedCourtId, setSelectedCourtId] = useState<string | "ALL">("ALL");
 
   // courts list (filterable by sport)
-const courtsQuery = trpc.courts.list.useQuery(
-  { sport: sport !== "ALL" ? (sport as any) : undefined }, // undefined => all
-);
-  // availability input (date at local midnight pushed as UTC Date)
-const availabilityInput = useMemo(() => {
-  const midnightLocalISO = toISOFromLocal(dateStr, "00:00");
-  const dateObj = new Date(midnightLocalISO);
+  const courtsQuery = trpc.courts.list.useQuery({ sport });
 
-  // if a specific court is selected, ignore sport
-  if (selectedCourtId !== "ALL") {
-    return { date: dateObj, courtId: selectedCourtId, slotMinutes: 60 };
-  }
-  return {
-    date: dateObj,
-    sport: sport !== "ALL" ? (sport as any) : undefined,
-    slotMinutes: 60,
-  };
-}, [dateStr, sport, selectedCourtId]);
+  // availability input (date at local midnight pushed as UTC Date)
+  const availabilityInput = useMemo(() => {
+    const midnightLocalISO = toISOFromLocal(dateStr, "00:00");
+    const dateObj = new Date(midnightLocalISO);
+    return selectedCourtId !== "ALL"
+      ? { date: dateObj, courtId: selectedCourtId, slotMinutes: 60 }
+      : { date: dateObj, sport, slotMinutes: 60 };
+  }, [dateStr, sport, selectedCourtId]);
+
   const availability = trpc.courts.availability.useQuery(availabilityInput, {
     enabled: !!dateStr,
   });
@@ -93,7 +82,13 @@ const availabilityInput = useMemo(() => {
 
   const courtOptions = useMemo(() => {
     const items = courtsQuery.data ?? [];
-    return [{ id: "ALL", name: "All courts", sport }, ...items.map((c) => ({ id: c.id, name: c.name, sport: c.sport }))];
+    return [
+      { id: "ALL", name: "All courts", sport },
+      ...items.map((c) => {
+        const court = c as { id: string; name: string; sport: string };
+        return { id: court.id, name: court.name, sport: court.sport };
+      }),
+    ];
   }, [courtsQuery.data, sport]);
 
   return (
@@ -113,8 +108,8 @@ const availabilityInput = useMemo(() => {
           <Select
             value={sport}
             onValueChange={(v) => {
-              setSport(v as SportFilter);
-              setSelectedCourtId("ALL"); // reset specific-court filter when sport changes
+              setSport(v as any);
+              setSelectedCourtId("ALL");
             }}
           >
             <SelectTrigger className="w-40">
@@ -128,7 +123,6 @@ const availabilityInput = useMemo(() => {
               ))}
             </SelectContent>
           </Select>
-
 
           <Select value={selectedCourtId} onValueChange={setSelectedCourtId}>
             <SelectTrigger className="w-48">
