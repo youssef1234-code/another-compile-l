@@ -5,7 +5,7 @@
  * Uses Framer Motion for smooth transitions
  */
 
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { VendorSignupForm } from '../components/VendorSignupForm';
 import { ROUTES } from '@/lib/constants';
@@ -41,7 +41,7 @@ export function SignupVendorPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-6 px-4 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen flex items-center justify-center py-6 px-4 bg-bg-weak">
       <div className="w-full max-w-4xl">
         <motion.div
           variants={pageVariants}
@@ -57,7 +57,7 @@ export function SignupVendorPage() {
             className="mb-4"
           >
           <Button
-            variant="ghost"
+            mode="ghost"
             size="sm"
             asChild
             className="gap-2"
@@ -84,7 +84,7 @@ export function SignupVendorPage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gradient-to-br from-slate-50 to-slate-100 px-2 text-muted-foreground">
+              <span className="bg-bg-white px-2 text-text-soft">
                 or
               </span>
             </div>

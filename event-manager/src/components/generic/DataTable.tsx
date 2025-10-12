@@ -19,7 +19,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -190,7 +190,7 @@ export function DataTable<TData>({
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              mode="outline"
               size="sm"
               onClick={() => onPageChange?.(pagination.page - 1)}
               disabled={pagination.page === 1 || isLoading}
@@ -202,7 +202,7 @@ export function DataTable<TData>({
               Page {pagination.page} of {totalPages}
             </div>
             <Button
-              variant="outline"
+              mode="outline"
               size="sm"
               onClick={() => onPageChange?.(pagination.page + 1)}
               disabled={pagination.page >= totalPages || isLoading}

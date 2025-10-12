@@ -1,114 +1,141 @@
-import * as React from "react"
+import { DirectionEnum } from '@event-manager/shared';
+import { tv } from '@/lib/tv';
+import * as React from 'react';
+import { RiArrowDownSFill, RiArrowUpSFill, RiExpandUpDownFill } from 'react-icons/ri';
+import { cn } from '@/lib/utils';
 
-import { cn } from "@/lib/utils"
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  containerClassname?: string;
+  isLoading?: boolean;
+  loadingRowsCount?: number;
+  loadingRow?: React.ReactNode;
+}
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
-  return (
+export type TableHeadSortDirection = DirectionEnum | false;
+interface TableHeadProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
+  sortable?: boolean;
+  sortDirection?: TableHeadSortDirection;
+  onSort?: () => void;
+}
+
+type TableHeaderProps = React.HTMLAttributes<HTMLTableSectionElement>;
+type TableBodyProps = React.HTMLAttributes<HTMLTableSectionElement>;
+type TableFooterProps = React.HTMLAttributes<HTMLTableSectionElement>;
+type TableRowProps = React.HTMLAttributes<HTMLTableRowElement>;
+type TableCellProps = React.TdHTMLAttributes<HTMLTableCellElement>;
+
+const LoadingRow = () => (
+  <TableRow>
+    <TableCell className="animate-pulse" colSpan={100}>
+      <div className="h-8 w-full rounded-md bg-neutral-100" />
+    </TableCell>
+  </TableRow>
+);
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, containerClassname, isLoading, loadingRowsCount = 5, loadingRow, children, ...props }, ref) => (
     <div
-      data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className={cn(
+        'border-neutral-alpha-200 shadow-xs relative w-full overflow-x-auto rounded-lg border',
+        containerClassname
+      )}
     >
       <table
-        data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        ref={ref}
+        className={cn('relative w-full caption-bottom border-separate border-spacing-0 text-sm', className)}
         {...props}
-      />
+      >
+        {children}
+        {isLoading && (
+          <TableBody>
+            {Array.from({ length: loadingRowsCount }).map((_, index) => (
+              <React.Fragment key={index}>{loadingRow || <LoadingRow />}</React.Fragment>
+            ))}
+          </TableBody>
+        )}
+      </table>
     </div>
   )
-}
+);
+Table.displayName = 'Table';
 
-function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
-  return (
-    <thead
-      data-slot="table-header"
-      className={cn("[&_tr]:border-b", className)}
-      {...props}
-    />
-  )
-}
+const TableHeader = React.forwardRef<HTMLTableSectionElement, TableHeaderProps>(({ className, ...props }, ref) => (
+  <thead
+    ref={ref}
+    className={cn('sticky top-0 z-10 bg-neutral-50 shadow-[0_0_0_1px_hsl(var(--neutral-alpha-200))]', className)}
+    {...props}
+  />
+));
+TableHeader.displayName = 'TableHeader';
 
-function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
-  return (
-    <tbody
-      data-slot="table-body"
-      className={cn("[&_tr:last-child]:border-0", className)}
-      {...props}
-    />
-  )
-}
+const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
+  ({ className, children, sortable, sortDirection, onSort, ...props }, ref) => {
+    const content = (
+      <div className={cn('flex items-center gap-1', sortable && 'hover:text-foreground-900 cursor-pointer')}>
+        {children}
+        {sortable && (
+          <>
+            {sortDirection === DirectionEnum.ASC && <RiArrowUpSFill className="text-text-sub-600 size-4" />}
+            {sortDirection === DirectionEnum.DESC && <RiArrowDownSFill className="text-text-sub-600 size-4" />}
+            {!sortDirection && <RiExpandUpDownFill className="text-text-sub-600 size-4" />}
+          </>
+        )}
+      </div>
+    );
 
-function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
-  return (
-    <tfoot
-      data-slot="table-footer"
-      className={cn(
-        "bg-muted/50 border-t font-medium [&>tr]:last:border-b-0",
-        className
-      )}
-      {...props}
-    />
-  )
-}
+    return (
+      <th
+        ref={ref}
+        className={cn(
+          'text-foreground-600 h-10 px-6 py-2 text-left align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+          className
+        )}
+        {...props}
+      >
+        {sortable ? (
+          <div role="button" onClick={onSort}>
+            {content}
+          </div>
+        ) : (
+          content
+        )}
+      </th>
+    );
+  }
+);
+TableHead.displayName = 'TableHead';
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
-  return (
-    <tr
-      data-slot="table-row"
-      className={cn(
-        "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",
-        className
-      )}
-      {...props}
-    />
-  )
-}
+const TableBody = React.forwardRef<HTMLTableSectionElement, TableBodyProps>(({ className, ...props }, ref) => (
+  <tbody ref={ref} className={cn('', className)} {...props} />
+));
+TableBody.displayName = 'TableBody';
 
-function TableHead({ className, ...props }: React.ComponentProps<"th">) {
-  return (
-    <th
-      data-slot="table-head"
-      className={cn(
-        "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-        className
-      )}
-      {...props}
-    />
-  )
-}
+const TableFooter = React.forwardRef<HTMLTableSectionElement, TableFooterProps>(({ className, ...props }, ref) => (
+  <tfoot
+    ref={ref}
+    className={cn('bg-background sticky bottom-0 shadow-[0_0_0_1px_hsl(var(--neutral-alpha-200))]', className)}
+    {...props}
+  />
+));
+TableFooter.displayName = 'TableFooter';
 
-function TableCell({ className, ...props }: React.ComponentProps<"td">) {
-  return (
-    <td
-      data-slot="table-cell"
-      className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-        className
-      )}
-      {...props}
-    />
-  )
-}
+const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(({ className, ...props }, ref) => (
+  <tr
+    ref={ref}
+    className={cn('[&>td]:border-neutral-alpha-100 [&>td]:border-b [&>td]:last-of-type:border-0', className)}
+    {...props}
+  />
+));
+TableRow.displayName = 'TableRow';
 
-function TableCaption({
-  className,
-  ...props
-}: React.ComponentProps<"caption">) {
-  return (
-    <caption
-      data-slot="table-caption"
-      className={cn("text-muted-foreground mt-4 text-sm", className)}
-      {...props}
-    />
-  )
-}
+export const tableCellVariants = tv({
+  base: 'px-6 py-2 align-middle',
+});
 
-export {
-  Table,
-  TableHeader,
-  TableBody,
-  TableFooter,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableCaption,
-}
+const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(({ className, ...props }, ref) => (
+  <td ref={ref} className={cn(tableCellVariants(), className)} {...props} />
+));
+TableCell.displayName = 'TableCell';
+
+export { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow };
+

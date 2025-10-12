@@ -203,7 +203,7 @@ export function AvatarPicker({ value, onChange, disabled }: AvatarPickerProps) {
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
+                  mode="outline"
                   onClick={handleRemoveUpload}
                   disabled={disabled}
                 >
@@ -220,7 +220,7 @@ export function AvatarPicker({ value, onChange, disabled }: AvatarPickerProps) {
               <div className="flex gap-2">
                 <Button
                   type="button"
-                  variant="outline"
+                  mode="outline"
                   onClick={() => setIsCropping(true)}
                   disabled={disabled}
                 >
@@ -228,7 +228,7 @@ export function AvatarPicker({ value, onChange, disabled }: AvatarPickerProps) {
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
+                  mode="outline"
                   onClick={handleRemoveUpload}
                   disabled={disabled}
                 >
@@ -249,7 +249,7 @@ export function AvatarPicker({ value, onChange, disabled }: AvatarPickerProps) {
               />
               <Button
                 type="button"
-                variant="outline"
+                mode="outline"
                 className="w-full h-32 border-dashed"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={disabled}

@@ -4,7 +4,7 @@
  * Generic empty state component for when there's no data to display
  */
 
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

@@ -9,6 +9,15 @@ export const APP_DESCRIPTION = 'GUC Event Management System';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+/**
+ * Autocomplete constants for password managers
+ */
+export const AUTOCOMPLETE_PASSWORD_MANAGERS_OFF = {
+  autoComplete: 'new-password',
+  'data-lpignore': 'true',
+  'data-form-type': 'other',
+} as const;
+
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',

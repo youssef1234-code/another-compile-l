@@ -69,14 +69,14 @@ export function VerifyEmailPage() {
                   {verifyEmailMutation.error?.message || 'Invalid or expired verification link'}
                 </p>
                 <Button
-                  variant="outline"
+                  mode="outline"
                   className="w-full"
                   asChild
                 >
                   <Link to={ROUTES.LOGIN}>Back to login</Link>
                 </Button>
                 <Button
-                  variant="ghost"
+                  mode="ghost"
                   className="w-full"
                   asChild
                 >

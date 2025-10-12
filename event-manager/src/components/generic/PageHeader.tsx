@@ -4,7 +4,7 @@
  * Generic page header with title, description, and actions
  */
 
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 

@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 export function RequestVerificationPage() {
   const [searchParams] = useSearchParams();
@@ -187,7 +187,7 @@ export function RequestVerificationPage() {
                   Already verified your email?
                 </p>
                 <Button
-                  variant="outline"
+                  mode="outline"
                   className="w-full"
                   asChild
                 >
@@ -199,7 +199,7 @@ export function RequestVerificationPage() {
 
               <div className="text-center">
                 <Button
-                  variant="ghost"
+                  mode="ghost"
                   className="text-sm text-neutral-500 hover:text-neutral-700"
                   asChild
                 >

@@ -25,11 +25,6 @@ export function LoginPage() {
       toast.success('Welcome back!', {
         icon: '✅',
         duration: 3000,
-        style: {
-          background: '#10b981',
-          color: '#fff',
-          fontWeight: '500',
-        },
       });
       navigate(ROUTES.DASHBOARD);
     },
@@ -54,11 +49,6 @@ export function LoginPage() {
       toast.error(error.message || 'Login failed', {
         icon: '❌',
         duration: 4000,
-        style: {
-          background: '#ef4444',
-          color: '#fff',
-          fontWeight: '500',
-        },
       });
     },
   });
@@ -69,7 +59,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-bg-weak">
       <div className="w-full max-w-md">
         <GenericForm
           title="Welcome Back"
@@ -93,7 +83,7 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
-                  className="text-sm text-neutral-600 hover:text-neutral-900 underline-offset-4 hover:underline"
+                  className="text-label-xs text-text-sub hover:text-primary-base underline-offset-4 hover:underline transition-colors"
                 >
                   Forgot password?
                 </button>
@@ -110,21 +100,21 @@ export function LoginPage() {
             <>
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                  <span className="w-full border-t border-stroke-soft" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-muted-foreground">
-                    or
+                <div className="relative flex justify-center text-label-xs uppercase">
+                  <span className="bg-bg-white px-2 text-text-soft">
+                    OR
                   </span>
                 </div>
               </div>
               
-              <div className="text-center text-sm text-muted-foreground">
+              <div className="text-center text-paragraph-sm text-text-sub">
                 Don't have an account?{' '}
                 <button
                   type="button"
                   onClick={() => navigate(ROUTES.SIGNUP)}
-                  className="font-medium text-primary hover:underline"
+                  className="font-medium text-primary-base hover:text-primary-darker transition-colors"
                 >
                   Sign up
                 </button>

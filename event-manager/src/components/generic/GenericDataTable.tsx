@@ -15,7 +15,7 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -278,7 +278,7 @@ export function GenericDataTable<TData>({
 
               {/* Clear Filters */}
               {hasActiveFilters && (
-                <Button variant="ghost" onClick={clearFilters} className="gap-2">
+                <Button mode="ghost" onClick={clearFilters} className="gap-2">
                   <X className="h-4 w-4" />
                   Clear
                 </Button>
@@ -439,7 +439,7 @@ export function GenericDataTable<TData>({
               <div className="flex items-center gap-2">
                 {/* First page */}
                 <Button
-                  variant="outline"
+                  mode="outline"
                   size="sm"
                   onClick={() => table.setPageIndex(0)}
                   disabled={!table.getCanPreviousPage()}
@@ -450,7 +450,7 @@ export function GenericDataTable<TData>({
                 
                 {/* Previous page */}
                 <Button
-                  variant="outline"
+                  mode="outline"
                   size="sm"
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
@@ -470,7 +470,7 @@ export function GenericDataTable<TData>({
                 
                 {/* Next page */}
                 <Button
-                  variant="outline"
+                  mode="outline"
                   size="sm"
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
@@ -480,7 +480,7 @@ export function GenericDataTable<TData>({
                 
                 {/* Last page */}
                 <Button
-                  variant="outline"
+                  mode="outline"
                   size="sm"
                   onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                   disabled={!table.getCanNextPage()}

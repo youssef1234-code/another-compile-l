@@ -15,8 +15,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion, type Variants } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import { motion, type Variants } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -170,24 +169,24 @@ export interface GenericFormProps {
 }
 
 const alertVariants = {
-  info: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
-  warning: 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200',
-  success: 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
-  error: 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200',
+  info: 'bg-information-alpha-10 border-information-alpha-200 text-information-base',
+  warning: 'bg-warning-alpha-10 border-warning-alpha-200 text-warning-base',
+  success: 'bg-success-alpha-10 border-success-alpha-200 text-success-base',
+  error: 'bg-error-alpha-10 border-error-alpha-200 text-error-base',
 };
 
 const alertIconColors = {
-  info: 'text-blue-600 dark:text-blue-400',
-  warning: 'text-yellow-600 dark:text-yellow-400',
-  success: 'text-green-600 dark:text-green-400',
-  error: 'text-red-600 dark:text-red-400',
+  info: 'text-information-base',
+  warning: 'text-warning-base',
+  success: 'text-success-base',
+  error: 'text-error-base',
 };
 
 const alertTextColors = {
-  info: 'text-blue-700 dark:text-blue-300',
-  warning: 'text-yellow-700 dark:text-yellow-300',
-  success: 'text-green-700 dark:text-green-300',
-  error: 'text-red-700 dark:text-red-300',
+  info: 'text-information-base',
+  warning: 'text-warning-base',
+  success: 'text-success-base',
+  error: 'text-error-base',
 };
 
 export function GenericForm({
@@ -285,27 +284,17 @@ export function GenericForm({
                   </label>
                 </div>
               ) : (
-                <div className="relative group">
-                  {fieldConfig.icon && (
-                    <div className="absolute left-3 top-3 text-muted-foreground transition-colors duration-200 group-focus-within:text-primary">
-                      {fieldConfig.icon}
-                    </div>
-                  )}
-                  <Input
-                    type={fieldConfig.type}
-                    placeholder={fieldConfig.placeholder}
-                    disabled={isLoading}
-                    className={cn(
-                      'w-full',
-                      fieldConfig.icon && 'pl-10',
-                      fieldConfig.inputClassName
-                    )}
-                    min={fieldConfig.min}
-                    max={fieldConfig.max}
-                    step={fieldConfig.step}
-                    {...field}
-                  />
-                </div>
+                <Input
+                  type={fieldConfig.type}
+                  placeholder={fieldConfig.placeholder}
+                  disabled={isLoading}
+                  className={cn('w-full', fieldConfig.inputClassName)}
+                  min={fieldConfig.min}
+                  max={fieldConfig.max}
+                  step={fieldConfig.step}
+                  {...field}
+                  value={field.value ?? ''}
+                />
               )}
             </FormControl>
             {fieldConfig.description && fieldConfig.type !== 'checkbox' && (
@@ -366,32 +355,26 @@ export function GenericForm({
         ))}
 
         {/* Submit Button */}
-        <motion.div variants={animate ? itemVariants : undefined} className="pt-1">
+        <motion.div variants={animate ? itemVariants : undefined} className="pt-2">
           <Button 
             type="submit" 
+            variant="primary"
+            mode="filled"
             className={cn(
               submitButtonFullWidth && 'w-full',
               submitButtonClassName
             )}
-            size={submitButtonSize}
-            disabled={isLoading}
+            size={submitButtonSize === 'default' ? 'md' : submitButtonSize as 'xs' | 'sm' | 'md' | '2xs'}
+            isLoading={isLoading}
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              <>
-                {submitButtonIcon && <span className="mr-2">{submitButtonIcon}</span>}
-                {submitButtonText}
-              </>
-            )}
+            {!isLoading && submitButtonIcon && <span className="mr-2">{submitButtonIcon}</span>}
+            {submitButtonText}
           </Button>
           {showCancelButton && (
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
+              mode="outline"
               onClick={onCancel}
               disabled={isLoading}
               className="ml-2"
@@ -412,8 +395,9 @@ export function GenericForm({
 
   const content = (
     <Card className={cn(
-      cardBorder ? '' : 'border-0',
-      cardShadow ? '' : 'shadow-none',
+      'border-0 shadow-none bg-bg-white',
+      cardBorder && 'border border-stroke-soft',
+      cardShadow && 'shadow-sm',
       cardClassName
     )}>
       {(title || description || icon || conditionalAlerts) && (
@@ -425,14 +409,14 @@ export function GenericForm({
           {(title || icon) && (
             <motion.div 
               variants={animate ? itemVariants : undefined}
-              className="flex items-center gap-2"
+              className="flex items-center gap-3"
             >
               {icon && (
-                <div className="p-2 rounded-lg bg-primary/10">
+                <div className="text-primary-base">
                   {icon}
                 </div>
               )}
-              {title && <CardTitle className="text-2xl font-bold">{title}</CardTitle>}
+              {title && <CardTitle>{title}</CardTitle>}
             </motion.div>
           )}
           

@@ -33,7 +33,7 @@ export function SortableHeader<TData, TValue>({
 
   return (
     <Button
-      variant="ghost"
+      mode="ghost"
       size="sm"
       className={cn('-ml-3 h-8 data-[state=open]:bg-accent', className)}
       onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}

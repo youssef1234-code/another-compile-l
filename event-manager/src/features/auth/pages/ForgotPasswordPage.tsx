@@ -66,7 +66,7 @@ export function ForgotPasswordPage() {
             footerActions={
               <Button
                 type="button"
-                variant="ghost"
+                mode="ghost"
                 className="w-full"
                 asChild
               >

@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 // Export avatar utilities
 export * from './avatars';
+export * from './direction';
 
 // ============================================================================
 // ENUMS
