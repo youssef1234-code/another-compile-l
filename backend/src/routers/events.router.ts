@@ -11,7 +11,7 @@
  * @module routers/events.router
  */
 
-import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router, eventsOfficeProfessorProcedure } from '../trpc/trpc';
+import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router, eventsOfficeProfessorProcedure, professorProcedure } from '../trpc/trpc';
 import { createSearchSchema } from './base.router';
 import { eventService } from '../services/event.service';
 import { registrationService } from '../services/registration.service';
@@ -22,6 +22,7 @@ import {
   EventStatus,
   createGymSessionSchema,
   updateGymSessionSchema,
+  CreateWorkshopSchema,
 } from '@event-manager/shared';
 import { z } from 'zod';
 
@@ -354,10 +355,9 @@ const eventRoutes = {
    */
   getMyWorkshops: professorProcedure
     .query(async ({ ctx }) => {
-      const userId = (ctx.user!._id as any).toString();
 
-      return eventService.getEvents({
-        createdBy: userId,
+      return eventService.findAll({
+        professorName: ctx.user!.firstName + ' ' + ctx.user!.lastName,
         type: 'WORKSHOP',
       });
     }),
