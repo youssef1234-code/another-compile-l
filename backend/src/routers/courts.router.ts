@@ -3,8 +3,7 @@ import { z } from "zod";
 import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
 import { AvailabilityQuerySchema, CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport } from "@event-manager/shared";
-import { DateTime } from "luxon";
-import { courtReservationRepository } from "../repositories/court-reservation.repository";
+
 
 const CourtListInput = z.object({
   // allow omitting sport => return all
@@ -20,31 +19,40 @@ export const courtsRouter = router({
       return courtService.findAll(filter, { sort: { name: 1 } });
     }),
 
- availability: publicProcedure
-    .input(
-      z.object({
-        date: z.coerce.date(),
-        // if courtId is given, ignore sport; otherwise sport is optional (or "ALL")
-        courtId: z.string().optional(),
-        sport: z.nativeEnum(CourtSport).optional().or(z.literal("ALL").optional()),
-        slotMinutes: z.number().default(60),
-      })
-    )
-    .query(async ({ input }) => {
-      const sport =
-        input.courtId
-          ? undefined
-          : input.sport && input.sport !== "ALL"
-          ? input.sport
-          : undefined;
+ availability : protectedProcedure
+  .input(
+    z.object({
+      date: z.coerce.date(),
+      // if courtId is given, ignore sport; otherwise sport is optional (or "ALL")
+      courtId: z.string().optional(),
+      sport: z.nativeEnum(CourtSport).optional().or(z.literal("ALL").optional()),
+      slotMinutes: z.number().default(60),
+      openHour: z.number().min(0).max(23).optional(),   // optional, defaults in service
+      closeHour: z.number().min(1).max(24).optional(),  // optional, defaults in service
+    })
+  )
+  .query(async ({ input, ctx }) => {
+    const sport =
+      input.courtId
+        ? undefined
+        : input.sport && input.sport !== "ALL"
+        ? input.sport
+        : undefined;
 
-      return courtService.getAvailability({
-        date: input.date,
-        courtId: input.courtId,
-        sport,
-        slotMinutes: input.slotMinutes,
-      });
-    }),
+    const me = (ctx.user!._id as any).toString();
+
+    const rows = await courtService.getAvailability({
+      date: input.date,
+      courtId: input.courtId,
+      sport,
+      slotMinutes: input.slotMinutes,
+      openHour: input.openHour,
+      closeHour: input.closeHour,
+      me, // pass current user id for byMe tagging
+    });
+    return rows;
+  }),
+  
   // create reservation (student)
   reserve: protectedProcedure
     .input(CourtReservationCreateSchema)
@@ -72,4 +80,6 @@ export const courtsRouter = router({
       const updated = await courtReservationService.cancelReservation(input.id, userId);
       return { id: (updated._id as any).toString(), status: updated.status };
     }),
+
+    
 });
