@@ -1,5 +1,5 @@
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,19 +13,6 @@ function buildDate(dateStr:string, hmStr:string){
   const [y,m,d] = dateStr.split("-").map(Number);
   const [H,MM] = hmStr.split(":").map(Number);
   return new Date(y, m-1, d, H, MM, 0, 0); // local time
-}
-function humanizeType(t?: string) {
-  return (t ? String(t).replace(/_/g, " ") : "Gym Session");
-}
-function getSessionType(s: any) {
-  return s?.sessionType ?? s?.gymType ?? undefined;
-}
-function getDurationMin(s: any) {
-  return s?.duration ?? s?.durationMinutes ?? null;
-}
-function asDate(v: any) {
-  // handles string | Date
-  return v instanceof Date ? v : new Date(String(v));
 }
 
 

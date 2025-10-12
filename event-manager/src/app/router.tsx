@@ -80,7 +80,7 @@ import { WalletPage } from '@/features/wallet/pages';
 import { ProfilePage } from '@/features/profile/pages/ProfilePage';
 
 // Protected Route Component
-import { ProtectedRoute, AdminRoute } from '@/components/auth/ProtectedRoute';
+import { ProtectedRoute, AdminRoute, EventOfficeRoute } from '@/components/auth/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -268,23 +268,43 @@ export const router = createBrowserRouter([
       // Events Office Routes
       {
         path: ROUTES.WORKSHOP_APPROVALS,
-        element: <WorkshopApprovalsPage />,
+        element: (
+          <EventOfficeRoute>
+            <WorkshopApprovalsPage />
+          </EventOfficeRoute>
+        ),
       },
       {
         path: ROUTES.VENDOR_POLLS,
-        element: <VendorPollsPage />,
+        element: (
+          <EventOfficeRoute>
+            <VendorPollsPage />
+          </EventOfficeRoute>
+        ),
       },
       {
         path: ROUTES.EVENT_OFFICE_REPORTS,
-        element: <EventOfficeReportsPage />,
+        element: (
+          <EventOfficeRoute>
+            <EventOfficeReportsPage />
+          </EventOfficeRoute>
+        ),
       },
       {
         path: ROUTES.QR_CODES,
-        element: <QRCodesPage />,
+        element: (
+          <EventOfficeRoute>
+            <QRCodesPage />
+          </EventOfficeRoute>
+        ),
       },
       {
         path: ROUTES.BAZAAR_MANAGEMENT,
-        element: <BazaarManagementPage />,
+        element: (
+          <EventOfficeRoute>
+            <BazaarManagementPage />
+          </EventOfficeRoute>
+        ),
       },
       
       // Wallet

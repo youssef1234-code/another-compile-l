@@ -1,9 +1,14 @@
 export class ServiceError extends Error {
+  public code: string;
+  public status?: number;
+  
   constructor(
-    public code: string,
+    code: string,
     message: string,
-    public status?: number
+    status?: number
   ) {
     super(message);
+    this.code = code;
+    this.status = status;
   }
 }

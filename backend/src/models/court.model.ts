@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import { createBaseSchema, IBaseDocument } from "./base.model";
 import { CourtSport } from "@event-manager/shared";
 
+
 export interface ICourt extends IBaseDocument {
   name: string;
   sport: CourtSport;

@@ -19,7 +19,6 @@ import {
   CreateEventSchema,
   UpdateEventSchema,
   EventFilterSchema,
-  GymSessionType,
   EventStatus,
   createGymSessionSchema,
   updateGymSessionSchema,

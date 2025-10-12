@@ -71,3 +71,6 @@ registrationSchema.index({ event: 1, user: 1 }, { unique: true });
 
 export const EventRegistration = mongoose.model<IEventRegistration>('EventRegistration', registrationSchema);
 
+// Also export as Registration for backward compatibility
+export const Registration = EventRegistration;
+

@@ -2,6 +2,7 @@
  * Database Seeder
  * 
  * Creates default admin account if it doesn't exist
+ * Optionally seeds comprehensive sample data
  * Runs automatically on application startup
  * 
  * @module config/seed
@@ -10,6 +11,7 @@
 import { User } from '../models/user.model';
 import { hashPassword } from '../utils/auth.util';
 import { config } from './env';
+import { seedComprehensiveData } from './comprehensive-seed';
 
 /**
  * Seed default admin account
@@ -60,6 +62,14 @@ export async function runSeeders(): Promise<void> {
   
   try {
     await seedAdminAccount();
+    
+    // Check if we should seed comprehensive data
+    // Set SEED_COMPREHENSIVE=true in .env to enable
+    if (process.env.SEED_COMPREHENSIVE === 'true') {
+      console.log('\n🌱 Seeding comprehensive sample data...');
+      await seedComprehensiveData();
+    }
+    
     console.log('✓ Database seeding completed');
   } catch (error) {
     console.error('✗ Database seeding failed:', error);
