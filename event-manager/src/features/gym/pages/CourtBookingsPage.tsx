@@ -9,7 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "react-hot-toast";
 import { CalendarSearch, Dumbbell } from "lucide-react";
 
-const SPORTS = ["BASKETBALL", "TENNIS", "FOOTBALL"] as const;
+const SPORTS = ["BASKETBALL", "TENNIS", "FOOTBALL", "ALL"] as const;
+type SportFilter = typeof SPORTS[number];
+
+const [sport, setSport] = useState<SportFilter>("ALL");
+const [selectedCourtId, setSelectedCourtId] = useState<string | "ALL">("ALL");
+
 
 function toISOFromLocal(dateStr: string, timeStr: string) {
   const d = new Date(`${dateStr}T${timeStr}:00`);
@@ -46,17 +51,24 @@ export function CourtBookingsPage() {
   const [selectedCourtId, setSelectedCourtId] = useState<string | "ALL">("ALL");
 
   // courts list (filterable by sport)
-  const courtsQuery = trpc.courts.list.useQuery({ sport });
-
+const courtsQuery = trpc.courts.list.useQuery(
+  { sport: sport !== "ALL" ? (sport as any) : undefined }, // undefined => all
+);
   // availability input (date at local midnight pushed as UTC Date)
-  const availabilityInput = useMemo(() => {
-    const midnightLocalISO = toISOFromLocal(dateStr, "00:00");
-    const dateObj = new Date(midnightLocalISO);
-    return selectedCourtId !== "ALL"
-      ? { date: dateObj, courtId: selectedCourtId, slotMinutes: 60 }
-      : { date: dateObj, sport, slotMinutes: 60 };
-  }, [dateStr, sport, selectedCourtId]);
+const availabilityInput = useMemo(() => {
+  const midnightLocalISO = toISOFromLocal(dateStr, "00:00");
+  const dateObj = new Date(midnightLocalISO);
 
+  // if a specific court is selected, ignore sport
+  if (selectedCourtId !== "ALL") {
+    return { date: dateObj, courtId: selectedCourtId, slotMinutes: 60 };
+  }
+  return {
+    date: dateObj,
+    sport: sport !== "ALL" ? (sport as any) : undefined,
+    slotMinutes: 60,
+  };
+}, [dateStr, sport, selectedCourtId]);
   const availability = trpc.courts.availability.useQuery(availabilityInput, {
     enabled: !!dateStr,
   });
@@ -101,8 +113,8 @@ export function CourtBookingsPage() {
           <Select
             value={sport}
             onValueChange={(v) => {
-              setSport(v as any);
-              setSelectedCourtId("ALL");
+              setSport(v as SportFilter);
+              setSelectedCourtId("ALL"); // reset specific-court filter when sport changes
             }}
           >
             <SelectTrigger className="w-40">
@@ -116,6 +128,7 @@ export function CourtBookingsPage() {
               ))}
             </SelectContent>
           </Select>
+
 
           <Select value={selectedCourtId} onValueChange={setSelectedCourtId}>
             <SelectTrigger className="w-48">

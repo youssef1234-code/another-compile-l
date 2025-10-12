@@ -2,59 +2,49 @@ import { router, publicProcedure, protectedProcedure, eventsOfficeProcedure } fr
 import { z } from "zod";
 import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
-import { AvailabilityQuerySchema, CourtReservationCreateSchema, CourtReservationCancelSchema } from "@event-manager/shared";
+import { AvailabilityQuerySchema, CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport } from "@event-manager/shared";
 import { DateTime } from "luxon";
 import { courtReservationRepository } from "../repositories/court-reservation.repository";
 
+const CourtListInput = z.object({
+  // allow omitting sport => return all
+  sport: z.nativeEnum(CourtSport).optional().or(z.literal("ALL").optional()),
+});
 export const courtsRouter = router({
   // list courts (optionally by sport)
   list: publicProcedure
-    .input(z.object({ sport: z.enum(["BASKETBALL","TENNIS","FOOTBALL"]).optional() }).optional())
-    .query(async ({ input }) => {
-      if (input?.sport) {
-        const courts = await courtService.findAll({ sport: input.sport, isDeleted: false });
-        return courts.map(c => ({ id: (c._id as any).toString(), name: c.name, sport: c.sport, location: c.location }));
-      }
-      const courts = await courtService.findAll({ isDeleted: false });
-      return courts.map(c => ({ id: (c._id as any).toString(), name: c.name, sport: c.sport, location: c.location }));
+    .input(CourtListInput.optional())
+     .query(async ({ input }) => {
+      const filter =
+        input?.sport && input.sport !== "ALL" ? { sport: input.sport } : {};
+      return courtService.findAll(filter, { sort: { name: 1 } });
     }),
 
-  // availability for a day
-availability: protectedProcedure
-  .input(AvailabilityQuerySchema.extend({ slotMinutes: z.number().default(60) }))
-  .query(async ({ input, ctx }) => {
-    const rows = await courtService.getAvailability(input);
-    const me = (ctx.user!._id as any).toString();
-    return rows.map(r => ({
-      ...r,
-      booked: r.booked.map((b: any) => ({
-  id: b.id, startUtc: b.startUtc, endUtc: b.endUtc, hour: b.hour, status: b.status, byMe: b.userId === me
-})),
+ availability: publicProcedure
+    .input(
+      z.object({
+        date: z.coerce.date(),
+        // if courtId is given, ignore sport; otherwise sport is optional (or "ALL")
+        courtId: z.string().optional(),
+        sport: z.nativeEnum(CourtSport).optional().or(z.literal("ALL").optional()),
+        slotMinutes: z.number().default(60),
+      })
+    )
+    .query(async ({ input }) => {
+      const sport =
+        input.courtId
+          ? undefined
+          : input.sport && input.sport !== "ALL"
+          ? input.sport
+          : undefined;
 
-    }));
-  }),
-
-
-  debugListReservations: eventsOfficeProcedure
-  .input(z.object({
-    courtId: z.string(),
-    date: z.coerce.date(),
-  }))
-  .query(async ({ input }) => {
-    const dayLocal = DateTime.fromJSDate(input.date, { zone: "Africa/Cairo" }).startOf("day");
-    const nextLocal = dayLocal.plus({ days: 1 });
-    const docs = await courtReservationRepository.findForCourtOnDay(
-      input.courtId, dayLocal.toUTC().toJSDate(), nextLocal.toUTC().toJSDate()
-    );
-    return docs.map(d => ({
-      id: d._id?.toString?.() ?? String(d._id),
-      startUtc: d.startDate.toISOString(),
-      endUtc: d.endDate.toISOString(),
-      status: d.status,
-      user: (d.user as any)?.toString?.() ?? String(d.user),
-    }));
-  }),
-
+      return courtService.getAvailability({
+        date: input.date,
+        courtId: input.courtId,
+        sport,
+        slotMinutes: input.slotMinutes,
+      });
+    }),
   // create reservation (student)
   reserve: protectedProcedure
     .input(CourtReservationCreateSchema)
