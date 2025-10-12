@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@event-manager/shared';
 import EditSessionDialog from "./components/EditSessionDialog";
 import { CreateGymSessionDialog } from "./components/CreateGymSessionDialog";
+import { toast } from "react-hot-toast";
 
 const GYM_TYPES = [
   "YOGA","PILATES","AEROBICS","ZUMBA","CROSS_CIRCUIT","KICK_BOXING",
@@ -24,18 +25,18 @@ function toHM(d:Date){ return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
 function monthLabel(y:number,m:number){ return new Date(y,m-1,1).toLocaleString(undefined,{month:"long",year:"numeric"}); }
 function monthRangeUTC(y:number,m:number){ return [new Date(Date.UTC(y,m-1,1,0,0,0)), new Date(Date.UTC(y,m,1,0,0,0))] as const; }
 function sameDay(a:Date,b:Date){return a.getUTCFullYear()===b.getUTCFullYear() && a.getUTCMonth()===b.getUTCMonth() && a.getUTCDate()===b.getUTCDate();}
-function humanizeType(t?: string) {
-  return (t ? String(t).replace(/_/g, " ") : "Gym Session");
-}
-function getSessionType(s: any) {
-  return s?.sessionType ?? s?.gymType ?? undefined;
-}
-function getDurationMin(s: any) {
-  return s?.duration ?? s?.durationMinutes ?? null;
-}
-function asDate(v: any) {
-  // handles string | Date
-  return v instanceof Date ? v : new Date(String(v));
+function humanizeType(t?: string) { return (t ? String(t).replace(/_/g, " ") : "Gym Session"); }
+function getSessionType(s: any) { return s?.sessionType ?? s?.gymType ?? undefined; }
+function getDurationMin(s: any) { return s?.duration ?? s?.durationMinutes ?? null; }
+function asDate(v: any) { return v instanceof Date ? v : new Date(String(v)); }
+function trpcErrMsg(err: any) {
+  return (
+    err?.message ||
+    err?.data?.message ||
+    err?.shape?.message ||
+    err?.data?.zodError?.formErrors?.join(", ") ||
+    "Something went wrong"
+  );
 }
 
 export function GymSchedulePage(){
@@ -45,7 +46,7 @@ export function GymSchedulePage(){
   const [typeFilter,setTypeFilter] = useState<GymType | "ALL">("ALL");
   const [statusFilter,setStatusFilter] = useState<"ALL" | "PUBLISHED" | "CANCELLED">("ALL");
   const [view,setView] = useState<"TABLE"|"CALENDAR">("TABLE");
-  const [editing, setEditing] = useState<any|null>(null); // session being edited
+  const [editing, setEditing] = useState<any|null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   const { user } = useAuthStore();
@@ -53,14 +54,30 @@ export function GymSchedulePage(){
 
   const [startDate,endDate] = monthRangeUTC(year,month);
 
-  const { data, isLoading, isFetching, refetch } = trpc.events.getEvents.useQuery(
+  const { data, isLoading, isFetching, isError, error, refetch } = trpc.events.getEvents.useQuery(
     { page: 1, limit: 100, type: "GYM_SESSION", startDate, endDate },
+    {
+      // we keep this lean; errors will be toasted below in useEffect
+      staleTime: 30_000,
+    }
   );
 
   const utils = trpc.useUtils();
- 
+
+  // --- Toastr for initial query error (once per error state) ---
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(trpcErrMsg(error));
+    }
+  }, [isError, error]);
+
+  // --- Mutations with toasts ---
   const deleteM = trpc.events.delete.useMutation({
-    onSuccess: () => utils.events.getEvents.invalidate(),
+    onSuccess: () => {
+      toast.success("Session deleted");
+      utils.events.getEvents.invalidate();
+    },
+    onError: (e) => toast.error(trpcErrMsg(e)),
   });
 
   const rows = useMemo(()=>{
@@ -73,6 +90,18 @@ export function GymSchedulePage(){
 
   const goPrev = () => { const d=new Date(year,month-2,1); setYear(d.getFullYear()); setMonth(d.getMonth()+1); };
   const goNext = () => { const d=new Date(year,month,1);   setYear(d.getFullYear()); setMonth(d.getMonth()+1); };
+
+  // Wrap manual refresh in a toast
+  const handleRefresh = async () => {
+    await toast.promise(
+      refetch(),
+      {
+        loading: "Refreshing…",
+        success: "Schedule updated",
+        error: (e) => trpcErrMsg(e),
+      }
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -111,7 +140,7 @@ export function GymSchedulePage(){
             <CalendarIcon className="h-4 w-4 mr-2"/> Calendar
           </Button>
 
-          <Button variant="ghost" size="icon" onClick={()=>refetch()} disabled={isFetching}>
+          <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isFetching}>
             <RefreshCcw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -138,10 +167,10 @@ export function GymSchedulePage(){
       </div>
 
       {isAdmin && (
-  <Button onClick={() => setCreateOpen(true)}>
-    + Create Session
-  </Button>
-)}
+        <Button onClick={() => setCreateOpen(true)}>
+          + Create Session
+        </Button>
+      )}
 
       {view === "TABLE" ? (
         <Card>
@@ -182,14 +211,16 @@ export function GymSchedulePage(){
                             <Button variant="outline" size="sm" onClick={()=> setEditing(s)}>
                               <Edit3 className="h-4 w-4 mr-1"/> Edit
                             </Button>
-                            {/* {status !== "CANCELLED" ? (
-                              <Button variant="outline" size="sm" onClick={()=> cancelM.mutate({ id: s.id })} disabled={cancelM.isPending}>
-                                <XCircle className="h-4 w-4 mr-1"/> Cancel
-                              </Button>
-                            ) : null} */}
-                            <Button variant="destructive" size="sm" onClick={()=> {
-                              if (confirm("Delete this session?")) deleteM.mutate({ id: s.id });
-                            }} disabled={deleteM.isPending}>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={async ()=> {
+                                const ok = confirm("Delete this session?");
+                                if (!ok) return;
+                                deleteM.mutate({ id: s.id });
+                              }}
+                              disabled={deleteM.isPending}
+                            >
                               <Trash2 className="h-4 w-4 mr-1"/> Delete
                             </Button>
                           </TableCell>
@@ -211,20 +242,27 @@ export function GymSchedulePage(){
         <EditSessionDialog
           session={editing}
           onOpenChange={(open)=> !open && setEditing(null)}
-          onSaved={()=> { setEditing(null); utils.events.getEvents.invalidate(); }}
+          onSaved={()=> {
+            setEditing(null);
+            toast.success("Session updated");
+            utils.events.getEvents.invalidate();
+          }}
+          
         />
       )}
 
       {isAdmin && (
-  <CreateGymSessionDialog
-    open={createOpen}
-    onOpenChange={setCreateOpen}
-    onCreated={() => {
-      // After creating, refresh the listing for the current month
-      refetch();
-    }}
-  />
-)}
+        <CreateGymSessionDialog
+          open={createOpen}
+          onOpenChange={(o)=> setCreateOpen(o)}
+          onCreated={()=> {
+            setCreateOpen(false);
+            toast.success("Session created");
+            // refresh the current list
+            utils.events.getEvents.invalidate();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -246,6 +284,7 @@ function LoadingTable(){
     </div>
   );
 }
+
 function EmptyState(){
   return <div className="text-sm text-muted-foreground py-6">No sessions scheduled for this month.</div>;
 }
@@ -257,12 +296,8 @@ function CalendarView({ year, month, sessions }: { year:number; month:number; se
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
 
   const cells: { date: Date | null }[] = [];
-  // leading blanks
   for (let i=0;i<startWeekDay;i++) cells.push({ date: null });
-  for (let d=1; d<=daysInMonth; d++) {
-    cells.push({ date: new Date(Date.UTC(year, month-1, d)) });
-  }
-  // trailing blanks to fill a complete grid
+  for (let d=1; d<=daysInMonth; d++) cells.push({ date: new Date(Date.UTC(year, month-1, d)) });
   while (cells.length % 7 !== 0) cells.push({ date: null });
 
   return (
@@ -289,7 +324,7 @@ function CalendarView({ year, month, sessions }: { year:number; month:number; se
                       <div key={s.id} className="text-xs border rounded p-1">
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{time}</span>
-<span className="ml-2 px-1 rounded bg-muted">{typeLabel}</span>
+                          <span className="ml-2 px-1 rounded bg-muted">{typeLabel}</span>
                         </div>
                         {status === "CANCELLED" && <div className="text-[10px] text-red-600 mt-1">Cancelled</div>}
                       </div>
@@ -304,4 +339,3 @@ function CalendarView({ year, month, sessions }: { year:number; month:number; se
     </Card>
   );
 }
-

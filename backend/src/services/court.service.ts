@@ -2,74 +2,106 @@ import { BaseService } from "./base.service";
 import { CourtRepository, courtRepository } from "../repositories/court.repository";
 import type { ICourt } from "../models/court.model";
 import { courtReservationRepository } from "../repositories/court-reservation.repository";
+import { DateTime } from "luxon";
+const CAMPUS_TZ = "Africa/Cairo";
 
 export class CourtService extends BaseService<ICourt, CourtRepository> {
   constructor(repo: CourtRepository){ super(repo); }
   protected getEntityName(): string { return "Court"; }
 
-  /**
-   * Compute free time slots for a day for each court (or filtered by sport/court)
-   * openingHours: 08:00-22:00 (example), slotMinutes controls granularity
-   */
-  async getAvailability(params: {
-    date: Date;
-    sport?: ICourt["sport"];
-    courtId?: string;
-    slotMinutes: number;
-    openHour?: number;  // default 8
-    closeHour?: number; // default 22
-  }) {
-    const openHour = params.openHour ?? 8;
-    const closeHour = params.closeHour ?? 22;
+async getAvailability({
+  date,
+  sport,
+  courtId,
+  slotMinutes,
+  openHour = 8,
+  closeHour = 22,
+  me,
+}: {
+  date: Date;
+  sport?: ICourt["sport"];
+  courtId?: string;
+  slotMinutes: number;
+  openHour?: number;
+  closeHour?: number;
+  me: string; // current user id
+}) {
+  // Define the Cairo-local day, then convert bounds to UTC for querying
+  const dayLocal = DateTime.fromJSDate(date, { zone: CAMPUS_TZ }).startOf("day");
+  const nextLocal = dayLocal.plus({ days: 1 });
 
-    const dayStart = new Date(Date.UTC(
-      params.date.getUTCFullYear(), params.date.getUTCMonth(), params.date.getUTCDate(), 0, 0, 0, 0
-    ));
-    const dayEnd = new Date(Date.UTC(
-      params.date.getUTCFullYear(), params.date.getUTCMonth(), params.date.getUTCDate()+1, 0, 0, 0, 0
-    ));
+  const dayStartUtc = dayLocal.toUTC().toJSDate();
+  const dayEndUtc   = nextLocal.toUTC().toJSDate();
 
-    // get candidate courts
-    let courts: ICourt[];
-    if (params.courtId) {
-      const one = await this.repository.findById(params.courtId);
-      courts = one ? [one] : [];
-    } else if (params.sport) {
-      courts = await this.repository.findAll({ sport: params.sport, isDeleted: false });
-    } else {
-      courts = await this.repository.findAll({ isDeleted: false });
-    }
+  // Fetch courts
+  const courts = courtId
+    ? [await this.repository.findById(courtId)].filter(Boolean) as ICourt[]
+    : await this.repository.findAll({ ...(sport ? { sport } : {}), isDeleted: { $ne: true } });
 
-    // for each court, get booked intervals, compute free slots
-    const results: any[] = [];
-    for (const c of courts) {
-      const booked = await courtReservationRepository.findForCourtOnDay((c._id as any).toString(), dayStart, dayEnd);
+  const results: Array<{
+    court: { id: string; name: string; sport: string; location?: string };
+    freeSlots: { hour: number; startUtc: string }[];
+    booked:    { id: string; hour: number; startUtc: string; endUtc: string; status: string; byMe: boolean }[];
+  }> = [];
 
-      // Build a timeline of occupied intervals (UTC)
-      const occ = booked.map(b => [new Date(b.startDate), new Date(b.endDate)] as const);
+  for (const c of courts) {
+    // Get reservations overlapping this *Cairo* day (bounds in UTC)
+    const bookedDocs = await courtReservationRepository.findForCourtOnDay(
+      (c._id as any).toString(),
+      dayStartUtc,
+      dayEndUtc
+    );
 
-      const slots: { start: Date; end: Date }[] = [];
-      // window from openHour to closeHour (UTC by campus time; keep UTC consistent end-to-end)
-      let cursor = new Date(Date.UTC(dayStart.getUTCFullYear(), dayStart.getUTCMonth(), dayStart.getUTCDate(), openHour, 0, 0));
-      const hardClose = new Date(Date.UTC(dayStart.getUTCFullYear(), dayStart.getUTCMonth(), dayStart.getUTCDate(), closeHour, 0, 0));
+    // Map booked items (ensure id & userId present)
+    const booked = bookedDocs.map(b => {
+      const userId =
+        (b.user as any)?._id?.toString?.() ??
+        (b.user as any)?.toString?.() ??
+        String(b.user);
 
-      while (new Date(cursor.getTime() + params.slotMinutes*60000) <= hardClose) {
-        const slotEnd = new Date(cursor.getTime() + params.slotMinutes*60000);
-        const overlaps = occ.some(([s,e]) => s < slotEnd && e > cursor);
-        if (!overlaps) {
-          slots.push({ start: new Date(cursor), end: slotEnd });
-        }
-        cursor = new Date(cursor.getTime() + params.slotMinutes*60000); // step one slot; could step smaller if you want
-      }
+      const startLux = DateTime.fromJSDate(b.startDate, { zone: CAMPUS_TZ });
+      return {
+        id: (b._id as any).toString(),
+        hour: startLux.hour,
+        startUtc: DateTime.fromJSDate(b.startDate).toUTC().toISO()!,
+        endUtc:   DateTime.fromJSDate(b.endDate).toUTC().toISO()!,
+        status: b.status,
+        byMe: userId === me,
+      };
+    });
 
-      results.push({
-        court: { id: (c._id as any).toString(), name: c.name, sport: c.sport, location: c.location },
-        availableSlots: slots,
-        booked, // optional: return existing reservations if you want
+    // Build free slots timeline in Cairo local time, step = slotMinutes
+    const freeSlots: { hour: number; startUtc: string }[] = [];
+    for (let h = openHour; h < closeHour; h++) {
+      const slotLocal = dayLocal.set({ hour: h, minute: 0, second: 0, millisecond: 0 });
+      const slotEnd   = slotLocal.plus({ minutes: slotMinutes });
+
+      // Overlap check in Cairo local for clarity
+      const overlaps = bookedDocs.some(b => {
+        const s = DateTime.fromJSDate(b.startDate, { zone: CAMPUS_TZ });
+        const e = DateTime.fromJSDate(b.endDate,   { zone: CAMPUS_TZ });
+        return s < slotEnd && e > slotLocal; // proper overlap
       });
+
+      if (!overlaps) {
+        freeSlots.push({ hour: h, startUtc: slotLocal.toUTC().toISO()! });
+      }
     }
 
-    return results;
+    results.push({
+      court: {
+        id: (c._id as any).toString(),
+        name: c.name,
+        sport: c.sport,
+        location: c.location,
+      },
+      freeSlots,
+      booked,
+    });
   }
+
+  return results;
+}
+
 }
 export const courtService = new CourtService(courtRepository);
