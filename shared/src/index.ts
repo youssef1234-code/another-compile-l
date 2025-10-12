@@ -383,6 +383,32 @@ export const CourtReservationCancelSchema = z.object({
   id: z.string(),
 });
 
+
+// ============================================================================
+// WORKSHOP SCHEMAS
+// ============================================================================
+
+export const CreateWorkshopSchema = z.object({
+  id: z.string(),
+  data: z.object({
+    name: z.string().optional(),
+    location: z.enum(['Cairo', 'Berlin']).optional(),
+    startDate: z.date().optional(),
+    endDate: z.date().optional(),
+    description: z.string().optional(),
+    fullAgenda: z.string().optional(),
+    faculty: z.enum(['MET', 'IET', 'PHARMACY', 'BIOTECHNOLOGY', 'MANAGEMENT', 'LAW', 'DESIGN']).optional(),
+    professors: z.array(z.string()).optional(),
+    requiredBudget: z.number().optional(),
+    fundingSource: z.enum(['EXTERNAL', 'GUC']).optional(),
+    extraResources: z.string().optional(),
+    capacity: z.number().optional(),
+    registrationDeadline: z.date().optional(),
+  }),
+});
+
+export type CreateWorkshopInput = z.infer<typeof CreateWorkshopSchema>;
+
 // ============================================================================
 // REGISTRATION SCHEMAS
 // ============================================================================

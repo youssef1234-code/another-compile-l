@@ -316,6 +316,52 @@ const eventRoutes = {
     .mutation(async ({ input }) => {
       return eventService.publishWorkshop(input.eventId);
     }),
+
+      /**
+   * Create workshop - PROFESSOR only
+   */
+  createWorkshop: professorProcedure
+    .input(CreateWorkshopSchema)
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+
+      // Ensure the user is a professor
+      if (ctx.user!.role !== 'PROFESSOR') {
+        throw new Error('Only professors can create workshops');
+      }
+
+      return eventService.create({ ...input, type: 'WORKSHOP' }, { userId });
+    }),
+
+  /**
+   * Edit workshop - PROFESSOR only
+   */
+  editWorkshop: professorProcedure
+    .input(CreateWorkshopSchema)
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+
+      // Ensure the user is a professor
+      if (ctx.user!.role !== 'PROFESSOR') {
+        throw new Error('Only professors can edit workshops');
+      }
+
+      return eventService.update(input.id, { ...input.data, type: 'WORKSHOP' }, { userId });
+    }),
+
+  /**
+   * Get workshops created by the logged-in professor
+   */
+  getMyWorkshops: professorProcedure
+    .query(async ({ ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+
+      return eventService.getEvents({
+        createdBy: userId,
+        type: 'WORKSHOP',
+      });
+    }),
+    
 };
 
 // Export events router with all routes
