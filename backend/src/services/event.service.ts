@@ -5,6 +5,7 @@ import type { IEvent } from '../models/event.model';
 import type { FilterQuery } from 'mongoose';
 import { EventStatus, GymSessionType } from '@event-manager/shared';
 import { ServiceError } from '../errors/errors';
+import { exitCode } from 'process';
 
 /**
  * Service Layer for Events
@@ -336,30 +337,6 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       updatedAt: event.updatedAt
     };
   }
-  // Gym specific functions 
-
-
-  private async assertNoGymOverlap(params: {
-    sessionType: GymSessionType;
-    startDate: Date;
-    endDate: Date;
-    excludeId?: string;
-  }) {
-    const q: FilterQuery<IEvent> = {
-      type: 'GYM_SESSION',
-      status: EventStatus.PUBLISHED, 
-      // sessionType: params.sessionType,  // this means that different session types can overlap
-      startDate: { $lt: params.endDate },
-      endDate: { $gt: params.startDate },
-      isArchived: false,
-    };
-    if (params.excludeId) (q as any)._id = { $ne: params.excludeId };
-
-    const clash = await this.repository.findOne(q);
-    if (clash) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
-    }
-  }
 
   /**
    * APPROVAL WORKSHOP METHOD
@@ -429,6 +406,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   /**
    * Create a new gym session with overlap validation
    */
+  
 async createGymSession(
   data: Partial<IEvent>,
   options?: { userId?: string }
@@ -439,21 +417,33 @@ async createGymSession(
   if (!data.sessionType || !data.startDate || !data.capacity || !data.duration) {
     throw new TRPCError({
       code: 'BAD_REQUEST',
-      message: 'sessionType, startDate, capacity, and duration are required'
+      message: 'sessionType, startDate, capacity, and duration are required',
     });
   }
 
-  const startDate = data.startDate as Date;
-  const duration = data.duration as number; // or durationMinutes
-  const endDate = new Date(startDate.getTime() + duration * 60_000);
+  const start = new Date(data.startDate);
+  const duration = data.duration!;
+  if (duration <= 0) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Duration must be positive' });
+  }
+  const end = new Date(start.getTime() + duration * 60_000);
 
-  await this.assertNoGymOverlap({
-    sessionType: data.sessionType as any,
-    startDate,
-    endDate
-  });
+  // overlap guard (no excludeId on create)
+  const clash = await this.repository.hasGymOverlap(start, end);
+  if (clash) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
+  }
 
-  return this.create({ ...data, endDate }, options);
+  return this.create(
+    {
+      ...data,
+      type: 'GYM_SESSION',
+      startDate: start,
+      endDate: end,
+      location: data.location ?? 'Gym',
+    } as any,
+    options
+  );
 }
 
 
@@ -461,12 +451,22 @@ async createGymSession(
 /**
  * Update a gym session (allowed fields: startDate, duration)
  */
-
+// backend/src/services/event.service.ts
 async updateGymSession(
   id: string,
-  patch: { startDate?: Date; duration?: number, capacity?: number, status?: EventStatus, sessionType?: GymSessionType },
+  patch: {
+    startDate?: Date;
+    duration?: number;
+    capacity?: number;
+    status?: EventStatus;
+    sessionType?: GymSessionType;
+  },
   options?: { userId?: string }
 ): Promise<IEvent> {
+
+  if (!patch.capacity && !patch.sessionType && !patch.startDate && !patch.duration && !patch.status) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'You need to update something' });
+  }
 
   const existing = await this.repository.findById(id);
   if (!existing) {
@@ -474,8 +474,9 @@ async updateGymSession(
   }
   if (existing.type !== 'GYM_SESSION') {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Not a gym session' });
-  }  
+  }
 
+  // Compute next schedule
   const nextStart = patch.startDate ?? existing.startDate;
   const nextDuration = patch.duration ?? (existing as any).duration ?? 60;
   if (nextDuration <= 0) {
@@ -483,13 +484,20 @@ async updateGymSession(
   }
   const nextEnd = new Date(nextStart.getTime() + nextDuration * 60_000);
 
-  // overlap validation (only if session is PUBLISHED)
-  if (patch.status === EventStatus.PUBLISHED ){
-    await this.assertNoGymOverlap({
-      sessionType: existing.sessionType as any,
-      startDate: nextStart,
-      endDate: nextEnd,
-    });  
+  // Only run overlap check if time window changes OR status becomes published (your rule)
+  const timeWindowChanged =
+    (patch.startDate && +patch.startDate !== +existing.startDate) ||
+    (patch.duration && patch.duration !== (existing as any).duration);
+
+  const willBePublished =
+    (patch.status ?? existing.status) === 'PUBLISHED';
+
+  if (timeWindowChanged || willBePublished) {
+    // exclude current _id to avoid "overlaps with itself"
+    const clash = await this.repository.hasGymOverlap(nextStart, nextEnd, id);
+    if (clash) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
+    }
   }
 
   const updated = await this.repository.update(
@@ -497,14 +505,17 @@ async updateGymSession(
     {
       startDate: nextStart,
       endDate: nextEnd,
-      duration: nextDuration, 
-      capacity: patch.capacity,
-      status: patch.status,
+      ...(patch.duration !== undefined ? { duration: nextDuration } : {}),
+      ...(patch.capacity !== undefined ? { capacity: patch.capacity } : {}),
+      ...(patch.status   !== undefined ? { status: patch.status } : {}),
+      ...(patch.sessionType !== undefined ? { sessionType: patch.sessionType } : {}),
     },
     options
   );
+
   return updated as IEvent;
 }
+
 
 }
 
