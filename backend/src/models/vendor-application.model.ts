@@ -15,13 +15,14 @@ import {
 import { type IBaseDocument, createBaseSchema } from "./base.model";
 
 export interface IVendorApplication extends IBaseDocument {
-  vendor: mongoose.Types.ObjectId;
+  companyName: string;
   names: string[];
   emails: string[];
 
   type: keyof typeof ApplicationType;
   boothSize: keyof typeof BoothSize;
-  bazaar?: mongoose.Types.ObjectId;
+  bazaarId?: mongoose.Types.ObjectId;
+  bazaarName?: string;
   location?: number;
   duration?: number;
   startDate?: Date;
@@ -31,10 +32,7 @@ export interface IVendorApplication extends IBaseDocument {
 
 const applicationSchema = createBaseSchema<IVendorApplication>(
   {
-    vendor: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
+    companyName: { type: String, required: true },
     names: {
       type: [String],
       validate: {
@@ -67,10 +65,11 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
       default: "TWO_BY_TWO",
       required: true,
     },
-    bazaar: {
+    bazaarId: {
       type: Schema.Types.ObjectId,
       ref: "Event",
     },
+    bazaarName: String,
     location: Number,
     duration: {
       type: Number,

@@ -367,14 +367,37 @@ export const CreateApplicationSchema = z.object({
   boothSize: z.enum(["TWO_BY_TWO", "FOUR_BY_FOUR"]),
 
   bazaarId: z.string().optional(),
+  bazaarName: z.string().optional(),
   location: z.number().optional(),
   duration: z.number().min(1).max(4).optional(),
   startDate: z.coerce.date().optional(),
 
   status: z.enum(["APPROVED", "REJECTED", "PENDING"]),
 });
-
 export type CreateApplicationSchema = z.infer<typeof CreateApplicationSchema>;
+
+export const UpdateApplicationSchema = z.object({
+  status: z.enum(["APPROVED", "REJECTED", "PENDING"]),
+});
+export type UpdateApplicationSchema = z.infer<typeof UpdateApplicationSchema>;
+
+export const ApplicationFilterSchema = z.object({
+  page: z.number().int().positive().default(1),
+  limit: z.number().int().positive().max(100).default(12),
+  search: z.string().optional(),
+
+  type: z.enum(["BAZAAR", "PLATFORM"]).optional(),
+  boothSize: z.enum(["TWO_BY_TWO", "FOUR_BY_FOUR"]).optional(),
+
+  bazaarId: z.string().optional(),
+  location: z.number().optional(),
+  duration: z.number().min(1).max(4).optional(),
+  startDate: z.coerce.date().optional(),
+
+  isApproved: z.boolean().optional(),
+  status: z.enum(["APPROVED", "REJECTED", "PENDING"]).optional(),
+});
+export type ApplicationFilterSchema = z.infer<typeof ApplicationFilterSchema>;
 // ============================================================================
 // ADMIN SCHEMAS
 // ============================================================================

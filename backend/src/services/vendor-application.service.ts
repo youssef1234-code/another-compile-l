@@ -3,10 +3,11 @@ import {
   vendorApplicationRepository,
 } from "../repositories/vendor-application.repository";
 import { BaseService } from "./base.service";
-import { TRPCError } from "@trpc/server";
+// import { TRPCError } from "@trpc/server";
 import { type IVendorApplication } from "../models/vendor-application.model";
 import { CreateApplicationSchema } from "@event-manager/shared";
 import mongoose from "mongoose";
+import { userRepository } from "../repositories/user.repository";
 
 export class VendorApplicationService extends BaseService<
   IVendorApplication,
@@ -24,87 +25,47 @@ export class VendorApplicationService extends BaseService<
     data: Partial<CreateApplicationSchema>,
     vendorID: string,
   ): Promise<IVendorApplication> {
-    const bazaar = new mongoose.Types.ObjectId(data.bazaarId);
-    const enrichedData = {
+    const vendor = await userRepository.findById(vendorID);
+    var enrichedData = {
       ...data,
-      bazaar,
+      bazaarId: new mongoose.Types.ObjectId(data.bazaarId),
+      companyName: vendor?.companyName,
       createdBy: new mongoose.Types.ObjectId(vendorID),
       createdAt: new Date(),
     };
 
     const doc = await this.repository.create(enrichedData);
+
     return doc;
   }
-  async getUpcoming(
-    id: string,
-    isAccepted: boolean,
-    options: {
+
+  async getApplications(
+    params: {
       page?: number;
       limit?: number;
+      search?: string;
+      type?: string;
+      location?: number;
+      startDate?: Date;
+      status?: string;
+      isApproved?: boolean;
+      boothSize?: string;
+      duration?: number;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
     } = {},
-  ): Promise<any> {
-    const page = options.page || 1;
-    const limit = options.limit || 10;
+  ): Promise<{ applications: IVendorApplication[]; total: number }> {
+    const page = params.page || 1;
+    const limit = params.limit || 10;
     const skip = (page - 1) * limit;
 
-    if (isAccepted) {
-      const applications = await this.repository.findUpcomingAccepted(id, {
-        skip,
-        limit,
-      });
-      if (!applications) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Vendor has no applications",
-        });
-      }
-
-      return applications;
-    } else {
-      const applications = await this.repository.findUpcoming(id, {
-        skip,
-        limit,
-      });
-      if (!applications) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Vendor has no applications",
-        });
-      }
-      return applications;
-    }
-  }
-
-  async getAllApplications(
-    options: {
-      page?: number;
-      limit?: number;
-    } = {},
-  ): Promise<any> {
-    const page = options.page || 1;
-    const limit = options.limit || 10;
-    const skip = (page - 1) * limit;
-
-    return await this.repository.findAllApplications({
+    const res = await this.repository.advancedSearch({
+      ...params,
       skip,
       limit,
     });
-  }
 
-  async getPendingApplications(
-    options: {
-      page?: number;
-      limit?: number;
-    } = {},
-  ): Promise<any> {
-    const page = options.page || 1;
-    const limit = options.limit || 10;
-    const skip = (page - 1) * limit;
-
-    return await this.repository.findPendingApplications({
-      skip,
-      limit,
-    });
+    return res;
   }
 }
 export const vendorApplicationService = new VendorApplicationService(
