@@ -1,0 +1,141 @@
+import type { User } from "@event-manager/shared";
+import * as React from "react";
+import { DataTable } from "@/components/data-table/data-table";
+import { DataTableAdvancedToolbar } from "@/components/data-table/data-table-advanced-toolbar";
+import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { DataTableFilterList } from "@/components/data-table/data-table-filter-list";
+import { DataTableSortList } from "@/components/data-table/data-table-sort-list";
+import { useDataTable } from "@/hooks/use-data-table";
+import type { QueryKeys } from "@/types/data-table";
+import { getUsersTableColumns } from "./users-table-columns.tsx";
+import { useQueryState, parseAsBoolean, parseAsString } from "nuqs";
+import { Button } from "@/components/ui/button";
+import { ListFilter, Search } from "lucide-react";
+
+interface UsersTableProps {
+  data: User[];
+  pageCount: number;
+  roleCounts?: Record<string, number>;
+  statusCounts?: { active: number; blocked: number };
+  queryKeys?: Partial<QueryKeys>;
+  isSearching?: boolean; // Loading state for search
+  onUpdateUser?: (userId: string, field: string, value: string) => Promise<void>;
+  onVerifyRole?: (userId: string) => void;
+  onBlockUser?: (userId: string) => void;
+  onUnblockUser?: (userId: string) => void;
+  onDeleteUser?: (userId: string) => void;
+}
+
+export function UsersTable({
+  data,
+  pageCount,
+  roleCounts = {},
+  statusCounts = { active: 0, blocked: 0 },
+  queryKeys,
+  isSearching = false,
+  onUpdateUser,
+  onVerifyRole,
+  onBlockUser,
+  onUnblockUser,
+  onDeleteUser,
+}: UsersTableProps) {
+  // Toggle between advanced and simple filters (default to simple)
+  const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
+    'advanced',
+    parseAsBoolean.withOptions({
+      history: 'replace',
+      shallow: false,
+    }).withDefault(false) // Default to simple mode
+  );
+
+  // Global search state (for simple mode)
+  const [search, setSearch] = useQueryState(
+    'search',
+    parseAsString.withOptions({
+      history: 'replace',
+      shallow: false,
+    }).withDefault('')
+  );
+
+  const columns = React.useMemo(
+    () =>
+      getUsersTableColumns({
+        roleCounts,
+        statusCounts,
+        onUpdateUser,
+        onVerifyRole,
+        onBlockUser,
+        onUnblockUser,
+        onDeleteUser,
+      }),
+    [roleCounts, statusCounts, onUpdateUser, onVerifyRole, onBlockUser, onUnblockUser, onDeleteUser],
+  );
+
+  const { table, shallow, debounceMs, throttleMs } = useDataTable({
+    data,
+    columns,
+    pageCount,
+    enableAdvancedFilter,
+    initialState: {
+      sorting: [{ id: "createdAt", desc: true }],
+      columnPinning: { right: ["actions"] },
+    },
+    queryKeys,
+    getRowId: (originalRow) => originalRow.id,
+    shallow: false,
+    clearOnDefault: true,
+  });
+
+  return (
+    <DataTable table={table}>
+      {/* Toggle Buttons */}
+      <div className="flex items-center gap-2 p-1">
+                <Button
+          variant={!enableAdvancedFilter ? "default" : "outline"}
+          size="sm"
+          onClick={() => setEnableAdvancedFilter(false)}
+          className="gap-2"
+        >
+          <Search className="h-4 w-4" />
+          Simple filters
+        </Button>
+
+        <Button
+          variant={enableAdvancedFilter ? "default" : "outline"}
+          size="sm"
+          onClick={() => setEnableAdvancedFilter(true)}
+          className="gap-2"
+        >
+          <ListFilter className="h-4 w-4" />
+          Advanced filters
+        </Button>
+      </div>
+
+      {/* Conditional Toolbar Rendering */}
+      {enableAdvancedFilter ? (
+        // Advanced mode: Complex filters with column -> operator -> value (like the image)
+        <DataTableAdvancedToolbar table={table}>
+          <DataTableSortList table={table} align="start" />
+          <DataTableFilterList
+            table={table}
+            shallow={shallow}
+            debounceMs={debounceMs}
+            throttleMs={throttleMs}
+            align="start"
+          />
+        </DataTableAdvancedToolbar>
+      ) : (
+        // Simple mode: Global search bar (searches across name & email) + faceted filters (with plus icons)
+        <DataTableToolbar 
+          table={table} 
+          showColumnFilters={true}
+          showGlobalSearch={true}
+          globalSearchValue={search}
+          onGlobalSearchChange={(value) => setSearch(value || null)}
+          globalSearchPlaceholder="Search by name or email..."
+          isSearching={isSearching}
+        />
+      )}
+    </DataTable>
+  );
+}

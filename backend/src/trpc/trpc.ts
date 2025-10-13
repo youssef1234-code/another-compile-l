@@ -75,6 +75,20 @@ export const eventsOfficeProcedure = protectedProcedure.use(async (opts: any) =>
   return opts.next({ ctx });
 });
 
+
+export const eventsOfficeProfessorProcedure = protectedProcedure.use(async (opts: any) => {
+  const { ctx } = opts;
+  if (ctx.user.role !== 'PROFESSOR' && ctx.user.role !== 'ADMIN' && ctx.user.role !== 'EVENT_OFFICE') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Only professors and Event Office staff can access this resource',
+    });
+  }
+  
+  return opts.next({ ctx });
+});
+
+
 /**
  * Professor procedure (includes ADMIN access)
  */

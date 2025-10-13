@@ -33,7 +33,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Search, Loader2, Filter, X } from 'lucide-react';
+import { Search, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,7 +52,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { ColumnVisibilityToggle } from './ColumnVisibilityToggle';
 
 export interface FilterConfig {
   key: string;
@@ -72,6 +73,7 @@ export interface GenericDataTableProps<TData> {
   searchable?: boolean;
   searchPlaceholder?: string;
   searchKey?: string;
+  onSearchChange?: (value: string) => void;
   
   // Filters
   filters?: FilterConfig[];
@@ -108,6 +110,26 @@ export interface GenericDataTableProps<TData> {
     onRowSelectionChange?: OnChangeFn<RowSelectionState>;
   };
   
+  // Bulk actions
+  bulkActions?: Array<{
+    label: string;
+    icon?: React.ReactNode;
+    onClick: (selectedRows: TData[]) => void;
+    variant?: 'default' | 'destructive';
+  }>;
+  
+  // Inline editing
+  enableInlineEdit?: boolean;
+  onRowEdit?: (row: TData) => void;
+  
+  // Export
+  enableExport?: boolean;
+  exportFileName?: string;
+  onExport?: () => void;
+  
+  // Column visibility toggle
+  showColumnToggle?: boolean;
+  
   // Empty state
   emptyStateIcon?: React.ReactNode;
   emptyStateTitle?: string;
@@ -122,6 +144,9 @@ export interface GenericDataTableProps<TData> {
   // Styling
   className?: string;
   tableClassName?: string;
+  
+  // Custom content (e.g., integrated search bar)
+  children?: React.ReactNode;
 }
 
 const rowVariants = {
@@ -142,25 +167,24 @@ export function GenericDataTable<TData>({
   isLoading = false,
   searchable = true,
   searchPlaceholder = 'Search...',
-  filters = [],
-  onFilterChange,
+  onSearchChange,
   pagination,
   sorting,
   rowSelection,
+  bulkActions = [],
   emptyStateIcon,
   emptyStateTitle = 'No results found',
   emptyStateDescription = 'Try adjusting your search or filters',
   onRowClick,
   animateRows = true,
   className,
-  tableClassName,
+  children,
 }: GenericDataTableProps<TData>) {
   // Client-side state
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [globalFilter, setGlobalFilter] = useState('');
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [internalRowSelection, setInternalRowSelection] = useState<RowSelectionState>({});
   const [internalPagination, setInternalPagination] = useState<PaginationState>({
     pageIndex: pagination?.pageIndex || 0,
@@ -207,217 +231,177 @@ export function GenericDataTable<TData>({
     },
   });
 
-  const handleFilterChange = (key: string, value: string) => {
-    const newFilters = { ...activeFilters };
-    if (value === 'all') {
-      delete newFilters[key];
-    } else {
-      newFilters[key] = value;
-    }
-    setActiveFilters(newFilters);
-    onFilterChange?.(newFilters);
+  const handleSearchChange = (value: string) => {
+    setGlobalFilter(value);
+    onSearchChange?.(value);
   };
 
-  const clearFilters = () => {
-    setActiveFilters({});
-    setGlobalFilter('');
-    onFilterChange?.({});
-  };
-
-  const hasActiveFilters = Object.keys(activeFilters).length > 0 || globalFilter;
+  const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
+  const hasSelection = selectedRows.length > 0;
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {/* Search and Filters */}
-      {(searchable || filters.length > 0) && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              {/* Search */}
-              {searchable && (
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder={searchPlaceholder}
-                    value={globalFilter ?? ''}
-                    onChange={(e) => setGlobalFilter(e.target.value)}
-                    className="pl-9 pr-9"
-                  />
-                  {globalFilter && (
-                    <button
-                      onClick={() => setGlobalFilter('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Filters */}
-              {filters.map((filter) => (
-                <Select
-                  key={filter.key}
-                  value={activeFilters[filter.key] || 'all'}
-                  onValueChange={(value) => handleFilterChange(filter.key, value)}
-                >
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder={filter.label} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All {filter.label}</SelectItem>
-                    {filter.options.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ))}
-
-              {/* Clear Filters */}
-              {hasActiveFilters && (
-                <Button variant="ghost" onClick={clearFilters} className="gap-2">
-                  <X className="h-4 w-4" />
-                  Clear
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Table */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className={cn('rounded-md border', tableClassName)}>
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span className="text-muted-foreground">Loading...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row, index) =>
-                    animateRows ? (
-                      <motion.tr
-                        key={row.id}
-                        custom={index}
-                        variants={rowVariants}
-                        initial="hidden"
-                        animate="visible"
-                        onClick={() => onRowClick?.(row.original)}
-                        className={cn(
-                          "border-b transition-colors hover:bg-muted/50",
-                          onRowClick && "cursor-pointer"
-                        )}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </TableCell>
-                        ))}
-                      </motion.tr>
-                    ) : (
-                      <TableRow 
-                        key={row.id}
-                        onClick={() => onRowClick?.(row.original)}
-                        className={cn(onRowClick && "cursor-pointer")}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    )
-                  )
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        {emptyStateIcon || <Search className="h-8 w-8 text-muted-foreground" />}
-                        <div className="space-y-1">
-                          <p className="font-semibold">{emptyStateTitle}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {emptyStateDescription}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+    <div className={cn('w-full space-y-4', className)}>
+      {/* Toolbar Section */}
+      <Card className="border-border/50">
+        <div className="flex items-center justify-between gap-4 p-4">
+          {/* Search */}
+          <div className="flex-1 max-w-sm">
+            {children || (searchable && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder={searchPlaceholder}
+                  value={globalFilter ?? ''}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="pl-9 h-10 bg-background"
+                />
+                {globalFilter && (
+                  <button
+                    onClick={() => handleSearchChange('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 )}
-              </TableBody>
-            </Table>
+              </div>
+            ))}
           </div>
+          
+          {/* Column Visibility */}
+          <ColumnVisibilityToggle table={table} />
+        </div>
+      </Card>
 
-          {/* Pagination */}
-          {pagination && table.getRowModel().rows?.length > 0 && (
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between py-4">
-              {/* Results count and page size selector */}
-              <div className="flex items-center gap-4">
-                <div className="text-sm text-muted-foreground">
-                  {pagination.total !== undefined ? (
-                    <>
-                      Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-                      {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                        pagination.total
-                      )}{' '}
-                      of {pagination.total} results
-                    </>
-                  ) : (
-                    <>
-                      {table.getFilteredRowModel().rows.length} result(s)
-                    </>
-                  )}
-                </div>
-                
-                {/* Page size selector */}
-                {pagination.showPageSizeSelector && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Rows per page:</span>
-                    <Select
-                      value={String(table.getState().pagination.pageSize)}
-                      onValueChange={(value) => {
-                        table.setPageSize(Number(value));
+      {/* Table Card */}
+      <Card className="border-border/50">
+        <div className="relative w-full">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="border-b-2 bg-muted/30 hover:bg-muted/30">
+                  {headerGroup.headers.map((header) => (
+                    <TableHead 
+                      key={header.id} 
+                      className="font-semibold text-foreground h-14 px-4"
+                      style={{
+                        minWidth: header.column.columnDef.size,
+                        width: header.column.columnDef.size,
                       }}
                     >
-                      <SelectTrigger className="h-8 w-[70px]">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-40 text-center"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">Loading data...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row, index) =>
+                  animateRows ? (
+                    <motion.tr
+                      key={row.id}
+                      custom={index}
+                      variants={rowVariants}
+                      initial="hidden"
+                      animate="visible"
+                      onClick={() => onRowClick?.(row.original)}
+                      className={cn(
+                        "border-b transition-colors hover:bg-muted/50",
+                        onRowClick && "cursor-pointer"
+                      )}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} className="py-4 px-4">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </motion.tr>
+                  ) : (
+                    <TableRow 
+                      key={row.id}
+                      onClick={() => onRowClick?.(row.original)}
+                      className={cn(
+                        "hover:bg-muted/50 transition-colors",
+                        onRowClick && "cursor-pointer"
+                      )}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} className="py-4 px-4">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                )
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-40 text-center"
+                  >
+                    <div className="flex flex-col items-center gap-3 py-8">
+                      {emptyStateIcon || <Search className="h-12 w-12 text-muted-foreground/50" />}
+                      <div className="space-y-1">
+                        <p className="text-base font-medium">{emptyStateTitle}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {emptyStateDescription}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination Footer */}
+        {pagination && table.getRowModel().rows?.length > 0 && (
+          <div className="border-t bg-muted/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3">
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                {pagination.total !== undefined && (
+                  <span>
+                    Showing <span className="font-medium text-foreground">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
+                    <span className="font-medium text-foreground">{Math.min(
+                      (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                      pagination.total
+                    )}</span> of{' '}
+                    <span className="font-medium text-foreground">{pagination.total}</span> results
+                  </span>
+                )}
+                
+                {pagination.showPageSizeSelector && (
+                  <div className="flex items-center gap-2">
+                    <span>Rows:</span>
+                    <Select
+                      value={String(table.getState().pagination.pageSize)}
+                      onValueChange={(value) => table.setPageSize(Number(value))}
+                    >
+                      <SelectTrigger className="h-9 w-[70px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -432,63 +416,57 @@ export function GenericDataTable<TData>({
                 )}
               </div>
 
-              {/* Pagination controls */}
               <div className="flex items-center gap-2">
-                {/* First page */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => table.setPageIndex(0)}
                   disabled={!table.getCanPreviousPage()}
-                  className="hidden sm:flex"
+                  className="h-9"
                 >
                   First
                 </Button>
-                
-                {/* Previous page */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
+                  className="h-9"
                 >
                   Previous
                 </Button>
                 
-                {/* Page numbers */}
                 {pagination.showPageNumbers && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Page {table.getState().pagination.pageIndex + 1} of{' '}
-                      {table.getPageCount()}
+                  <div className="flex items-center gap-2 px-3">
+                    <span className="text-sm">
+                      Page <span className="font-medium">{table.getState().pagination.pageIndex + 1}</span> of{' '}
+                      <span className="font-medium">{table.getPageCount()}</span>
                     </span>
                   </div>
                 )}
                 
-                {/* Next page */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
+                  className="h-9"
                 >
                   Next
                 </Button>
-                
-                {/* Last page */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                   disabled={!table.getCanNextPage()}
-                  className="hidden sm:flex"
+                  className="h-9"
                 >
                   Last
                 </Button>
               </div>
             </div>
-          )}
-        </CardContent>
+          </div>
+        )}
       </Card>
     </div>
   );

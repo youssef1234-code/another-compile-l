@@ -285,9 +285,9 @@ export function GenericForm({
                   </label>
                 </div>
               ) : (
-                <div className="relative">
+                <div className="relative group">
                   {fieldConfig.icon && (
-                    <div className="absolute left-3 top-3 text-muted-foreground">
+                    <div className="absolute left-3 top-3 text-muted-foreground transition-colors duration-200 group-focus-within:text-primary">
                       {fieldConfig.icon}
                     </div>
                   )}

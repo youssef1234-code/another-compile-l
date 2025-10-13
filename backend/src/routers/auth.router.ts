@@ -381,26 +381,93 @@ const adminRoutes = {
     }),
 
   /**
+   * Admin: Update user fields (for inline editing)
+   */
+  updateUser: adminProcedure
+    .input(z.object({
+      userId: z.string(),
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+      email: z.string().email().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const result = await userService.updateUser({
+        userId: input.userId,
+        updates: {
+          firstName: input.firstName,
+          lastName: input.lastName,
+          email: input.email,
+        },
+        adminId: (ctx.user!._id as any).toString(),
+      });
+
+      return result;
+    }),
+
+  /**
    * Admin: Get all users with filters
+   * Supports tablecn data table with:
+   * - Global search across email, firstName, lastName
+   * - Multi-field sorting
+   * - Simple faceted filters (advanced mode): {role: ["ADMIN"], status: ["ACTIVE"]}
+   * - Extended filters with operators (command mode): [{id, operator, value, ...}]
+   * - Server-side pagination
    */
   getAllUsers: adminProcedure
     .input(z.object({
-      role: z.string().optional(),
-      status: z.enum(['active', 'blocked', 'all']).optional(),
-      search: z.string().optional(),
+      // Pagination
       page: z.number().optional().default(1),
-      limit: z.number().optional().default(20),
+      perPage: z.number().optional().default(20),
+      
+      // Global search
+      search: z.string().optional(),
+      
+      // Multi-field sorting: [{id: "email", desc: false}, {id: "createdAt", desc: true}]
+      sort: z.array(z.object({
+        id: z.string(),
+        desc: z.boolean(),
+      })).optional(),
+      
+      // Simple faceted filters: {role: ["ADMIN", "STUDENT"], status: ["ACTIVE"]}
+      filters: z.record(z.array(z.string())).optional(),
+      
+      // Extended filters with operators (for command mode)
+      extendedFilters: z.array(z.object({
+        id: z.string(),
+        value: z.union([z.string(), z.array(z.string())]),
+        operator: z.enum([
+          'iLike', 'notILike', 'eq', 'ne', 'isEmpty', 'isNotEmpty',
+          'lt', 'lte', 'gt', 'gte', 'isBetween', 
+          'inArray', 'notInArray', 'isRelativeToToday'
+        ]),
+        variant: z.enum(['text', 'number', 'range', 'date', 'dateRange', 'boolean', 'select', 'multiSelect']),
+        filterId: z.string(),
+      })).optional(),
+      
+      // Join operator for extended filters (AND/OR logic)
+      joinOperator: z.enum(['and', 'or']).optional().default('and'),
     }))
     .query(async ({ input }) => {
       const result = await userService.getAllUsers({
         page: input.page,
-        limit: input.limit,
-        role: input.role,
-        status: input.status,
+        limit: input.perPage,
         search: input.search,
+        sort: input.sort,
+        filters: input.filters,
+        extendedFilters: input.extendedFilters,
+        joinOperator: input.joinOperator,
       });
 
       return result;
+    }),
+
+  /**
+   * Admin: Get user statistics
+   */
+  getUserStats: adminProcedure
+    .query(async () => {
+      const stats = await userService.getUserStats();
+      return stats;
     }),
 
   /**
@@ -500,9 +567,11 @@ export const authRouter = router({
   verifyRole: adminRoutes.verifyRole,
   createAdminAccount: adminRoutes.createAdminAccount,
   deleteAdminAccount: adminRoutes.deleteAdminAccount,
+  updateUser: adminRoutes.updateUser,
   blockUser: adminRoutes.blockUser,
   unblockUser: adminRoutes.unblockUser,
   getAllUsers: adminRoutes.getAllUsers,
+  getUserStats: adminRoutes.getUserStats,
   getPendingAcademicUsers: adminRoutes.getPendingAcademicUsers,
   searchUsers: adminRoutes.searchUsers,
   getUsersByRole: adminRoutes.getUsersByRole,

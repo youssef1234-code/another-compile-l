@@ -84,10 +84,15 @@ export const PaymentStatus = {
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const EventStatus = {
-  DRAFT: "DRAFT",
-  PUBLISHED: "PUBLISHED",
-  CANCELLED: "CANCELLED",
-  COMPLETED: "COMPLETED",
+  DRAFT: 'DRAFT',
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  PUBLISHED: 'PUBLISHED',
+  CANCELLED: 'CANCELLED',
+  COMPLETED: 'COMPLETED',
+  ARCHIVED: 'ARCHIVED',
+  NEEDS_EDITS: 'NEEDS_EDITS',
 } as const;
 
 export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus];
@@ -282,22 +287,12 @@ export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 // ============================================================================
 
 export const CreateEventSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters").max(100),
-  description: z
-    .string()
-    .min(20, "Description must be at least 20 characters")
-    .max(2000),
-  type: z.enum([
-    "WORKSHOP",
-    "TRIP",
-    "BAZAAR",
-    "CONFERENCE",
-    "GYM_SESSION",
-    "OTHER",
-  ]),
-  location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]),
+  name: z.string().min(5, 'Title must be at least 5 characters').max(100),
+  description: z.string().min(20, 'Description must be at least 20 characters').max(2000),
+  type: z.enum(['WORKSHOP', 'TRIP', 'BAZAAR', 'CONFERENCE', 'GYM_SESSION', 'OTHER']),
+  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
   locationDetails: z.string().min(5).max(200),
-  date: z.coerce.date(),
+  startDate: z.coerce.date(),
   endDate: z.coerce.date().optional(),
   capacity: z.number().int().positive().min(1),
   price: z.number().nonnegative().default(0),
@@ -305,6 +300,7 @@ export const CreateEventSchema = z.object({
   tags: z.array(z.string()).default([]),
   requirements: z.string().max(500).optional(),
   professorName: z.string().optional(), // For academic events
+  registrationDeadline: z.coerce.date().optional(),
 });
 
 export type CreateEventInput = z.infer<typeof CreateEventSchema>;
@@ -312,6 +308,19 @@ export type CreateEventInput = z.infer<typeof CreateEventSchema>;
 export const UpdateEventSchema = CreateEventSchema.partial().extend({
   id: z.string(),
   isArchived: z.boolean().optional(),
+  status: z.enum([
+    'DRAFT',
+    'PENDING_APPROVAL',
+    'APPROVED',
+    'REJECTED',
+    'PUBLISHED',
+    'CANCELLED',
+    'COMPLETED',
+    'ARCHIVED',
+    'NEEDS_EDITS',
+  ]).optional(), // For approval workflow
+  rejectionReason: z.string().optional(),
+  revisionNotes: z.string().optional(),
 });
 
 export type UpdateEventInput = z.infer<typeof UpdateEventSchema>;
@@ -333,6 +342,68 @@ export const EventFilterSchema = z.object({
 });
 
 export type EventFilterInput = z.infer<typeof EventFilterSchema>;
+
+export const createGymSessionSchema = z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      sessionType: z.nativeEnum(GymSessionType),
+      startDate: z.coerce.date(),
+      capacity: z.number().int().positive(),
+      duration: z.number().int().positive(),
+});
+export type CreateGymSessionInput = z.infer<typeof createGymSessionSchema>;
+
+
+export const updateGymSessionSchema = z.object({
+      id: z.string(),
+      startDate: z.coerce.date().optional(),
+      duration: z.number().int().positive().optional(),
+      capacity: z.number().int().positive().optional(),
+      status: z.nativeEnum(EventStatus).optional(),
+      sessionType: z.nativeEnum(GymSessionType).optional(),
+}).refine(
+  (v) =>
+    v.startDate != null ||
+    v.duration != null ||
+    v.capacity != null ||
+    v.status != null ||
+    v.sessionType != null,
+  { message: 'You need to update at least one field' }
+);
+
+export type UpdateGymSessionInput = z.infer<typeof updateGymSessionSchema>;
+
+export const CourtSport = {
+  BASKETBALL: "BASKETBALL",
+  TENNIS: "TENNIS",
+  FOOTBALL: "FOOTBALL",
+} as const;
+export type CourtSport = (typeof CourtSport)[keyof typeof CourtSport];
+
+export const CourtSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  sport: z.nativeEnum(CourtSport),
+  location: z.string().default("ON_CAMPUS"),
+  // optional capacity for team size etc. if needed
+});
+
+export const AvailabilityQuerySchema = z.object({
+  courtId: z.string().optional(),
+  sport: z.nativeEnum(CourtSport).optional(),
+  date: z.coerce.date(),                // day to check
+  slotMinutes: z.number().int().positive().default(60), // length of slot the user wants
+});
+
+export const CourtReservationCreateSchema = z.object({
+  courtId: z.string(),
+  startDate: z.coerce.date(),
+  duration: z.number().int().positive(),           // minutes
+});
+
+export const CourtReservationCancelSchema = z.object({
+  id: z.string(),
+});
 
 // ============================================================================
 // REGISTRATION SCHEMAS
@@ -529,6 +600,8 @@ export interface Event {
   locationDetails: string;
   date: Date;
   endDate?: Date;
+  startDate?: Date;
+  registrationDeadline?: Date;
   capacity: number;
   registeredCount: number;
   price: number;
@@ -540,6 +613,19 @@ export interface Event {
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
+  // Workshop-specific fields
+  fullAgenda?: string;
+  faculty?: string;
+  professorParticipants?: string[];
+  requiredBudget?: number;
+  fundingSource?: string;
+  extraResources?: string;
+  // Conference-specific fields
+  conferenceWebsite?: string;
+  // Status for approval workflow
+  status?: string;
+  rejectionReason?: string;
+  revisionNotes?: string;
 }
 
 export interface Registration {

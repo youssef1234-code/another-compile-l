@@ -29,6 +29,7 @@ export const ROUTES = {
   MY_WORKSHOPS: '/events/workshops',
   CREATE_TRIP: '/events/create/trip',
   CREATE_BAZAAR: '/events/create/bazaar',
+  EDIT_BAZAAR: '/events/edit/bazaar/:id',
   CREATE_CONFERENCE: '/events/create/conference',
   
   // Vendors
@@ -58,6 +59,7 @@ export const ROUTES = {
   VENDOR_POLLS: '/events-office/polls',
   EVENT_OFFICE_REPORTS: '/events-office/reports',
   QR_CODES: '/events-office/qr-codes',
+  BAZAAR_MANAGEMENT: '/events-office/bazaars',
   
   // Other
   WALLET: '/wallet',
@@ -97,3 +99,7 @@ export const PAYMENT_STATUS_COLORS = {
   REFUNDED: 'blue',
   FAILED: 'red',
 } as const;
+
+// Utility functions for dynamic routes
+export const generateEditBazaarUrl = (id: string) => ROUTES.EDIT_BAZAAR.replace(':id', id);
+export const generateEventDetailsUrl = (id: string) => ROUTES.EVENT_DETAILS.replace(':id', id);

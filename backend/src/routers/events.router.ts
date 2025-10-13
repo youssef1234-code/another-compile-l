@@ -11,7 +11,7 @@
  * @module routers/events.router
  */
 
-import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router } from '../trpc/trpc';
+import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router, eventsOfficeProfessorProcedure } from '../trpc/trpc';
 import { createSearchSchema } from './base.router';
 import { eventService } from '../services/event.service';
 import { registrationService } from '../services/registration.service';
@@ -19,9 +19,17 @@ import {
   CreateEventSchema,
   UpdateEventSchema,
   EventFilterSchema,
+  EventStatus,
+  createGymSessionSchema,
+  updateGymSessionSchema,
 } from '@event-manager/shared';
 import { z } from 'zod';
 
+function omitUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>;
+}
 // Define all routes with proper role-based access control
 const eventRoutes = {
   /**
@@ -112,11 +120,11 @@ const eventRoutes = {
   /**
    * Create event - EVENT_OFFICE and ADMIN only
    */
-  create: eventsOfficeProcedure
+  create: eventsOfficeProfessorProcedure
     .input(CreateEventSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx.user!._id as any).toString();
-      return eventService.create(input, { userId });
+      return eventService.create(input, { userId, role: ctx.user!.role.toString() });
     }),
 
   /**
@@ -233,6 +241,80 @@ const eventRoutes = {
         page: input.page,
         limit: input.limit,
       });
+    }),
+
+    /**
+     * Create a gym session - EVENT_OFFICE and ADMIN only
+     */
+    createGymSession: eventsOfficeProcedure
+    .input(createGymSessionSchema)
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      return eventService.createGymSession(
+        {
+          ...input,
+          type: 'GYM_SESSION',
+          endDate: new Date(input.startDate.getTime() + input.duration * 60000),
+          location: 'Gym',
+          status: EventStatus.DRAFT,
+        },
+        { userId }
+      );
+    }),
+    
+
+    // UPDATE (edit date/time/duration/status/capacity only)
+  updateGymSession: eventsOfficeProcedure
+    .input(updateGymSessionSchema)
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      const { id, ...rest } = input;
+
+      const patch = omitUndefined({
+        startDate: rest.startDate,
+        duration: rest.duration,
+        capacity: rest.capacity,
+        status: rest.status,
+        sessionType: rest.sessionType,
+      });
+
+    return eventService.updateGymSession(id, patch, { userId });
+  }),
+
+    // Approve workshop - EVENT_OFFICE ONLY
+    approveWorkshop : eventsOfficeProcedure
+    .input(z.object({
+      eventId: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return eventService.approveWorkshop(input.eventId);
+    }),
+
+    // Reject Workshop - EVENT_OFFICE ONLY
+    rejectWorkshop : eventsOfficeProcedure
+    .input(z.object({
+      eventId: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return eventService.rejectWorkshop(input.eventId);
+    }),
+
+    // Workshop needs edits - EVENT_OFFICE ONLY
+    workshopNeedsEdits : eventsOfficeProcedure
+    .input(z.object({
+      eventId: z.string(),
+      feedback: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      return eventService.editsNeededWorkshop(input.eventId);
+    }),
+
+    publishWorkshop : eventsOfficeProcedure
+    .input(z.object({
+      eventId: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return eventService.publishWorkshop(input.eventId);
     }),
 };
 

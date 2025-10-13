@@ -28,6 +28,7 @@ import { EventsPage } from '@/features/events/pages/EventsPage';
 import { EventDetailsPage } from '@/features/events/pages/EventDetailsPage';
 import { MyEventsPage } from '@/features/events/pages/MyEventsPage';
 import { FavoritesPage } from '@/features/events/pages/FavoritesPage';
+import { EditBazaarPage } from '@/features/events/pages/EditBazaarPage';
 import {
   MyRegistrationsPage,
   CreateWorkshopPage,
@@ -64,6 +65,7 @@ import {
 } from '@/features/admin/pages';
 
 // Events Office
+import { BazaarManagementPage } from '@/features/events-office/pages/BazaarManagementPage';
 import {
   WorkshopApprovalsPage,
   VendorPollsPage,
@@ -78,7 +80,7 @@ import { WalletPage } from '@/features/wallet/pages';
 import { ProfilePage } from '@/features/profile/pages/ProfilePage';
 
 // Protected Route Component
-import { ProtectedRoute, AdminRoute } from '@/components/auth/ProtectedRoute';
+import { ProtectedRoute, AdminRoute, EventOfficeRoute } from '@/components/auth/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -167,6 +169,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.CREATE_BAZAAR,
         element: <CreateBazaarPage />,
+      },
+      {
+        path: ROUTES.EDIT_BAZAAR,
+        element: <EditBazaarPage />,
       },
       {
         path: ROUTES.CREATE_CONFERENCE,
@@ -262,19 +268,43 @@ export const router = createBrowserRouter([
       // Events Office Routes
       {
         path: ROUTES.WORKSHOP_APPROVALS,
-        element: <WorkshopApprovalsPage />,
+        element: (
+          <EventOfficeRoute>
+            <WorkshopApprovalsPage />
+          </EventOfficeRoute>
+        ),
       },
       {
         path: ROUTES.VENDOR_POLLS,
-        element: <VendorPollsPage />,
+        element: (
+          <EventOfficeRoute>
+            <VendorPollsPage />
+          </EventOfficeRoute>
+        ),
       },
       {
         path: ROUTES.EVENT_OFFICE_REPORTS,
-        element: <EventOfficeReportsPage />,
+        element: (
+          <EventOfficeRoute>
+            <EventOfficeReportsPage />
+          </EventOfficeRoute>
+        ),
       },
       {
         path: ROUTES.QR_CODES,
-        element: <QRCodesPage />,
+        element: (
+          <EventOfficeRoute>
+            <QRCodesPage />
+          </EventOfficeRoute>
+        ),
+      },
+      {
+        path: ROUTES.BAZAAR_MANAGEMENT,
+        element: (
+          <EventOfficeRoute>
+            <BazaarManagementPage />
+          </EventOfficeRoute>
+        ),
       },
       
       // Wallet

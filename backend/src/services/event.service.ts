@@ -1,8 +1,11 @@
 import { EventRepository, eventRepository } from '../repositories/event.repository';
-import { BaseService } from './base.service';
+import { BaseService, type ServiceOptions } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IEvent } from '../models/event.model';
 import type { FilterQuery } from 'mongoose';
+import { EventStatus, GymSessionType } from '@event-manager/shared';
+import { ServiceError } from '../errors/errors';
+import { exitCode } from 'process';
 
 /**
  * Service Layer for Events
@@ -37,10 +40,22 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   }
 
   /**
+   * Override create to set appropriate status for events
+   */
+  async create(data: Partial<IEvent>, options?: any): Promise<IEvent> {
+    // Set status to PUBLISHED for bazaars created by EVENT_OFFICE users
+    if (data.type === 'BAZAAR' && !data.status) {
+      data.status = 'PUBLISHED';
+    }
+    
+    return super.create(data, options);
+  }
+
+  /**
    * Validate before create
    * Business Rule: Check event date validations
    */
-  protected async validateCreate(data: Partial<IEvent>): Promise<void> {
+  protected async validateCreate(data: Partial<IEvent>, options?: ServiceOptions): Promise<void> {
     if (data.startDate && data.endDate && data.startDate > data.endDate) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -61,6 +76,14 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         message: 'Capacity must be a positive number'
       });
     }
+
+    if ( options?.role !== 'PROFESSOR' && data.type === 'WORKSHOP') {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Only professors can create workshops'
+      });
+    }
+
   }
 
   /**
@@ -286,10 +309,12 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       description: event.description,
       type: event.type,
       location: event.location,
+      locationDetails: event.locationDetails,
       startDate: event.startDate,
       endDate: event.endDate,
       registrationDeadline: event.registrationDeadline,
       capacity: event.capacity,
+      registeredCount: event.registeredCount,
       price: event.price,
       status: event.status,
       isArchived: event.isArchived,
@@ -312,7 +337,193 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       updatedAt: event.updatedAt
     };
   }
+
+  /**
+   * APPROVAL WORKSHOP METHOD
+   */
+  async approveWorkshop(workshopId: string) {
+      // Logic to approve the workshop
+      const workshop = await eventRepository.findById(workshopId);
+      if (!workshop) {
+        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+      }
+      if (workshop.type !== "WORKSHOP") {
+        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+      }
+      if (workshop.status !== "PENDING_APPROVAL") {
+        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval", 400);
+      }
+      const newWorkshop = await eventRepository.update(workshopId, { status: "APPROVED" });
+      return newWorkshop;
+    }
+
+    async rejectWorkshop(workshopId: string) {
+      // Logic to reject the workshop
+      const workshop = await eventRepository.findById(workshopId);
+      if (!workshop) {
+        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+      }
+      if (workshop.type !== "WORKSHOP") {
+        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+      }
+      if (workshop.status !== "PENDING_APPROVAL") {
+        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval", 400);
+      }
+      const newWorkshop = await eventRepository.update(workshopId, { status: "REJECTED" });
+      return newWorkshop;
+    }
+
+    async editsNeededWorkshop(workshopId: string) {
+      // Logic to request edits for the workshop
+      const workshop = await eventRepository.findById(workshopId);
+      if (!workshop) {
+        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+      }
+      if (workshop.type !== "WORKSHOP") {
+        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+      }
+      if (workshop.status !== "PENDING_APPROVAL") {
+        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval", 400);
+      }
+      const newWorkshop = await eventRepository.update(workshopId, { status: "NEEDS_EDITS" });
+      return newWorkshop;
+    }
+
+    async publishWorkshop(workshopId: string) {
+      // Logic to publish the workshop
+      const workshop = await eventRepository.findById(workshopId);
+      if (!workshop) {
+        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+      }
+      if (workshop.type !== "WORKSHOP") {
+        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+      }
+      if (workshop.status !== "APPROVED") {
+        throw new ServiceError("BAD_REQUEST", "Workshop must be approved before publishing", 400);
+      }
+      const newWorkshop = await eventRepository.update(workshopId, { status: "PUBLISHED" });
+      return newWorkshop;
+    }
+
+
+
+  /**
+   * Create a new gym session with overlap validation
+   */
+  
+async createGymSession(
+  data: Partial<IEvent>,
+  options?: { userId?: string }
+): Promise<IEvent> {
+  if (data.type !== 'GYM_SESSION') {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event type must be GYM_SESSION' });
+  }
+  if (!data.sessionType || !data.startDate || !data.capacity || !data.duration) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'sessionType, startDate, capacity, and duration are required',
+    });
+  }
+
+  const start = new Date(data.startDate);
+  const duration = data.duration!;
+  if (duration <= 0) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Duration must be positive' });
+  }
+  const end = new Date(start.getTime() + duration * 60_000);
+
+  // overlap guard (no excludeId on create)
+  const clash = await this.repository.hasGymOverlap(start, end);
+  if (clash) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
+  }
+
+  return this.create(
+    {
+      ...data,
+      type: 'GYM_SESSION',
+      startDate: start,
+      endDate: end,
+      location: data.location ?? 'Gym',
+    } as any,
+    options
+  );
 }
+
+
+  
+/**
+ * Update a gym session (allowed fields: startDate, duration)
+ */
+// backend/src/services/event.service.ts
+async updateGymSession(
+  id: string,
+  patch: {
+    startDate?: Date;
+    duration?: number;
+    capacity?: number;
+    status?: EventStatus;
+    sessionType?: GymSessionType;
+  },
+  options?: { userId?: string }
+): Promise<IEvent> {
+
+  if (!patch.capacity && !patch.sessionType && !patch.startDate && !patch.duration && !patch.status) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'You need to update something' });
+  }
+
+  const existing = await this.repository.findById(id);
+  if (!existing) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'Event not found' });
+  }
+  if (existing.type !== 'GYM_SESSION') {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Not a gym session' });
+  }
+
+  // Compute next schedule
+  const nextStart = patch.startDate ?? existing.startDate;
+  const nextDuration = patch.duration ?? (existing as any).duration ?? 60;
+  if (nextDuration <= 0) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Duration must be positive' });
+  }
+  const nextEnd = new Date(nextStart.getTime() + nextDuration * 60_000);
+
+  // Only run overlap check if time window changes OR status becomes published (your rule)
+  const timeWindowChanged =
+    (patch.startDate && +patch.startDate !== +existing.startDate) ||
+    (patch.duration && patch.duration !== (existing as any).duration);
+
+  const willBePublished =
+    (patch.status ?? existing.status) === 'PUBLISHED';
+
+  if (timeWindowChanged || willBePublished) {
+    // exclude current _id to avoid "overlaps with itself"
+    const clash = await this.repository.hasGymOverlap(nextStart, nextEnd, id);
+    if (clash) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
+    }
+  }
+
+  const updated = await this.repository.update(
+    id,
+    {
+      startDate: nextStart,
+      endDate: nextEnd,
+      ...(patch.duration !== undefined ? { duration: nextDuration } : {}),
+      ...(patch.capacity !== undefined ? { capacity: patch.capacity } : {}),
+      ...(patch.status   !== undefined ? { status: patch.status } : {}),
+      ...(patch.sessionType !== undefined ? { sessionType: patch.sessionType } : {}),
+    },
+    options
+  );
+
+  return updated as IEvent;
+}
+
+
+}
+
+
 
 // Singleton instance
 export const eventService = new EventService(eventRepository);
