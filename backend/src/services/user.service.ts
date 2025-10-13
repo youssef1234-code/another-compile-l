@@ -672,14 +672,68 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
   }
 
   /**
+   * Update user fields (Admin only - for inline editing)
+   */
+  async updateUser(data: {
+    userId: string;
+    updates: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+    };
+    adminId: string;
+  }): Promise<{ message: string; user: any }> {
+    // Get user
+    const user = await userRepository.findById(data.userId);
+    if (!user) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'User not found'
+      });
+    }
+
+    // Check if email is being changed and already exists
+    if (data.updates.email && data.updates.email !== user.email) {
+      const existingUser = await userRepository.findByEmail(data.updates.email);
+      if (existingUser) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'An account with this email already exists'
+        });
+      }
+    }
+
+    // Update user
+    const updatedUser = await userRepository.update(data.userId, data.updates);
+
+    return {
+      message: 'User updated successfully!',
+      user: updatedUser,
+    };
+  }
+
+  /**
    * Get all users with filters and pagination (Admin only)
+   * Supports tablecn data table pattern with:
+   * - Global search across email, firstName, lastName
+   * - Multi-field sorting
+   * - Simple faceted filters (advanced mode)
+   * - Extended filters with operators (command mode)
    */
   async getAllUsers(data: {
     page?: number;
     limit?: number;
-    role?: string;
-    status?: 'active' | 'blocked' | 'all';
     search?: string;
+    sort?: Array<{ id: string; desc: boolean }>;
+    filters?: Record<string, string[]>;
+    extendedFilters?: Array<{
+      id: string;
+      value: string | string[];
+      operator: string;
+      variant: string;
+      filterId: string;
+    }>;
+    joinOperator?: 'and' | 'or'; // Add join operator support
   }): Promise<{
     users: any[];
     total: number;
@@ -690,35 +744,176 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const limit = data.limit || 10;
     const skip = (page - 1) * limit;
 
-    // Build filter
+    // Build base filter
     const filter: any = {};
-    if (data.role) {
-      filter.role = data.role;
-    }
-    if (data.status === 'active') {
-      filter.isBlocked = false;
-    } else if (data.status === 'blocked') {
-      filter.isBlocked = true;
+
+    // Handle simple faceted filters from tablecn (advanced mode)
+    if (data.filters) {
+      // Role filter
+      if (data.filters.role && data.filters.role.length > 0) {
+        filter.role = { $in: data.filters.role };
+      }
+
+      // Status filter - map ACTIVE/BLOCKED to isBlocked field
+      if (data.filters.status && data.filters.status.length > 0) {
+        const includeActive = data.filters.status.includes('ACTIVE');
+        const includeBlocked = data.filters.status.includes('BLOCKED');
+        
+        if (includeActive && !includeBlocked) {
+          filter.isBlocked = false;
+        } else if (includeBlocked && !includeActive) {
+          filter.isBlocked = true;
+        }
+        // If both, don't add filter (show all)
+      }
     }
 
-    // Get users
-    let users: IUser[];
-    let total: number;
+    // Handle extended filters with operators (command mode)
+    if (data.extendedFilters && data.extendedFilters.length > 0) {
+      const extendedConditions: any[] = [];
 
-    if (data.search) {
-      users = await userRepository.search(data.search, { skip, limit });
-      total = (await userRepository.search(data.search)).length;
-    } else {
-      users = await userRepository.findAll(filter, {
-        skip,
-        limit,
-        sort: { createdAt: -1 },
-        populate: []
+      for (const extFilter of data.extendedFilters) {
+        const field = extFilter.id;
+        const operator = extFilter.operator;
+        const value = extFilter.value;
+
+        // Skip empty/invalid values (except for isEmpty/isNotEmpty)
+        if (operator !== 'isEmpty' && operator !== 'isNotEmpty') {
+          if (Array.isArray(value) && value.length === 0) continue;
+          if (typeof value === 'string' && !value.trim()) continue;
+        }
+
+        const condition: any = {};
+
+        switch (operator) {
+          case 'iLike': // Contains (case-insensitive)
+            condition[field] = { $regex: value, $options: 'i' };
+            break;
+
+          case 'notILike': // Does not contain
+            condition[field] = { $not: { $regex: value, $options: 'i' } };
+            break;
+
+          case 'eq': // Equals
+            // Handle status field mapping
+            if (field === 'status') {
+              condition.isBlocked = value === 'BLOCKED';
+            } else {
+              condition[field] = value;
+            }
+            break;
+
+          case 'ne': // Not equals
+            if (field === 'status') {
+              condition.isBlocked = value === 'ACTIVE'; // Inverse
+            } else {
+              condition[field] = { $ne: value };
+            }
+            break;
+
+          case 'isEmpty': // Is empty
+            condition[field] = { $in: [null, '', undefined] };
+            break;
+
+          case 'isNotEmpty': // Is not empty
+            condition[field] = { $nin: [null, '', undefined], $exists: true };
+            break;
+
+          case 'inArray': // Has any of (for multiselect)
+            if (Array.isArray(value)) {
+              if (field === 'status') {
+                const includeActive = value.includes('ACTIVE');
+                const includeBlocked = value.includes('BLOCKED');
+                if (includeActive && !includeBlocked) {
+                  condition.isBlocked = false;
+                } else if (includeBlocked && !includeActive) {
+                  condition.isBlocked = true;
+                }
+              } else {
+                condition[field] = { $in: value };
+              }
+            }
+            break;
+
+          case 'notInArray': // Has none of
+            if (Array.isArray(value)) {
+              condition[field] = { $nin: value };
+            }
+            break;
+
+          case 'lt': // Less than (for numbers/dates)
+            condition[field] = { $lt: value };
+            break;
+
+          case 'lte': // Less than or equal
+            condition[field] = { $lte: value };
+            break;
+
+          case 'gt': // Greater than
+            condition[field] = { $gt: value };
+            break;
+
+          case 'gte': // Greater than or equal
+            condition[field] = { $gte: value };
+            break;
+
+          case 'isBetween': // Between (for ranges)
+            if (Array.isArray(value) && value.length === 2) {
+              condition[field] = { $gte: value[0], $lte: value[1] };
+            }
+            break;
+        }
+
+        if (Object.keys(condition).length > 0) {
+          extendedConditions.push(condition);
+        }
+      }
+
+      // Combine extended filters with AND or OR logic based on joinOperator
+      if (extendedConditions.length > 0) {
+        const joinOp = data.joinOperator === 'or' ? '$or' : '$and';
+        
+        if (filter[joinOp]) {
+          filter[joinOp].push(...extendedConditions);
+        } else {
+          filter[joinOp] = extendedConditions;
+        }
+      }
+    }
+
+    // Handle global search - search across email, firstName, lastName
+    if (data.search && data.search.trim()) {
+      const searchRegex = { $regex: data.search.trim(), $options: 'i' };
+      filter.$or = [
+        { email: searchRegex },
+        { firstName: searchRegex },
+        { lastName: searchRegex },
+      ];
+    }
+
+    // Build multi-field sort from tablecn
+    const sort: any = {};
+    if (data.sort && data.sort.length > 0) {
+      // Apply sorts in order (TanStack Table supports multi-sort)
+      data.sort.forEach(sortField => {
+        sort[sortField.id] = sortField.desc ? -1 : 1;
       });
-      total = await userRepository.count(filter);
+    } else {
+      // Default sort by creation date descending
+      sort.createdAt = -1;
     }
 
-    // Format users
+    // Execute query with filters and sorting
+    const users = await userRepository.findAll(filter, {
+      skip,
+      limit,
+      sort,
+      populate: []
+    });
+
+    const total = await userRepository.count(filter);
+
+    // Format users for frontend
     const formattedUsers = users.map(user => ({
       id: (user._id as any).toString(),
       email: user.email,
@@ -739,6 +934,36 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       page,
       totalPages: Math.ceil(total / limit)
     };
+  }
+
+  /**
+   * Get user statistics (Admin only)
+   */
+  async getUserStats(): Promise<{
+    total: number;
+    active: number;
+    blocked: number;
+    pending: number;
+    verified: number;
+    byRole: Record<string, number>;
+  }> {
+    const allUsers = await userRepository.findAll({}, { populate: [] });
+    
+    const stats = {
+      total: allUsers.length,
+      active: allUsers.filter(u => !u.isBlocked).length,
+      blocked: allUsers.filter(u => u.isBlocked).length,
+      pending: allUsers.filter(u => !u.isVerified).length,
+      verified: allUsers.filter(u => u.isVerified).length,
+      byRole: {} as Record<string, number>
+    };
+
+    // Count by role
+    allUsers.forEach(user => {
+      stats.byRole[user.role] = (stats.byRole[user.role] || 0) + 1;
+    });
+
+    return stats;
   }
 
   /**
