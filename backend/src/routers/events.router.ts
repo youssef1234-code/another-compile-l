@@ -360,12 +360,13 @@ const eventRoutes = {
   getMyWorkshops: professorProcedure
     .query(async ({ ctx }) => {
       
-      log(ctx.user);
+const workshops = await eventService.findAll({
+  professorName: ctx.user!.firstName + ' ' + ctx.user!.lastName,
+  type: 'WORKSHOP',
+});
+console.log("🧠 Final workshops returned:", workshops.length, workshops.map(w => w.professorName));
+return workshops;
 
-      return eventService.findAll({
-        professorName: ctx.user!.firstName + ' ' + ctx.user!.lastName,
-        type: 'WORKSHOP',
-      });
     }),
     
 };

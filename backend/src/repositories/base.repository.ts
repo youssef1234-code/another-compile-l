@@ -111,44 +111,44 @@ export abstract class BaseRepository<T extends Document> {
     return this.model.findByIdAndDelete(id).exec();
   }
 
-  /**
-   * Find all documents with filtering
-   */
-  async findAll(
-    filter: FilterQuery<T> = {},
-    options: {
-      skip?: number;
-      limit?: number;
-      sort?: Record<string, 1 | -1>;
-      populate?: string | string[];
-    } = {}
-  ): Promise<T[]> {
-    let query = this.model.find(filter);
+    /**
+     * Find all documents with filtering
+     */
+    async findAll(
+      filter: FilterQuery<T> = {},
+      options: {
+        skip?: number;
+        limit?: number;
+        sort?: Record<string, 1 | -1>;
+        populate?: string | string[];
+      } = {}
+    ): Promise<T[]> {
+      let query = this.model.find(filter);
 
-    if (options.populate) {
-      if (Array.isArray(options.populate)) {
-        options.populate.forEach(path => {
-          query = query.populate(path);
-        });
-      } else {
-        query = query.populate(options.populate);
+      if (options.populate) {
+        if (Array.isArray(options.populate)) {
+          options.populate.forEach(path => {
+            query = query.populate(path);
+          });
+        } else {
+          query = query.populate(options.populate);
+        }
       }
-    }
 
-    if (options.sort) {
-      query = query.sort(options.sort);
-    }
+      if (options.sort) {
+        query = query.sort(options.sort);
+      }
 
-    if (options.skip !== undefined) {
-      query = query.skip(options.skip);
-    }
+      if (options.skip !== undefined) {
+        query = query.skip(options.skip);
+      }
 
-    if (options.limit !== undefined) {
-      query = query.limit(options.limit);
-    }
+      if (options.limit !== undefined) {
+        query = query.limit(options.limit);
+      }
 
-    return query.exec();
-  }
+      return query.exec();
+    }
 
   /**
    * Find with pagination
