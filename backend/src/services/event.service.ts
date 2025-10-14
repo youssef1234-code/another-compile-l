@@ -3,7 +3,7 @@ import { BaseService, type ServiceOptions } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IEvent } from '../models/event.model';
 import type { FilterQuery } from 'mongoose';
-import { EventStatus, GymSessionType } from '@event-manager/shared';
+import { EventStatus, GymSessionType, UpdateWorkshopSchema, type UpdateWorkshopInput } from '@event-manager/shared';
 import { ServiceError } from '../errors/errors';
 
 /**
@@ -510,6 +510,36 @@ async updateGymSession(
   return updated as IEvent;
 }
 
+
+
+/**
+ * Update a workshop event
+ */
+async updateWorkshop(input: UpdateWorkshopInput): Promise<IEvent> {
+  // Validate input
+  const validation = UpdateWorkshopSchema.safeParse(input);
+  if (!validation.success) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Invalid workshop update data',
+      cause: validation.error
+    });
+  }
+  const { id, ...updateData } = validation.data;
+
+  // Find existing event
+  const existing = await this.repository.findById(id);
+  if (!existing) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'Workshop not found' });
+  }
+  if (existing.type !== 'WORKSHOP') {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event is not a workshop' });
+  }
+
+  // Update workshop
+  const updated = await this.repository.update(id, updateData);
+  return updated as IEvent;
+}
 }
 
 

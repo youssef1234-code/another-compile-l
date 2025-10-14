@@ -23,8 +23,10 @@ import {
   createGymSessionSchema,
   updateGymSessionSchema,
   CreateWorkshopSchema,
+  UpdateWorkshopSchema,
 } from '@event-manager/shared';
 import { z } from 'zod';
+import { log } from 'console';
 
 function omitUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
   return Object.fromEntries(
@@ -331,23 +333,25 @@ const eventRoutes = {
         throw new Error('Only professors can create workshops');
       }
 
-      return eventService.create({ ...input, type: 'WORKSHOP' }, { userId });
+      return eventService.create({ ...input, type: 'WORKSHOP'}, { userId });
     }),
 
   /**
    * Edit workshop - PROFESSOR only
    */
   editWorkshop: professorProcedure
-    .input(CreateWorkshopSchema)
+    .input(UpdateWorkshopSchema)
     .mutation(async ({ input, ctx }) => {
-      const userId = (ctx.user!._id as any).toString();
 
+      const {id} = input;
       // Ensure the user is a professor
       if (ctx.user!.role !== 'PROFESSOR') {
         throw new Error('Only professors can edit workshops');
       }
 
-      return eventService.update(input.id, { ...input.data, type: 'WORKSHOP' }, { userId });
+
+
+      return eventService.updateWorkshop(input);
     }),
 
   /**
@@ -355,6 +359,8 @@ const eventRoutes = {
    */
   getMyWorkshops: professorProcedure
     .query(async ({ ctx }) => {
+      
+      log(ctx.user);
 
       return eventService.findAll({
         professorName: ctx.user!.firstName + ' ' + ctx.user!.lastName,

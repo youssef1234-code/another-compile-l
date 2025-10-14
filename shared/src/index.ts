@@ -409,6 +409,26 @@ export const CreateWorkshopSchema = z.object({
 
 export type CreateWorkshopInput = z.infer<typeof CreateWorkshopSchema>;
 
+export const UpdateWorkshopSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  location: z.enum(['Cairo', 'Berlin']).optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+  description: z.string().optional(),
+  fullAgenda: z.string().optional(),
+  faculty: z.enum(['MET', 'IET', 'PHARMACY', 'BIOTECHNOLOGY', 'MANAGEMENT', 'LAW', 'DESIGN']).optional(),
+  professors: z.array(z.string()).optional(),
+  requiredBudget: z.number().optional(),
+  fundingSource: z.enum(['EXTERNAL', 'GUC']).optional(),
+  extraResources: z.string().optional(),
+  capacity: z.number().optional(),
+  registrationDeadline: z.coerce.date().optional(),
+  
+});
+
+export type UpdateWorkshopInput = z.infer<typeof UpdateWorkshopSchema>;
+
 // ============================================================================
 // REGISTRATION SCHEMAS
 // ============================================================================
