@@ -18,7 +18,6 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
   }
 
   async listMine(userId: string, options?: { skip?: number; limit?: number }) {
-    // If you don’t store createdBy, switch this to vendor.owner logic or pass vendorId instead.
     const query: any = { isDeleted: false, createdBy: new Types.ObjectId(userId) };
 
     const [rows, total] = await Promise.all([

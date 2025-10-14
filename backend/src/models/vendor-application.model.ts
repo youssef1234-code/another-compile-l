@@ -50,10 +50,7 @@ const vendorApplicationSchema = createBaseSchema<IVendorApplication>(
   }
 );
 
-/**
- * Unique application per (vendor,event). Because you use soft delete (isDeleted),
- * make the index partial so deleted docs don’t block re-apply.
- */
+
 vendorApplicationSchema.index(
   { vendor: 1, event: 1 },
   { unique: true, partialFilterExpression: { isDeleted: false } }

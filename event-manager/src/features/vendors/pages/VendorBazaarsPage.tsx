@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "react-hot-toast";
-import { ApplyToBazaarForm } from "@/components/ApplyToBazaarForm";
+import { ApplyToBazaarForm } from "@/features/vendors/pages/ApplyToBazaarForm";
 import { useAuthStore } from "@/store/authStore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 

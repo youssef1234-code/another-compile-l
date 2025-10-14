@@ -43,6 +43,7 @@ export const vendorRouter = router({
    */
   getMyApplications: protectedProcedure
     .input(z.object({
+      vendorId: z.string(),  
       page: z.number().min(1).optional().default(1),
       limit: z.number().min(1).max(100).optional().default(20),
     }))
