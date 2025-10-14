@@ -11,12 +11,14 @@ import { authRouter } from './auth.router.js';
 import { courtsRouter } from './courts.router.js';
 import { eventsRouter } from './events.router.js';
 import { fileRouter } from './file.router.js';
+import { vendorRouter } from './vendor.router';
 
 export const appRouter = router({
   auth: authRouter,
   events: eventsRouter,
   files: fileRouter,
-  courts: courtsRouter
+  courts: courtsRouter,
+  vendor: vendorRouter,
 
   // Additional routers will be added here as development progresses
   // registrations: registrationsRouter,
