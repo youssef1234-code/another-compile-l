@@ -11,7 +11,7 @@
  * @module routers/events.router
  */
 
-import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router, eventsOfficeProfessorProcedure } from '../trpc/trpc';
+import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router, eventsOfficeProfessorProcedure, professorProcedure } from '../trpc/trpc';
 import { createSearchSchema } from './base.router';
 import { eventService } from '../services/event.service';
 import { registrationService } from '../services/registration.service';
@@ -22,6 +22,8 @@ import {
   EventStatus,
   createGymSessionSchema,
   updateGymSessionSchema,
+  CreateWorkshopSchema,
+  UpdateWorkshopSchema,
 } from '@event-manager/shared';
 import { z } from 'zod';
 
@@ -136,8 +138,11 @@ const eventRoutes = {
       data: UpdateEventSchema.partial(),
     }))
     .mutation(async ({ input, ctx }) => {
+      console.log('📥 Backend received update:', { id: input.id, images: input.data.images, hasImages: !!input.data.images });
       const userId = (ctx.user!._id as any).toString();
-      return eventService.update(input.id, input.data, { userId });
+      const result = await eventService.update(input.id, input.data, { userId });
+      console.log('✅ Backend updated event:', { id: result.id, images: result.images });
+      return result;
     }),
 
   /**
@@ -160,9 +165,74 @@ const eventRoutes = {
     }),
 
   /**
+   * Get all events with advanced table features - EVENT_OFFICE and ADMIN only
+   * Supports tablecn data table with:
+   * - Global search across title, description, professorName
+   * - Multi-field sorting
+   * - Simple faceted filters (advanced mode): {type: ["WORKSHOP"], status: ["PUBLISHED"]}
+   * - Extended filters with operators (command mode)
+   * - Server-side pagination
+   */
+  getAllEvents: eventsOfficeProcedure
+    .input(z.object({
+      // Pagination
+      page: z.number().optional().default(1),
+      perPage: z.number().optional().default(20),
+      
+      // Global search
+      search: z.string().optional(),
+      
+      // Multi-field sorting
+      sort: z.array(z.object({
+        id: z.string(),
+        desc: z.boolean(),
+      })).optional(),
+      
+      // Simple faceted filters: {type: ["WORKSHOP"], status: ["PUBLISHED"]}
+      filters: z.record(z.array(z.string())).optional(),
+      
+      // Extended filters with operators (for command mode)
+      extendedFilters: z.array(z.object({
+        id: z.string(),
+        value: z.union([z.string(), z.array(z.string())]),
+        operator: z.enum([
+          'iLike', 'notILike', 'eq', 'ne', 'isEmpty', 'isNotEmpty',
+          'lt', 'lte', 'gt', 'gte', 'isBetween', 
+          'inArray', 'notInArray', 'isRelativeToToday'
+        ]),
+        variant: z.enum(['text', 'number', 'range', 'date', 'dateRange', 'boolean', 'select', 'multiSelect']),
+        filterId: z.string(),
+      })).optional(),
+      
+      // Join operator for extended filters (AND/OR logic)
+      joinOperator: z.enum(['and', 'or']).optional().default('and'),
+    }))
+    .query(async ({ input }) => {
+      const result = await eventService.getAllEvents({
+        page: input.page,
+        limit: input.perPage,
+        search: input.search,
+        sort: input.sort,
+        filters: input.filters,
+        extendedFilters: input.extendedFilters,
+        joinOperator: input.joinOperator,
+      });
+
+      return result;
+    }),
+
+  /**
    * Get event statistics (for admin dashboard) - ADMIN only
    */
   getStatistics: adminProcedure
+    .query(async () => {
+      return eventService.getStatistics();
+    }),
+
+  /**
+   * Get event stats for header (total, published, draft, etc.)
+   */
+  getEventStats: eventsOfficeProcedure
     .query(async () => {
       return eventService.getStatistics();
     }),
@@ -316,6 +386,54 @@ const eventRoutes = {
     .mutation(async ({ input }) => {
       return eventService.publishWorkshop(input.eventId);
     }),
+    
+      /**
+   * Create workshop - PROFESSOR only
+   */
+  createWorkshop: professorProcedure
+    .input(CreateWorkshopSchema)
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+
+      // Ensure the user is a professor
+      if (ctx.user!.role !== 'PROFESSOR') {
+        throw new Error('Only professors can create workshops');
+      }
+
+      return eventService.create({ ...input, type: 'WORKSHOP'}, { userId });
+    }),
+
+  /**
+   * Edit workshop - PROFESSOR only
+   */
+  editWorkshop: professorProcedure
+    .input(UpdateWorkshopSchema)
+    .mutation(async ({ input, ctx }) => {
+
+      const {id} = input;
+      // Ensure the user is a professor
+      if (ctx.user!.role !== 'PROFESSOR') {
+        throw new Error('Only professors can edit workshops');
+      }
+
+
+
+      return eventService.updateWorkshop(input);
+    }),
+
+  /**
+   * Get workshops created by the logged-in professor
+   */
+  getMyWorkshops: professorProcedure
+    .query(async ({ ctx }) => {      
+      const workshops = await eventService.findAll({
+        professorName: ctx.user!.firstName + ' ' + ctx.user!.lastName,
+        type: 'WORKSHOP'
+      });
+      return workshops;
+    }),
+    
+
 };
 
 // Export events router with all routes

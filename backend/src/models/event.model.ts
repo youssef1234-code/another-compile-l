@@ -35,6 +35,9 @@ export interface IEvent extends IBaseDocument {
   extraResources?: string;
   price?: number;
   
+  // Media
+  images?: string[]; // Array of file IDs or URLs
+  
   // Conference specific
   websiteUrl?: string;
   
@@ -123,6 +126,11 @@ const eventSchema = createBaseSchema<IEvent>(
       type: Number,
       default: 0,
     },
+    
+    // Media
+    images: [{
+      type: String, // File IDs or URLs
+    }],
     
     // Conference specific
     websiteUrl: String,

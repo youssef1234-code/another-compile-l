@@ -78,13 +78,13 @@ const adminNavigation: NavItem[] = [
     icon: Users,
     children: [
       { label: 'All Users', href: '/admin/users', icon: Users },
-      { label: 'Role Approvals', href: '/admin/approvals', icon: FileText },
-      { label: 'Manage Accounts', href: '/admin/accounts', icon: Settings },
+      { label: 'Role Approvals', href: '/admin/role-approvals', icon: FileText },
+      { label: 'Manage Accounts', href: '/admin/manage-accounts', icon: Settings },
     ],
   },
   {
     label: 'Events',
-    href: '/admin/events',
+    href: ROUTES.ADMIN_EVENTS,
     icon: Calendar,
   },
   {
@@ -107,14 +107,14 @@ const eventsOfficeNavigation: NavItem[] = [
   },
   {
     label: 'Events',
-    href: '/events-office/events',
+    href: ROUTES.ADMIN_EVENTS,
     icon: Calendar,
     children: [
-      { label: 'All Events', href: '/events-office/events', icon: Calendar },
-      { label: 'Workshops', href: '/events-office/workshops', icon: FileText },
-      { label: 'Trips', href: '/events-office/trips', icon: Calendar },
-      { label: 'Bazaars', href: '/events-office/bazaars', icon: ShoppingBag },
-      { label: 'Conferences', href: '/events-office/conferences', icon: Users },
+      { label: 'All Events', href: ROUTES.ADMIN_EVENTS, icon: Calendar },
+      { label: 'Workshops', href: ROUTES.WORKSHOP_APPROVALS, icon: FileText },
+      { label: 'Create Trip', href: ROUTES.CREATE_TRIP, icon: Calendar },
+      { label: 'Create Bazaar', href: ROUTES.CREATE_BAZAAR, icon: ShoppingBag },
+      { label: 'Create Conference', href: ROUTES.CREATE_CONFERENCE, icon: Users },
     ],
   },
   {

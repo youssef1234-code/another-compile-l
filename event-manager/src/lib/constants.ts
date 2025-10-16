@@ -29,8 +29,11 @@ export const ROUTES = {
   MY_WORKSHOPS: '/events/workshops',
   CREATE_TRIP: '/events/create/trip',
   CREATE_BAZAAR: '/events/create/bazaar',
-  EDIT_BAZAAR: '/events/edit/bazaar/:id',
   CREATE_CONFERENCE: '/events/create/conference',
+  EDIT_WORKSHOP: '/workshops/edit/:id',
+  EDIT_TRIP: '/trips/edit/:id',
+  EDIT_CONFERENCE: '/conferences/edit/:id',
+  EDIT_BAZAAR: '/events/edit/bazaar/:id',
   
   // Vendors
   BROWSE_BAZAARS: '/vendors/bazaars',
@@ -101,5 +104,8 @@ export const PAYMENT_STATUS_COLORS = {
 } as const;
 
 // Utility functions for dynamic routes
+export const generateEditWorkshopUrl = (id: string) => ROUTES.EDIT_WORKSHOP.replace(':id', id);
+export const generateEditTripUrl = (id: string) => ROUTES.EDIT_TRIP.replace(':id', id);
+export const generateEditConferenceUrl = (id: string) => ROUTES.EDIT_CONFERENCE.replace(':id', id);
 export const generateEditBazaarUrl = (id: string) => ROUTES.EDIT_BAZAAR.replace(':id', id);
 export const generateEventDetailsUrl = (id: string) => ROUTES.EVENT_DETAILS.replace(':id', id);

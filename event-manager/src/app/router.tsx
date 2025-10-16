@@ -24,8 +24,7 @@ import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
 import { NotificationsPage } from '@/features/dashboard/pages';
 
 // Events
-import { EventsPage } from '@/features/events/pages/EventsPage';
-import { EventDetailsPage } from '@/features/events/pages/EventDetailsPage';
+import { EventsPage, EventDetailsPage } from '@/features/events/pages';
 import { MyEventsPage } from '@/features/events/pages/MyEventsPage';
 import { FavoritesPage } from '@/features/events/pages/FavoritesPage';
 import { EditBazaarPage } from '@/features/events/pages/EditBazaarPage';
@@ -36,6 +35,9 @@ import {
   CreateTripPage,
   CreateBazaarPage,
   CreateConferencePage,
+  EditWorkshopPage,
+  EditTripPage,
+  EditConferencePage,
 } from '@/features/events/pages';
 
 // Vendors
@@ -63,6 +65,9 @@ import {
   ManageAccountsPage,
   ReportsPage,
 } from '@/features/admin/pages';
+
+// Events - Back Office
+import { BackOfficeEventsPage } from '@/features/events/pages';
 
 // Events Office
 import { BazaarManagementPage } from '@/features/events-office/pages/BazaarManagementPage';
@@ -171,12 +176,24 @@ export const router = createBrowserRouter([
         element: <CreateBazaarPage />,
       },
       {
-        path: ROUTES.EDIT_BAZAAR,
-        element: <EditBazaarPage />,
-      },
-      {
         path: ROUTES.CREATE_CONFERENCE,
         element: <CreateConferencePage />,
+      },
+      {
+        path: ROUTES.EDIT_WORKSHOP,
+        element: <EditWorkshopPage />,
+      },
+      {
+        path: ROUTES.EDIT_TRIP,
+        element: <EditTripPage />,
+      },
+      {
+        path: ROUTES.EDIT_CONFERENCE,
+        element: <EditConferencePage />,
+      },
+      {
+        path: ROUTES.EDIT_BAZAAR,
+        element: <EditBazaarPage />,
       },
       
       // Vendor Routes
@@ -222,6 +239,14 @@ export const router = createBrowserRouter([
           <AdminRoute>
             <AdminUsersPage />
           </AdminRoute>
+        ),
+      },
+      {
+        path: ROUTES.ADMIN_EVENTS,
+        element: (
+          <EventOfficeRoute>
+            <BackOfficeEventsPage />
+          </EventOfficeRoute>
         ),
       },
       {

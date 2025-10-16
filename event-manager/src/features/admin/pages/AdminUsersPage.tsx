@@ -52,7 +52,7 @@ export function AdminUsersPage() {
 
   // Read URL state for pagination, sorting, filters, and search
   const [page] = useQueryState('page', parseAsInteger.withDefault(1));
-  const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(20));
+  const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
   const [search] = useQueryState('search', parseAsString.withDefault(''));
   const [sortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>([] as any).withDefault([]));
   

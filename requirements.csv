@@ -2,8 +2,6 @@
 1,Student/Staff/TA/Professor,"sign up with my email, password, First name, Last name and student/staff id","Eveyone should use their GUC email while signing up 
 Admins and Event offices donnot sign up",2.5,1
 2,Vendor,"sign up with an email, password, company name",,2,1
-,,,,,
-,,,,,
 5,Admin,insert the correct role for each of Staff/ TA/ Professor after receiving their request to register and then sends a verification mail,,2,1
 6,Staff/ TA/ Professor,receive a verification email after the admin verifies their role,"The verification mail should contain a verification link that automatically redirects me to the login page
 If I did not click on the link I shouldn't be verified, hence the login should fail",3,1
@@ -13,24 +11,9 @@ If I did not click on the link I shouldn't be verified, hence the login should f
 10,Student/Staff/ Events Office/TA/ Professor/ Admin,logout from my account successfully,,3,1
 11,Student/Staff/ Events Office/TA/ Professor/ Admin,view all availabe events that are coming up and all their details including the vendors that will participate (for bazaars and booths),"Events are workshops, trips, bazaars, booths in platform, conferences",3,1
 12,Student/Staff/ Events Office/TA/ Professor/ Admin,search the events by a specific name(Professor name/Event name) or type,,3,1
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
 20,Admin,view a list of all users along with their details and status (active/blocked),,4,1
-,,,,,
-,,,,,
-,,,,,
 24,Student/Staff/TA/Professor,"register for a workshop/trip using name, mail, student/staff id",,4,1
-,,,,,
-,,,,,
 27,Student/Staff/TA/Professor,view a list of my registered events,Upcoming and past events,4,1
-,,,,,
-,,,,,
-,,,,,
 31,Events Office,"create bazaars by adding the bazaar name, start and end date and time, location, short description and registration deadline",,2,1
 32,Events Office,edit any of the bazaar details entered,Only if the bazar hasn't started yet,2,1
 33,Events Office,"create trips by adding the trip name, location, price, start and end date and time, short description, capacity, registeration deadline",,2,1
@@ -38,53 +21,19 @@ If I did not click on the link I shouldn't be verified, hence the login should f
 35, Professor,"create workshops by adding the workshop name, location (GUC Cairo or GUC Berlin), start and end dates and times, short description, full agenda, faculty responsible (MET, IET, etc..), professor(s) participating, required budget, funding source (external or GUC), extra required resources, capacity, registeration deadline",,2,1
 36,Professor,edit any of the workshop details entered,,2,1
 37,Professor,view a list of all workshops that i created ,,2,1
-,,,,,
-,,,,,
 40,Events Office,accept and publish workshop created by a professor ,,2,1
 41,Events Office,reject workshop ,,2,1
 42,Events Office,request edits in workshop details,,2,1
-,,,,,
-,,,,,
 45,Events Office,"create conferences by adding the conference name, start and end dates and times, short description, full agenda, conference website link, required budget, source of funding (extrernal or GUC), extra required resources",the conference website will contain all the conference's details. Each conference usually has a landing page so there will be no need to add ALL the info to the event on the system,2,1
 46,Events Office,edit any of the conference details,,2,1
-,,,,,
 48,Events Office/Admin,delete any event,if no one registered for it yet,2,1
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
 59,Vendor,view a list of upcoming bazaars ,,2,1
 60,Vendor,"apply to join a bazaar from the list of bazaars by filling in a form with the following details: names and emails of a max of 5 individuals attending, booth size ",booth size can be 2x2 or 4x4,2,1
 61,Vendor,"apply for a booth in platform by filling in a form with the following details: names and emails of a max of 5 individuals attending, duration of booth set up, location of booth setup, booth size ",duration can be 1 week - 4 weeks and location in platform will be selected according to a map of the platform and booth size can be 2x2 or 4x4,2,1
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
 68,Vendor,view all upcoming bazaars or booth set ups I am participating in (accepted requests only),,2,1
 69,Vendor,view all requests for upcoming bazaars or booth set ups I want to participate in (pending or rejected),,2,1
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
 75,Events Office/Admin,view the details of vendor participation requests in bazaars or booths,,2,1
-,,,,,
 77,Events Office/Admin,accept /reject vendors participation requests,,2,1
 78,Student,view all the courts on campus (basketball/tennis/football) and their availability dates and times,,2,1
-,,,,,
 80,Student/Staff/ Events Office/TA/ Professor,"view the gym schedule for each month's sessions (e.g. yoga, pilates, aerobics, Zumba, cross circuit, kick-boxing)",,2.5,1
-,,,,,
-,,,,,
-,,,,,
 84,Events Office,"create a gym session with the following details: date, time, duration, type (e.g. yoga, pilates, aerobics, Zumba, cross circuit, kick-boxing), max number of participants",,2,1
-,,,,,
-,,,,,
-,,,,,

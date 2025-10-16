@@ -297,14 +297,6 @@ export class FileService {
    * Scan for malicious content
    */
   private async scanForMaliciousContent(file: Buffer, filename: string): Promise<void> {
-    // 1. Check for null bytes (often used in directory traversal attacks)
-    if (file.includes(0x00)) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'File contains null bytes - potential security threat',
-      });
-    }
-
     // 2. Check for path traversal attempts in filename
     if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
       throw new TRPCError({
