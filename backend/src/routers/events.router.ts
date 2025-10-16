@@ -26,6 +26,7 @@ import {
   UpdateWorkshopSchema,
 } from '@event-manager/shared';
 import { z } from 'zod';
+import { log } from 'console';
 
 function omitUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
   return Object.fromEntries(
