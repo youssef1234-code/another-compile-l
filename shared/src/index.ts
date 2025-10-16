@@ -285,7 +285,52 @@ export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 // ============================================================================
 // EVENT SCHEMAS
 // ============================================================================
+// ============================================================================
+// WORKSHOP SCHEMAS
+// ============================================================================
 
+export const CreateWorkshopSchema = z.object({
+  id: z.string(),
+  data: z.object({
+    name: z.string().optional(),
+    location: z.enum(['Cairo', 'Berlin']).optional(),
+    startDate: z.date().optional(),
+    endDate: z.date().optional(),
+    description: z.string().optional(),
+    fullAgenda: z.string().optional(),
+    faculty: z.enum(['MET', 'IET', 'PHARMACY', 'BIOTECHNOLOGY', 'MANAGEMENT', 'LAW', 'DESIGN']).optional(),
+    professors: z.array(z.string()).optional(),
+    requiredBudget: z.number().optional(),
+    fundingSource: z.enum(['EXTERNAL', 'GUC']).optional(),
+    extraResources: z.string().optional(),
+    capacity: z.number().optional(),
+    registrationDeadline: z.date().optional(),
+  }),
+});
+
+export type CreateWorkshopInput = z.infer<typeof CreateWorkshopSchema>;
+
+export const UpdateWorkshopSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  location: z.enum(['Cairo', 'Berlin']).optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+  description: z.string().optional(),
+  fullAgenda: z.string().optional(),
+  faculty: z.enum(['MET', 'IET', 'PHARMACY', 'BIOTECHNOLOGY', 'MANAGEMENT', 'LAW', 'DESIGN']).optional(),
+  professors: z.array(z.string()).optional(),
+  requiredBudget: z.number().optional(),
+  fundingSource: z.enum(['EXTERNAL', 'GUC']).optional(),
+  extraResources: z.string().optional(),
+  capacity: z.number().optional(),
+  registrationDeadline: z.coerce.date().optional(),
+  
+});
+
+export type UpdateWorkshopInput = z.infer<typeof UpdateWorkshopSchema>;
+
+//  ==========================================================================
 export const CreateEventSchema = z.object({
   name: z.string().min(5, 'Title must be at least 5 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters').max(2000),
@@ -296,7 +341,8 @@ export const CreateEventSchema = z.object({
   endDate: z.coerce.date().optional(),
   capacity: z.number().int().positive().min(1),
   price: z.number().nonnegative().default(0),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().url().optional(), // Deprecated: use images instead
+  images: z.array(z.string()).optional(), // Array of file IDs or URLs
   tags: z.array(z.string()).default([]),
   requirements: z.string().max(500).optional(),
   professorName: z.string().optional(), // For academic events
@@ -639,7 +685,7 @@ export interface User {
 
 export interface Event {
   id: string;
-  title: string;
+  name: string;
   description: string;
   type: EventType;
   location: EventLocation;
@@ -651,7 +697,8 @@ export interface Event {
   capacity: number;
   registeredCount: number;
   price: number;
-  imageUrl?: string;
+  imageUrl?: string; // Deprecated: use images instead
+  images?: string[]; // Array of file IDs or URLs
   tags: string[];
   requirements?: string;
   professorName?: string;

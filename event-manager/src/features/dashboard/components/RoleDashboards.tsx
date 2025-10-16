@@ -173,7 +173,7 @@ export function StudentDashboard() {
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                   >
                     <div className="space-y-1">
-                      <h3 className="font-medium">{event.title}</h3>
+                      <h3 className="font-medium">{event.name}</h3>
                       <p className="text-sm text-muted-foreground">
                         {new Date(event.date).toLocaleDateString()} • {event.location}
                       </p>
@@ -439,7 +439,7 @@ export function EventsOfficeDashboard() {
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                   >
                     <div className="space-y-1">
-                      <h3 className="font-medium">{workshop.title}</h3>
+                      <h3 className="font-medium">{workshop.name}</h3>
                       <p className="text-sm text-muted-foreground">
                         Submitted • {new Date(workshop.date).toLocaleDateString()}
                       </p>

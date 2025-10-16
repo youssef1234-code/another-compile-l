@@ -86,6 +86,7 @@ const navigationConfig: NavItem[] = [
     url: ROUTES.EVENTS,
     items: [
       { title: "Browse Events", url: ROUTES.EVENTS, icon: Calendar },
+      { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: Settings, roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"] },
       { title: "My Registrations", url: ROUTES.MY_REGISTRATIONS, icon: CheckSquare, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
       { title: "Favorites", url: ROUTES.FAVORITES, icon: Heart, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
       { title: "Create Workshop", url: ROUTES.CREATE_WORKSHOP, icon: GraduationCap, roles: ["PROFESSOR"] },

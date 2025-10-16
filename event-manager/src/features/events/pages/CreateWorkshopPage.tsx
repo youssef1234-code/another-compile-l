@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ImageGallery } from '@/components/ui/image-gallery';
 import { designSystem } from '@/styles/design-system';
 
 export function CreateWorkshopPage() {
@@ -40,6 +41,7 @@ export function CreateWorkshopPage() {
     registrationDeadline: '',
   });
   
+  const [images, setImages] = useState<string[]>([]);
   const [professorParticipants, setProfessorParticipants] = useState<string[]>(['']);
 
   const createWorkshopMutation = trpc.events.create.useMutation({
@@ -89,6 +91,7 @@ export function CreateWorkshopPage() {
       description: formData.description,
       capacity: formData.capacity ? parseInt(formData.capacity) : 50,
       price: 0,
+      images: images.length > 0 ? images : undefined,
       registrationDeadline: formData.registrationDeadline ? new Date(formData.registrationDeadline) : undefined,
       professorName: professorParticipants.join(', '),
     });
@@ -151,6 +154,21 @@ export function CreateWorkshopPage() {
                     rows={3}
                   />
                 </div>
+              </div>
+
+              {/* Images */}
+              <div className="space-y-4 pt-4 border-t">
+                <div>
+                  <h3 className={designSystem.typography.cardTitle}>Workshop Images</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Upload multiple images for the workshop. The first image will be the primary image.
+                  </p>
+                </div>
+                <ImageGallery
+                  value={images}
+                  onChange={setImages}
+                  maxImages={10}
+                />
               </div>
 
               {/* Schedule */}

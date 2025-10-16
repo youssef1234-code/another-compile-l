@@ -38,6 +38,8 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImageUpload } from '@/components/ui/image-upload';
+import { ImageGallery } from '@/components/ui/image-gallery';
 
 // Animation variants matching current forms
 const defaultContainerVariants: Variants = {
@@ -66,6 +68,8 @@ export type FieldType =
   | 'select'
   | 'checkbox'
   | 'date'
+  | 'image'
+  | 'imageGallery'
   | 'custom';
 
 export interface ConditionalAlert {
@@ -260,7 +264,23 @@ export function GenericForm({
               </div>
             )}
             <FormControl>
-              {fieldConfig.type === 'select' ? (
+              {fieldConfig.type === 'image' ? (
+                <ImageUpload
+                  value={field.value}
+                  onChange={field.onChange}
+                  entityType="event"
+                  aspectRatio="banner"
+                  maxSizeMB={5}
+                  disabled={isLoading}
+                />
+              ) : fieldConfig.type === 'imageGallery' ? (
+                <ImageGallery
+                  value={field.value}
+                  onChange={field.onChange}
+                  maxImages={10}
+                  disabled={isLoading}
+                />
+              ) : fieldConfig.type === 'select' ? (
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <SelectTrigger className={cn('w-full', fieldConfig.inputClassName)}>
                     <SelectValue placeholder={fieldConfig.placeholder || `Select ${fieldConfig.label}`} />
@@ -304,6 +324,23 @@ export function GenericForm({
                     max={fieldConfig.max}
                     step={fieldConfig.step}
                     {...field}
+                    onChange={(e) => {
+                      // For number inputs, parse and remove trailing zeros
+                      if (fieldConfig.type === 'number') {
+                        const value = e.target.value;
+                        if (value === '') {
+                          field.onChange('');
+                        } else {
+                          const numValue = parseFloat(value);
+                          // Only update if it's a valid number
+                          if (!isNaN(numValue)) {
+                            field.onChange(numValue);
+                          }
+                        }
+                      } else {
+                        field.onChange(e);
+                      }
+                    }}
                   />
                 </div>
               )}

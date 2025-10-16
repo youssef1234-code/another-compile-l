@@ -5,7 +5,6 @@ import type { IEvent } from '../models/event.model';
 import type { FilterQuery } from 'mongoose';
 import { EventStatus, GymSessionType, UpdateWorkshopSchema, type UpdateWorkshopInput } from '@event-manager/shared';
 import { ServiceError } from '../errors/errors';
-import { exitCode } from 'process';
 
 /**
  * Service Layer for Events
@@ -124,6 +123,207 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         message: 'Cannot delete an event that has already started'
       });
     }
+  }
+
+  /**
+   * Get all events with advanced filters and pagination (Admin/EventsOffice)
+   * Supports tablecn data table pattern with:
+   * - Global search across title, description, professorName
+   * - Multi-field sorting
+   * - Simple faceted filters (advanced mode)
+   * - Extended filters with operators (command mode)
+   */
+  async getAllEvents(data: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sort?: Array<{ id: string; desc: boolean }>;
+    filters?: Record<string, string[]>;
+    extendedFilters?: Array<{
+      id: string;
+      value: string | string[];
+      operator: string;
+      variant: string;
+      filterId: string;
+    }>;
+    joinOperator?: 'and' | 'or';
+  }): Promise<{
+    events: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const page = data.page || 1;
+    const limit = data.limit || 10;
+    const skip = (page - 1) * limit;
+
+    // Build base filter - exclude archived or soft-deleted events by default
+    const filter: any = {
+      isArchived: false,
+      status: { $ne: 'ARCHIVED' },
+    };
+
+    // Handle simple faceted filters from tablecn (advanced mode)
+    if (data.filters) {
+      // Type filter
+      if (data.filters.type && data.filters.type.length > 0) {
+        filter.type = { $in: data.filters.type };
+      }
+
+      // Status filter (exclude ARCHIVED even if requested)
+      if (data.filters.status && data.filters.status.length > 0) {
+        const allowedStatuses = data.filters.status.filter((status) => status !== 'ARCHIVED');
+        if (allowedStatuses.length > 0) {
+          filter.status = { $in: allowedStatuses };
+        }
+      }
+
+      // Location filter
+      if (data.filters.location && data.filters.location.length > 0) {
+        filter.location = { $in: data.filters.location };
+      }
+    }
+
+    // Handle extended filters with operators (command mode)
+    if (data.extendedFilters && data.extendedFilters.length > 0) {
+      const extendedConditions: any[] = [];
+
+      for (const extFilter of data.extendedFilters) {
+        const field = extFilter.id;
+        const operator = extFilter.operator;
+        let value = extFilter.value;
+
+        // Prevent consumers from reintroducing archived or soft-deleted records via filters
+        if (field === 'isArchived') {
+          continue;
+        }
+
+        if (field === 'status') {
+          if (operator === 'eq' && value === 'ARCHIVED') {
+            continue;
+          }
+
+          if ((operator === 'inArray' || operator === 'notInArray') && Array.isArray(value)) {
+            value = value.filter((status) => status !== 'ARCHIVED');
+            if (value.length === 0) {
+              continue;
+            }
+          }
+        }
+
+        // Skip empty/invalid values
+        if (operator !== 'isEmpty' && operator !== 'isNotEmpty') {
+          if (Array.isArray(value) && value.length === 0) continue;
+          if (typeof value === 'string' && !value.trim()) continue;
+        }
+
+        const condition: any = {};
+
+        switch (operator) {
+          case 'iLike':
+            condition[field] = { $regex: value, $options: 'i' };
+            break;
+          case 'notILike':
+            condition[field] = { $not: { $regex: value, $options: 'i' } };
+            break;
+          case 'eq':
+            condition[field] = value;
+            break;
+          case 'ne':
+            condition[field] = { $ne: value };
+            break;
+          case 'isEmpty':
+            condition[field] = { $in: [null, '', undefined] };
+            break;
+          case 'isNotEmpty':
+            condition[field] = { $nin: [null, '', undefined], $exists: true };
+            break;
+          case 'inArray':
+            if (Array.isArray(value)) {
+              condition[field] = { $in: value };
+            }
+            break;
+          case 'notInArray':
+            if (Array.isArray(value)) {
+              condition[field] = { $nin: value };
+            }
+            break;
+          case 'lt':
+            condition[field] = { $lt: new Date(value as string) };
+            break;
+          case 'lte':
+            condition[field] = { $lte: new Date(value as string) };
+            break;
+          case 'gt':
+            condition[field] = { $gt: new Date(value as string) };
+            break;
+          case 'gte':
+            condition[field] = { $gte: new Date(value as string) };
+            break;
+          case 'isBetween':
+            if (Array.isArray(value) && value.length === 2) {
+              condition[field] = { $gte: new Date(value[0]), $lte: new Date(value[1]) };
+            }
+            break;
+        }
+
+        if (Object.keys(condition).length > 0) {
+          extendedConditions.push(condition);
+        }
+      }
+
+      // Combine extended filters with AND or OR logic
+      if (extendedConditions.length > 0) {
+        const joinOp = data.joinOperator === 'or' ? '$or' : '$and';
+        
+        if (filter[joinOp]) {
+          filter[joinOp].push(...extendedConditions);
+        } else {
+          filter[joinOp] = extendedConditions;
+        }
+      }
+    }
+
+    // Handle global search - search across name, description, professorName
+    if (data.search && data.search.trim()) {
+      const searchRegex = { $regex: data.search.trim(), $options: 'i' };
+      filter.$or = [
+        { name: searchRegex },
+        { description: searchRegex },
+        { professorName: searchRegex },
+      ];
+    }
+
+    // Build multi-field sort
+    const sort: any = {};
+    if (data.sort && data.sort.length > 0) {
+      data.sort.forEach(sortField => {
+        sort[sortField.id] = sortField.desc ? -1 : 1;
+      });
+    } else {
+      // Default sort by start date descending
+      sort.startDate = -1;
+    }
+
+    // Execute query
+    const events = await this.repository.findAll(filter, {
+      skip,
+      limit,
+      sort,
+      populate: ['createdBy']
+    });
+
+    const total = await this.repository.count(filter);
+
+    // Format events for frontend
+    const formattedEvents = events.map(event => this.formatEvent(event));
+
+    return {
+      events: formattedEvents,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    };
   }
 
   /**
@@ -517,6 +717,34 @@ async updateGymSession(
     options
   );
 
+  return updated as IEvent;
+}
+/**
+ * Update a workshop event
+ */
+async updateWorkshop(input: UpdateWorkshopInput): Promise<IEvent> {
+  // Validate input
+  const validation = UpdateWorkshopSchema.safeParse(input);
+  if (!validation.success) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Invalid workshop update data',
+      cause: validation.error
+    });
+  }
+  const { id, ...updateData } = validation.data;
+
+  // Find existing event
+  const existing = await this.repository.findById(id);
+  if (!existing) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'Workshop not found' });
+  }
+  if (existing.type !== 'WORKSHOP') {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event is not a workshop' });
+  }
+
+  // Update workshop
+  const updated = await this.repository.update(id, updateData);
   return updated as IEvent;
 }
 
