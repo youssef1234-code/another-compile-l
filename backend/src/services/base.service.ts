@@ -196,8 +196,6 @@ export abstract class BaseService<T extends Document, R extends BaseRepository<T
       populate?: string | string[];
     } = {}
   ): Promise<T[]> {
-    console.log("📄 Mongo query filter:", filter);
-
     return this.repository.findAll(filter, options);
   }
 
