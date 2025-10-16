@@ -41,7 +41,7 @@ export function SignupVendorPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-6 px-4 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen flex items-center justify-center py-6 px-4 bg-neutral-50">
       <div className="w-full max-w-4xl">
         <motion.div
           variants={pageVariants}
@@ -84,7 +84,7 @@ export function SignupVendorPage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gradient-to-br from-slate-50 to-slate-100 px-2 text-muted-foreground">
+              <span className="bg-neutral-50 px-2 text-muted-foreground">
                 or
               </span>
             </div>

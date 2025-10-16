@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { trpc, trpcClient } from '../lib/trpc';
+import { NuqsProvider } from '../components/providers/nuqs-provider';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -31,8 +32,9 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        {children}
-        <Toaster
+        <NuqsProvider>
+          {children}
+          <Toaster
           position="top-right"
           toastOptions={{
             duration: 4000,
@@ -70,6 +72,7 @@ export function Providers({ children }: ProvidersProps) {
             },
           }}
         />
+        </NuqsProvider>
       </QueryClientProvider>
     </trpc.Provider>
   );

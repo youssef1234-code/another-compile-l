@@ -197,7 +197,7 @@ export function WorkshopApprovalsPage() {
                 transition={{ delay: index * 0.05 }}
               >
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/30">
+                  <CardHeader className="bg-muted/30 border-b">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
                         <CardTitle className="text-2xl">{workshop.title}</CardTitle>

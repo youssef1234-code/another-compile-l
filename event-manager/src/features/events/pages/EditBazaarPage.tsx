@@ -7,6 +7,7 @@ import type { FieldType } from "@/components/generic/GenericForm";
 import { z } from "zod";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { EnhancedAlertDialog } from "@/components/generic/AlertDialog";
 
 const fields = [
   { name: "title", label: "Bazaar Name", type: "text" as FieldType, required: true },
@@ -23,11 +24,12 @@ const fields = [
   },
   { name: "locationDetails", label: "Location Details", type: "text" as FieldType, required: true },
   { name: "startDate", label: "Start Date", type: "date" as FieldType, required: true },
-  { name: "startTime", label: "Start Time", type: "text" as FieldType, required: true, placeholder: "HH:MM" },
+  { name: "startTime", label: "Start Time", type: "time" as FieldType, required: true, placeholder: "HH:MM" },
   { name: "endDate", label: "End Date", type: "date" as FieldType, required: true },
-  { name: "endTime", label: "End Time", type: "text" as FieldType, required: true, placeholder: "HH:MM" },
+  { name: "endTime", label: "End Time", type: "time" as FieldType, required: true, placeholder: "HH:MM" },
   { name: "capacity", label: "Capacity", type: "number" as FieldType, required: true },
   { name: "registrationDeadline", label: "Registration Deadline", type: "date" as FieldType, required: true },
+  { name: "registrationDeadlineTime", label: "Registration Deadline Time", type: "time" as FieldType, required: true, placeholder: "HH:MM" },
   { name: "professorName", label: "Professor Name (optional)", type: "text" as FieldType, required: false },
 ];
 
@@ -42,6 +44,7 @@ const schema = z.object({
   endTime: z.string().min(1, "End Time is required"),
   capacity: z.preprocess(val => Number(val), z.number().min(1, "Capacity is required")),
   registrationDeadline: z.string().min(1, "Registration Deadline is required"),
+  registrationDeadlineTime: z.string().min(1, "Registration Deadline Time is required"),
   professorName: z.string().optional(),
 });
 
@@ -50,6 +53,12 @@ export function EditBazaarPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; message: string; details?: string }>({
+    open: false,
+    title: "",
+    message: "",
+    details: undefined
+  });
   const updateBazaar = trpc.events.update.useMutation({
     onSuccess: () => {
       // Invalidate all relevant caches after successful update
@@ -62,8 +71,28 @@ export function EditBazaarPage() {
       // Navigate to the event details page to see the updated event
       navigate(`${ROUTES.EVENTS}/${id}`);
     },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update bazaar");
+    onError: (error, variables) => {
+      // Map backend error messages to user-friendly explanations
+      let userMessage = "An unexpected error occurred while updating the bazaar.";
+      // Extract dates from variables for more helpful messages
+      const startDate = variables?.data?.startDate ? new Date(variables.data.startDate).toLocaleString() : undefined;
+      const endDate = variables?.data?.endDate ? new Date(variables.data.endDate).toLocaleString() : undefined;
+      const regDeadline = variables?.data?.registrationDeadline ? new Date(variables.data.registrationDeadline).toLocaleString() : undefined;
+      if (error.message?.includes("Start date must be before end date")) {
+        userMessage = `The event's start date (${startDate}) must be earlier than its end date (${endDate}). Please check both dates and make sure the start date is before the end date.`;
+      } else if (error.message?.includes("Registration deadline must be before start date")) {
+        userMessage = `The registration deadline (${regDeadline}) must be set before the event's start date (${startDate}). Please choose a registration deadline that is earlier than the event start date.`;
+      } else if (error.message?.includes("Capacity must be a positive number")) {
+        userMessage = "The event capacity must be a positive number. Please enter a value greater than zero for capacity.";
+      } else if (error.message?.includes("Only professors can create workshops")) {
+        userMessage = "Only users with the professor role can create workshops. Please contact your administrator if you need access.";
+      }
+      setErrorDialog({
+        open: true,
+        title: "Failed to Update Bazaar",
+        message: userMessage,
+        details: undefined
+      });
     }
   });
   const { data: bazaar, isLoading: isLoadingBazaar } = trpc.events.getEventById.useQuery(
@@ -107,6 +136,7 @@ export function EditBazaarPage() {
         endTime: endDate.toTimeString().slice(0, 5),
         capacity: bazaar.capacity || 0,
         registrationDeadline: regDeadline ? regDeadline.toISOString().split('T')[0] : "",
+        registrationDeadlineTime: regDeadline ? regDeadline.toTimeString().slice(0, 5) : "",
         professorName: bazaar.professorName || "",
       });
     }
@@ -125,7 +155,7 @@ export function EditBazaarPage() {
         startDate: new Date(`${values.startDate}T${values.startTime}`),
         endDate: new Date(`${values.endDate}T${values.endTime}`),
         capacity: values.capacity ? Number(values.capacity) : 0,
-        registrationDeadline: new Date(values.registrationDeadline),
+        registrationDeadline: new Date(`${values.registrationDeadline}T${values.registrationDeadlineTime}`),
         professorName: values.professorName,
       }
     });
@@ -158,6 +188,19 @@ export function EditBazaarPage() {
         isLoading={updateBazaar.status === "pending" || isDisabled}
         defaultValues={defaultValues}
         submitButtonText={isDisabled ? "Cannot Edit (Event Started)" : "Update Bazaar"}
+      />
+
+      {/* Error Alert Dialog */}
+      <EnhancedAlertDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog(prev => ({ ...prev, open }))}
+        variant="danger"
+        title={errorDialog.title}
+        description={errorDialog.message}
+        details={errorDialog.details}
+        confirmLabel="Try Again"
+        cancelLabel="Close"
+        onConfirm={() => setErrorDialog(prev => ({ ...prev, open: false }))}
       />
     </div>
   );

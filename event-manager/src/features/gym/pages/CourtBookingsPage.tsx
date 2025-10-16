@@ -1,296 +1,259 @@
-/**
- * Court Bookings Page
- * 
- * Students can:
- * - View all courts (basketball/tennis/football)
- * - Check court availability
- * - Book court time slots
- * - View and cancel their reservations
- * 
- * Requirement: #78
- */
+import { useMemo, useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "react-hot-toast";
+import { CalendarSearch, Dumbbell } from "lucide-react";
 
-import { useState } from 'react';
-import { trpc } from '@/lib/trpc';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import { Dumbbell, Clock, MapPin, CheckCircle2 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { LoadingSpinner } from '@/components/generic/LoadingSpinner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+const SPORTS = ["ALL", "BASKETBALL", "TENNIS", "FOOTBALL"] as const;
+type SportFilter = typeof SPORTS[number];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
+function toISOFromLocal(dateStr: string, timeStr: string) {
+  const d = new Date(`${dateStr}T${timeStr}:00`);
+  return d.toISOString();
+}
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-};
+const OPEN_HOUR = 8;
+const CLOSE_HOUR = 22; // last start hour shown is 21:00,
+const HOURS = Array.from({ length: CLOSE_HOUR - OPEN_HOUR }, (_, i) => OPEN_HOUR + i);
+
+// A slot is "past" if its end time <= now + 1 minute
+function slotIsPastEnd(dateStr: string, hour: number) {
+  const end = new Date(`${dateStr}T${String(hour + 1).padStart(2, "0")}:00:00`);
+  const now = new Date();
+  return end.getTime() <= now.getTime() + 60_000;
+}
+
+function trpcErrMsg(err: any) {
+  return (
+    err?.message ||
+    err?.data?.message ||
+    err?.shape?.message ||
+    err?.data?.zodError?.formErrors?.join(", ") ||
+    "Something went wrong"
+  );
+}
 
 export function CourtBookingsPage() {
-  const [selectedSport, setSelectedSport] = useState<'BASKETBALL' | 'TENNIS' | 'FOOTBALL'>('BASKETBALL');
-  const [selectedCourt, setSelectedCourt] = useState<any>(null);
-  const [bookingDialog, setBookingDialog] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
-  const [duration, setDuration] = useState<string>('60');
+  const todayLocal = new Date();
+  const defaultDate = todayLocal.toISOString().slice(0, 10); // YYYY-MM-DD
 
-  // Fetch courts
-  const { data: courts, isLoading: courtsLoading } = trpc.courts.list.useQuery({
-    sport: selectedSport,
+  const [sport, setSport] = useState<SportFilter>("ALL");
+  const [dateStr, setDateStr] = useState<string>(defaultDate);
+  const [selectedCourtId, setSelectedCourtId] = useState<string | "ALL">("ALL");
+
+  // courts list (filterable by sport)
+  const courtsQuery = trpc.courts.list.useQuery({ sport });
+
+  // availability input (date at local midnight pushed as UTC Date)
+  const availabilityInput = useMemo(() => {
+    const midnightLocalISO = toISOFromLocal(dateStr, "00:00");
+    const dateObj = new Date(midnightLocalISO);
+    return selectedCourtId !== "ALL"
+      ? { date: dateObj, courtId: selectedCourtId, slotMinutes: 60 }
+      : { date: dateObj, sport, slotMinutes: 60 };
+  }, [dateStr, sport, selectedCourtId]);
+
+  const availability = trpc.courts.availability.useQuery(availabilityInput, {
+    enabled: !!dateStr,
   });
 
-  // Fetch availability for selected court and date
-  const { isLoading: availabilityLoading } = trpc.courts.availability.useQuery(
-    {
-      courtId: selectedCourt?.id,
-      date: selectedDate,
-      sport: selectedSport,
-    },
-    { enabled: !!selectedCourt }
-  );
+  const utils = trpc.useUtils();
 
-  const reserveMutation = trpc.courts.reserve.useMutation({
+  const reserveM = trpc.courts.reserve.useMutation({
     onSuccess: () => {
-      toast.success('Court booked successfully!');
-      setBookingDialog(false);
-      setSelectedCourt(null);
-      setSelectedTimeSlot('');
+      toast.success("Reservation successful");
+      utils.courts.availability.invalidate(availabilityInput as any);
     },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to book court');
-    },
+    onError: (e) => toast.error(trpcErrMsg(e)),
   });
 
-  const handleBookCourt = () => {
-    if (!selectedCourt || !selectedTimeSlot || !duration) {
-      toast.error('Please select a time slot and duration');
-      return;
-    }
+  const cancelM = trpc.courts.cancel.useMutation({
+    onSuccess: () => {
+      toast.success("Reservation cancelled");
+      utils.courts.availability.invalidate(availabilityInput as any);
+    },
+    onError: (e) => toast.error(trpcErrMsg(e)),
+  });
 
-    const [hours, minutes] = selectedTimeSlot.split(':');
-    const startDate = new Date(selectedDate);
-    startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
-    reserveMutation.mutate({
-      courtId: selectedCourt.id,
-      startDate: startDate,
-      duration: parseInt(duration),
-    });
-  };
-
-  const generateTimeSlots = () => {
-    const slots: string[] = [];
-    for (let hour = 8; hour < 22; hour++) {
-      slots.push(`${hour.toString().padStart(2, '0')}:00`);
-      slots.push(`${hour.toString().padStart(2, '0')}:30`);
-    }
-    return slots;
-  };
-
-  const timeSlots = generateTimeSlots();
-
-  if (courtsLoading) {
-    return (
-      <div className="flex items-center justify-center h-[400px]">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+  const courtOptions = useMemo(() => {
+    const items = courtsQuery.data ?? [];
+    return [
+      { id: "ALL", name: "All courts", sport },
+      ...items.map((c) => {
+        const court = c as { id: string; name: string; sport: string };
+        return { id: court.id, name: court.name, sport: court.sport };
+      }),
+    ];
+  }, [courtsQuery.data, sport]);
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="container mx-auto p-6 space-y-6"
-    >
+    <div className="space-y-6">
       {/* Header */}
-      <motion.div variants={itemVariants}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl font-bold flex items-center gap-2">
-              <Dumbbell className="h-8 w-8" />
-              Court Bookings
-            </CardTitle>
-            <CardDescription>
-              Book basketball, tennis, or football courts at GUC Sports Complex
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </motion.div>
-
-      {/* Sport Tabs */}
-      <motion.div variants={itemVariants}>
-        <Tabs value={selectedSport} onValueChange={(value: any) => setSelectedSport(value)}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="BASKETBALL">Basketball</TabsTrigger>
-            <TabsTrigger value="TENNIS">Tennis</TabsTrigger>
-            <TabsTrigger value="FOOTBALL">Football</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={selectedSport} className="mt-6">
-            {courts && courts.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {courts.map((court: any, index: number) => (
-                  <motion.div
-                    key={court.id}
-                    variants={itemVariants}
-                    initial="hidden"
-                    animate="visible"
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <Card className="h-full flex flex-col hover:shadow-lg transition-all">
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-xl">{court.name}</CardTitle>
-                          <Badge>{court.sport}</Badge>
-                        </div>
-                        <CardDescription className="flex items-center gap-2">
-                          <MapPin className="h-3 w-3" />
-                          {court.location}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex-1 space-y-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>Available daily</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span>Active</span>
-                          </div>
-                        </div>
-
-                        <Button
-                          className="w-full"
-                          onClick={() => {
-                            setSelectedCourt(court);
-                            setBookingDialog(true);
-                          }}
-                        >
-                          Check Availability & Book
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="py-16">
-                  <div className="flex flex-col items-center justify-center gap-4">
-                    <Dumbbell className="h-16 w-16 text-muted-foreground" />
-                    <div className="text-center space-y-2">
-                      <h3 className="text-xl font-semibold">No courts available</h3>
-                      <p className="text-muted-foreground">
-                        No {selectedSport.toLowerCase()} courts are currently available
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
-      </motion.div>
-
-      {/* Booking Dialog */}
-      <Dialog open={bookingDialog} onOpenChange={setBookingDialog}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Book {selectedCourt?.name}</DialogTitle>
-            <DialogDescription>
-              Select a date and time slot for your booking
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            {/* Date Selection */}
-            <div className="space-y-3">
-              <Label htmlFor="booking-date">Select Date</Label>
-              <Input
-                id="booking-date"
-                type="date"
-                value={selectedDate.toISOString().split('T')[0]}
-                onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-
-            {/* Duration Selection */}
-            <div className="space-y-3">
-              <Label>Duration (minutes)</Label>
-              <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="60">1 hour</SelectItem>
-                  <SelectItem value="90">1.5 hours</SelectItem>
-                  <SelectItem value="120">2 hours</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Time Slot Selection */}
-            <div className="space-y-3">
-              <Label>Available Time Slots</Label>
-              {availabilityLoading ? (
-                <div className="flex justify-center py-8">
-                  <LoadingSpinner />
-                </div>
-              ) : (
-                <div className="grid grid-cols-4 gap-2 max-h-60 overflow-y-auto p-2 border rounded-md">
-                  {timeSlots.map((slot) => (
-                    <Button
-                      key={slot}
-                      variant={selectedTimeSlot === slot ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedTimeSlot(slot)}
-                      className="text-xs"
-                    >
-                      {slot}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Dumbbell className="h-7 w-7" />
+          <div>
+            <h1 className="text-xl font-semibold">Court Bookings</h1>
+            <p className="text-muted-foreground text-sm">View availability and reserve basketball, tennis, or football courts</p>
           </div>
+        </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBookingDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleBookCourt}
-              disabled={!selectedTimeSlot || reserveMutation.isPending}
-            >
-              {reserveMutation.isPending ? 'Booking...' : 'Confirm Booking'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </motion.div>
+        {/* Controls */}
+        <div className="flex items-center gap-2">
+          <Select
+            value={sport}
+            onValueChange={(v) => {
+              setSport(v as any);
+              setSelectedCourtId("ALL");
+            }}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Sport" />
+            </SelectTrigger>
+            <SelectContent>
+              {SPORTS.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedCourtId} onValueChange={setSelectedCourtId}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Court" />
+            </SelectTrigger>
+            <SelectContent>
+              {courtOptions.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Input type="date" value={dateStr} onChange={(e) => setDateStr(e.target.value)} />
+
+          <Button variant="outline" onClick={() => availability.refetch()} disabled={availability.isFetching}>
+            <CalendarSearch className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Grid */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="text-sm font-medium">Day grid</div>
+        </CardHeader>
+        <CardContent>
+          {availability.isLoading ? (
+            <div className="grid gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : availability.error ? (
+            <div className="text-sm text-red-600">{trpcErrMsg(availability.error)}</div>
+          ) : !availability.data || availability.data.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No courts or availability found.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[200px]">Court</TableHead>
+                    {HOURS.map((h) => (
+                      <TableHead key={h} className="text-center">
+                        {String(h).padStart(2, "0")}:00
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {availability.data.map((block: any) => {
+                    // Build lookups for fast cell rendering
+                    const free = new Map<number, string>(); // hour -> startUtc
+                    (block.freeSlots ?? []).forEach((s: any) => free.set(s.hour, s.startUtc));
+                    const booked = new Map<number, any>(); // hour -> booking
+                    (block.booked ?? []).forEach((b: any) => booked.set(b.hour, b));
+
+                    return (
+                      <TableRow key={block.court.id}>
+                        <TableCell className="font-medium">
+                          {block.court.name}
+                          <div className="text-xs text-muted-foreground">{block.court.location || block.court.sport}</div>
+                        </TableCell>
+
+                        {HOURS.map((h) => {
+                          const isPast = slotIsPastEnd(dateStr, h);
+                          const b = booked.get(h);
+                          const f = free.get(h);
+
+                          // Booked cell
+                          if (b) {
+                            const mine = !!b.byMe;
+                            return (
+                              <TableCell key={h} className="text-center">
+                                <div className={`text-xs ${mine ? "text-emerald-600" : "text-muted-foreground"}`}>
+                                  {mine ? "Booked by you" : "Booked"}
+                                </div>
+                                {/* CANCEL only if booked by me AND slot hasn't ended */}
+                                {mine && !isPast && b.id && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => cancelM.mutate({ id: b.id } as any)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                )}
+                              </TableCell>
+                            );
+                          }
+
+                          // Free cell
+                          if (f) {
+                            return (
+                              <TableCell key={h} className="text-center">
+                                <Button
+                                  size="sm"
+                                  disabled={isPast || reserveM.isPending}
+                                  onClick={() =>
+                                    reserveM.mutate({
+                                      courtId: block.court.id,
+                                      startDate: f, // UTC ISO from API
+                                      duration: 60,
+                                    } as any)
+                                  }
+                                >
+                                  Book
+                                </Button>
+                              </TableCell>
+                            );
+                          }
+
+                          // Outside working window / gap
+                          return (
+                            <TableCell key={h} className="text-center text-muted-foreground">
+                              —
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

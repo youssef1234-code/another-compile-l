@@ -4,24 +4,59 @@
  * Centralized export for all reusable generic components
  */
 
-// Original components
-export { DataTable } from './DataTable';
-export type { DataTableProps } from './DataTable';
-
+// Core components
 export { LoadingSpinner } from './LoadingSpinner';
 export { EmptyState } from './EmptyState';
-export { PageHeader } from './PageHeader';
-export { StatusBadge } from './StatusBadge';
+export { StatusBadge, UserStatusBadge, EventStatusBadge, RoleBadge, TypeBadge } from './StatusBadge';
+export type { StatusBadgeProps } from './StatusBadge';
 export { ConfirmDialog } from './ConfirmDialog';
-export type { BadgeVariant } from './StatusBadge';
 
-// New generic components
-export { GenericDataTable } from './GenericDataTable';
-export type { GenericDataTableProps, FilterConfig } from './GenericDataTable';
+// Data table
+export { GenericDataTable as DataTable } from './GenericDataTable';
+export type { GenericDataTableProps as DataTableProps, FilterConfig } from './GenericDataTable';
+
+export { ColumnVisibilityToggle } from './ColumnVisibilityToggle';
+
+export { InlineEditCell, InlineEditSelect } from './InlineEditCell';
+
+export { AdvancedSearch } from './AdvancedSearch';
+export type { SearchColumn } from './AdvancedSearch';
+
+export { 
+  FormSheet, 
+  FormSheetContent, 
+  FormSheetSection,
+  FormSheetFooter,
+  FormSheetField,
+  ConfirmSheet
+} from './FormSheet';
+
+export {
+  EnhancedAlertDialog as AlertDialog,
+  DeleteAlertDialog,
+  WarningAlertDialog
+} from './AlertDialog';
+export type {
+  EnhancedAlertDialogProps as AlertDialogProps,
+  DeleteAlertDialogProps,
+  WarningAlertDialogProps
+} from './AlertDialog';
+
+export { 
+  PageHeader, 
+  CompactPageHeader, 
+  SectionHeader 
+} from './AdvancedPageHeader';
+export type { 
+  PageHeaderProps, 
+  CompactPageHeaderProps, 
+  SectionHeaderProps,
+  Breadcrumb,
+  StatCard
+} from './AdvancedPageHeader';
 
 export { AvatarPicker } from './AvatarPicker';
 export type { AvatarPickerProps } from './AvatarPicker';
-
 
 export { SortableHeader, createSortableColumn } from './SortableHeader';
 
@@ -32,4 +67,3 @@ export type {
   FieldType,
   ConditionalAlert 
 } from './GenericForm';
-

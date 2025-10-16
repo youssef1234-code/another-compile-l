@@ -1,7 +1,7 @@
 import { Event, type IEvent } from '../models/event.model';
 import { BaseRepository } from './base.repository';
-import type { FilterQuery } from 'mongoose';
-
+import type {FilterQuery } from 'mongoose';
+import { Types } from 'mongoose';
 /**
  * Repository Pattern for Event entity
  * Extends BaseRepository for common CRUD operations
@@ -257,6 +257,30 @@ export class EventRepository extends BaseRepository<IEvent> {
 
     return { total, upcoming, past, byType: byTypeMap };
   }
+
+
+/**
+ * Returns true if ANY other GYM_SESSION overlaps [start,end).
+ * Excludes CANCELLED / deleted / archived, and can exclude a specific _id.
+ */
+async hasGymOverlap(start: Date, end: Date, excludeId?: string) {
+  const q: any = {
+    type: 'GYM_SESSION',
+    isDeleted: false,
+    isArchived: { $ne: true },
+    status: { $ne: 'CANCELLED' },
+    // proper interval overlap: [a,b) overlaps [c,d) if a < d && b > c
+    startDate: { $lt: end },
+    endDate:   { $gt: start },
+  };
+  if (excludeId) {
+    q._id = { $ne: new Types.ObjectId(excludeId) };
+  }
+  // exists() is cheap & returns null / doc
+  const hit = await this.model.exists(q);
+  return !!hit;
+}
+
 }
 
 // Singleton instance
