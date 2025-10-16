@@ -284,52 +284,6 @@ export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 
 // ============================================================================
 // EVENT SCHEMAS
-// ============================================================================
-// ============================================================================
-// WORKSHOP SCHEMAS
-// ============================================================================
-
-export const CreateWorkshopSchema = z.object({
-  id: z.string(),
-  data: z.object({
-    name: z.string().optional(),
-    location: z.enum(['Cairo', 'Berlin']).optional(),
-    startDate: z.date().optional(),
-    endDate: z.date().optional(),
-    description: z.string().optional(),
-    fullAgenda: z.string().optional(),
-    faculty: z.enum(['MET', 'IET', 'PHARMACY', 'BIOTECHNOLOGY', 'MANAGEMENT', 'LAW', 'DESIGN']).optional(),
-    professors: z.array(z.string()).optional(),
-    requiredBudget: z.number().optional(),
-    fundingSource: z.enum(['EXTERNAL', 'GUC']).optional(),
-    extraResources: z.string().optional(),
-    capacity: z.number().optional(),
-    registrationDeadline: z.date().optional(),
-  }),
-});
-
-export type CreateWorkshopInput = z.infer<typeof CreateWorkshopSchema>;
-
-export const UpdateWorkshopSchema = z.object({
-  id: z.string(),
-  name: z.string().optional(),
-  location: z.enum(['Cairo', 'Berlin']).optional(),
-  startDate: z.coerce.date().optional(),
-  endDate: z.coerce.date().optional(),
-  description: z.string().optional(),
-  fullAgenda: z.string().optional(),
-  faculty: z.enum(['MET', 'IET', 'PHARMACY', 'BIOTECHNOLOGY', 'MANAGEMENT', 'LAW', 'DESIGN']).optional(),
-  professors: z.array(z.string()).optional(),
-  requiredBudget: z.number().optional(),
-  fundingSource: z.enum(['EXTERNAL', 'GUC']).optional(),
-  extraResources: z.string().optional(),
-  capacity: z.number().optional(),
-  registrationDeadline: z.coerce.date().optional(),
-  
-});
-
-export type UpdateWorkshopInput = z.infer<typeof UpdateWorkshopSchema>;
-
 //  ==========================================================================
 export const CreateEventSchema = z.object({
   name: z.string().min(5, 'Title must be at least 5 characters').max(100),
