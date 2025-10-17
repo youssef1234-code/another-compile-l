@@ -59,10 +59,7 @@ import {
 // Admin
 import { AdminUsersPage } from '@/features/admin/pages/AdminUsersPage';
 import {
-  AcademicRoleApprovalsPage,
-  VendorApprovalsPage,
   CommentsPage,
-  ManageAccountsPage,
   ReportsPage,
 } from '@/features/admin/pages';
 
@@ -250,34 +247,10 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: ROUTES.ADMIN_ROLE_APPROVALS,
-        element: (
-          <AdminRoute>
-            <AcademicRoleApprovalsPage />
-          </AdminRoute>
-        ),
-      },
-      {
-        path: ROUTES.ADMIN_VENDOR_APPROVALS,
-        element: (
-          <AdminRoute>
-            <VendorApprovalsPage />
-          </AdminRoute>
-        ),
-      },
-      {
         path: ROUTES.ADMIN_COMMENTS,
         element: (
           <AdminRoute>
             <CommentsPage />
-          </AdminRoute>
-        ),
-      },
-      {
-        path: ROUTES.ADMIN_MANAGE_ACCOUNTS,
-        element: (
-          <AdminRoute>
-            <ManageAccountsPage />
           </AdminRoute>
         ),
       },

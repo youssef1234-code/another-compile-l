@@ -431,6 +431,9 @@ const adminRoutes = {
       // Simple faceted filters: {role: ["ADMIN", "STUDENT"], status: ["ACTIVE"]}
       filters: z.record(z.array(z.string())).optional(),
       
+      // Special filter for pending approvals
+      pendingApprovalsOnly: z.boolean().optional(),
+      
       // Extended filters with operators (for command mode)
       extendedFilters: z.array(z.object({
         id: z.string(),
@@ -456,6 +459,7 @@ const adminRoutes = {
         filters: input.filters,
         extendedFilters: input.extendedFilters,
         joinOperator: input.joinOperator,
+        pendingApprovalsOnly: input.pendingApprovalsOnly,
       });
 
       return result;

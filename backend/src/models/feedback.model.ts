@@ -17,7 +17,6 @@ export interface IComment extends IBaseDocument {
   event: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
   content: string;
-  isDeleted: boolean;
 }
 
 const ratingSchema = createBaseSchema<IRating>(
@@ -67,10 +66,6 @@ const commentSchema = createBaseSchema<IComment>(
       type: String,
       required: true,
       maxlength: 1000,
-    },
-    isDeleted: {
-      type: Boolean,
-      default: false,
     },
   },
   {

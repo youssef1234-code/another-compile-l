@@ -1,4 +1,5 @@
 import { EventRepository, eventRepository } from '../repositories/event.repository';
+import { registrationRepository } from '../repositories/registration.repository';
 import { BaseService, type ServiceOptions } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IEvent } from '../models/event.model';
@@ -42,9 +43,15 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    * Override create to set appropriate status for events
    */
   async create(data: Partial<IEvent>, options?: any): Promise<IEvent> {
-    // Set status to PUBLISHED for bazaars created by EVENT_OFFICE users
-    if (data.type === 'BAZAAR' && !data.status) {
-      data.status = 'PUBLISHED';
+    // Set default status based on event type
+    if (!data.status) {
+      // Workshops need approval, start as DRAFT (unless created by EVENT_OFFICE)
+      if (data.type === 'WORKSHOP' && options?.role === 'PROFESSOR') {
+        data.status = 'DRAFT';
+      } else {
+        // All other events (TRIP, BAZAAR, CONFERENCE, GYM_SESSION) default to PUBLISHED
+        data.status = 'PUBLISHED';
+      }
     }
     
     return super.create(data, options);
@@ -315,8 +322,16 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     const total = await this.repository.count(filter);
 
-    // Format events for frontend
-    const formattedEvents = events.map(event => this.formatEvent(event));
+    // Populate registeredCount for each event
+    const formattedEvents = await Promise.all(
+      events.map(async (event) => {
+        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        return {
+          ...this.formatEvent(event),
+          registeredCount,
+        };
+      })
+    );
 
     return {
       events: formattedEvents,
@@ -338,6 +353,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     location?: string;
     startDate?: Date;
     endDate?: Date;
+    maxPrice?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }): Promise<{
@@ -357,14 +373,23 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       location: params.location,
       startDate: params.startDate,
       endDate: params.endDate,
+      maxPrice: params.maxPrice,
       sortBy: params.sortBy,
       sortOrder: params.sortOrder,
       skip,
       limit
     });
 
-    // Format events for API response
-    const formattedEvents = events.map(event => this.formatEvent(event));
+    // Populate registeredCount for each event
+    const formattedEvents = await Promise.all(
+      events.map(async (event) => {
+        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        return {
+          ...this.formatEvent(event),
+          registeredCount,
+        };
+      })
+    );
 
     return {
       events: formattedEvents,
@@ -392,8 +417,19 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const events = await this.repository.search(query, { skip, limit });
     const total = (await this.repository.search(query)).length;
 
+    // Populate registeredCount for each event
+    const formattedEvents = await Promise.all(
+      events.map(async (event) => {
+        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        return {
+          ...this.formatEvent(event),
+          registeredCount,
+        };
+      })
+    );
+
     return {
-      events: events.map(event => this.formatEvent(event)),
+      events: formattedEvents,
       total
     };
   }
@@ -403,7 +439,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    */
   async getEventById(id: string): Promise<any> {
     const event = await this.findById(id);
-    return this.formatEvent(event);
+    const registeredCount = await registrationRepository.countByEvent(id);
+    return {
+      ...this.formatEvent(event),
+      registeredCount,
+    };
   }
 
   /**
@@ -426,8 +466,19 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       startDate: { $gte: new Date() }
     } as FilterQuery<IEvent>);
 
+    // Populate registeredCount for each event
+    const formattedEvents = await Promise.all(
+      events.map(async (event) => {
+        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        return {
+          ...this.formatEvent(event),
+          registeredCount,
+        };
+      })
+    );
+
     return {
-      events: events.map(event => this.formatEvent(event)),
+      events: formattedEvents,
       total
     };
   }
@@ -472,8 +523,19 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const events = await this.repository.findByType(type, { skip, limit });
     const total = await this.repository.count({ type, isArchived: false } as FilterQuery<IEvent>);
 
+    // Populate registeredCount for each event
+    const formattedEvents = await Promise.all(
+      events.map(async (event) => {
+        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        return {
+          ...this.formatEvent(event),
+          registeredCount,
+        };
+      })
+    );
+
     return {
-      events: events.map(event => this.formatEvent(event)),
+      events: formattedEvents,
       total
     };
   }
@@ -492,8 +554,19 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const events = await this.repository.findByLocation(location, { skip, limit });
     const total = await this.repository.count({ location, isArchived: false } as FilterQuery<IEvent>);
 
+    // Populate registeredCount for each event
+    const formattedEvents = await Promise.all(
+      events.map(async (event) => {
+        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        return {
+          ...this.formatEvent(event),
+          registeredCount,
+        };
+      })
+    );
+
     return {
-      events: events.map(event => this.formatEvent(event)),
+      events: formattedEvents,
       total
     };
   }
@@ -521,6 +594,10 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       professorName: event.professorName,
       faculty: event.faculty,
       fundingSource: event.fundingSource,
+      images: event.images || [], // Include images array
+      // Gym session specific fields
+      sessionType: event.sessionType,
+      duration: event.duration,
       createdBy: event.createdBy ? {
         id: (event.createdBy as any)._id?.toString() || (event.createdBy as any).toString(),
         firstName: (event.createdBy as any).firstName,
@@ -608,6 +685,25 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       return newWorkshop;
     }
 
+    /**
+     * Publish any event (generic method)
+     */
+    async publishEvent(eventId: string) {
+      const event = await eventRepository.findById(eventId);
+      if (!event) {
+        throw new ServiceError("NOT_FOUND", "Event not found", 404);
+      }
+      
+      // Only workshops need approval before publishing
+      if (event.type === "WORKSHOP" && event.status !== "APPROVED") {
+        throw new ServiceError("BAD_REQUEST", "Workshop must be approved before publishing", 400);
+      }
+      
+      // Update status to published
+      const updatedEvent = await eventRepository.update(eventId, { status: "PUBLISHED" });
+      return updatedEvent;
+    }
+
 
 
   /**
@@ -643,11 +739,12 @@ async createGymSession(
 
   return this.create(
     {
-      ...data,
+      ...data, // Includes: name, description, sessionType, capacity, duration, status
       type: 'GYM_SESSION',
       startDate: start,
       endDate: end,
-      location: data.location ?? 'Gym',
+      location: data.location ?? 'ON_CAMPUS',
+      locationDetails: data.locationDetails ?? 'Gym',
     } as any,
     options
   );

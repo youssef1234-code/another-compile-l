@@ -34,11 +34,12 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Mail
+  Mail,
+  CheckSquare
 } from "lucide-react";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import { EventImageCarousel } from "@/components/ui/event-image-carousel";
 
 function EventDetailsPageSkeleton() {
@@ -93,13 +94,18 @@ export function EventDetailsPage() {
     { enabled: !!id && (user?.role === "EVENT_OFFICE" || user?.role === "ADMIN") }
   );
 
+  const utils = trpc.useUtils();
+  
   const registerMutation = trpc.events.registerForEvent.useMutation({
     onSuccess: () => {
       toast.success("Successfully registered for event!");
       setIsRegistering(false);
+      // Invalidate queries to refresh event data and registration status
+      utils.events.getEventById.invalidate({ id: id! });
+      utils.events.isRegistered.invalidate({ eventId: id! });
     },
     onError: (error: any) => {
-      toast.error(error.message);
+      toast.error(error.message || "Failed to register for event");
       setIsRegistering(false);
     },
   });
@@ -176,64 +182,76 @@ export function EventDetailsPage() {
       {/* Hero Section */}
       <div className="relative h-[400px] bg-gradient-to-r from-primary/10 via-primary/5 to-background overflow-hidden">
         {(event.images && event.images.length > 0) ? (
-          <div className="absolute inset-0 bg-black/40">
+          <div className="absolute inset-0">
             <EventImageCarousel images={event.images} alt={event.name} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
           </div>
-        ) : event.imageUrl && (
-          <div className="absolute inset-0 bg-black/40">
+        ) : event.imageUrl ? (
+          <div className="absolute inset-0">
             <img 
               src={event.imageUrl} 
               alt={event.name}
               className="w-full h-full object-cover"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
           </div>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
         )}
-        <div className="relative max-w-7xl mx-auto h-full flex items-end p-8">
-          <div className="space-y-4 text-white">
-            <div className="flex items-center gap-3">
-              <Badge className={cn(typeConfig.color, "text-white")}>
+        <div className="relative max-w-7xl mx-auto h-full flex items-end p-8 pb-6">
+          <div className="space-y-3 text-white w-full">
+            <div className="flex items-center gap-3 flex-wrap">
+              <Badge className={cn(typeConfig.color, "text-white shadow-lg backdrop-blur-md border border-white/20")}>
                 <TypeIcon className="h-3 w-3 mr-1" />
                 {typeConfig.label}
               </Badge>
-              <Badge variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"}>
+              <Badge 
+                variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"} 
+                className="shadow-lg backdrop-blur-md bg-background/90 border border-white/20"
+              >
                 {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
               </Badge>
               {event.status === "APPROVED" && (
-                <Badge variant="default" className="bg-emerald-500">
+                <Badge variant="default" className="bg-emerald-500 shadow-lg backdrop-blur-md border border-white/20">
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Approved
                 </Badge>
               )}
               {event.status === "PENDING" && (
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="shadow-lg backdrop-blur-md border border-white/20">
                   <Clock className="h-3 w-3 mr-1" />
                   Pending Approval
                 </Badge>
               )}
               {event.status === "REJECTED" && (
-                <Badge variant="destructive">
+                <Badge variant="destructive" className="shadow-lg backdrop-blur-md border border-white/20">
                   <XCircle className="h-3 w-3 mr-1" />
                   Rejected
                 </Badge>
               )}
             </div>
-            <h1 className="text-5xl font-bold drop-shadow-lg">{event.name}</h1>
-            <div className="flex items-center gap-6 text-sm">
-              <div className="flex items-center gap-2">
+            <h1 className="text-4xl font-bold drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] [text-shadow:_0_2px_8px_rgb(0_0_0_/_80%)]">{event.name}</h1>
+            <div className="flex items-center gap-4 text-sm flex-wrap [text-shadow:_0_2px_4px_rgb(0_0_0_/_60%)]">
+              <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
                 <Calendar className="h-4 w-4" />
                 {formatDate(new Date(event.startDate))}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
                 <MapPin className="h-4 w-4" />
-                {event.location}
+                <span className="font-medium">{event.location === 'ON_CAMPUS' ? 'On Campus' : 'Off Campus'}</span>
               </div>
-              {event.price ? (
-                <div className="flex items-center gap-2">
+              {event.locationDetails && (
+                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                  <span className="text-white/90">{event.locationDetails}</span>
+                </div>
+              )}
+              {event.price && event.price > 0 ? (
+                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full font-semibold">
                   <DollarSign className="h-4 w-4" />
                   {event.price} EGP
                 </div>
               ) : (
-                <Badge variant="default" className="bg-emerald-500">FREE</Badge>
+                <Badge variant="default" className="bg-emerald-500 shadow-lg backdrop-blur-md border border-white/20">FREE</Badge>
               )}
             </div>
           </div>
@@ -241,7 +259,7 @@ export function EventDetailsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-8 -mt-20 relative z-10">
+      <div className="max-w-7xl mx-auto p-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
@@ -339,7 +357,25 @@ export function EventDetailsPage() {
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
             {/* Registration CTA */}
-            {canRegister && (
+            {isRegistered ? (
+              <Card className="border-green-500 shadow-lg bg-green-50/50">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <CheckSquare className="h-6 w-6 text-green-600" />
+                        <p className="text-2xl font-bold text-green-600">
+                          Already Registered
+                        </p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        You're confirmed for this event
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : canRegister ? (
               <Card className="border-primary shadow-lg">
                 <CardContent className="pt-6">
                   <div className="space-y-4">
@@ -364,6 +400,16 @@ export function EventDetailsPage() {
                         Register by {formatDate(new Date(event.registrationDeadline))}
                       </p>
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : user && !hasStarted && (
+              <Card className="border-muted shadow-lg">
+                <CardContent className="pt-6">
+                  <div className="space-y-2 text-center">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {isFull ? "Event is full" : registrationClosed ? "Registration closed" : "Registration not available"}
+                    </p>
                   </div>
                 </CardContent>
               </Card>

@@ -31,6 +31,7 @@ interface EventsTableProps {
   pageCount: number;
   typeCounts?: Record<string, number>;
   statusCounts?: Record<string, number>;
+  userRole?: string;
   queryKeys?: Partial<QueryKeys>;
   isSearching?: boolean;
   onUpdateEvent?: (eventId: string, field: string, value: string) => Promise<void>;
@@ -38,7 +39,7 @@ interface EventsTableProps {
   onEditEvent?: (eventId: string) => void;
   onArchiveEvent?: (eventId: string) => void;
   onDeleteEvent?: (eventId: string) => void;
-  onApproveWorkshop?: (eventId: string) => void;
+  onPublishEvent?: (eventId: string) => void;
 }
 
 export function EventsTable({
@@ -46,6 +47,7 @@ export function EventsTable({
   pageCount,
   typeCounts = {},
   statusCounts = {},
+  userRole,
   queryKeys,
   isSearching = false,
   onUpdateEvent,
@@ -53,7 +55,7 @@ export function EventsTable({
   onEditEvent,
   onArchiveEvent,
   onDeleteEvent,
-  onApproveWorkshop,
+  onPublishEvent,
 }: EventsTableProps) {
   // Toggle between advanced and simple filters (default to simple)
   const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
@@ -78,14 +80,15 @@ export function EventsTable({
       getEventsTableColumns({
         typeCounts,
         statusCounts,
+        userRole,
         onUpdateEvent,
         onViewDetails,
         onEditEvent,
         onArchiveEvent,
         onDeleteEvent,
-        onApproveWorkshop,
+        onPublishEvent,
       }),
-    [typeCounts, statusCounts, onUpdateEvent, onViewDetails, onEditEvent, onArchiveEvent, onDeleteEvent, onApproveWorkshop],
+    [typeCounts, statusCounts, userRole, onUpdateEvent, onViewDetails, onEditEvent, onArchiveEvent, onDeleteEvent, onPublishEvent],
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({

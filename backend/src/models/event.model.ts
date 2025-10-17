@@ -67,7 +67,10 @@ const eventSchema = createBaseSchema<IEvent>(
     },
     description: {
       type: String,
-      required: true,
+      required: function(this: IEvent) {
+        // Description is optional for GYM_SESSION
+        return this.type !== 'GYM_SESSION';
+      },
     },
     startDate: {
       type: Date,

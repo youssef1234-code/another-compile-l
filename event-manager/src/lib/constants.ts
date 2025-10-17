@@ -51,10 +51,7 @@ export const ROUTES = {
   ADMIN: '/admin',
   ADMIN_USERS: '/admin/users',
   ADMIN_EVENTS: '/admin/events',
-  ADMIN_ROLE_APPROVALS: '/admin/role-approvals',
-  ADMIN_VENDOR_APPROVALS: '/admin/vendor-approvals',
   ADMIN_COMMENTS: '/admin/comments',
-  ADMIN_MANAGE_ACCOUNTS: '/admin/manage-accounts',
   ADMIN_REPORTS: '/admin/reports',
   
   // Events Office

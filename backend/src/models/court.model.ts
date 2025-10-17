@@ -1,13 +1,12 @@
-import mongoose, { Schema } from "mongoose";
-import { createBaseSchema, IBaseDocument } from "./base.model";
 import { CourtSport } from "@event-manager/shared";
+import mongoose from "mongoose";
+import { createBaseSchema, IBaseDocument } from "./base.model";
 
 
 export interface ICourt extends IBaseDocument {
   name: string;
   sport: CourtSport;
   location: string;             // e.g. "Gym Zone A"
-  isDeleted: boolean;
   createdAt: Date; updatedAt: Date;
 }
 

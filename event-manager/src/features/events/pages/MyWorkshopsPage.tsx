@@ -13,7 +13,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { Plus, Calendar, MapPin, Users, Edit, Trash2, AlertCircle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 

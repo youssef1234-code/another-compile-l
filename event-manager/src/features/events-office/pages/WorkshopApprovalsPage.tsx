@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { CheckCircle2, XCircle, FileEdit, Calendar, MapPin, Users, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LoadingSpinner } from '@/components/generic/LoadingSpinner';

@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { Presentation } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';

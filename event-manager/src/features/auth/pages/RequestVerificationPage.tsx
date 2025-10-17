@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
 export function RequestVerificationPage() {

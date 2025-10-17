@@ -10,7 +10,6 @@ export interface ICourtReservation extends IBaseDocument {
   endDate: Date;                           // UTC
   duration: number;                        // minutes
   status: "BOOKED" | "CANCELLED";
-  isDeleted: boolean;
   createdAt: Date; updatedAt: Date;
 }
 

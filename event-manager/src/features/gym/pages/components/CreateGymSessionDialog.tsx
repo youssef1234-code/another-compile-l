@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { toast } from "sonner";
-import { GymSessionType } from "@event-manager/shared";
+import { toast } from "react-hot-toast";
+import { GymSessionType, GYM_SESSION_TYPE_LABELS } from "@event-manager/shared";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 
 function toISOFromLocal(dateStr: string, timeStr: string) {
@@ -16,14 +19,23 @@ function toISOFromLocal(dateStr: string, timeStr: string) {
   return d.toISOString();
 }
 
+function formatDateToInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function CreateGymSessionDialog({
   open,
   onOpenChange,
   onCreated,
+  initialDate,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
+  initialDate?: Date;
 }) {
   const utils = trpc.useUtils();
 
@@ -36,10 +48,18 @@ export function CreateGymSessionDialog({
   const [duration, setDuration] = useState<number>(60); // minutes
   const [capacity, setCapacity] = useState<number>(20);
 
+  // Prefill date when dialog opens with initialDate
+  useEffect(() => {
+    if (open && initialDate) {
+      setDate(formatDateToInput(initialDate));
+    }
+  }, [open, initialDate]);
+
   const createM = trpc.events.createGymSession.useMutation({
     onSuccess: () => {
       toast.success("Session created");
       utils.events.getEvents.invalidate();
+      utils.events.getAllEvents.invalidate();
       onOpenChange(false);
       if (onCreated) onCreated();
       // reset (optional)
@@ -86,14 +106,50 @@ export function CreateGymSessionDialog({
 
           <div>
             <label className="text-xs">Type</label>
-            <Select value={sessionType} onValueChange={setSessionType}>
-              <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-              <SelectContent>
-                {Object.values(GymSessionType).map((t) => (
-                  <SelectItem key={t} value={t}>{t.replaceAll("_", " ")}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className={cn(
+                    "w-full justify-between",
+                    !sessionType && "text-muted-foreground"
+                  )}
+                >
+                  {sessionType
+                    ? GYM_SESSION_TYPE_LABELS[sessionType as keyof typeof GYM_SESSION_TYPE_LABELS]
+                    : "Select type"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search session type..." />
+                  <CommandList>
+                    <CommandEmpty>No session type found.</CommandEmpty>
+                    <CommandGroup>
+                      {Object.values(GymSessionType).map((type) => (
+                        <CommandItem
+                          key={type}
+                          value={type}
+                          onSelect={(currentValue) => {
+                            setSessionType(currentValue.toUpperCase());
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              sessionType === type ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {GYM_SESSION_TYPE_LABELS[type as keyof typeof GYM_SESSION_TYPE_LABELS]}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -149,11 +205,6 @@ export function CreateGymSessionDialog({
               {createM.isPending ? "Creating..." : "Create"}
             </Button>
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            Note: we convert your selected local date & time to UTC before sending,
-            so it stores correctly and displays at the right local time.
-          </p>
         </div>
       </DialogContent>
     </Dialog>

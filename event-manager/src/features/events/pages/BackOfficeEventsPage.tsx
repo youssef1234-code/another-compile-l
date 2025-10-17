@@ -233,6 +233,17 @@ export function BackOfficeEventsPage() {
     },
   });
 
+  const publishEventMutation = trpc.events.publishEvent.useMutation({
+    onSuccess: () => {
+      toast.success('Event published successfully');
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to publish event');
+    },
+  });
+
   // Handlers
   const handleUpdateEvent = useCallback(async (eventId: string, field: string, value: string) => {
     const updates: any = {};
@@ -322,6 +333,10 @@ export function BackOfficeEventsPage() {
     setDeleteDialog({ open: false, eventId: '' });
   }, [deleteDialog.eventId, deleteEventMutation]);
 
+  const handlePublishEvent = useCallback((eventId: string) => {
+    publishEventMutation.mutate({ eventId });
+  }, [publishEventMutation]);
+
   const handleExport = useCallback(async () => {
     try {
       const allEventsResponse = await utils.events.getAllEvents.fetch({
@@ -393,12 +408,14 @@ export function BackOfficeEventsPage() {
           pageCount={pageCount}
           typeCounts={typeCounts}
           statusCounts={statusCounts}
+          userRole={user?.role}
           isSearching={isLoading}
           onUpdateEvent={handleUpdateEvent}
           onViewDetails={handleViewDetails}
           onEditEvent={handleEditEvent}
           onArchiveEvent={handleArchiveEvent}
           onDeleteEvent={handleDeleteEvent}
+          onPublishEvent={handlePublishEvent}
         />
       </div>
 

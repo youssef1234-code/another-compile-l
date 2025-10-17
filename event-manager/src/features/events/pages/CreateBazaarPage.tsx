@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/lib/constants";
 import type { FieldType } from "@/components/generic/GenericForm";
 import { z } from "zod";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import { EnhancedAlertDialog } from "@/components/generic/AlertDialog";
 import { useState } from "react";
 
