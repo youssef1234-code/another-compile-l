@@ -48,6 +48,7 @@ const eventRoutes = {
         location: input.location,
         startDate: input.startDate,
         endDate: input.endDate,
+        maxPrice: input.maxPrice,
       });
     }),
 
@@ -385,6 +386,17 @@ const eventRoutes = {
     }))
     .mutation(async ({ input }) => {
       return eventService.publishWorkshop(input.eventId);
+    }),
+
+    /**
+     * Publish any event (generic)
+     */
+    publishEvent: eventsOfficeProcedure
+    .input(z.object({
+      eventId: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return eventService.publishEvent(input.eventId);
     }),
     
       /**

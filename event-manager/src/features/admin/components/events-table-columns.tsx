@@ -21,6 +21,7 @@ import {
   Clock,
   ChevronRight,
   ChevronDown,
+  Send,
 } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { InlineEditCell } from "@/components/generic";
@@ -45,17 +46,18 @@ interface GetEventsTableColumnsProps {
   onEditEvent?: (eventId: string) => void;
   onArchiveEvent?: (eventId: string) => void;
   onDeleteEvent?: (eventId: string) => void;
+  onPublishEvent?: (eventId: string) => void;
 }
 
 // Event Type Badge Component
 function EventTypeBadge({ type }: { type: string }) {
   const colors: Record<string, string> = {
-    WORKSHOP: "bg-purple-100 text-purple-700 border-purple-200",
-    TRIP: "bg-blue-100 text-blue-700 border-blue-200",
-    BAZAAR: "bg-amber-100 text-amber-700 border-amber-200",
-    CONFERENCE: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    BOOTH: "bg-pink-100 text-pink-700 border-pink-200",
-    GYM_SESSION: "bg-orange-100 text-orange-700 border-orange-200",
+    WORKSHOP: "bg-blue-100 text-blue-700 border-blue-200",
+    TRIP: "bg-green-100 text-green-700 border-green-200",
+    BAZAAR: "bg-orange-100 text-orange-700 border-orange-200",
+    CONFERENCE: "bg-purple-100 text-purple-700 border-purple-200",
+    BOOTH: "bg-amber-100 text-amber-700 border-amber-200",
+    GYM_SESSION: "bg-red-100 text-red-700 border-red-200",
   };
 
   const labels: Record<string, string> = {
@@ -111,6 +113,7 @@ export function getEventsTableColumns({
   onEditEvent,
   onArchiveEvent,
   onDeleteEvent,
+  onPublishEvent,
 }: GetEventsTableColumnsProps): ColumnDef<Event>[] {
   return [
     {
@@ -481,6 +484,12 @@ export function getEventsTableColumns({
                 <DropdownMenuItem onClick={() => onEditEvent(event.id)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Event
+                </DropdownMenuItem>
+              )}
+              {onPublishEvent && event.status === 'DRAFT' && (
+                <DropdownMenuItem onClick={() => onPublishEvent(event.id)}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Publish
                 </DropdownMenuItem>
               )}
               {onArchiveEvent && (

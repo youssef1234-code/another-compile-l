@@ -5,10 +5,15 @@
  */
 
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Maximize2, X } from 'lucide-react';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from './dialog';
 
 // Component to load and display carousel image
 function CarouselImage({ imageId, alt, index, total }: { imageId: string; alt: string; index: number; total: number }) {
@@ -64,6 +69,7 @@ interface EventImageCarouselProps {
 
 export function EventImageCarousel({ images, alt, className }: EventImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   if (!images || images.length === 0) {
     return null;
@@ -81,8 +87,8 @@ export function EventImageCarousel({ images, alt, className }: EventImageCarouse
     setCurrentIndex(index);
   };
 
-  return (
-    <div className={cn('relative w-full h-full group', className)}>
+  const CarouselContent = ({ isFullscreenView = false }: { isFullscreenView?: boolean }) => (
+    <div className={cn('relative w-full h-full group', isFullscreenView && 'bg-black', !isFullscreenView && className)}>
       {/* Main Image */}
       <CarouselImage 
         imageId={images[currentIndex]} 
@@ -97,7 +103,7 @@ export function EventImageCarousel({ images, alt, className }: EventImageCarouse
           <Button
             variant="secondary"
             size="icon"
-            className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm hover:bg-background/90"
+            className="absolute left-4 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100 group-hover:opacity-100 transition-opacity bg-background/90 backdrop-blur-sm hover:bg-background shadow-lg z-10"
             onClick={(e) => {
               e.stopPropagation();
               goToPrevious();
@@ -108,7 +114,7 @@ export function EventImageCarousel({ images, alt, className }: EventImageCarouse
           <Button
             variant="secondary"
             size="icon"
-            className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm hover:bg-background/90"
+            className="absolute right-4 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100 group-hover:opacity-100 transition-opacity bg-background/90 backdrop-blur-sm hover:bg-background shadow-lg z-10"
             onClick={(e) => {
               e.stopPropagation();
               goToNext();
@@ -143,6 +149,46 @@ export function EventImageCarousel({ images, alt, className }: EventImageCarouse
           </div>
         </>
       )}
+
+      {/* Expand Button - Show only if not fullscreen */}
+      {!isFullscreenView && images.length > 0 && (
+        <Button
+          variant="secondary"
+          size="icon"
+          className="absolute top-4 left-4 opacity-70 hover:opacity-100 group-hover:opacity-100 transition-opacity bg-background/90 backdrop-blur-sm hover:bg-background shadow-lg z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsFullscreen(true);
+          }}
+          title="View fullscreen gallery"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+      )}
     </div>
+  );
+
+  return (
+    <>
+      <CarouselContent isFullscreenView={false} />
+      
+      {/* Fullscreen Gallery Dialog - Wider for better image viewing */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] p-0 bg-black border-none">
+          <DialogTitle className="sr-only">
+            {alt} - Image Gallery
+          </DialogTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 z-50 text-white hover:bg-white/20"
+            onClick={() => setIsFullscreen(false)}
+          >
+            <X className="h-6 w-6" />
+          </Button>
+          <CarouselContent isFullscreenView={true} />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

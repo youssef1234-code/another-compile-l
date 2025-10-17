@@ -6,7 +6,7 @@ import { ROUTES } from "@/lib/constants";
 import type { FieldType } from "@/components/generic/GenericForm";
 import { z } from "zod";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import { EnhancedAlertDialog } from "@/components/generic/AlertDialog";
 
 const fields = [

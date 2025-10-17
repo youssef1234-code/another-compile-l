@@ -1,6 +1,6 @@
 import type { User } from "@event-manager/shared";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Shield, Mail, MoreHorizontal, UserX, Trash2, UserCheck, Users } from "lucide-react";
+import { Shield, Mail, MoreHorizontal, UserX, Trash2, UserCheck, Users, CheckCircle, XCircle } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { InlineEditCell, RoleBadge, UserStatusBadge } from "@/components/generic";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatDate } from "@/lib/design-system";
 
 interface GetUsersTableColumnsProps {
@@ -20,6 +26,8 @@ interface GetUsersTableColumnsProps {
   statusCounts: { active: number; blocked: number };
   onUpdateUser?: (userId: string, field: string, value: string) => Promise<void>;
   onVerifyRole?: (userId: string) => void;
+  onApproveVendor?: (userId: string) => void;
+  onRejectVendor?: (userId: string) => void;
   onBlockUser?: (userId: string) => void;
   onUnblockUser?: (userId: string) => void;
   onDeleteUser?: (userId: string) => void;
@@ -30,6 +38,8 @@ export function getUsersTableColumns({
   statusCounts,
   onUpdateUser,
   onVerifyRole,
+  onApproveVendor,
+  onRejectVendor,
   onBlockUser,
   onUnblockUser,
   onDeleteUser,
@@ -264,6 +274,75 @@ export function getUsersTableColumns({
       size: 120,
     },
     {
+      id: "vendorStatus",
+      accessorFn: (row) => (row as any).vendorApprovalStatus,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Vendor Status" />
+      ),
+      cell: ({ row }) => {
+        const user = row.original;
+        const vendorStatus = (user as any).vendorApprovalStatus;
+        const rejectionReason = (user as any).vendorRejectionReason;
+        
+        if (user.role !== 'VENDOR') {
+          return <span className="text-xs text-muted-foreground">N/A</span>;
+        }
+
+        if (!vendorStatus || vendorStatus === 'PENDING') {
+          return (
+            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+              Pending
+            </Badge>
+          );
+        }
+        
+        if (vendorStatus === 'APPROVED') {
+          return (
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              Approved
+            </Badge>
+          );
+        }
+        
+        if (vendorStatus === 'REJECTED') {
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge 
+                    variant="outline" 
+                    className="bg-red-50 text-red-700 border-red-200 cursor-help"
+                  >
+                    Rejected
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Rejection Reason:</p>
+                  <p className="text-sm">{rejectionReason || 'No reason provided'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        }
+
+        return null;
+      },
+      enableColumnFilter: true,
+      filterFn: (row, id, value) => {
+        return Array.isArray(value) && value.includes(String(row.getValue(id)));
+      },
+      meta: {
+        label: "Vendor Status",
+        variant: "multiSelect" as const,
+        options: [
+          { label: "Pending", value: "PENDING" },
+          { label: "Approved", value: "APPROVED" },
+          { label: "Rejected", value: "REJECTED" },
+        ],
+      },
+      size: 140,
+    },
+    {
       id: "createdAt",
       accessorKey: "createdAt",
       header: ({ column }) => (
@@ -286,6 +365,11 @@ export function getUsersTableColumns({
       id: "actions",
       cell: ({ row }) => {
         const user = row.original;
+        const isVendor = user.role === 'VENDOR';
+        const vendorStatus = (user as any).vendorApprovalStatus;
+        const isAcademicRole = ['PROFESSOR', 'TA', 'STAFF'].includes(user.role);
+        const needsRoleVerification = isAcademicRole && !user.roleVerifiedByAdmin;
+        const needsVendorApproval = isVendor && vendorStatus === 'PENDING';
 
         return (
           <DropdownMenu>
@@ -298,12 +382,35 @@ export function getUsersTableColumns({
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => onVerifyRole?.(user.id)}>
-                <Shield className="mr-2 size-4" />
-                Verify Role
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
+            <DropdownMenuContent align="end" className="w-48">
+              {needsRoleVerification && (
+                <>
+                  <DropdownMenuItem onClick={() => onVerifyRole?.(user.id)}>
+                    <UserCheck className="mr-2 size-4" />
+                    Verify Role
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              {needsVendorApproval && (
+                <>
+                  <DropdownMenuItem 
+                    className="text-green-600"
+                    onClick={() => onApproveVendor?.(user.id)}
+                  >
+                    <CheckCircle className="mr-2 size-4" />
+                    Approve Vendor
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-red-600"
+                    onClick={() => onRejectVendor?.(user.id)}
+                  >
+                    <XCircle className="mr-2 size-4" />
+                    Reject Vendor
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem 
                 className="text-yellow-600"
                 onClick={() => {

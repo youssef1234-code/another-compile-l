@@ -21,6 +21,8 @@ interface UsersTableProps {
   isSearching?: boolean; // Loading state for search
   onUpdateUser?: (userId: string, field: string, value: string) => Promise<void>;
   onVerifyRole?: (userId: string) => void;
+  onApproveVendor?: (userId: string) => void;
+  onRejectVendor?: (userId: string) => void;
   onBlockUser?: (userId: string) => void;
   onUnblockUser?: (userId: string) => void;
   onDeleteUser?: (userId: string) => void;
@@ -35,6 +37,8 @@ export function UsersTable({
   isSearching = false,
   onUpdateUser,
   onVerifyRole,
+  onApproveVendor,
+  onRejectVendor,
   onBlockUser,
   onUnblockUser,
   onDeleteUser,
@@ -64,11 +68,13 @@ export function UsersTable({
         statusCounts,
         onUpdateUser,
         onVerifyRole,
+        onApproveVendor,
+        onRejectVendor,
         onBlockUser,
         onUnblockUser,
         onDeleteUser,
       }),
-    [roleCounts, statusCounts, onUpdateUser, onVerifyRole, onBlockUser, onUnblockUser, onDeleteUser],
+    [roleCounts, statusCounts, onUpdateUser, onVerifyRole, onApproveVendor, onRejectVendor, onBlockUser, onUnblockUser, onDeleteUser],
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({

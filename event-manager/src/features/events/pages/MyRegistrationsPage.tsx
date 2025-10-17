@@ -1,395 +1,334 @@
 /**
- * My Registrations Page
+ * My Registrations Page (New Modern Version)
  * 
- * View and manage all event registrations
- * Features:
- * - View all registered events (upcoming and past)
- * - Filter by event type and status
- * - Search functionality
- * - Registration details (date, payment status)
- * - Cancel registration option
+ * Front-office oriented page showing user's event registrations
+ * with better UX and visual design
  */
 
-import { useState, useMemo } from 'react';
-import { toast } from 'sonner';
-import type { ColumnDef } from '@tanstack/react-table';
-import { Calendar, MapPin, CreditCard, XCircle, Eye, MoreHorizontal } from 'lucide-react';
-import { format } from 'date-fns';
-
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
-import { GenericDataTable, type FilterConfig } from '@/components/generic/GenericDataTable';
+import { useAuthStore } from '@/store/authStore';
+import { ROUTES } from '@/lib/constants';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  Calendar, 
+  MapPin, 
+  Clock, 
+  Users,
+  CheckCircle,
+  XCircle,
+  ArrowRight,
+  CalendarClock,
+  AlertCircle
+} from 'lucide-react';
+import { formatDate } from '@/lib/design-system';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { EventCardImage } from '@/components/ui/event-card-image';
 
-interface Registration {
-  id: string;
-  event: {
-    id: string;
-    name: string;
-    type: string;
-    location: string;
-    startDate: string;
-    endDate: string;
-    price?: number;
+function RegistrationCardSkeleton() {
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex flex-col md:flex-row">
+        <Skeleton className="h-48 md:h-auto md:w-64" />
+        <div className="flex-1 p-6 space-y-4">
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-24" />
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+interface RegistrationCardProps {
+  registration: any;
+  onCancel: (registrationId: string) => void;
+  isCancelling: boolean;
+}
+
+function RegistrationCard({ registration, onCancel, isCancelling }: RegistrationCardProps) {
+  const navigate = useNavigate();
+  const event = registration.event;
+  
+  const now = new Date();
+  const startDate = new Date(event.startDate);
+  const endDate = event.endDate ? new Date(event.endDate) : null;
+  
+  const hasStarted = startDate <= now;
+  const hasEnded = endDate ? endDate < now : startDate < now;
+  
+  const typeConfigMap: Record<string, { label: string; color: string }> = {
+    WORKSHOP: { label: 'Workshop', color: 'bg-blue-500' },
+    TRIP: { label: 'Trip', color: 'bg-green-500' },
+    CONFERENCE: { label: 'Conference', color: 'bg-purple-500' },
+    BAZAAR: { label: 'Bazaar', color: 'bg-orange-500' },
+    GYM_SESSION: { label: 'Gym Session', color: 'bg-red-500' },
   };
-  registrationDate: string;
-  paymentStatus: 'PENDING' | 'COMPLETED' | 'REFUNDED';
-  status: 'ACTIVE' | 'CANCELLED';
-  canCancel: boolean;
+  const typeConfig = typeConfigMap[event.type] || { label: event.type, color: 'bg-gray-500' };
+  
+  const canCancel = registration.status === 'CONFIRMED' && !hasStarted;
+  
+  return (
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-200 group">
+      <div className="flex flex-col md:flex-row">
+        {/* Event Image */}
+        <div className="relative h-48 md:h-auto md:w-64 bg-gradient-to-br from-primary/10 to-primary/5 overflow-hidden">
+          {(event.images && event.images.length > 0) ? (
+            <EventCardImage imageId={event.images[0]} alt={event.name} />
+          ) : event.imageUrl ? (
+            <img 
+              src={event.imageUrl} 
+              alt={event.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Calendar className="h-16 w-16 text-muted-foreground/30" />
+            </div>
+          )}
+          {event.images && event.images.length > 1 && (
+            <Badge className="absolute top-2 right-2 bg-black/60 text-white border-none">
+              +{event.images.length - 1}
+            </Badge>
+          )}
+        </div>
+        
+        {/* Event Details */}
+        <div className="flex-1 p-6 flex flex-col">
+          <div className="flex-1">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div>
+                <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
+                  {event.name}
+                </h3>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <Badge className={cn(typeConfig.color, "text-white")}>
+                    {typeConfig.label}
+                  </Badge>
+                  <Badge variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"}>
+                    {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
+                  </Badge>
+                  <Badge variant={registration.status === 'CONFIRMED' ? 'default' : registration.status === 'CANCELLED' ? 'destructive' : 'secondary'}>
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    {registration.status}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-muted-foreground mb-4 line-clamp-2">
+              {event.description}
+            </p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <CalendarClock className="h-4 w-4" />
+                <span>{formatDate(event.startDate)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>{event.location === 'ON_CAMPUS' ? 'On Campus' : 'Off Campus'}</span>
+              </div>
+              {event.capacity && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  <span>{event.registeredCount || 0} / {event.capacity} registered</span>
+                </div>
+              )}
+              {registration.registeredAt && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>Registered {formatDate(registration.registeredAt)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex gap-2 mt-4 pt-4 border-t">
+            <Button
+              variant="default"
+              onClick={() => navigate(ROUTES.EVENT_DETAILS.replace(':id', event.id))}
+              className="flex-1"
+            >
+              View Details
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+            {canCancel && (
+              <Button
+                variant="outline"
+                onClick={() => onCancel(registration.id)}
+                disabled={isCancelling}
+                className="text-destructive hover:text-destructive"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 export function MyRegistrationsPage() {
-  const utils = trpc.useUtils();
-  const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-
-  // Fetch user's registrations
-  const { data, isLoading } = trpc.events.getMyRegistrations.useQuery(
-    {
-      page: 1,
-      limit: 100,
-      status: 'all',
-    },
-    {
-      staleTime: 30000,
-      refetchOnWindowFocus: false,
-    }
+  const { user } = useAuthStore();
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  
+  const { data: registrationsData, isLoading } = trpc.events.getMyRegistrations.useQuery(
+    { page: 1, limit: 100 },
+    { enabled: !!user }
   );
-
-  // Transform backend data to frontend format
-  const registrations: Registration[] = useMemo(() => {
-    if (!data?.registrations) return [];
-    
-    return data.registrations.map((reg: any) => {
-      const eventStartDate = new Date(reg.event.startDate);
-      const now = new Date();
-      const twoWeeksInMs = 14 * 24 * 60 * 60 * 1000;
-      const timeUntilEvent = eventStartDate.getTime() - now.getTime();
-      
-      return {
-        id: reg._id || reg.id,
-        event: {
-          id: reg.event._id || reg.event.id,
-          name: reg.event.name,
-          type: reg.event.type,
-          location: reg.event.location,
-          startDate: reg.event.startDate,
-          endDate: reg.event.endDate,
-          price: reg.event.price,
-        },
-        registrationDate: reg.createdAt,
-        paymentStatus: reg.paymentStatus,
-        status: reg.isDeleted ? 'CANCELLED' : 'ACTIVE',
-        canCancel: timeUntilEvent >= twoWeeksInMs && !reg.isDeleted,
-      };
-    });
-  }, [data]);
-
-  // Stats
-  const stats = useMemo(() => {
-    const upcoming = registrations.filter(
-      (r) => r.status === 'ACTIVE' && new Date(r.event.startDate) > new Date()
-    ).length;
-    const past = registrations.filter(
-      (r) => new Date(r.event.endDate) < new Date()
-    ).length;
-    const cancelled = registrations.filter((r) => r.status === 'CANCELLED').length;
-
-    return {
-      total: registrations.length,
-      upcoming,
-      past,
-      cancelled,
-    };
-  }, [registrations]);
-
-  // Cancel registration mutation
+  
+  const utils = trpc.useUtils();
+  
   const cancelMutation = trpc.events.cancelRegistration.useMutation({
     onSuccess: () => {
-      toast.success('Registration cancelled successfully. Refund will be processed to your wallet.');
+      toast.success('Registration cancelled successfully');
+      setCancellingId(null);
       utils.events.getMyRegistrations.invalidate();
-      setCancelDialogOpen(false);
-      setSelectedRegistration(null);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to cancel registration');
+      setCancellingId(null);
     },
   });
-
-  // Table columns
-  const columns: ColumnDef<Registration>[] = [
-    {
-      accessorKey: 'event.name',
-      header: 'Event Name',
-      cell: ({ row }) => (
-        <div className="font-medium">{row.original.event.name}</div>
-      ),
-    },
-    {
-      accessorKey: 'event.type',
-      header: 'Type',
-      cell: ({ row }) => {
-        const type = row.original.event.type;
-        const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-          WORKSHOP: 'default',
-          TRIP: 'secondary',
-          BAZAAR: 'outline',
-          CONFERENCE: 'outline',
-        };
-        return (
-          <Badge variant={variantMap[type] || 'default'}>
-            {type}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: 'event.startDate',
-      header: 'Start Date',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          {format(new Date(row.original.event.startDate), 'MMM dd, yyyy')}
+  
+  const handleCancel = (registrationId: string) => {
+    setCancellingId(registrationId);
+    cancelMutation.mutate({ registrationId });
+  };
+  
+  const registrations = registrationsData?.registrations || [];
+  
+  // Filter registrations by status
+  const upcomingRegistrations = registrations.filter((r: any) => {
+    const event = r.event;
+    const startDate = new Date(event.startDate);
+    return r.status === 'CONFIRMED' && startDate > new Date();
+  });
+  
+  const pastRegistrations = registrations.filter((r: any) => {
+    const event = r.event;
+    const endDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
+    return endDate < new Date();
+  });
+  
+  const cancelledRegistrations = registrations.filter((r: any) => r.status === 'CANCELLED');
+  
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-5 w-96" />
         </div>
-      ),
-    },
-    {
-      accessorKey: 'event.location',
-      header: 'Location',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          {row.original.event.location}
+        <div className="space-y-4">
+          <RegistrationCardSkeleton />
+          <RegistrationCardSkeleton />
+          <RegistrationCardSkeleton />
         </div>
-      ),
-    },
-    {
-      accessorKey: 'paymentStatus',
-      header: 'Payment',
-      cell: ({ row }) => {
-        const status = row.original.paymentStatus;
-        const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-          COMPLETED: 'default',
-          PENDING: 'secondary',
-          REFUNDED: 'outline',
-        };
-        return (
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-            <Badge variant={variantMap[status] || 'default'}>
-              {status}
-            </Badge>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => {
-        const status = row.original.status;
-        const isPast = new Date(row.original.event.endDate) < new Date();
-        
-        if (isPast) {
-          return <Badge variant="outline">Completed</Badge>;
-        }
-        
-        return (
-          <Badge variant={status === 'ACTIVE' ? 'default' : 'destructive'}>
-            {status}
-          </Badge>
-        );
-      },
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => {
-        const registration = row.original;
-        const isPast = new Date(registration.event.endDate) < new Date();
-
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem>
-                <Eye className="mr-2 h-4 w-4" />
-                View Details
-              </DropdownMenuItem>
-              
-              {!isPast && registration.status === 'ACTIVE' && registration.canCancel && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSelectedRegistration(registration);
-                      setCancelDialogOpen(true);
-                    }}
-                    className="text-destructive"
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Cancel Registration
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
-
-  // Filters configuration
-  const filters: FilterConfig[] = [
-    {
-      key: 'type',
-      label: 'Event Type',
-      options: [
-        { value: 'WORKSHOP', label: 'Workshop' },
-        { value: 'TRIP', label: 'Trip' },
-        { value: 'BAZAAR', label: 'Bazaar' },
-        { value: 'CONFERENCE', label: 'Conference' },
-      ],
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      options: [
-        { value: 'upcoming', label: 'Upcoming' },
-        { value: 'past', label: 'Past' },
-        { value: 'cancelled', label: 'Cancelled' },
-      ],
-    },
-  ];
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">My Registrations</h1>
-        <p className="text-muted-foreground">
-          View and manage all your event registrations
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Registrations</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {stats.upcoming}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Past</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-600">
-              {stats.past}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {stats.cancelled}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Registrations Table */}
-      <GenericDataTable
-        data={registrations}
-        columns={columns}
-        isLoading={isLoading}
-        searchable
-        searchPlaceholder="Search by event name..."
-        filters={filters}
-        pagination={{
-          pageSize: 10,
-          showPageNumbers: true,
-          showPageSizeSelector: true,
-        }}
-        emptyStateTitle="No registrations found"
-        emptyStateDescription="You haven't registered for any events yet"
-        emptyStateIcon={<Calendar className="h-12 w-12 text-muted-foreground" />}
-      />
-
-      {/* Cancel Confirmation Dialog */}
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Registration</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to cancel your registration for{' '}
-              <strong>{selectedRegistration?.event.name}</strong>?
-              {selectedRegistration?.event.price && (
-                <span className="block mt-2">
-                  The registration fee will be refunded to your wallet.
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>No, keep it</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (selectedRegistration) {
-                  cancelMutation.mutate({ registrationId: selectedRegistration.id });
-                }
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Yes, cancel registration
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    <div className="space-y-8">
+      {/* Tabs */}
+      <Tabs defaultValue="upcoming" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="upcoming" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            Upcoming ({upcomingRegistrations.length})
+          </TabsTrigger>
+          <TabsTrigger value="past" className="gap-2">
+            <Clock className="h-4 w-4" />
+            Past ({pastRegistrations.length})
+          </TabsTrigger>
+          <TabsTrigger value="cancelled" className="gap-2">
+            <XCircle className="h-4 w-4" />
+            Cancelled ({cancelledRegistrations.length})
+          </TabsTrigger>
+        </TabsList>        {/* Upcoming Events */}
+        <TabsContent value="upcoming" className="space-y-4 mt-6">
+          {upcomingRegistrations.length === 0 ? (
+            <Card className="p-12 text-center">
+              <CalendarClock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Upcoming Events</h3>
+              <p className="text-muted-foreground mb-6">
+                You haven't registered for any upcoming events yet.
+              </p>
+              <Button onClick={() => window.location.href = ROUTES.EVENTS}>
+                Browse Events
+              </Button>
+            </Card>
+          ) : (
+            upcomingRegistrations.map((registration: any) => (
+              <RegistrationCard
+                key={registration.id}
+                registration={registration}
+                onCancel={handleCancel}
+                isCancelling={cancellingId === registration.id}
+              />
+            ))
+          )}
+        </TabsContent>
+        
+        {/* Past Events */}
+        <TabsContent value="past" className="space-y-4 mt-6">
+          {pastRegistrations.length === 0 ? (
+            <Card className="p-12 text-center">
+              <Clock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Past Events</h3>
+              <p className="text-muted-foreground">
+                You don't have any past event registrations.
+              </p>
+            </Card>
+          ) : (
+            pastRegistrations.map((registration: any) => (
+              <RegistrationCard
+                key={registration.id}
+                registration={registration}
+                onCancel={handleCancel}
+                isCancelling={cancellingId === registration.id}
+              />
+            ))
+          )}
+        </TabsContent>
+        
+        {/* Cancelled Events */}
+        <TabsContent value="cancelled" className="space-y-4 mt-6">
+          {cancelledRegistrations.length === 0 ? (
+            <Card className="p-12 text-center">
+              <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Cancelled Registrations</h3>
+              <p className="text-muted-foreground">
+                You haven't cancelled any event registrations.
+              </p>
+            </Card>
+          ) : (
+            cancelledRegistrations.map((registration: any) => (
+              <RegistrationCard
+                key={registration.id}
+                registration={registration}
+                onCancel={handleCancel}
+                isCancelling={cancellingId === registration.id}
+              />
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
-

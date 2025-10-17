@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import { GymSessionType } from "@event-manager/shared";
 
 
@@ -149,11 +149,6 @@ export function CreateGymSessionDialog({
               {createM.isPending ? "Creating..." : "Create"}
             </Button>
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            Note: we convert your selected local date & time to UTC before sending,
-            so it stores correctly and displays at the right local time.
-          </p>
         </div>
       </DialogContent>
     </Dialog>

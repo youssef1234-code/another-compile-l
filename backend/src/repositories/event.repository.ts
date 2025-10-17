@@ -165,12 +165,16 @@ export class EventRepository extends BaseRepository<IEvent> {
     startDate?: Date;
     endDate?: Date;
     status?: string;
+    maxPrice?: number;
     skip?: number;
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }): Promise<{ events: IEvent[]; total: number }> {
-    const filter: FilterQuery<IEvent> = { isArchived: false } as FilterQuery<IEvent>;
+    const filter: FilterQuery<IEvent> = { 
+      isArchived: false,
+      status: 'PUBLISHED' // Only show published events to frontend
+    } as FilterQuery<IEvent>;
 
     // Text search
     if (params.query) {
@@ -201,6 +205,11 @@ export class EventRepository extends BaseRepository<IEvent> {
       if (params.endDate) {
         (filter.startDate as any).$lte = params.endDate;
       }
+    }
+
+    // Price filter
+    if (params.maxPrice !== undefined) {
+      filter.price = { $lte: params.maxPrice } as any;
     }
 
     // Status filter
@@ -266,7 +275,7 @@ export class EventRepository extends BaseRepository<IEvent> {
 async hasGymOverlap(start: Date, end: Date, excludeId?: string) {
   const q: any = {
     type: 'GYM_SESSION',
-    isDeleted: false,
+    isActive: true,
     isArchived: { $ne: true },
     status: { $ne: 'CANCELLED' },
     // proper interval overlap: [a,b) overlaps [c,d) if a < d && b > c

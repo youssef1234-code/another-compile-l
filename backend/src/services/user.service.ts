@@ -734,6 +734,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       filterId: string;
     }>;
     joinOperator?: 'and' | 'or'; // Add join operator support
+    pendingApprovalsOnly?: boolean; // Special filter for pending approvals
   }): Promise<{
     users: any[];
     total: number;
@@ -746,6 +747,23 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
 
     // Build base filter
     const filter: any = {};
+
+    // Handle special pending approvals filter
+    // Show users needing approval:
+    // 1. Academic roles (PROFESSOR, TA, STAFF) with roleVerifiedByAdmin=false
+    // 2. Vendors with vendorApprovalStatus=PENDING
+    if (data.pendingApprovalsOnly) {
+      filter.$or = [
+        {
+          role: { $in: ['PROFESSOR', 'TA', 'STAFF'] },
+          roleVerifiedByAdmin: false,
+        },
+        {
+          role: 'VENDOR',
+          vendorApprovalStatus: 'PENDING',
+        },
+      ];
+    }
 
     // Handle simple faceted filters from tablecn (advanced mode)
     if (data.filters) {
@@ -765,6 +783,40 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
           filter.isBlocked = true;
         }
         // If both, don't add filter (show all)
+      }
+
+      // Email Verified filter
+      if (data.filters.isVerified && data.filters.isVerified.length > 0) {
+        const includeVerified = data.filters.isVerified.includes('true');
+        const includeUnverified = data.filters.isVerified.includes('false');
+        
+        if (includeVerified && !includeUnverified) {
+          filter.isVerified = true;
+        } else if (includeUnverified && !includeVerified) {
+          filter.isVerified = false;
+        }
+        // If both or neither, don't add filter (show all)
+      }
+
+      // Role Verified filter
+      if (data.filters.roleVerifiedByAdmin && data.filters.roleVerifiedByAdmin.length > 0) {
+        const includeVerified = data.filters.roleVerifiedByAdmin.includes('true');
+        const includePending = data.filters.roleVerifiedByAdmin.includes('false');
+        
+        if (includeVerified && !includePending) {
+          filter.roleVerifiedByAdmin = true;
+        } else if (includePending && !includeVerified) {
+          filter.roleVerifiedByAdmin = false;
+        }
+        // If both or neither, don't add filter (show all)
+      }
+
+      // Vendor Status filter
+      if (data.filters.vendorStatus && data.filters.vendorStatus.length > 0) {
+        // Only apply if not all three are selected (which would mean show all)
+        if (data.filters.vendorStatus.length < 3) {
+          filter.vendorApprovalStatus = { $in: data.filters.vendorStatus };
+        }
       }
     }
 
@@ -925,6 +977,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       isVerified: user.isVerified,
       isBlocked: user.isBlocked,
       roleVerifiedByAdmin: user.roleVerifiedByAdmin,
+      vendorApprovalStatus: user.vendorApprovalStatus,
+      vendorRejectionReason: user.vendorRejectionReason,
       createdAt: user.createdAt
     }));
 

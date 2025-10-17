@@ -13,15 +13,25 @@
  */
 
 import type { User } from '@event-manager/shared';
-import { Download, UserPlus, Users, UserCheck, UserX } from 'lucide-react';
+import { Download, UserPlus, Users, UserCheck, UserX, Filter, FilterX } from 'lucide-react';
 import { useMemo, useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson } from 'nuqs';
+import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson, parseAsBoolean } from 'nuqs';
 
 import { PageHeader, FormSheet, FormSheetContent, FormSheetField, FormSheetFooter, ConfirmDialog } from '@/components/generic';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { exportToCSV, formatDate } from '@/lib/design-system';
 import { trpc } from '@/lib/trpc';
 import { UsersTable } from '../components/users-table';
@@ -38,6 +48,11 @@ export function AdminUsersPage() {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; userId: string }>({
     open: false,
     userId: '',
+  });
+  const [rejectVendorDialog, setRejectVendorDialog] = useState<{ open: boolean; userId: string; reason: string }>({
+    open: false,
+    userId: '',
+    reason: '',
   });
   
   // Form state for creating users
@@ -59,6 +74,10 @@ export function AdminUsersPage() {
   // Read simple filters from URL - these are managed by DataTableFacetedFilter (advanced mode)
   const [roleFilter] = useQueryState('role', parseAsArrayOf(parseAsString, ',').withDefault([]));
   const [statusFilter] = useQueryState('status', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [isVerifiedFilter] = useQueryState('isVerified', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [roleVerifiedFilter] = useQueryState('roleVerifiedByAdmin', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [vendorStatusFilter] = useQueryState('vendorStatus', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [showPendingApprovals, setShowPendingApprovals] = useQueryState('pendingApprovals', parseAsBoolean.withDefault(false));
 
   // Read extended filters from URL - these are managed by DataTableFilterMenu (command mode)
   const [extendedFiltersState] = useQueryState('filters', parseAsJson<Array<any>>([] as any).withDefault([]));
@@ -71,8 +90,11 @@ export function AdminUsersPage() {
     const result: Record<string, string[]> = {};
     if (roleFilter.length > 0) result.role = roleFilter;
     if (statusFilter.length > 0) result.status = statusFilter;
+    if (isVerifiedFilter.length > 0) result.isVerified = isVerifiedFilter;
+    if (roleVerifiedFilter.length > 0) result.roleVerifiedByAdmin = roleVerifiedFilter;
+    if (vendorStatusFilter.length > 0) result.vendorStatus = vendorStatusFilter;
     return result;
-  }, [roleFilter, statusFilter]);
+  }, [roleFilter, statusFilter, isVerifiedFilter, roleVerifiedFilter, vendorStatusFilter]);
 
   // Parse extended filters (command mode)
   const extendedFilters = useMemo(() => {
@@ -113,6 +135,7 @@ export function AdminUsersPage() {
       filters: Object.keys(filters).length > 0 ? filters : undefined,
       extendedFilters: extendedFilters,
       joinOperator: (joinOperator === 'or' ? 'or' : 'and') as 'and' | 'or',
+      pendingApprovalsOnly: showPendingApprovals || undefined,
     },
     {
       placeholderData: (previousData) => previousData,
@@ -187,6 +210,28 @@ export function AdminUsersPage() {
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to verify role');
+    },
+  });
+
+  const approveVendorMutation = trpc.auth.processVendorApproval.useMutation({
+    onSuccess: () => {
+      toast.success('Vendor approved successfully');
+      utils.auth.getAllUsers.invalidate();
+      utils.auth.getUserStats.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to approve vendor');
+    },
+  });
+
+  const rejectVendorMutation = trpc.auth.processVendorApproval.useMutation({
+    onSuccess: () => {
+      toast.success('Vendor rejected');
+      utils.auth.getAllUsers.invalidate();
+      utils.auth.getUserStats.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to reject vendor');
     },
   });
 
@@ -278,6 +323,28 @@ export function AdminUsersPage() {
     verifyRoleMutation.mutate({ userId });
   }, [verifyRoleMutation]);
 
+  const handleApproveVendor = useCallback((userId: string) => {
+    approveVendorMutation.mutate({ userId, status: 'APPROVED' });
+  }, [approveVendorMutation]);
+
+  const handleRejectVendor = useCallback((userId: string) => {
+    setRejectVendorDialog({ open: true, userId, reason: '' });
+  }, []);
+
+  const confirmRejectVendor = useCallback(() => {
+    if (!rejectVendorDialog.reason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
+    
+    rejectVendorMutation.mutate({
+      userId: rejectVendorDialog.userId,
+      status: 'REJECTED',
+      rejectionReason: rejectVendorDialog.reason,
+    });
+    setRejectVendorDialog({ open: false, userId: '', reason: '' });
+  }, [rejectVendorDialog, rejectVendorMutation]);
+
   const handleBlockUser = useCallback((userId: string) => {
     // Find user to check if blocked
     const user = data?.users.find((u: User) => u.id === userId);
@@ -330,6 +397,10 @@ export function AdminUsersPage() {
     });
   }, [createForm, createUserMutation]);
 
+  const handleTogglePendingApprovals = useCallback(() => {
+    setShowPendingApprovals(!showPendingApprovals);
+  }, [showPendingApprovals, setShowPendingApprovals]);
+
   const handleExport = useCallback(async () => {
     try {
       // Export with current filters, sort, and search applied
@@ -376,6 +447,14 @@ export function AdminUsersPage() {
         stats={stats}
         actions={
           <>
+            <Button 
+              variant={showPendingApprovals ? "default" : "outline"} 
+              onClick={handleTogglePendingApprovals} 
+              className="gap-2"
+            >
+              {showPendingApprovals ? <FilterX className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
+              {showPendingApprovals ? 'Show All Users' : 'Show Pending Approvals'}
+            </Button>
             <Button variant="outline" onClick={handleExport} className="gap-2" disabled={isLoading}>
               <Download className="h-4 w-4" />
               Export {search || Object.keys(filters).length > 0 ? 'Filtered' : 'All'}
@@ -401,6 +480,8 @@ export function AdminUsersPage() {
           isSearching={isLoading}
           onUpdateUser={handleUpdateUser}
           onVerifyRole={handleVerifyRole}
+          onApproveVendor={handleApproveVendor}
+          onRejectVendor={handleRejectVendor}
           onBlockUser={handleBlockUser}
           onUnblockUser={handleUnblockUser}
           onDeleteUser={handleDeleteUser}
@@ -510,6 +591,48 @@ export function AdminUsersPage() {
         onConfirm={confirmDelete}
         variant="destructive"
       />
+
+      {/* Vendor Rejection Dialog */}
+      <Dialog 
+        open={rejectVendorDialog.open} 
+        onOpenChange={(open) => setRejectVendorDialog({ ...rejectVendorDialog, open })}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Vendor Application</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this vendor application. This will be sent to the applicant.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reason">Rejection Reason</Label>
+              <Textarea
+                id="reason"
+                placeholder="e.g., Documentation incomplete, business license not valid, etc."
+                value={rejectVendorDialog.reason}
+                onChange={(e) => setRejectVendorDialog({ ...rejectVendorDialog, reason: e.target.value })}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setRejectVendorDialog({ open: false, userId: '', reason: '' })}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={confirmRejectVendor}
+              disabled={rejectVendorMutation.isPending}
+            >
+              {rejectVendorMutation.isPending ? 'Rejecting...' : 'Reject Application'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

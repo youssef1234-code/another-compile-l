@@ -25,7 +25,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
 
     const query = { 
       user: new mongoose.Types.ObjectId(userId),
-      isDeleted: false 
+      isActive: true
     };
 
     const [registrations, total] = await Promise.all([
@@ -57,7 +57,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
 
     const query = { 
       event: new mongoose.Types.ObjectId(eventId),
-      isDeleted: false 
+      isActive: true 
     };
 
     const [registrations, total] = await Promise.all([
@@ -86,7 +86,8 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
     const count = await this.model.countDocuments({
       user: new mongoose.Types.ObjectId(userId),
       event: new mongoose.Types.ObjectId(eventId),
-      isDeleted: false,
+      status: 'CONFIRMED', // Only count confirmed registrations
+      isActive: true,
     });
     return count > 0;
   }
@@ -99,7 +100,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
       .findOne({
         user: new mongoose.Types.ObjectId(userId),
         event: new mongoose.Types.ObjectId(eventId),
-        isDeleted: false,
+        isActive: true,
       })
       .populate('event')
       .lean();
@@ -111,7 +112,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
   async countByEvent(eventId: string): Promise<number> {
     return this.model.countDocuments({
       event: new mongoose.Types.ObjectId(eventId),
-      isDeleted: false,
+      isActive: true,
     });
   }
 
@@ -129,7 +130,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
     const allRegistrations = await this.model
       .find({
         user: new mongoose.Types.ObjectId(userId),
-        isDeleted: false,
+        isActive: true,
       })
       .populate('event')
       .lean();
@@ -164,7 +165,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
     const allRegistrations = await this.model
       .find({
         user: new mongoose.Types.ObjectId(userId),
-        isDeleted: false,
+        isActive: true,
       })
       .populate('event')
       .lean();

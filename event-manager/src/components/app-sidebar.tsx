@@ -20,7 +20,6 @@ import {
   Heart,
   CreditCard,
   BarChart3,
-  UserCheck,
   CheckSquare,
   Package,
   ClipboardList,
@@ -87,7 +86,6 @@ const navigationConfig: NavItem[] = [
     items: [
       { title: "Browse Events", url: ROUTES.EVENTS, icon: Calendar },
       { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: Settings, roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"] },
-      { title: "My Registrations", url: ROUTES.MY_REGISTRATIONS, icon: CheckSquare, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
       { title: "Favorites", url: ROUTES.FAVORITES, icon: Heart, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
       { title: "Create Workshop", url: ROUTES.CREATE_WORKSHOP, icon: GraduationCap, roles: ["PROFESSOR"] },
       { title: "My Workshops", url: ROUTES.MY_WORKSHOPS, icon: FileText, roles: ["PROFESSOR"] },
@@ -126,9 +124,6 @@ const navigationConfig: NavItem[] = [
     roles: ["ADMIN"],
     items: [
       { title: "All Users", url: ROUTES.ADMIN_USERS, icon: Users },
-      { title: "Role Approvals", url: ROUTES.ADMIN_ROLE_APPROVALS, icon: UserCheck },
-      { title: "Vendor Approvals", url: ROUTES.ADMIN_VENDOR_APPROVALS, icon: CheckSquare },
-      { title: "Manage Accounts", url: ROUTES.ADMIN_MANAGE_ACCOUNTS, icon: Settings },
       { title: "Reports", url: ROUTES.ADMIN_REPORTS, icon: BarChart3 },
       { title: "Comments", url: ROUTES.ADMIN_COMMENTS, icon: FileText },
     ],
