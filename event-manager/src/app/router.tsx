@@ -1,33 +1,33 @@
 /**
  * React Router Configuration
- * 
+ *
  * @module app/router
  */
 
-import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { ROUTES } from '@/lib/constants';
+import { createBrowserRouter, Navigate } from "react-router-dom";
+import { ROUTES } from "@/lib/constants";
 
 // Layouts
-import { AppLayout } from '@/components/layout/AppLayout';
+import { AppLayout } from "@/components/layout/AppLayout";
 
 // Pages
-import { LoginPage } from '@/features/auth/pages/LoginPage';
-import { SignupPage } from '@/features/auth/pages/SignupPage';
-import { SignupVendorPage } from '@/features/auth/pages/SignupVendorPage';
-import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage';
-import { RequestVerificationPage } from '@/features/auth/pages/RequestVerificationPage';
-import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
-import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
+import { LoginPage } from "@/features/auth/pages/LoginPage";
+import { SignupPage } from "@/features/auth/pages/SignupPage";
+import { SignupVendorPage } from "@/features/auth/pages/SignupVendorPage";
+import { VerifyEmailPage } from "@/features/auth/pages/VerifyEmailPage";
+import { RequestVerificationPage } from "@/features/auth/pages/RequestVerificationPage";
+import { ForgotPasswordPage } from "@/features/auth/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
 
 // Dashboard
-import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
-import { NotificationsPage } from '@/features/dashboard/pages';
+import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
+import { NotificationsPage } from "@/features/dashboard/pages";
 
 // Events
-import { EventsPage, EventDetailsPage } from '@/features/events/pages';
-import { MyEventsPage } from '@/features/events/pages/MyEventsPage';
-import { FavoritesPage } from '@/features/events/pages/FavoritesPage';
-import { EditBazaarPage } from '@/features/events/pages/EditBazaarPage';
+import { EventsPage, EventDetailsPage } from "@/features/events/pages";
+import { MyEventsPage } from "@/features/events/pages/MyEventsPage";
+import { FavoritesPage } from "@/features/events/pages/FavoritesPage";
+import { EditBazaarPage } from "@/features/events/pages/EditBazaarPage";
 import {
   MyRegistrationsPage,
   CreateWorkshopPage,
@@ -38,7 +38,7 @@ import {
   EditWorkshopPage,
   EditTripPage,
   EditConferencePage,
-} from '@/features/events/pages';
+} from "@/features/events/pages";
 
 // Vendors
 import {
@@ -46,7 +46,7 @@ import {
   VendorApplicationsPage,
   LoyaltyProgramPage,
   VendorRequestsPage,
-} from '@/features/vendors/pages';
+} from "@/features/vendors/pages";
 
 // Gym & Sports
 import {
@@ -54,42 +54,47 @@ import {
   MySessionsPage,
   CourtBookingsPage,
   ManageSessionsPage,
-} from '@/features/gym/pages';
+} from "@/features/gym/pages";
 
 // Admin
-import { AdminUsersPage } from '@/features/admin/pages/AdminUsersPage';
+import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
 import {
   AcademicRoleApprovalsPage,
   VendorApprovalsPage,
   CommentsPage,
   ManageAccountsPage,
   ReportsPage,
-} from '@/features/admin/pages';
+} from "@/features/admin/pages";
 
 // Events - Back Office
-import { BackOfficeEventsPage } from '@/features/events/pages';
+import { BackOfficeEventsPage } from "@/features/events/pages";
 
 // Events Office
-import { BazaarManagementPage } from '@/features/events-office/pages/BazaarManagementPage';
+import { BazaarManagementPage } from "@/features/events-office/pages/BazaarManagementPage";
 import {
   WorkshopApprovalsPage,
   VendorPollsPage,
   EventOfficeReportsPage,
   QRCodesPage,
-} from '@/features/events-office/pages';
+} from "@/features/events-office/pages";
 
 // Wallet
-import { WalletPage } from '@/features/wallet/pages';
+import { WalletPage } from "@/features/wallet/pages";
 
 // Profile
-import { ProfilePage } from '@/features/profile/pages/ProfilePage';
+import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 
 // Protected Route Component
-import { ProtectedRoute, AdminRoute, EventOfficeRoute } from '@/components/auth/ProtectedRoute';
+import {
+  ProtectedRoute,
+  AdminRoute,
+  EventOfficeRoute,
+} from "@/components/auth/ProtectedRoute";
+import { AllApplicationPage } from "@/features/vendors/pages/AllApplicationsPage";
 
 export const router = createBrowserRouter([
   {
-    path: '/',
+    path: "/",
     element: <Navigate to={ROUTES.DASHBOARD} replace />,
   },
   // Auth Routes (no layout wrapper - each page handles its own layout)
@@ -110,7 +115,7 @@ export const router = createBrowserRouter([
     element: <VerifyEmailPage />,
   },
   {
-    path: '/request-verification',
+    path: "/request-verification",
     element: <RequestVerificationPage />,
   },
   {
@@ -122,7 +127,7 @@ export const router = createBrowserRouter([
     element: <ResetPasswordPage />,
   },
   {
-    path: '/',
+    path: "/",
     element: (
       <ProtectedRoute>
         <AppLayout />
@@ -137,7 +142,7 @@ export const router = createBrowserRouter([
         path: ROUTES.NOTIFICATIONS,
         element: <NotificationsPage />,
       },
-      
+
       // Events Routes
       {
         path: ROUTES.EVENTS,
@@ -195,7 +200,7 @@ export const router = createBrowserRouter([
         path: ROUTES.EDIT_BAZAAR,
         element: <EditBazaarPage />,
       },
-      
+
       // Vendor Routes
       {
         path: ROUTES.BROWSE_BAZAARS,
@@ -213,7 +218,11 @@ export const router = createBrowserRouter([
         path: ROUTES.VENDOR_REQUESTS,
         element: <VendorRequestsPage />,
       },
-      
+      {
+        path: ROUTES.ALL_APPLICATIONS,
+        element: <AllApplicationPage />,
+      },
+
       // Gym & Sports Routes
       {
         path: ROUTES.GYM_SCHEDULE,
@@ -231,7 +240,7 @@ export const router = createBrowserRouter([
         path: ROUTES.MANAGE_SESSIONS,
         element: <ManageSessionsPage />,
       },
-      
+
       // Admin Routes
       {
         path: ROUTES.ADMIN_USERS,
@@ -289,7 +298,7 @@ export const router = createBrowserRouter([
           </AdminRoute>
         ),
       },
-      
+
       // Events Office Routes
       {
         path: ROUTES.WORKSHOP_APPROVALS,
@@ -331,13 +340,13 @@ export const router = createBrowserRouter([
           </EventOfficeRoute>
         ),
       },
-      
+
       // Wallet
       {
         path: ROUTES.WALLET,
         element: <WalletPage />,
       },
-      
+
       // Profile
       {
         path: ROUTES.PROFILE,

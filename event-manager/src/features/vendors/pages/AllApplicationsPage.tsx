@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import {
   Card,
@@ -7,25 +6,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { toast } from "react-hot-toast";
-import {
   CheckCircle2,
-  XCircle,
   Calendar,
   MapPin,
   Clock,
   Briefcase,
   Store,
+  BadgeCheckIcon,
+  BadgeXIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { LoadingSpinner } from "@/components/generic/LoadingSpinner";
@@ -44,53 +34,15 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
 };
 
-export function VendorRequestsPage() {
-  const [selectedApplication, setSelectedApplication] =
-    useState<VendorApplication | null>(null);
-  const [actionDialog, setActionDialog] = useState<"approve" | "reject" | null>(
-    null,
-  );
-
-  const {
-    data: applicationData,
-    isLoading,
-    refetch,
-  } = trpc.vendorApplications.getApplications.useQuery({
-    page: 1,
-    limit: 100,
-    status: "PENDING",
-  });
-
-  const updateMutation = trpc.vendorApplications.update.useMutation({
-    onSuccess: () => {
-      toast.success("Application updated successfully");
-      setActionDialog(null);
-      setSelectedApplication(null);
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update application");
-    },
-  });
+export function AllApplicationPage() {
+  const { data: applicationData, isLoading } =
+    trpc.vendorApplications.getApplications.useQuery({
+      page: 1,
+      limit: 100,
+    });
 
   const applications = (applicationData?.applications ||
     []) as VendorApplication[];
-
-  const handleApprove = () => {
-    if (!selectedApplication) return;
-    updateMutation.mutate({
-      id: selectedApplication.id,
-      status: { status: "APPROVED" as any },
-    });
-  };
-
-  const handleReject = () => {
-    if (!selectedApplication) return;
-    updateMutation.mutate({
-      id: selectedApplication.id,
-      status: { status: "REJECTED" as any },
-    });
-  };
 
   if (isLoading) {
     return (
@@ -99,7 +51,6 @@ export function VendorRequestsPage() {
       </div>
     );
   }
-
   return (
     <motion.div
       variants={containerVariants}
@@ -113,10 +64,10 @@ export function VendorRequestsPage() {
           <CardHeader>
             <CardTitle className="text-3xl font-bold flex items-center gap-2">
               <CheckCircle2 className="h-8 w-8" />
-              Application Applrovals
+              View Applications
             </CardTitle>
             <CardDescription>
-              Review and approve vendor application submissions
+              View all submitted applications by vendors
             </CardDescription>
           </CardHeader>
         </Card>
@@ -132,7 +83,7 @@ export function VendorRequestsPage() {
                 <div className="text-center space-y-2">
                   <h3 className="text-xl font-semibold">All caught up!</h3>
                   <p className="text-muted-foreground">
-                    No pending application approvals at this time
+                    No application have been created at this time
                   </p>
                 </div>
               </div>
@@ -160,9 +111,28 @@ export function VendorRequestsPage() {
                             : "Application for Platform Booth"}
                         </CardTitle>
                       </div>
-                      <Badge variant="secondary" className="ml-4">
-                        Pending Review
-                      </Badge>
+                      {application.status === "APPROVED" && (
+                        <Badge
+                          variant="secondary"
+                          className="ml-4 bg-green-800 text-white"
+                        >
+                          <BadgeCheckIcon /> Approved
+                        </Badge>
+                      )}
+                      {application.status === "PENDING" && (
+                        <Badge variant="secondary" className="ml-4">
+                          Pending
+                        </Badge>
+                      )}
+                      {application.status === "REJECTED" && (
+                        <Badge
+                          variant="secondary"
+                          className="ml-4 bg-red-800 text-white"
+                        >
+                          <BadgeXIcon />
+                          Rejected
+                        </Badge>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
@@ -224,30 +194,6 @@ export function VendorRequestsPage() {
                         ))}
                       </div>
                     </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-3 mt-6 pt-6 border-t">
-                      <Button
-                        onClick={() => {
-                          setSelectedApplication(application);
-                          setActionDialog("approve");
-                        }}
-                        className="flex-1"
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Approve
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => {
-                          setSelectedApplication(application);
-                          setActionDialog("reject");
-                        }}
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Reject
-                      </Button>
-                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -255,59 +201,6 @@ export function VendorRequestsPage() {
           </div>
         )}
       </motion.div>
-
-      {/* Approve Dialog */}
-      <Dialog
-        open={actionDialog === "approve"}
-        onOpenChange={() => setActionDialog(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Approve Workshop</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to approve{" "}
-              {selectedApplication?.companyName}'s application? This will make
-              it visible to all users.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setActionDialog(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleApprove} disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? "Approving..." : "Approve & Publish"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reject Dialog */}
-      <Dialog
-        open={actionDialog === "reject"}
-        onOpenChange={() => setActionDialog(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Workshop</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to reject {selectedApplication?.companyName}
-              's request?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setActionDialog(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={updateMutation.isPending}
-            >
-              {updateMutation.isPending ? "Rejecting..." : "Reject Workshop"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </motion.div>
   );
 }

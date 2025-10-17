@@ -707,6 +707,7 @@ export interface Event {
 }
 
 export interface VendorApplication {
+  id: string;
   companyName: string;
   names: string[];
   emails: string[];
