@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
+import { formatValidationErrors } from '@/lib/format-errors';
 import {
   FormSheet,
   FormSheetContent,
@@ -57,6 +58,8 @@ interface CreateEventSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  initialType?: EventType; // Pre-select event type (e.g., for professors)
+  skipTypeSelection?: boolean; // Skip type selection step and go directly to details
 }
 
 const EVENT_TYPE_LABELS: Record<EventType, string> = {
@@ -69,23 +72,37 @@ const EVENT_TYPE_LABELS: Record<EventType, string> = {
 
 type DateValue = Date | null;
 
-export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventSheetProps) {
+export function CreateEventSheet({ 
+  open, 
+  onOpenChange, 
+  onSuccess,
+  initialType,
+  skipTypeSelection = false
+}: CreateEventSheetProps) {
   const { user } = useAuthStore();
   const [step, setStep] = useState<'type' | 'details'>('type');
   const [pendingType, setPendingType] = useState<EventType | null>(null);
   const [selectedType, setSelectedType] = useState<EventType | null>(null);
 
+  // Auto-set type and skip to details if initialType is provided
+  useEffect(() => {
+    if (open && initialType && skipTypeSelection) {
+      setSelectedType(initialType);
+      setStep('details');
+    }
+  }, [open, initialType, skipTypeSelection]);
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     location: 'ON_CAMPUS' as 'ON_CAMPUS' | 'OFF_CAMPUS',
-    locationDetails: '',
+    locationDetails: 'GUC Cairo', // Default for workshops, will be string for other events
     startDate: null as DateValue,
     endDate: null as DateValue,
     capacity: 50,
     price: 0,
     faculty: '',
-    professorName: '',
+    professors: [''], // Requirement #35: Multiple professors allowed
     requiredBudget: '',
     fundingSource: '',
     extraResources: '',
@@ -107,13 +124,13 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
       name: '',
       description: '',
       location: 'ON_CAMPUS',
-      locationDetails: '',
+      locationDetails: 'GUC Cairo',
       startDate: null,
       endDate: null,
       capacity: 50,
       price: 0,
       faculty: '',
-      professorName: '',
+      professors: [''],
       requiredBudget: '',
       fundingSource: '',
       extraResources: '',
@@ -136,7 +153,9 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create event');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+      // DO NOT close the sheet - keep it open so user can fix errors
     },
   });
 
@@ -149,7 +168,24 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create gym session');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+      // DO NOT close the sheet - keep it open so user can fix errors
+    },
+  });
+
+  // Workshop creation mutation (Professors) - Sets status to PENDING_APPROVAL
+  const createWorkshopMutation = trpc.events.createWorkshop.useMutation({
+    onSuccess: () => {
+      toast.success('Workshop submitted for approval!');
+      resetFlow();
+      onOpenChange(false);
+      onSuccess?.();
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+      // DO NOT close the sheet - keep it open so user can fix errors
     },
   });
 
@@ -232,29 +268,24 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
           duration: formData.duration,
         });
       } else if (selectedType === 'WORKSHOP' && user?.role === 'PROFESSOR') {
-        // Professors create workshops that need approval
-        // IMPORTANT: Workshop schema has a different shape!
-        // For now, use the generic create endpoint since CreateWorkshopSchema is incorrectly defined
-        await createMutation.mutateAsync({
+        // Professors create workshops that need approval (status: PENDING_APPROVAL)
+        await createWorkshopMutation.mutateAsync({
+          type: 'WORKSHOP' as const,
           name: formData.name.trim(),
           description: formData.description.trim(),
-          type: 'WORKSHOP',
           location: formData.location,
-          locationDetails: formData.locationDetails.trim(),
+          locationDetails: formData.locationDetails as 'GUC Cairo' | 'GUC Berlin',
           startDate: formData.startDate!,
-          endDate: formData.endDate || undefined,
+          endDate: formData.endDate!,
           capacity: formData.capacity,
-          price: formData.price,
-          registrationDeadline: formData.registrationDeadline || undefined,
-          requirements: formData.requirements?.trim() || undefined,
-          images: formData.images && formData.images.length > 0 ? formData.images : undefined,
-          faculty: formData.faculty || undefined,
-          professorName: formData.professorName?.trim() || undefined,
-          requiredBudget: formData.requiredBudget ? Number(formData.requiredBudget) : undefined,
-          fundingSource: formData.fundingSource || undefined,
+          registrationDeadline: formData.registrationDeadline!,
+          faculty: formData.faculty as any,
+          professors: formData.professors.filter(p => p.trim()),
+          fullAgenda: formData.fullAgenda?.trim() || '',
+          requiredBudget: formData.requiredBudget ? Number(formData.requiredBudget) : 0,
+          fundingSource: formData.fundingSource as any,
           extraResources: formData.extraResources?.trim() || undefined,
-          fullAgenda: formData.fullAgenda?.trim() || undefined,
-        } as any);
+        });
       } else {
         // TRIP, BAZAAR, CONFERENCE created by Events Office
         // Build type-specific payloads based on requirements
@@ -453,12 +484,62 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
                 </Select>
               </FormSheetField>
 
-              <FormSheetField label="Professor name (optional)">
-                <Input
-                  value={formData.professorName}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, professorName: e.target.value }))}
-                  placeholder="Lead professor or facilitator"
-                />
+              <FormSheetField label="Campus location" required>
+                <Select
+                  value={formData.locationDetails}
+                  onValueChange={(value: 'GUC Cairo' | 'GUC Berlin') => setFormData((prev) => ({ ...prev, locationDetails: value }))}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select campus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GUC Cairo">GUC Cairo</SelectItem>
+                    <SelectItem value="GUC Berlin">GUC Berlin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormSheetField>
+
+              <FormSheetField label="Professor(s) participating" required>
+                <div className="space-y-2">
+                  {formData.professors.map((professor, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={professor}
+                        onChange={(e) => {
+                          const newProfessors = [...formData.professors];
+                          newProfessors[index] = e.target.value;
+                          setFormData((prev) => ({ ...prev, professors: newProfessors }));
+                        }}
+                        placeholder={`Professor ${index + 1} name`}
+                        required={index === 0}
+                      />
+                      {index === formData.professors.length - 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setFormData((prev) => ({ ...prev, professors: [...prev.professors, ''] }))}
+                        >
+                          +
+                        </Button>
+                      )}
+                      {formData.professors.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            const newProfessors = formData.professors.filter((_, i) => i !== index);
+                            setFormData((prev) => ({ ...prev, professors: newProfessors.length > 0 ? newProfessors : [''] }));
+                          }}
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </FormSheetField>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -483,8 +564,8 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
                       <SelectValue placeholder="Select source" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="UNIVERSITY">University (GUC)</SelectItem>
-                      <SelectItem value="EXTERNAL_FUNDING">External funding</SelectItem>
+                      <SelectItem value="GUC">GUC</SelectItem>
+                      <SelectItem value="EXTERNAL">External</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormSheetField>
@@ -610,8 +691,8 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
                       <SelectValue placeholder="Select source" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="UNIVERSITY">University (GUC)</SelectItem>
-                      <SelectItem value="EXTERNAL_FUNDING">External funding</SelectItem>
+                      <SelectItem value="GUC">GUC</SelectItem>
+                      <SelectItem value="EXTERNAL">External</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormSheetField>
@@ -666,15 +747,17 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
                 </Select>
               </FormSheetField>
 
-              <FormSheetField label="Location details" required>
-                <Input
-                  required
-                  minLength={5}
-                  value={formData.locationDetails}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, locationDetails: e.target.value }))}
-                  placeholder="Building, room, or meeting point"
-                />
-              </FormSheetField>
+              {selectedType !== 'WORKSHOP' && (
+                <FormSheetField label="Location details" required>
+                  <Input
+                    required
+                    minLength={5}
+                    value={typeof formData.locationDetails === 'string' ? formData.locationDetails : ''}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, locationDetails: e.target.value }))}
+                    placeholder="Building, room, or meeting point"
+                  />
+                </FormSheetField>
+              )}
             </div>
 
             <FormSheetField 
@@ -746,14 +829,16 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
       </FormSheetContent>
 
       <FormSheetFooter>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleBackToTypeSelection}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+        {!skipTypeSelection && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleBackToTypeSelection}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+        )}
         <Button type="submit" disabled={createMutation.isPending}>
           {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           <Save className="mr-2 h-4 w-4" />

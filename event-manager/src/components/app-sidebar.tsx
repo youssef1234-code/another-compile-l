@@ -53,7 +53,7 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuthStore } from "@/store/authStore"
 import { trpc } from "@/lib/trpc"
-import { toast } from "sonner"
+import { toast } from "react-hot-toast"
 import { ROUTES } from "@/lib/constants"
 import { getAvatarSrc } from "@event-manager/shared"
 import {
@@ -87,8 +87,6 @@ const navigationConfig: NavItem[] = [
       { title: "Browse Events", url: ROUTES.EVENTS, icon: Calendar },
       { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: Settings, roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"] },
       { title: "Favorites", url: ROUTES.FAVORITES, icon: Heart, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
-      { title: "Create Workshop", url: ROUTES.CREATE_WORKSHOP, icon: GraduationCap, roles: ["PROFESSOR"] },
-      { title: "My Workshops", url: ROUTES.MY_WORKSHOPS, icon: FileText, roles: ["PROFESSOR"] },
       { title: "Create Trip", url: ROUTES.CREATE_TRIP, icon: MapPin, roles: ["EVENT_OFFICE"] },
       { title: "Create Bazaar", url: ROUTES.CREATE_BAZAAR, icon: ShoppingBag, roles: ["EVENT_OFFICE"] },
       { title: "Create Conference", url: ROUTES.CREATE_CONFERENCE, icon: Building2, roles: ["EVENT_OFFICE"] },
@@ -131,10 +129,10 @@ const navigationConfig: NavItem[] = [
   {
     title: "Events Office",
     icon: Building2,
-    url: ROUTES.WORKSHOP_APPROVALS,
+    url: ROUTES.ADMIN_EVENTS,
     roles: ["EVENT_OFFICE"],
     items: [
-      { title: "Workshop Approvals", url: ROUTES.WORKSHOP_APPROVALS, icon: GraduationCap },
+      { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: GraduationCap },
       { title: "Vendor Polls", url: ROUTES.VENDOR_POLLS, icon: Vote },
       { title: "Reports", url: ROUTES.EVENT_OFFICE_REPORTS, icon: BarChart3 },
       { title: "QR Codes", url: ROUTES.QR_CODES, icon: Package },

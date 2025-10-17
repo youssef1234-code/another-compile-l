@@ -35,7 +35,8 @@ import {
   CheckCircle,
   XCircle,
   Mail,
-  CheckSquare
+  CheckSquare,
+  GraduationCap
 } from "lucide-react";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
@@ -89,9 +90,41 @@ export function EventDetailsPage() {
     { enabled: !!id && !!user }
   );
 
+  // Check if the current user is a professor who owns this workshop
+  // createdBy might be populated (object) or just an ID (string)
+  const eventCreatorId = event && typeof event.createdBy === 'object' && event.createdBy !== null
+    ? (event.createdBy as any).id
+    : event?.createdBy;
+  
+  const isProfessorOwned = user?.role === 'PROFESSOR' && 
+    event && 
+    event.type === 'WORKSHOP' &&
+    eventCreatorId === user.id; // Compare user IDs, not names!
+
+  // Debug logging
+  if (user?.role === 'PROFESSOR' && event?.type === 'WORKSHOP') {
+    console.log('🔍 Frontend Professor Workshop Check:', {
+      eventId: event.id,
+      eventType: event.type,
+      createdByType: typeof event.createdBy,
+      createdByRaw: event.createdBy,
+      eventCreatorId: eventCreatorId,
+      currentUserId: user.id,
+      idsMatch: eventCreatorId === user.id,
+      isProfessorOwned
+    });
+  }
+
+  // Allow EVENT_OFFICE, ADMIN, or professors to view registrations for their own workshops
+  const canViewRegistrations = user && (
+    user.role === "EVENT_OFFICE" || 
+    user.role === "ADMIN" || 
+    isProfessorOwned
+  );
+
   const { data: registrationsData } = trpc.events.getEventRegistrations.useQuery(
     { eventId: id!, page: 1, limit: 100 },
-    { enabled: !!id && (user?.role === "EVENT_OFFICE" || user?.role === "ADMIN") }
+    { enabled: !!id && !!canViewRegistrations }
   );
 
   const utils = trpc.useUtils();
@@ -131,7 +164,8 @@ export function EventDetailsPage() {
     );
   }
 
-  const canEdit = user?.role === "EVENT_OFFICE" && event.type === "BAZAAR";
+  const canEdit = (user?.role === "EVENT_OFFICE" && event.type === "BAZAAR") || 
+                  (user?.role === "PROFESSOR" && event.type === "WORKSHOP" && isProfessorOwned);
   const hasStarted = new Date(event.startDate) <= new Date();
   const hasEnded = new Date(event.endDate) <= new Date();
   const registrationClosed = event.registrationDeadline 
@@ -140,12 +174,14 @@ export function EventDetailsPage() {
   const isFull = event.capacity && event.registeredCount >= event.capacity;
   const isRegistered = isRegisteredData?.isRegistered || false;
   
+  // Professors should not be able to register for their own workshops
   const canRegister = user && 
     ['STUDENT', 'STAFF', 'TA', 'PROFESSOR'].includes(user.role) &&
     !hasStarted &&
     !registrationClosed &&
     !isFull &&
-    !isRegistered;
+    !isRegistered &&
+    !isProfessorOwned; // Professors cannot register for their own workshops
 
   const capacityPercentage = event.capacity 
     ? (event.registeredCount / event.capacity) * 100 
@@ -154,6 +190,8 @@ export function EventDetailsPage() {
   const handleEdit = () => {
     if (event.type === "BAZAAR") {
       navigate(ROUTES.EDIT_BAZAAR.replace(':id', event.id));
+    } else if (event.type === "WORKSHOP") {
+      navigate(ROUTES.EDIT_WORKSHOP.replace(':id', event.id));
     }
   };
 
@@ -211,6 +249,12 @@ export function EventDetailsPage() {
               >
                 {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
               </Badge>
+              {isProfessorOwned && (
+                <Badge className="bg-purple-600 text-white shadow-lg backdrop-blur-md border border-purple-400/30">
+                  <GraduationCap className="h-3 w-3 mr-1" />
+                  Your Workshop
+                </Badge>
+              )}
               {event.status === "APPROVED" && (
                 <Badge variant="default" className="bg-emerald-500 shadow-lg backdrop-blur-md border border-white/20">
                   <CheckCircle className="h-3 w-3 mr-1" />

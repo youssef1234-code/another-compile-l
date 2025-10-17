@@ -29,7 +29,16 @@ import { EventsTable } from '../components/events-table';
 import { CreateEventSheet } from '../../events/components/CreateEventSheet';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/lib/constants';
-import { useSyntheticListeners } from '@dnd-kit/core/dist/hooks/utilities';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export function AdminEventsPage() {
   const utils = trpc.useUtils();
@@ -44,6 +53,16 @@ export function AdminEventsPage() {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; eventId: string }>({
     open: false,
     eventId: '',
+  });
+  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; eventId: string; reason: string }>({
+    open: false,
+    eventId: '',
+    reason: '',
+  });
+  const [needsEditsDialog, setNeedsEditsDialog] = useState<{ open: boolean; eventId: string; feedback: string }>({
+    open: false,
+    eventId: '',
+    feedback: '',
   });
 
   // Read URL state for pagination, sorting, filters, and search
@@ -152,6 +171,7 @@ export function AdminEventsPage() {
       PUBLISHED: 0,
       DRAFT: 0,
       PENDING: 0,
+      PENDING_APPROVAL: 0,
       APPROVED: 0,
       REJECTED: 0,
       NEEDS_EDITS: 0,
@@ -204,7 +224,7 @@ export function AdminEventsPage() {
 
   const approveWorkshopMutation = trpc.events.approveWorkshop.useMutation({
     onSuccess: () =>{
-      toast.success('Workshop Approved Successfully');
+      toast.success('Workshop approved and published successfully');
       utils.events.getAllEvents.invalidate();
       utils.events.getEventStats.invalidate();
     },
@@ -340,13 +360,37 @@ export function AdminEventsPage() {
     approveWorkshopMutation.mutate({ eventId: eventId });
   }, [approveWorkshopMutation]);
 
-  const handleWorkshopRejection = useCallback((eventId: string, rejectionReason: string) => {
-    rejectWorkshopMutation.mutate({ eventId: eventId, rejectionReason: rejectionReason });
-  }, [rejectWorkshopMutation]);
+  const handleWorkshopRejection = useCallback((eventId: string) => {
+    setRejectDialog({ open: true, eventId, reason: '' });
+  }, []);
 
-   const handleWorkshopNeedsEdits = useCallback((eventId: string) => {
-    approveWorkshopMutation.mutate({ eventId: eventId });
-  }, [approveWorkshopMutation]);
+  const confirmReject = useCallback(() => {
+    if (!rejectDialog.reason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
+    rejectWorkshopMutation.mutate({ 
+      eventId: rejectDialog.eventId, 
+      rejectionReason: rejectDialog.reason 
+    });
+    setRejectDialog({ open: false, eventId: '', reason: '' });
+  }, [rejectDialog, rejectWorkshopMutation]);
+
+  const handleWorkshopNeedsEdits = useCallback((eventId: string) => {
+    setNeedsEditsDialog({ open: true, eventId, feedback: '' });
+  }, []);
+
+  const confirmNeedsEdits = useCallback(() => {
+    if (!needsEditsDialog.feedback.trim()) {
+      toast.error('Please provide feedback about what needs to be edited');
+      return;
+    }
+    needsEditsWorkshopMutation.mutate({ 
+      eventId: needsEditsDialog.eventId,
+      feedback: needsEditsDialog.feedback
+    });
+    setNeedsEditsDialog({ open: false, eventId: '', feedback: '' });
+  }, [needsEditsDialog, needsEditsWorkshopMutation]);
 
   const confirmDelete = useCallback(() => {
     deleteEventMutation.mutate({ id: deleteDialog.eventId });
@@ -454,6 +498,85 @@ export function AdminEventsPage() {
         onConfirm={confirmDelete}
         variant="destructive"
       />
+
+      {/* Reject Workshop Dialog with Reason */}
+      <Dialog open={rejectDialog.open} onOpenChange={(open) => setRejectDialog({ ...rejectDialog, open })}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Reject Workshop</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this workshop. The professor will receive this feedback.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="reason">Rejection Reason *</Label>
+              <Textarea
+                id="reason"
+                placeholder="Explain why this workshop is being rejected..."
+                value={rejectDialog.reason}
+                onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRejectDialog({ open: false, eventId: '', reason: '' })}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmReject}
+              disabled={!rejectDialog.reason.trim()}
+            >
+              Reject Workshop
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Needs Edits Dialog with Feedback */}
+      <Dialog open={needsEditsDialog.open} onOpenChange={(open) => setNeedsEditsDialog({ ...needsEditsDialog, open })}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Request Workshop Edits</DialogTitle>
+            <DialogDescription>
+              Provide detailed feedback about what needs to be changed or improved in this workshop proposal.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="feedback">Required Changes *</Label>
+              <Textarea
+                id="feedback"
+                placeholder="Describe the specific changes or improvements needed..."
+                value={needsEditsDialog.feedback}
+                onChange={(e) => setNeedsEditsDialog({ ...needsEditsDialog, feedback: e.target.value })}
+                rows={5}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setNeedsEditsDialog({ open: false, eventId: '', feedback: '' })}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmNeedsEdits}
+              disabled={!needsEditsDialog.feedback.trim()}
+            >
+              Request Edits
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Event Sheet */}
       <CreateEventSheet

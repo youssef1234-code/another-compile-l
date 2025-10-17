@@ -9,12 +9,14 @@
  */
 
 import type { Event } from '@event-manager/shared';
+import { UserRole } from '@event-manager/shared';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthStore } from '@/store/authStore';
 import {
   Edit,
   Trash2,
@@ -27,6 +29,7 @@ import {
   Users,
   Building2,
   Check,
+  XCircle,
 } from 'lucide-react';
 import { formatDate } from '@/lib/design-system';
 
@@ -51,11 +54,23 @@ export function EventExpandedRow({
   onNeedsEdits,
   onRejectWorkshop,
 }: EventExpandedRowProps) {
+  const { user } = useAuthStore();
   const { data: registrationsData, isLoading: loadingRegistrations } =
     trpc.events.getEventRegistrations.useQuery(
       { eventId: event.id, page: 1, limit: 100 },
       { enabled: !!event.id }
     );
+
+  // Check if current user is admin/event office
+  const isAdminOrEventOffice = user?.role === UserRole.ADMIN || user?.role === UserRole.EVENT_OFFICE;
+  const isWorkshop = event.type === 'WORKSHOP';
+  const isRejected = event.status === 'REJECTED';
+  
+  // Hide edit/delete/archive for workshops when admin/event office
+  // Also hide edit for rejected workshops (professors cannot edit rejected workshops)
+  const canEdit = onEdit && !(isWorkshop && isAdminOrEventOffice) && !(isWorkshop && isRejected);
+  const canArchive = onArchive && !(isWorkshop && isAdminOrEventOffice);
+  const canDelete = onDelete && !(isWorkshop && isAdminOrEventOffice);
 
   return (
     <div className="p-6 bg-muted/30">
@@ -170,6 +185,16 @@ export function EventExpandedRow({
                 <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
                 <p className="text-sm whitespace-pre-line">{event.description}</p>
               </div>
+
+              {event.status === 'REJECTED' && event.rejectionReason && (
+                <>
+                  <Separator />
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-destructive mb-2">Rejection Reason</p>
+                    <p className="text-sm text-destructive/90">{event.rejectionReason}</p>
+                  </div>
+                </>
+              )}
 
               {event.createdBy && typeof event.createdBy === 'object' && (
                 <>
@@ -305,7 +330,7 @@ export function EventExpandedRow({
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-3">
-                {onEdit && (
+                {canEdit && (
                   <Button
                     variant="outline"
                     className="w-full justify-start"
@@ -315,7 +340,7 @@ export function EventExpandedRow({
                     Edit Event
                   </Button>
                 )}
-                {onArchive && (
+                {canArchive && (
                   <Button
                     variant="outline"
                     className="w-full justify-start"
@@ -325,7 +350,7 @@ export function EventExpandedRow({
                     Archive Event
                   </Button>
                 )}
-                {onDelete && (
+                {canDelete && (
                   <Button
                     variant="destructive"
                     className="w-full justify-start"
@@ -335,38 +360,35 @@ export function EventExpandedRow({
                     Delete Event
                   </Button>
                 )}
-                {onApproveWorkshop && event.type === "WORKSHOP" && event.status === "PENDING_APPROVAL"&&(
+                {/* Workshop Approval Actions - Only shown for pending workshops */}
+                {onApproveWorkshop && event.type === "WORKSHOP" && (event.status === "PENDING_APPROVAL" || event.status === "NEEDS_EDITS") && (
                   <Button
-                    variant= "outline"
                     className="w-full justify-start"
-                    onClick={()=> onApproveWorkshop(event.id)}
-                    >
-                      <Check className="h-4 w-4 mr-2" />
+                    onClick={() => onApproveWorkshop(event.id)}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
                     Approve Workshop
                   </Button>
-                  
                 )}
-                {onNeedsEdits && event.type === "WORKSHOP" && event.status === "PENDING_APPROVAL"&&(
+                {onNeedsEdits && event.type === "WORKSHOP" && event.status === "PENDING_APPROVAL" && (
                   <Button
-                    variant= "outline"
+                    variant="outline"
                     className="w-full justify-start"
-                    onClick={()=> onNeedsEdits(event.id)}
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                    Needs Edits
+                    onClick={() => onNeedsEdits(event.id)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Request Edits
                   </Button>
-                  
                 )}
-                {onRejectWorkshop && event.type === "WORKSHOP" && event.status === "PENDING_APPROVAL"&&(
+                {onRejectWorkshop && event.type === "WORKSHOP" && (event.status === "PENDING_APPROVAL" || event.status === "NEEDS_EDITS") && (
                   <Button
-                    variant= "outline"
+                    variant="destructive"
                     className="w-full justify-start"
-                    onClick={()=> onRejectWorkshop(event.id)}
-                    >
-                      <Check className="h-4 w-4 mr-2" />
+                    onClick={() => onRejectWorkshop(event.id)}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
                     Reject Workshop
                   </Button>
-                  
                 )}
               </div>
             </CardContent>

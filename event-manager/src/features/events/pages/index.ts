@@ -6,7 +6,7 @@ export { MyEventsPage } from './MyEventsPage';
 export { FavoritesPage } from './FavoritesPage';
 export { MyRegistrationsPage } from './MyRegistrationsPage';
 export { CreateWorkshopPage } from './CreateWorkshopPage';
-export { MyWorkshopsPage } from './MyWorkshopsPage';
+// export { MyWorkshopsPage } from './MyWorkshopsPage'; // Removed - functionality moved to BackOfficeEventsPage
 export { CreateTripPage } from './CreateTripPage';
 export { CreateBazaarPage } from './CreateBazaarPage';
 export { CreateConferencePage } from './CreateConferencePage';

@@ -102,16 +102,21 @@ export const FundingSource = {
   SPONSORS: "SPONSORS",
   PAID: "PAID",
   FREE: "FREE",
+  // Workshop-specific funding sources (Requirement #35)
+  GUC: "GUC",
+  EXTERNAL: "EXTERNAL",
 } as const;
 
 export type FundingSource = (typeof FundingSource)[keyof typeof FundingSource];
 
 export const Faculty = {
+  MET: "MET",
   IET: "IET",
-  BUSINESS: "BUSINESS",
+  ARTS: "ARTS",
+  LAW: "LAW",
   PHARMACY: "PHARMACY",
+  BUSINESS: "BUSINESS",
   BIOTECHNOLOGY: "BIOTECHNOLOGY",
-  APPLIED_ARTS: "APPLIED_ARTS",
   ALL: "ALL",
 } as const;
 
@@ -516,17 +521,17 @@ export const CreateWorkshopSchema = z.object({
   description: z.string().min(20).max(2000),
   type: z.literal('WORKSHOP'),
   location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
-  locationDetails: z.string().min(5).max(200), // Will specify "GUC Cairo" or "GUC Berlin"
+  locationDetails: z.enum(['GUC Cairo', 'GUC Berlin']), // Requirement #35: GUC Cairo or GUC Berlin
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   fullAgenda: z.string().min(20),
-  faculty: z.string(), // MET, IET, etc.
-  professorName: z.string().optional(), // Professor(s) participating
+  faculty: z.enum(['MET', 'IET', 'ARTS', 'LAW', 'PHARMACY', 'BUSINESS', 'BIOTECHNOLOGY']), // Requirement #35: MET, IET, etc.
+  professors: z.array(z.string()).min(1), // Requirement #35: professor(s) participating - multiple allowed
   requiredBudget: z.number().nonnegative(),
-  fundingSource: z.enum(['UNIVERSITY', 'EXTERNAL_FUNDING']),
+  fundingSource: z.enum(['GUC', 'EXTERNAL']), // Requirement #35: GUC or external funding
   extraResources: z.string().optional(),
   capacity: z.number().int().positive().min(1),
-  registrationDeadline: z.coerce.date(),
+  registrationDeadline: z.coerce.date(), // Required per Requirement #35
   images: z.array(z.string()).optional(),
   requirements: z.string().max(500).optional(),
 });
@@ -557,20 +562,22 @@ export type LegacyCreateWorkshopInput = z.infer<typeof LegacyCreateWorkshopSchem
 
 export const UpdateWorkshopSchema = z.object({
   id: z.string(),
-  name: z.string().optional(),
-  location: z.enum(['Cairo', 'Berlin']).optional(),
+  name: z.string().min(5).max(100).optional(),
+  description: z.string().min(20).max(2000).optional(),
+  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']).optional(),
+  locationDetails: z.enum(['GUC Cairo', 'GUC Berlin']).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
-  description: z.string().optional(),
-  fullAgenda: z.string().optional(),
-  faculty: z.enum(['MET', 'IET', 'PHARMACY', 'BIOTECHNOLOGY', 'MANAGEMENT', 'LAW', 'DESIGN']).optional(),
-  professors: z.array(z.string()).optional(),
-  requiredBudget: z.number().optional(),
-  fundingSource: z.enum(['EXTERNAL', 'GUC']).optional(),
+  fullAgenda: z.string().min(20).optional(),
+  faculty: z.enum(['MET', 'IET', 'ARTS', 'LAW', 'PHARMACY', 'BUSINESS', 'BIOTECHNOLOGY']).optional(),
+  professors: z.array(z.string()).min(1).optional(),
+  requiredBudget: z.number().nonnegative().optional(),
+  fundingSource: z.enum(['GUC', 'EXTERNAL']).optional(),
   extraResources: z.string().optional(),
-  capacity: z.number().optional(),
+  capacity: z.number().int().positive().min(1).optional(),
   registrationDeadline: z.coerce.date().optional(),
-  
+  images: z.array(z.string()).optional(),
+  requirements: z.string().max(500).optional(),
 });
 
 export type UpdateWorkshopInput = z.infer<typeof UpdateWorkshopSchema>;
@@ -787,7 +794,8 @@ export interface Event {
   // Workshop-specific fields
   fullAgenda?: string;
   faculty?: string;
-  professorParticipants?: string[];
+  professors?: string[]; // Array of professor names participating in the workshop
+  professorParticipants?: string[]; // Deprecated: use professors instead
   requiredBudget?: number;
   fundingSource?: string;
   extraResources?: string;

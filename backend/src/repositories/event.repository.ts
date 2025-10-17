@@ -240,8 +240,9 @@ export class EventRepository extends BaseRepository<IEvent> {
 
   /**
    * Get event statistics
+   * @param createdBy - Optional user ID to filter by creator (for professors)
    */
-  async getStatistics(): Promise<{
+  async getStatistics(createdBy?: string): Promise<{
     total: number;
     upcoming: number;
     past: number;
@@ -249,12 +250,18 @@ export class EventRepository extends BaseRepository<IEvent> {
   }> {
     const now = new Date();
     
+    // Base filter - exclude archived events and optionally filter by creator
+    const baseFilter: FilterQuery<IEvent> = { isArchived: false };
+    if (createdBy) {
+      baseFilter.createdBy = createdBy;
+    }
+    
     const [total, upcoming, past, byType] = await Promise.all([
-      this.count({ isArchived: false } as FilterQuery<IEvent>),
-      this.count({ isArchived: false, startDate: { $gte: now } } as FilterQuery<IEvent>),
-      this.count({ isArchived: false, startDate: { $lt: now } } as FilterQuery<IEvent>),
+      this.count(baseFilter),
+      this.count({ ...baseFilter, startDate: { $gte: now } } as FilterQuery<IEvent>),
+      this.count({ ...baseFilter, startDate: { $lt: now } } as FilterQuery<IEvent>),
       this.aggregate([
-        { $match: { isArchived: false } },
+        { $match: baseFilter },
         { $group: { _id: '$type', count: { $sum: 1 } } }
       ])
     ]);

@@ -40,6 +40,9 @@ interface EventsTableProps {
   onArchiveEvent?: (eventId: string) => void;
   onDeleteEvent?: (eventId: string) => void;
   onPublishEvent?: (eventId: string) => void;
+  onApproveWorkshop?: (eventId: string) => void;
+  onRejectWorkshop?: (eventId: string) => void;
+  onNeedsEdits?: (eventId: string) => void;
 }
 
 export function EventsTable({
@@ -56,6 +59,9 @@ export function EventsTable({
   onArchiveEvent,
   onDeleteEvent,
   onPublishEvent,
+  onApproveWorkshop,
+  onRejectWorkshop,
+  onNeedsEdits,
 }: EventsTableProps) {
   // Toggle between advanced and simple filters (default to simple)
   const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
@@ -87,8 +93,11 @@ export function EventsTable({
         onArchiveEvent,
         onDeleteEvent,
         onPublishEvent,
+        onApproveWorkshop,
+        onRejectWorkshop,
+        onNeedsEdits,
       }),
-    [typeCounts, statusCounts, userRole, onUpdateEvent, onViewDetails, onEditEvent, onArchiveEvent, onDeleteEvent, onPublishEvent],
+    [typeCounts, statusCounts, userRole, onUpdateEvent, onViewDetails, onEditEvent, onArchiveEvent, onDeleteEvent, onPublishEvent, onApproveWorkshop, onRejectWorkshop, onNeedsEdits],
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({
@@ -116,6 +125,8 @@ export function EventsTable({
           onArchive={onArchiveEvent}
           onDelete={onDeleteEvent}
           onApproveWorkshop={onApproveWorkshop}
+          onRejectWorkshop={onRejectWorkshop}
+          onNeedsEdits={onNeedsEdits}
         />
       )}
     >

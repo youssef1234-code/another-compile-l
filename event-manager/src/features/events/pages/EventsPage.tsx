@@ -406,15 +406,28 @@ export function EventsPage() {
                       : 'space-y-4'
                   )}
                 >
-                  {displayedEvents.map((event) => (
-                    <EventCardProduction
-                      key={event.id}
-                      event={event}
-                      view={view}
-                      onClick={() => navigate(`/events/${event.id}`)}
-                      isRegistered={registeredEventIds.has(event.id)}
-                    />
-                  ))}
+                  {displayedEvents.map((event) => {
+                    // Check if the current user is a professor who owns this workshop (compare IDs, not names!)
+                    // createdBy might be populated (object) or just an ID (string)
+                    const eventCreatorId = typeof event.createdBy === 'object' && event.createdBy !== null
+                      ? (event.createdBy as any).id
+                      : event.createdBy;
+                    
+                    const isProfessorOwned = user?.role === 'PROFESSOR' && 
+                      event.type === 'WORKSHOP' &&
+                      eventCreatorId === user.id;
+                    
+                    return (
+                      <EventCardProduction
+                        key={event.id}
+                        event={event}
+                        view={view}
+                        onClick={() => navigate(`/events/${event.id}`)}
+                        isRegistered={registeredEventIds.has(event.id)}
+                        isProfessorOwned={isProfessorOwned}
+                      />
+                    );
+                  })}
                 </div>
 
                 {/* Pagination */}
@@ -479,6 +492,7 @@ interface EventCardProductionProps {
   view: 'grid' | 'list';
   onClick: () => void;
   isRegistered?: boolean;
+  isProfessorOwned?: boolean; // New prop to indicate if the professor owns this workshop
 }
 
 // Component to load and display event card image
@@ -518,7 +532,7 @@ function EventCardImage({ imageId, alt }: { imageId: string; alt: string }) {
   );
 }
 
-function EventCardProduction({ event, view, onClick, isRegistered }: EventCardProductionProps) {
+function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOwned }: EventCardProductionProps) {
   const typeConfig = getEventTypeConfig(event.type);
   const eventStatus = getEventStatus(event);
   const statusConfig = EVENT_STATUS_COLORS[eventStatus as keyof typeof EVENT_STATUS_COLORS] || EVENT_STATUS_COLORS.UPCOMING;
@@ -569,6 +583,11 @@ function EventCardProduction({ event, view, onClick, isRegistered }: EventCardPr
                 <Badge variant={eventStatus === 'ENDED' ? 'secondary' : eventStatus === 'FULL' ? 'destructive' : 'default'} className={cn(eventStatus === 'OPEN' && statusConfig.bg, 'text-white border-none')}>
                   {statusConfig.label}
                 </Badge>
+                {isProfessorOwned && (
+                  <Badge className="bg-purple-600 text-white border-none">
+                    Your Workshop
+                  </Badge>
+                )}
                 {isRegistered && (
                   <Badge className="bg-blue-600 text-white border-none">
                     <CheckSquare className="h-3 w-3 mr-1" />
@@ -649,6 +668,11 @@ function EventCardProduction({ event, view, onClick, isRegistered }: EventCardPr
           >
             {statusConfig.label}
           </Badge>
+          {isProfessorOwned && (
+            <Badge className="bg-purple-600 text-white border-none shadow-lg">
+              Your Workshop
+            </Badge>
+          )}
           {isRegistered && (
             <Badge className="bg-blue-600 text-white border-none shadow-lg">
               <CheckSquare className="h-3 w-3 mr-1" />

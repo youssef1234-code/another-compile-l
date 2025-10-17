@@ -52,7 +52,7 @@ export function DataTableRangeFilter<TData>({
 
   const value = React.useMemo(() => {
     if (Array.isArray(filter.value)) return filter.value.map(formatValue);
-    return [formatValue(filter.value), ""];
+    return [formatValue(filter.value as string | number | undefined), ""];
   }, [filter.value, formatValue]);
 
   const onRangeValueChange = React.useCallback(

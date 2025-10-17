@@ -169,7 +169,7 @@ export function BazaarsListPage() {
                 <Card className="h-full flex flex-col hover:shadow-lg transition-all">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-xl">{bazaar.title}</CardTitle>
+                      <CardTitle className="text-xl">{bazaar.name}</CardTitle>
                       <Badge variant="secondary">Bazaar</Badge>
                     </div>
                     <CardDescription className="line-clamp-2">
@@ -235,7 +235,7 @@ export function BazaarsListPage() {
       <Dialog open={applicationDialog} onOpenChange={setApplicationDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Apply to {selectedBazaar?.title}</DialogTitle>
+            <DialogTitle>Apply to {selectedBazaar?.name}</DialogTitle>
             <DialogDescription>
               Fill in your application details to participate in this bazaar
             </DialogDescription>

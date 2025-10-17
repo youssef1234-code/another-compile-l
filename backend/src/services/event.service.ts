@@ -130,6 +130,15 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         message: 'Cannot delete an event that has already started'
       });
     }
+
+    // Check if there are any active registrations
+    const registrationCount = await registrationRepository.countByEvent(_id);
+    if (registrationCount > 0) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Cannot delete event with active registrations. There are ${registrationCount} registered participant(s).`
+      });
+    }
   }
 
   /**
@@ -188,6 +197,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       // Location filter
       if (data.filters.location && data.filters.location.length > 0) {
         filter.location = { $in: data.filters.location };
+      }
+
+      // Faculty filter (for workshops)
+      if (data.filters.faculty && data.filters.faculty.length > 0) {
+        filter.faculty = { $in: data.filters.faculty };
       }
     }
 
@@ -499,14 +513,15 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
   /**
    * Get event statistics (for admin dashboard)
+   * @param createdBy - Optional user ID to filter by creator (for professors)
    */
-  async getStatistics(): Promise<{
+  async getStatistics(createdBy?: string): Promise<{
     total: number;
     upcoming: number;
     past: number;
     byType: Record<string, number>;
   }> {
-    return this.repository.getStatistics();
+    return this.repository.getStatistics(createdBy);
   }
 
   /**
@@ -590,11 +605,19 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       registeredCount: event.registeredCount,
       price: event.price,
       status: event.status,
+      rejectionReason: event.rejectionReason,
+      isActive: event.isActive,
       isArchived: event.isArchived,
+      images: event.images || [], // Include images array
+      // Workshop-specific fields
       professorName: event.professorName,
+      professors: event.professors, // Array of professor names
       faculty: event.faculty,
       fundingSource: event.fundingSource,
-      images: event.images || [], // Include images array
+      fullAgenda: event.fullAgenda,
+      requiredBudget: event.requiredBudget,
+      extraResources: event.extraResources,
+      requirements: event.requirements,
       // Gym session specific fields
       sessionType: event.sessionType,
       duration: event.duration,
@@ -619,7 +642,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    * APPROVAL WORKSHOP METHOD
    */
   async approveWorkshop(workshopId: string) {
-      // Logic to approve the workshop
+      // Logic to approve the workshop - sets status to PUBLISHED
       const workshop = await eventRepository.findById(workshopId);
       if (!workshop) {
         throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
@@ -627,10 +650,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       if (workshop.type !== "WORKSHOP") {
         throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
       }
-      if (workshop.status !== "PENDING_APPROVAL") {
-        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval", 400);
+      if (workshop.status !== "PENDING_APPROVAL" && workshop.status !== "NEEDS_EDITS") {
+        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval or needs edits", 400);
       }
-      const newWorkshop = await eventRepository.update(workshopId, { status: "APPROVED" });
+      // Approve = Publish the workshop so it's visible to students
+      const newWorkshop = await eventRepository.update(workshopId, { status: "PUBLISHED" });
       return newWorkshop;
     }
 
@@ -646,8 +670,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       if (workshop.type !== "WORKSHOP") {
         throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
       }
-      if (workshop.status !== "PENDING_APPROVAL") {
-        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval", 400);
+      if (workshop.status !== "PENDING_APPROVAL" && workshop.status !== "NEEDS_EDITS") {
+        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval or needs edits", 400);
       }
       const newWorkshop = await eventRepository.update(workshopId, { status: "REJECTED", rejectionReason: reason });
       return newWorkshop;

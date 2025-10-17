@@ -17,8 +17,12 @@ import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJs
 
 import { PageHeader, ConfirmDialog } from '@/components/generic';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { exportToCSV, formatDate } from '@/lib/design-system';
 import { trpc } from '@/lib/trpc';
+import { formatValidationErrors } from '@/lib/format-errors';
 import { EventsTable } from '@/features/admin/components/events-table';
 import { CreateEventSheet } from '@/features/events/components/CreateEventSheet';
 import { useNavigate } from 'react-router-dom';
@@ -46,6 +50,19 @@ export function BackOfficeEventsPage() {
     open: false,
     eventId: '',
   });
+  const [approveWorkshopDialog, setApproveWorkshopDialog] = useState<{ open: boolean; eventId: string }>({
+    open: false,
+    eventId: '',
+  });
+  const [rejectWorkshopDialog, setRejectWorkshopDialog] = useState<{ open: boolean; eventId: string; reason: string }>({
+    open: false,
+    eventId: '',
+    reason: '',
+  });
+  const [needsEditsDialog, setNeedsEditsDialog] = useState<{ open: boolean; eventId: string }>({
+    open: false,
+    eventId: '',
+  });
 
   // Read URL state for pagination, sorting, filters, and search
   const [page] = useQueryState('page', parseAsInteger.withDefault(1));
@@ -57,6 +74,7 @@ export function BackOfficeEventsPage() {
   const [typeFilter, setTypeFilter] = useQueryState('type', parseAsArrayOf(parseAsString, ',').withDefault([]));
   const [statusFilter] = useQueryState('status', parseAsArrayOf(parseAsString, ',').withDefault([]));
   const [locationFilter] = useQueryState('location', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [facultyFilter] = useQueryState('faculty', parseAsArrayOf(parseAsString, ',').withDefault([]));
 
   // Read extended filters from URL - these are managed by DataTableFilterMenu (command mode)
   const [extendedFiltersState] = useQueryState('filters', parseAsJson<Array<any>>([] as any).withDefault([]));
@@ -80,8 +98,9 @@ export function BackOfficeEventsPage() {
     if (typeFilter.length > 0) result.type = typeFilter;
     if (statusFilter.length > 0) result.status = statusFilter;
     if (locationFilter.length > 0) result.location = locationFilter;
+    if (facultyFilter.length > 0) result.faculty = facultyFilter;
     return result;
-  }, [typeFilter, statusFilter, locationFilter]);
+  }, [typeFilter, statusFilter, locationFilter, facultyFilter]);
 
   // Parse extended filters (command mode) with role-based additions
   const extendedFilters = useMemo(() => {
@@ -94,7 +113,13 @@ export function BackOfficeEventsPage() {
       if (user?.role === 'PROFESSOR' && user?.id) {
         const hasCreatorFilter = parsedFilters.some((f: any) => f.id === 'createdBy');
         if (!hasCreatorFilter) {
-          parsedFilters.push({ id: 'createdBy', operator: 'eq', value: user.id });
+          parsedFilters.push({ 
+            id: 'createdBy', 
+            filterId: 'createdBy',
+            variant: 'text' as const,
+            operator: 'eq', 
+            value: user.id 
+          });
         }
       }
 
@@ -209,6 +234,10 @@ export function BackOfficeEventsPage() {
       utils.events.getAllEvents.invalidate();
       utils.events.getEventStats.invalidate();
     },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+    },
   });
 
   const archiveEventMutation = trpc.events.archive.useMutation({
@@ -218,7 +247,20 @@ export function BackOfficeEventsPage() {
       utils.events.getEventStats.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to archive event');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+    },
+  });
+
+  const archiveWorkshopMutation = trpc.events.archiveWorkshop.useMutation({
+    onSuccess: () => {
+      toast.success('Workshop archived successfully');
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
     },
   });
 
@@ -229,7 +271,20 @@ export function BackOfficeEventsPage() {
       utils.events.getEventStats.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to delete event');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+    },
+  });
+
+  const deleteWorkshopMutation = trpc.events.deleteWorkshop.useMutation({
+    onSuccess: () => {
+      toast.success('Workshop deleted successfully');
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
     },
   });
 
@@ -240,7 +295,44 @@ export function BackOfficeEventsPage() {
       utils.events.getEventStats.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to publish event');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+    },
+  });
+
+  const approveWorkshopMutation = trpc.events.approveWorkshop.useMutation({
+    onSuccess: () => {
+      toast.success('Workshop approved and published successfully');
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+    },
+  });
+
+  const rejectWorkshopMutation = trpc.events.rejectWorkshop.useMutation({
+    onSuccess: () => {
+      toast.success('Workshop rejected');
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+    },
+  });
+
+  const needsEditsWorkshopMutation = trpc.events.workshopNeedsEdits.useMutation({
+    onSuccess: () => {
+      toast.success('Workshop marked as needs edits');
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
     },
   });
 
@@ -284,7 +376,12 @@ export function BackOfficeEventsPage() {
     
     switch (event.type) {
       case 'WORKSHOP':
-        // Requirement #36: Events Office can edit workshops anytime
+        // Prevent editing rejected workshops
+        if (event.status === 'REJECTED') {
+          toast.error('Cannot edit rejected workshops. The workshop has been rejected and cannot be modified.');
+          return;
+        }
+        // Requirement #36: Events Office can edit workshops anytime (professors can edit their own)
         navigate(generateEditWorkshopUrl(eventId));
         break;
       case 'TRIP':
@@ -320,18 +417,66 @@ export function BackOfficeEventsPage() {
   }, []);
 
   const confirmArchive = useCallback(() => {
-    archiveEventMutation.mutate({ id: archiveDialog.eventId });
+    // Check if it's a workshop and user is a professor
+    const event = events.find(e => e.id === archiveDialog.eventId);
+    const isProfessor = user?.role === 'PROFESSOR';
+    if (event?.type === 'WORKSHOP' && isProfessor) {
+      archiveWorkshopMutation.mutate({ id: archiveDialog.eventId });
+    } else {
+      archiveEventMutation.mutate({ id: archiveDialog.eventId });
+    }
     setArchiveDialog({ open: false, eventId: '' });
-  }, [archiveDialog.eventId, archiveEventMutation]);
+  }, [archiveDialog.eventId, archiveEventMutation, archiveWorkshopMutation, events, user?.role]);
 
   const handleDeleteEvent = useCallback((eventId: string) => {
     setDeleteDialog({ open: true, eventId });
   }, []);
 
   const confirmDelete = useCallback(() => {
-    deleteEventMutation.mutate({ id: deleteDialog.eventId });
+    // Check if it's a workshop and user is a professor
+    const event = events.find(e => e.id === deleteDialog.eventId);
+    const isProfessor = user?.role === 'PROFESSOR';
+    if (event?.type === 'WORKSHOP' && isProfessor) {
+      deleteWorkshopMutation.mutate({ id: deleteDialog.eventId });
+    } else {
+      deleteEventMutation.mutate({ id: deleteDialog.eventId });
+    }
     setDeleteDialog({ open: false, eventId: '' });
-  }, [deleteDialog.eventId, deleteEventMutation]);
+  }, [deleteDialog.eventId, deleteEventMutation, deleteWorkshopMutation, events, user?.role]);
+
+  const handleApproveWorkshop = useCallback((eventId: string) => {
+    setApproveWorkshopDialog({ open: true, eventId });
+  }, []);
+
+  const confirmApproveWorkshop = useCallback(() => {
+    approveWorkshopMutation.mutate({ eventId: approveWorkshopDialog.eventId });
+    setApproveWorkshopDialog({ open: false, eventId: '' });
+  }, [approveWorkshopDialog.eventId, approveWorkshopMutation]);
+
+  const handleRejectWorkshop = useCallback((eventId: string) => {
+    setRejectWorkshopDialog({ open: true, eventId, reason: '' });
+  }, []);
+
+  const confirmRejectWorkshop = useCallback(() => {
+    if (!rejectWorkshopDialog.reason.trim()) {
+      toast.error('Please provide a rejection reason');
+      return;
+    }
+    rejectWorkshopMutation.mutate({ 
+      eventId: rejectWorkshopDialog.eventId, 
+      rejectionReason: rejectWorkshopDialog.reason 
+    });
+    setRejectWorkshopDialog({ open: false, eventId: '', reason: '' });
+  }, [rejectWorkshopDialog, rejectWorkshopMutation]);
+
+  const handleNeedsEdits = useCallback((eventId: string) => {
+    setNeedsEditsDialog({ open: true, eventId });
+  }, []);
+
+  const confirmNeedsEdits = useCallback(() => {
+    needsEditsWorkshopMutation.mutate({ eventId: needsEditsDialog.eventId });
+    setNeedsEditsDialog({ open: false, eventId: '' });
+  }, [needsEditsDialog.eventId, needsEditsWorkshopMutation]);
 
   const handlePublishEvent = useCallback((eventId: string) => {
     publishEventMutation.mutate({ eventId });
@@ -381,6 +526,7 @@ export function BackOfficeEventsPage() {
   const pageDescription = isProfessor
     ? 'Manage your workshops and academic events'
     : 'Manage all events including workshops, trips, bazaars, conferences, and gym sessions';
+  const createButtonText = isProfessor ? 'Create Workshop' : 'Create Event';
 
   return (
     <>
@@ -396,7 +542,7 @@ export function BackOfficeEventsPage() {
             </Button>
             <Button onClick={handleCreateEvent} className="gap-2">
               <Plus className="h-4 w-4" />
-              Create Event
+              {createButtonText}
             </Button>
           </>
         }
@@ -413,9 +559,14 @@ export function BackOfficeEventsPage() {
           onUpdateEvent={handleUpdateEvent}
           onViewDetails={handleViewDetails}
           onEditEvent={handleEditEvent}
+          // Professors CAN archive and delete their own workshops
           onArchiveEvent={handleArchiveEvent}
           onDeleteEvent={handleDeleteEvent}
-          onPublishEvent={handlePublishEvent}
+          onPublishEvent={isProfessor ? undefined : handlePublishEvent}
+          // Workshop approval actions for admin/event office only
+          onApproveWorkshop={!isProfessor ? handleApproveWorkshop : undefined}
+          onRejectWorkshop={!isProfessor ? handleRejectWorkshop : undefined}
+          onNeedsEdits={!isProfessor ? handleNeedsEdits : undefined}
         />
       </div>
 
@@ -439,9 +590,71 @@ export function BackOfficeEventsPage() {
         variant="destructive"
       />
 
+      {/* Workshop Approval Dialogs */}
+      <ConfirmDialog
+        open={approveWorkshopDialog.open}
+        onOpenChange={(open) => setApproveWorkshopDialog({ ...approveWorkshopDialog, open })}
+        title="Approve Workshop"
+        description="Are you sure you want to approve this workshop? It will be published and visible to students."
+        confirmLabel="Approve"
+        onConfirm={confirmApproveWorkshop}
+        variant="default"
+      />
+
+      <Dialog 
+        open={rejectWorkshopDialog.open} 
+        onOpenChange={(open) => setRejectWorkshopDialog({ ...rejectWorkshopDialog, open })}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Workshop</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this workshop. The professor will see this feedback.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="rejection-reason">Rejection Reason *</Label>
+            <Textarea
+              id="rejection-reason"
+              placeholder="Explain why this workshop is being rejected..."
+              value={rejectWorkshopDialog.reason}
+              onChange={(e) => setRejectWorkshopDialog({ ...rejectWorkshopDialog, reason: e.target.value })}
+              className="mt-2"
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setRejectWorkshopDialog({ open: false, eventId: '', reason: '' })}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmRejectWorkshop}
+            >
+              Reject Workshop
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={needsEditsDialog.open}
+        onOpenChange={(open) => setNeedsEditsDialog({ ...needsEditsDialog, open })}
+        title="Request Edits"
+        description="Mark this workshop as needing edits? The professor will be able to revise and resubmit it."
+        confirmLabel="Request Edits"
+        onConfirm={confirmNeedsEdits}
+        variant="default"
+      />
+
       <CreateEventSheet
         open={createSheetOpen}
         onOpenChange={setCreateSheetOpen}
+        initialType={isProfessor ? 'WORKSHOP' : undefined}
+        skipTypeSelection={isProfessor}
         onSuccess={() => {
           utils.events.getAllEvents.invalidate();
           utils.events.getEventStats.invalidate();

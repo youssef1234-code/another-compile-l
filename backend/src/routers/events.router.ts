@@ -12,6 +12,7 @@
  */
 
 import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router, eventsOfficeProfessorProcedure, professorProcedure } from '../trpc/trpc';
+import { TRPCError } from '@trpc/server';
 import { createSearchSchema } from './base.router';
 import { eventService } from '../services/event.service';
 import { registrationService } from '../services/registration.service';
@@ -127,11 +128,11 @@ const eventRoutes = {
     .input(CreateEventSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx.user!._id as any).toString();
-      return eventService.create(input, { userId, role: ctx.user!.role.toString() });
+      return eventService.create(input as any, { userId, role: ctx.user!.role.toString() });
     }),
 
   /**
-   * Update event - EVENT_OFFICE and ADMIN only
+   * Update event - EVENT_OFFICE and ADMIN only (CANNOT edit workshops - professors only)
    */
   update: eventsOfficeProcedure
     .input(z.object({
@@ -139,29 +140,56 @@ const eventRoutes = {
       data: UpdateEventSchema.partial(),
     }))
     .mutation(async ({ input, ctx }) => {
-      console.log('📥 Backend received update:', { id: input.id, images: input.data.images, hasImages: !!input.data.images });
       const userId = (ctx.user!._id as any).toString();
-      const result = await eventService.update(input.id, input.data, { userId });
-      console.log('✅ Backend updated event:', { id: result.id, images: result.images });
+      
+      // Check if event is a workshop
+      const event = await eventService.getEventById(input.id);
+      if (event.type === 'WORKSHOP') {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Workshops can only be edited by the professor who created them. Use approval actions instead.'
+        });
+      }
+      
+      const result = await eventService.update(input.id, input.data as any, { userId });
       return result;
     }),
 
   /**
-   * Delete event (soft delete) - EVENT_OFFICE and ADMIN only
+   * Delete event (soft delete) - EVENT_OFFICE and ADMIN only (CANNOT delete workshops - professors only)
    */
   delete: eventsOfficeProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx.user!._id as any).toString();
+      
+      // Check if event is a workshop
+      const event = await eventService.getEventById(input.id);
+      if (event.type === 'WORKSHOP') {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Workshops can only be deleted by the professor who created them.'
+        });
+      }
+      
       return eventService.delete(input.id, { userId });
     }),
 
   /**
-   * Archive an event - EVENT_OFFICE and ADMIN only
+   * Archive an event - EVENT_OFFICE and ADMIN only (CANNOT archive workshops - professors only)
    */
   archive: eventsOfficeProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
+      // Check if event is a workshop
+      const event = await eventService.getEventById(input.id);
+      if (event.type === 'WORKSHOP') {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Workshops can only be archived by the professor who created them.'
+        });
+      }
+      
       return eventService.archiveEvent(input.id);
     }),
 
@@ -174,7 +202,7 @@ const eventRoutes = {
    * - Extended filters with operators (command mode)
    * - Server-side pagination
    */
-  getAllEvents: eventsOfficeProcedure
+  getAllEvents: protectedProcedure
     .input(z.object({
       // Pagination
       page: z.number().optional().default(1),
@@ -232,10 +260,13 @@ const eventRoutes = {
 
   /**
    * Get event stats for header (total, published, draft, etc.)
+   * Accessible to Event Office, Admin, and Professors
+   * Professors see only their own workshop stats
    */
-  getEventStats: eventsOfficeProcedure
-    .query(async () => {
-      return eventService.getStatistics();
+  getEventStats: protectedProcedure
+    .query(async ({ ctx }) => {
+      const userId = ctx.user!.role === 'PROFESSOR' ? (ctx.user!._id as any).toString() : undefined;
+      return eventService.getStatistics(userId);
     }),
 
   /**
@@ -299,18 +330,52 @@ const eventRoutes = {
     }),
 
   /**
-   * Get event registrations - EVENT_OFFICE and ADMIN only
+   * Get event registrations - EVENT_OFFICE, ADMIN, or PROFESSOR (for their own workshops) only
    */
-  getEventRegistrations: eventsOfficeProcedure
+  getEventRegistrations: protectedProcedure
     .input(z.object({
       eventId: z.string(),
       page: z.number().min(1).optional().default(1),
       limit: z.number().min(1).max(100).optional().default(100),
     }))
-    .query(async ({ input }) => {
-      return registrationService.getEventRegistrations(input.eventId, {
-        page: input.page,
-        limit: input.limit,
+    .query(async ({ input, ctx }) => {
+      const userRole = ctx.user!.role;
+      
+      // Allow EVENT_OFFICE and ADMIN to see all registrations
+      if (userRole === 'EVENT_OFFICE' || userRole === 'ADMIN') {
+        return registrationService.getEventRegistrations(input.eventId, {
+          page: input.page,
+          limit: input.limit,
+        });
+      }
+      
+      // For professors, check if the event is their workshop
+      if (userRole === 'PROFESSOR') {
+        const event = await eventService.findById(input.eventId);
+        const userId = (ctx.user!._id as any).toString();
+        
+        // createdBy might be populated (object) or just an ID (string)
+        const eventCreatorId = typeof event.createdBy === 'object' && event.createdBy !== null
+          ? (event.createdBy as any)._id?.toString() || (event.createdBy as any).id?.toString()
+          : (event.createdBy as any)?.toString();
+                
+        // Check if this professor created the workshop (compare user IDs)
+        if (event.type === 'WORKSHOP' && eventCreatorId === userId) {
+          return registrationService.getEventRegistrations(input.eventId, {
+            page: input.page,
+            limit: input.limit,
+          });
+        }
+        
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You can only view registrations for your own workshops'
+        });
+      }
+      
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Only Event Office staff and professors can access registrations'
       });
     }),
 
@@ -415,7 +480,14 @@ const eventRoutes = {
         throw new Error('Only professors can create workshops');
       }
 
-      return eventService.create({ ...input, type: 'WORKSHOP'}, { userId });
+      // Set the professor name from the authenticated user
+      const professorName = `${ctx.user!.firstName} ${ctx.user!.lastName}`;
+
+      return eventService.create({ 
+        ...input, 
+        type: 'WORKSHOP',
+        professorName // Set the professor who created this workshop
+      }, { userId, role: ctx.user!.role.toString() });
     }),
 
   /**
@@ -424,16 +496,70 @@ const eventRoutes = {
   editWorkshop: professorProcedure
     .input(UpdateWorkshopSchema)
     .mutation(async ({ input, ctx }) => {
-
-      const {id} = input;
       // Ensure the user is a professor
       if (ctx.user!.role !== 'PROFESSOR') {
         throw new Error('Only professors can edit workshops');
       }
 
-
-
       return eventService.updateWorkshop(input);
+    }),
+
+  /**
+   * Delete workshop - PROFESSOR only (only their own)
+   */
+  deleteWorkshop: professorProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      
+      // Verify ownership
+      const event = await eventService.getEventById(input.id);
+      const createdById = typeof event.createdBy === 'object' ? event.createdBy.id : event.createdBy;
+      
+      if (createdById !== userId) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You can only delete your own workshops'
+        });
+      }
+      
+      if (event.type !== 'WORKSHOP') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'This endpoint is only for workshops'
+        });
+      }
+      
+      return eventService.delete(input.id, { userId });
+    }),
+
+  /**
+   * Archive workshop - PROFESSOR only (only their own)
+   */
+  archiveWorkshop: professorProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      
+      // Verify ownership
+      const event = await eventService.getEventById(input.id);
+      const createdById = typeof event.createdBy === 'object' ? event.createdBy.id : event.createdBy;
+      
+      if (createdById !== userId) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You can only archive your own workshops'
+        });
+      }
+      
+      if (event.type !== 'WORKSHOP') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'This endpoint is only for workshops'
+        });
+      }
+      
+      return eventService.archiveEvent(input.id);
     }),
 
   /**

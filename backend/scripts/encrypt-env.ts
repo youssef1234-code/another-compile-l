@@ -14,7 +14,6 @@ const __dirname = path.dirname(__filename);
 const ALGORITHM = 'aes-256-gcm';
 const SALT_LENGTH = 32;
 const IV_LENGTH = 16;
-const TAG_LENGTH = 16;
 const KEY_LENGTH = 32;
 const ITERATIONS = 100000;
 

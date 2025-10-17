@@ -1,8 +1,8 @@
-import { router, publicProcedure, protectedProcedure, eventsOfficeProcedure } from "../trpc/trpc";
+import { router, publicProcedure, protectedProcedure } from "../trpc/trpc";
 import { z } from "zod";
 import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
-import { AvailabilityQuerySchema, CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport } from "@event-manager/shared";
+import { CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport } from "@event-manager/shared";
 
 
 const CourtListInput = z.object({

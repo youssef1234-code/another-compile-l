@@ -47,7 +47,7 @@ export function CreateWorkshopPage() {
   const createWorkshopMutation = trpc.events.create.useMutation({
     onSuccess: () => {
       toast.success('Workshop created successfully! Pending approval from Events Office.');
-      navigate(ROUTES.MY_WORKSHOPS);
+      navigate(ROUTES.ADMIN_EVENTS); // Redirects to BackOfficeEventsPage (unified event management)
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to create workshop');
@@ -337,7 +337,7 @@ export function CreateWorkshopPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate(ROUTES.MY_WORKSHOPS)}
+                  onClick={() => navigate(ROUTES.ADMIN_EVENTS)}
                 >
                   Cancel
                 </Button>
