@@ -15,8 +15,9 @@ import { z } from "zod";
 const applicationRoutes = {
   getApplications: protectedProcedure
     .input(ApplicationFilterSchema)
-    .query(async ({ input }) => {
-      return vendorApplicationService.getApplications(input);
+    .query(async ({ input, ctx }) => {
+      const vendorId = (ctx.user!._id as any).toString();
+      return vendorApplicationService.getApplications(input, vendorId);
     }),
 
   // getPending: eventsOfficeProcedure

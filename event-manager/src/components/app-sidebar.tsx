@@ -22,11 +22,12 @@ import {
   BarChart3,
   CheckSquare,
   Package,
+  Clipboard,
   ClipboardList,
   Vote,
   MapPin,
   type LucideIcon,
-} from "lucide-react"
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -43,34 +44,34 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import { useAuthStore } from "@/store/authStore"
-import { trpc } from "@/lib/trpc"
-import { toast } from "react-hot-toast"
-import { ROUTES } from "@/lib/constants"
-import { getAvatarSrc } from "@event-manager/shared"
+} from "@/components/ui/dropdown-menu";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/store/authStore";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { ROUTES } from "@/lib/constants";
+import { getAvatarSrc } from "@event-manager/shared";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { NavUser } from "@/components/nav-user"
+} from "@/components/ui/collapsible";
+import { NavUser } from "@/components/nav-user";
 
 // Navigation structure based on user roles and requirements
 interface NavItem {
-  title: string
-  url: string
-  icon?: LucideIcon
-  items?: NavItem[]
-  badge?: string
-  roles?: string[] // Which roles can see this item
+  title: string;
+  url: string;
+  icon?: LucideIcon;
+  items?: NavItem[];
+  badge?: string;
+  roles?: string[]; // Which roles can see this item
 }
 
 const navigationConfig: NavItem[] = [
@@ -96,12 +97,41 @@ const navigationConfig: NavItem[] = [
     title: "Vendors",
     icon: ShoppingBag,
     url: ROUTES.BROWSE_BAZAARS,
-    roles: ["VENDOR", "ADMIN", "EVENT_OFFICE", "STUDENT", "STAFF", "TA", "PROFESSOR"],
+    roles: [
+      "VENDOR",
+      "ADMIN",
+      "EVENT_OFFICE",
+      "STUDENT",
+      "STAFF",
+      "TA",
+      "PROFESSOR",
+    ],
     items: [
-      { title: "Browse Bazaars", url: ROUTES.BROWSE_BAZAARS, icon: ShoppingBag, roles: ["VENDOR"] },
-      { title: "My Applications", url: ROUTES.VENDOR_APPLICATIONS, icon: ClipboardList, roles: ["VENDOR"] },
+      {
+        title: "Browse Bazaars",
+        url: ROUTES.BROWSE_BAZAARS,
+        icon: ShoppingBag,
+        roles: ["VENDOR"],
+      },
+      {
+        title: "My Applications",
+        url: ROUTES.VENDOR_APPLICATIONS,
+        icon: ClipboardList,
+        roles: ["VENDOR"],
+      },
+      {
+        title: "View Applications",
+        url: ROUTES.ALL_APPLICATIONS,
+        icon: ClipboardList,
+        roles: ["ADMIN", "EVENT_OFFICE"],
+      },
+      {
+        title: "Manage Requests",
+        url: ROUTES.VENDOR_REQUESTS,
+        icon: Clipboard,
+        roles: ["ADMIN", "EVENT_OFFICE"],
+      },
       { title: "Loyalty Program", url: ROUTES.LOYALTY_PROGRAM, icon: Trophy },
-      { title: "Vendor Requests", url: ROUTES.VENDOR_REQUESTS, icon: Package, roles: ["ADMIN", "EVENT_OFFICE"] },
     ],
   },
   {
@@ -110,9 +140,24 @@ const navigationConfig: NavItem[] = [
     url: ROUTES.GYM_SCHEDULE,
     items: [
       { title: "Gym Schedule", url: ROUTES.GYM_SCHEDULE, icon: Calendar },
-      { title: "My Sessions", url: ROUTES.MY_SESSIONS, icon: CheckSquare, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
-      { title: "Court Bookings", url: ROUTES.COURT_BOOKINGS, icon: Trophy, roles: ["STUDENT"] },
-      { title: "Manage Sessions", url: ROUTES.MANAGE_SESSIONS, icon: Settings, roles: ["EVENT_OFFICE"] },
+      {
+        title: "My Sessions",
+        url: ROUTES.MY_SESSIONS,
+        icon: CheckSquare,
+        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
+      },
+      {
+        title: "Court Bookings",
+        url: ROUTES.COURT_BOOKINGS,
+        icon: Trophy,
+        roles: ["STUDENT"],
+      },
+      {
+        title: "Manage Sessions",
+        url: ROUTES.MANAGE_SESSIONS,
+        icon: Settings,
+        roles: ["EVENT_OFFICE"],
+      },
     ],
   },
   {
@@ -149,36 +194,43 @@ const navigationConfig: NavItem[] = [
     url: ROUTES.NOTIFICATIONS,
     icon: Bell,
   },
-]
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { user, logout } = useAuthStore()
-  const logoutMutation = trpc.auth.logout.useMutation()
-  const { state } = useSidebar()
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+  const logoutMutation = trpc.auth.logout.useMutation();
+  const { state } = useSidebar();
 
   const handleLogout = async () => {
     try {
-      await logoutMutation.mutateAsync()
-      logout()
-      toast.success("Logged out successfully")
-      navigate(ROUTES.LOGIN)
+      await logoutMutation.mutateAsync();
+      logout();
+      toast.success("Logged out successfully");
+      navigate(ROUTES.LOGIN);
     } catch (error: any) {
-      toast.error(error.message || "Failed to logout")
+      toast.error(error.message || "Failed to logout");
     }
-  }
+  };
 
   // Filter navigation based on user role
-  const filteredNav = navigationConfig.filter(item => {
-    if (!item.roles) return true
-    return user?.role && item.roles.includes(user.role)
-  })
+  const filteredNav = navigationConfig.filter((item) => {
+    if (!item.roles) return true;
+    return user?.role && item.roles.includes(user.role);
+  });
 
-  const avatarSrc = user?.avatar ? getAvatarSrc(user.avatar, user.avatarType as 'upload' | 'preset') : undefined
+  const avatarSrc = user?.avatar
+    ? getAvatarSrc(user.avatar, user.avatarType as "upload" | "preset")
+    : undefined;
 
   return (
-    <Sidebar collapsible="icon" variant="inset" className="border-r bg-gradient-to-b from-sidebar/95 via-sidebar to-sidebar/98" {...props}>
+    <Sidebar
+      collapsible="icon"
+      variant="inset"
+      className="border-r bg-gradient-to-b from-sidebar/95 via-sidebar to-sidebar/98"
+      {...props}
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -189,7 +241,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">GUC Events</span>
-                  <span className="truncate text-xs text-muted-foreground">Event Management</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    Event Management
+                  </span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -202,20 +256,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupLabel>Platform</SidebarGroupLabel>
           <SidebarMenu>
             {filteredNav.map((item) => {
-              const isActive = location.pathname === item.url || location.pathname.startsWith(item.url + "/")
-              
+              const isActive =
+                location.pathname === item.url ||
+                location.pathname.startsWith(item.url + "/");
+
               if (item.items && item.items.length > 0) {
                 // Filter sub-items based on role
-                const filteredItems = item.items.filter(subItem => {
-                  if (!subItem.roles) return true
-                  return user?.role && subItem.roles.includes(user.role)
-                })
+                const filteredItems = item.items.filter((subItem) => {
+                  if (!subItem.roles) return true;
+                  return user?.role && subItem.roles.includes(user.role);
+                });
 
-                if (filteredItems.length === 0) return null
+                if (filteredItems.length === 0) return null;
 
                 // Check if any sub-item is active
-                const hasActiveChild = filteredItems.some(subItem => location.pathname === subItem.url)
-                const isMainOrChildActive = isActive || hasActiveChild
+                const hasActiveChild = filteredItems.some(
+                  (subItem) => location.pathname === subItem.url,
+                );
+                const isMainOrChildActive = isActive || hasActiveChild;
 
                 // In collapsed mode, use DropdownMenu
                 if (state === "collapsed") {
@@ -223,42 +281,62 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuItem key={item.title}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <SidebarMenuButton 
+                          <SidebarMenuButton
                             tooltip={item.title}
-                            className={isMainOrChildActive ? "!bg-primary/10 !text-primary hover:!bg-primary/15 hover:!text-primary [&>svg]:!text-primary" : ""}
+                            className={
+                              isMainOrChildActive
+                                ? "!bg-primary/10 !text-primary hover:!bg-primary/15 hover:!text-primary [&>svg]:!text-primary"
+                                : ""
+                            }
                           >
                             {item.icon && <item.icon className="size-4" />}
                             <span>{item.title}</span>
                             <ChevronRight className="ml-auto size-4" />
                           </SidebarMenuButton>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent side="right" align="start" className="min-w-48">
+                        <DropdownMenuContent
+                          side="right"
+                          align="start"
+                          className="min-w-48"
+                        >
                           {filteredItems.map((subItem) => {
-                            const isSubActive = location.pathname === subItem.url
+                            const isSubActive =
+                              location.pathname === subItem.url;
                             return (
                               <DropdownMenuItem key={subItem.title} asChild>
-                                <Link 
+                                <Link
                                   to={subItem.url}
-                                  className={isSubActive ? "!bg-primary/10 !text-primary font-medium [&>svg]:!text-primary" : ""}
+                                  className={
+                                    isSubActive
+                                      ? "!bg-primary/10 !text-primary font-medium [&>svg]:!text-primary"
+                                      : ""
+                                  }
                                 >
-                                  {subItem.icon && <subItem.icon className="mr-2 size-4" />}
+                                  {subItem.icon && (
+                                    <subItem.icon className="mr-2 size-4" />
+                                  )}
                                   <span>{subItem.title}</span>
                                 </Link>
                               </DropdownMenuItem>
-                            )
+                            );
                           })}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </SidebarMenuItem>
-                  )
+                  );
                 }
 
                 // In expanded mode, use Collapsible - only highlight sub-items, not parent
                 return (
-                  <Collapsible key={item.title} asChild defaultOpen={isMainOrChildActive} className="group/collapsible">
+                  <Collapsible
+                    key={item.title}
+                    asChild
+                    defaultOpen={isMainOrChildActive}
+                    className="group/collapsible"
+                  >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton 
+                        <SidebarMenuButton
                           tooltip={item.title}
                           size="default"
                           className="h-10"
@@ -271,37 +349,48 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       <CollapsibleContent className="overflow-hidden transition-all duration-200 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out]">
                         <SidebarMenuSub>
                           {filteredItems.map((subItem) => {
-                            const isSubActive = location.pathname === subItem.url
+                            const isSubActive =
+                              location.pathname === subItem.url;
                             return (
                               <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton 
-                                  asChild 
+                                <SidebarMenuSubButton
+                                  asChild
                                   isActive={isSubActive}
-                                  className={isSubActive ? "!bg-primary/10 !text-primary hover:!bg-primary/15 hover:!text-primary h-9 [&>svg]:!text-primary font-medium" : "h-9"}
+                                  className={
+                                    isSubActive
+                                      ? "!bg-primary/10 !text-primary hover:!bg-primary/15 hover:!text-primary h-9 [&>svg]:!text-primary font-medium"
+                                      : "h-9"
+                                  }
                                 >
                                   <Link to={subItem.url}>
-                                    {subItem.icon && <subItem.icon className="size-4" />}
+                                    {subItem.icon && (
+                                      <subItem.icon className="size-4" />
+                                    )}
                                     <span>{subItem.title}</span>
                                   </Link>
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>
-                            )
+                            );
                           })}
                         </SidebarMenuSub>
                       </CollapsibleContent>
                     </SidebarMenuItem>
                   </Collapsible>
-                )
+                );
               }
 
               return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={isActive} 
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive}
                     tooltip={item.title}
                     size="default"
-                    className={isActive ? "!bg-primary/10 !text-primary hover:!bg-primary/15 hover:!text-primary h-10 [&>svg]:!text-primary font-medium" : "h-10"}
+                    className={
+                      isActive
+                        ? "!bg-primary/10 !text-primary hover:!bg-primary/15 hover:!text-primary h-10 [&>svg]:!text-primary font-medium"
+                        : "h-10"
+                    }
                   >
                     <Link to={item.url}>
                       {item.icon && <item.icon className="size-4" />}
@@ -309,18 +398,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )
+              );
             })}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
-        <NavUser 
+        <NavUser
           user={{
-            name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User',
-            email: user?.email || '',
-            avatar: avatarSrc || '',
+            name:
+              `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
+              "User",
+            email: user?.email || "",
+            avatar: avatarSrc || "",
           }}
           onLogout={handleLogout}
           isLoggingOut={logoutMutation.isPending}
@@ -328,5 +419,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

@@ -1,19 +1,25 @@
 /**
  * Bazaars List Page (Vendor View)
- * 
+ *
  * Vendors can:
  * - View all upcoming bazaars
  * - Apply to participate in bazaars
  * - See bazaar details and requirements
- * 
+ *
  * Requirement: #59, #60
  */
 
-import { useState } from 'react';
-import { trpc } from '@/lib/trpc';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -21,15 +27,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'react-hot-toast';
-import { ShoppingBag, Calendar, MapPin, Clock, Users } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { LoadingSpinner } from '@/components/generic/LoadingSpinner';
-import type { Event } from '@event-manager/shared';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "react-hot-toast";
+import { ShoppingBag, Calendar, MapPin, Clock, Users } from "lucide-react";
+import { motion } from "framer-motion";
+import { LoadingSpinner } from "@/components/generic/LoadingSpinner";
+import type { Event } from "@event-manager/shared";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -46,22 +58,22 @@ const itemVariants = {
 
 interface VendorApplication {
   attendees: Array<{ name: string; email: string }>;
-  boothSize: '2x2' | '4x4';
+  boothSize: "TWO_BY_TWO" | "FOUR_BY_FOUR";
 }
 
 export function BazaarsListPage() {
-  const [selectedBazaar, setSelectedBazaar] = useState<Event | null>(null);
+  const [selectedBazaar, setSelectedBazaar] = useState<Event>();
   const [applicationDialog, setApplicationDialog] = useState(false);
   const [application, setApplication] = useState<VendorApplication>({
-    attendees: [{ name: '', email: '' }],
-    boothSize: '2x2',
+    attendees: [{ name: "", email: "" }],
+    boothSize: "TWO_BY_TWO",
   });
 
   // Fetch bazaars
   const { data: eventsData, isLoading } = trpc.events.getEvents.useQuery({
     page: 1,
     limit: 50,
-    type: 'BAZAAR',
+    type: "BAZAAR",
     onlyUpcoming: true,
   });
 
@@ -71,7 +83,7 @@ export function BazaarsListPage() {
     if (application.attendees.length < 5) {
       setApplication({
         ...application,
-        attendees: [...application.attendees, { name: '', email: '' }],
+        attendees: [...application.attendees, { name: "", email: "" }],
       });
     }
   };
@@ -85,31 +97,53 @@ export function BazaarsListPage() {
     }
   };
 
-  const handleUpdateAttendee = (index: number, field: 'name' | 'email', value: string) => {
+  const handleUpdateAttendee = (
+    index: number,
+    field: "name" | "email",
+    value: string,
+  ) => {
     const updatedAttendees = [...application.attendees];
     updatedAttendees[index][field] = value;
     setApplication({ ...application, attendees: updatedAttendees });
   };
 
-  const handleApply = () => {
+  const applicationMut = trpc.vendorApplications.create.useMutation({
+    onSuccess: () => {
+      toast.success("Application submitted successfully!");
+      setApplicationDialog(false);
+      setApplication({
+        attendees: [{ name: "", email: "" }],
+        boothSize: "TWO_BY_TWO",
+      });
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to create application");
+    },
+  });
+  const handleApply = (bazaar?: Event) => {
     // Validate
     const hasEmptyFields = application.attendees.some(
-      (a) => !a.name.trim() || !a.email.trim()
+      (a) => !a.name.trim() || !a.email.trim(),
     );
     if (hasEmptyFields) {
-      toast.error('Please fill in all attendee details');
+      toast.error("Please fill in all attendee details");
       return;
     }
 
-    // TODO: Implement vendor application mutation
-    toast.success('Application submitted successfully!');
-    setApplicationDialog(false);
-    setApplication({
-      attendees: [{ name: '', email: '' }],
-      boothSize: '2x2',
-    });
-  };
+    const value = {
+      names: application.attendees.map((v) => v.name),
+      emails: application.attendees.map((v) => v.email),
+      boothSize: application.boothSize,
+      status: "PENDING" as any,
+      type: "BAZAAR" as any,
+      bazaarName: bazaar?.name,
+      startDate: bazaar?.startDate,
+      bazaarId: bazaar?.id,
+    };
+    console.log(value);
 
+    applicationMut.mutate(value);
+  };
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[400px]">
@@ -181,8 +215,13 @@ export function BazaarsListPage() {
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span>
-                          {new Date(bazaar.date).toLocaleDateString()} -{' '}
-                          {bazaar.endDate ? new Date(bazaar.endDate).toLocaleDateString() : 'TBD'}
+                          {new Date(
+                            bazaar?.startDate as any,
+                          ).toLocaleDateString()}{" "}
+                          -{" "}
+                          {bazaar.endDate
+                            ? new Date(bazaar.endDate).toLocaleDateString()
+                            : "TBD"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
@@ -192,16 +231,19 @@ export function BazaarsListPage() {
                       <div className="flex items-center gap-2 text-sm">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span>
-                          Deadline:{' '}
-                          {bazaar.registrationDeadline 
-                            ? new Date(bazaar.registrationDeadline).toLocaleDateString()
-                            : 'TBD'}
+                          Deadline:{" "}
+                          {bazaar.registrationDeadline
+                            ? new Date(
+                                bazaar.registrationDeadline,
+                              ).toLocaleDateString()
+                            : "TBD"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span>
-                          {bazaar.registeredCount || 0} / {bazaar.capacity} vendors
+                          {bazaar.registeredCount || 0} / {bazaar.capacity}{" "}
+                          vendors
                         </span>
                       </div>
                     </div>
@@ -213,15 +255,17 @@ export function BazaarsListPage() {
                         setApplicationDialog(true);
                       }}
                       disabled={
-                        (bazaar.registrationDeadline && new Date(bazaar.registrationDeadline) < new Date()) ||
+                        (bazaar.registrationDeadline &&
+                          new Date(bazaar.registrationDeadline) < new Date()) ||
                         (bazaar.registeredCount || 0) >= bazaar.capacity
                       }
                     >
-                      {bazaar.registrationDeadline && new Date(bazaar.registrationDeadline) < new Date()
-                        ? 'Registration Closed'
+                      {bazaar.registrationDeadline &&
+                      new Date(bazaar.registrationDeadline) < new Date()
+                        ? "Registration Closed"
                         : (bazaar.registeredCount || 0) >= bazaar.capacity
-                        ? 'Full'
-                        : 'Apply to Participate'}
+                          ? "Full"
+                          : "Apply to Participate"}
                     </Button>
                   </CardContent>
                 </Card>
@@ -255,8 +299,12 @@ export function BazaarsListPage() {
                   <SelectValue placeholder="Select booth size" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="2x2">2x2 meters (Standard)</SelectItem>
-                  <SelectItem value="4x4">4x4 meters (Large)</SelectItem>
+                  <SelectItem value="TWO_BY_TWO">
+                    2x2 meters (Standard)
+                  </SelectItem>
+                  <SelectItem value="FOUR_BY_FOUR">
+                    4x4 meters (Large)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -288,7 +336,11 @@ export function BazaarsListPage() {
                             placeholder="Full name"
                             value={attendee.name}
                             onChange={(e) =>
-                              handleUpdateAttendee(index, 'name', e.target.value)
+                              handleUpdateAttendee(
+                                index,
+                                "name",
+                                e.target.value,
+                              )
                             }
                           />
                         </div>
@@ -300,7 +352,11 @@ export function BazaarsListPage() {
                             placeholder="email@example.com"
                             value={attendee.email}
                             onChange={(e) =>
-                              handleUpdateAttendee(index, 'email', e.target.value)
+                              handleUpdateAttendee(
+                                index,
+                                "email",
+                                e.target.value,
+                              )
                             }
                           />
                         </div>
@@ -323,10 +379,19 @@ export function BazaarsListPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApplicationDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setApplicationDialog(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleApply}>Submit Application</Button>
+            <Button
+              onClick={() => {
+                handleApply(selectedBazaar);
+              }}
+            >
+              Submit Application
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

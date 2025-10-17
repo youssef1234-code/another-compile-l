@@ -84,15 +84,15 @@ export const PaymentStatus = {
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const EventStatus = {
-  DRAFT: 'DRAFT',
-  PENDING_APPROVAL: 'PENDING_APPROVAL',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
-  PUBLISHED: 'PUBLISHED',
-  CANCELLED: 'CANCELLED',
-  COMPLETED: 'COMPLETED',
-  ARCHIVED: 'ARCHIVED',
-  NEEDS_EDITS: 'NEEDS_EDITS',
+  DRAFT: "DRAFT",
+  PENDING_APPROVAL: "PENDING_APPROVAL",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+  PUBLISHED: "PUBLISHED",
+  CANCELLED: "CANCELLED",
+  COMPLETED: "COMPLETED",
+  ARCHIVED: "ARCHIVED",
+  NEEDS_EDITS: "NEEDS_EDITS",
 } as const;
 
 export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus];
@@ -328,10 +328,20 @@ export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 //  ==========================================================================
 // Base schema with common fields - used for generic event creation
 export const CreateEventSchema = z.object({
-  name: z.string().min(5, 'Title must be at least 5 characters').max(100),
-  description: z.string().min(20, 'Description must be at least 20 characters').max(2000),
-  type: z.enum(['WORKSHOP', 'TRIP', 'BAZAAR', 'CONFERENCE', 'GYM_SESSION', 'OTHER']),
-  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
+  name: z.string().min(5, "Title must be at least 5 characters").max(100),
+  description: z
+    .string()
+    .min(20, "Description must be at least 20 characters")
+    .max(2000),
+  type: z.enum([
+    "WORKSHOP",
+    "TRIP",
+    "BAZAAR",
+    "CONFERENCE",
+    "GYM_SESSION",
+    "OTHER",
+  ]),
+  location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]),
   locationDetails: z.string().min(5).max(200),
   startDate: z.coerce.date(),
   endDate: z.coerce.date().optional(),
@@ -413,17 +423,19 @@ export type CreateConferenceInput = z.infer<typeof CreateConferenceSchema>;
 export const UpdateEventSchema = CreateEventSchema.partial().extend({
   id: z.string(),
   isArchived: z.boolean().optional(),
-  status: z.enum([
-    'DRAFT',
-    'PENDING_APPROVAL',
-    'APPROVED',
-    'REJECTED',
-    'PUBLISHED',
-    'CANCELLED',
-    'COMPLETED',
-    'ARCHIVED',
-    'NEEDS_EDITS',
-  ]).optional(), // For approval workflow
+  status: z
+    .enum([
+      "DRAFT",
+      "PENDING_APPROVAL",
+      "APPROVED",
+      "REJECTED",
+      "PUBLISHED",
+      "CANCELLED",
+      "COMPLETED",
+      "ARCHIVED",
+      "NEEDS_EDITS",
+    ])
+    .optional(), // For approval workflow
   rejectionReason: z.string().optional(),
   revisionNotes: z.string().optional(),
 });
@@ -449,32 +461,33 @@ export const EventFilterSchema = z.object({
 export type EventFilterInput = z.infer<typeof EventFilterSchema>;
 
 export const createGymSessionSchema = z.object({
-      name: z.string(),
-      description: z.string().optional(),
-      sessionType: z.nativeEnum(GymSessionType),
-      startDate: z.coerce.date(),
-      capacity: z.number().int().positive(),
-      duration: z.number().int().positive(),
+  name: z.string(),
+  description: z.string().optional(),
+  sessionType: z.nativeEnum(GymSessionType),
+  startDate: z.coerce.date(),
+  capacity: z.number().int().positive(),
+  duration: z.number().int().positive(),
 });
 export type CreateGymSessionInput = z.infer<typeof createGymSessionSchema>;
 
-
-export const updateGymSessionSchema = z.object({
-      id: z.string(),
-      startDate: z.coerce.date().optional(),
-      duration: z.number().int().positive().optional(),
-      capacity: z.number().int().positive().optional(),
-      status: z.nativeEnum(EventStatus).optional(),
-      sessionType: z.nativeEnum(GymSessionType).optional(),
-}).refine(
-  (v) =>
-    v.startDate != null ||
-    v.duration != null ||
-    v.capacity != null ||
-    v.status != null ||
-    v.sessionType != null,
-  { message: 'You need to update at least one field' }
-);
+export const updateGymSessionSchema = z
+  .object({
+    id: z.string(),
+    startDate: z.coerce.date().optional(),
+    duration: z.number().int().positive().optional(),
+    capacity: z.number().int().positive().optional(),
+    status: z.nativeEnum(EventStatus).optional(),
+    sessionType: z.nativeEnum(GymSessionType).optional(),
+  })
+  .refine(
+    (v) =>
+      v.startDate != null ||
+      v.duration != null ||
+      v.capacity != null ||
+      v.status != null ||
+      v.sessionType != null,
+    { message: "You need to update at least one field" },
+  );
 
 export type UpdateGymSessionInput = z.infer<typeof updateGymSessionSchema>;
 
@@ -496,20 +509,19 @@ export const CourtSchema = z.object({
 export const AvailabilityQuerySchema = z.object({
   courtId: z.string().optional(),
   sport: z.nativeEnum(CourtSport).optional(),
-  date: z.coerce.date(),                // day to check
+  date: z.coerce.date(), // day to check
   slotMinutes: z.number().int().positive().default(60), // length of slot the user wants
 });
 
 export const CourtReservationCreateSchema = z.object({
   courtId: z.string(),
   startDate: z.coerce.date(),
-  duration: z.number().int().positive(),           // minutes
+  duration: z.number().int().positive(), // minutes
 });
 
 export const CourtReservationCancelSchema = z.object({
   id: z.string(),
 });
-
 
 // ============================================================================
 // WORKSHOP SCHEMAS
@@ -543,15 +555,25 @@ export const LegacyCreateWorkshopSchema = z.object({
   id: z.string(),
   data: z.object({
     name: z.string().optional(),
-    location: z.enum(['Cairo', 'Berlin']).optional(),
+    location: z.enum(["Cairo", "Berlin"]).optional(),
     startDate: z.date().optional(),
     endDate: z.date().optional(),
     description: z.string().optional(),
     fullAgenda: z.string().optional(),
-    faculty: z.enum(['MET', 'IET', 'PHARMACY', 'BIOTECHNOLOGY', 'MANAGEMENT', 'LAW', 'DESIGN']).optional(),
+    faculty: z
+      .enum([
+        "MET",
+        "IET",
+        "PHARMACY",
+        "BIOTECHNOLOGY",
+        "MANAGEMENT",
+        "LAW",
+        "DESIGN",
+      ])
+      .optional(),
     professors: z.array(z.string()).optional(),
     requiredBudget: z.number().optional(),
-    fundingSource: z.enum(['EXTERNAL', 'GUC']).optional(),
+    fundingSource: z.enum(["EXTERNAL", "GUC"]).optional(),
     extraResources: z.string().optional(),
     capacity: z.number().optional(),
     registrationDeadline: z.date().optional(),
@@ -810,6 +832,22 @@ export interface Event {
   revisionNotes?: string;
 }
 
+export interface VendorApplication {
+  id: string;
+  companyName: string;
+  names: string[];
+  emails: string[];
+
+  type: ApplicationType;
+  boothSize: BoothSize;
+  bazaarId?: string;
+  bazaarName?: string;
+  location?: number;
+  duration?: number;
+  startDate?: Date;
+
+  status: VendorApprovalStatus;
+}
 export interface Registration {
   id: string;
   eventId: string;
