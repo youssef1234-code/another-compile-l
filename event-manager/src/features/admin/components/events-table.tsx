@@ -115,6 +115,7 @@ export function EventsTable({
           onEdit={onEditEvent}
           onArchive={onArchiveEvent}
           onDelete={onDeleteEvent}
+          onApproveWorkshop={onApproveWorkshop}
         />
       )}
     >

@@ -529,6 +529,33 @@ export function getEventsTableColumns({
                   Delete
                 </DropdownMenuItem>
               )}
+              {onApproveWorkshop && (
+                <DropdownMenuItem
+                  onClick={() => onApproveWorkshop(event.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Approve
+                </DropdownMenuItem>
+              )}
+              {onNeedsEdits && (
+                <DropdownMenuItem
+                  onClick={() => onNeedsEdits(event.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Needs Edits
+                </DropdownMenuItem>
+              )}
+              {onRejectWorkshop && (
+                <DropdownMenuItem
+                  onClick={() => onRejectWorkshop(event.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Reject
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );

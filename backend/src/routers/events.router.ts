@@ -367,9 +367,10 @@ const eventRoutes = {
     rejectWorkshop : eventsOfficeProcedure
     .input(z.object({
       eventId: z.string(),
+      rejectionReason: z.string(),
     }))
     .mutation(async ({ input }) => {
-      return eventService.rejectWorkshop(input.eventId);
+      return eventService.rejectWorkshop(input.eventId, input.rejectionReason);
     }),
 
     // Workshop needs edits - EVENT_OFFICE ONLY

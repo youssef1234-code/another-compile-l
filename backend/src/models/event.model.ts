@@ -129,6 +129,10 @@ const eventSchema = createBaseSchema<IEvent>(
       type: Number,
       default: 0,
     },
+    rejectionReason:{
+      type: String,
+      required: false,
+    },
     
     // Media
     images: [{
