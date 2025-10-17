@@ -13,10 +13,6 @@ import { CreateGymSessionDialog } from "./components/CreateGymSessionDialog";
 import EditSessionDialog from "./components/EditSessionDialog";
 import { cn } from '@/lib/utils';
 
-function monthLabel(y: number, m: number) { 
-  return new Date(y, m-1, 1).toLocaleString(undefined, {month: "long", year: "numeric"}); 
-}
-
 export function GymSchedulePage(){
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -195,18 +191,6 @@ export function GymSchedulePage(){
     setYear(newYear);
     setMonth(newMonth);
   }, []);
-
-  const goPrev = () => { 
-    const d = new Date(year, month-2, 1); 
-    setYear(d.getFullYear()); 
-    setMonth(d.getMonth()+1); 
-  };
-  
-  const goNext = () => { 
-    const d = new Date(year, month, 1); 
-    setYear(d.getFullYear()); 
-    setMonth(d.getMonth()+1); 
-  };
 
   return (
     <>
