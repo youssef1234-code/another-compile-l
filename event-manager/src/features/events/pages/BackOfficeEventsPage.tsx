@@ -240,6 +240,18 @@ export function BackOfficeEventsPage() {
     },
   });
 
+  const editWorkshopMutation = trpc.events.editWorkshop.useMutation({
+    onSuccess: () => {
+      toast.success('Workshop updated successfully');
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+    },
+  });
+
   const archiveEventMutation = trpc.events.archive.useMutation({
     onSuccess: () => {
       toast.success('Event archived successfully');
@@ -338,14 +350,29 @@ export function BackOfficeEventsPage() {
 
   // Handlers
   const handleUpdateEvent = useCallback(async (eventId: string, field: string, value: string) => {
+    // Find the event to determine its type
+    const event = events.find(e => e.id === eventId);
+    if (!event) {
+      toast.error('Event not found');
+      throw new Error('Event not found');
+    }
+
     const updates: any = {};
     updates[field] = value;
     
     try {
-      await updateEventMutation.mutateAsync({ 
-        id: eventId,
-        data: updates 
-      });
+      // Use editWorkshop for workshops, update for other events
+      if (event.type === 'WORKSHOP') {
+        await editWorkshopMutation.mutateAsync({ 
+          id: eventId,
+          ...updates 
+        });
+      } else {
+        await updateEventMutation.mutateAsync({ 
+          id: eventId,
+          data: updates 
+        });
+      }
     } catch (error: any) {
       let errorMessage = 'Failed to update event';
       
@@ -362,7 +389,7 @@ export function BackOfficeEventsPage() {
       toast.error(errorMessage);
       throw new Error(errorMessage);
     }
-  }, [updateEventMutation]);
+  }, [events, editWorkshopMutation, updateEventMutation]);
 
   const handleViewDetails = useCallback((eventId: string) => {
     navigate(`${ROUTES.EVENTS}/${eventId}`);

@@ -229,7 +229,12 @@ export function getEventsTableColumns({
       ),
       cell: ({ row }) => {
         const event = row.original;
-        return onUpdateEvent ? (
+        const isWorkshop = event.type === 'WORKSHOP';
+        const isAdminOrEventOffice = userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE;
+        const isRejected = event.status === 'REJECTED';
+        const canInlineEdit = onUpdateEvent && !(isWorkshop && isAdminOrEventOffice) && !(isWorkshop && isRejected);
+        
+        return canInlineEdit ? (
           <InlineEditCell
             value={event.name}
             onSave={(newValue) => onUpdateEvent(event.id, 'name', newValue)}
