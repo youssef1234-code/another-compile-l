@@ -766,6 +766,7 @@ async createGymSession(
       ...data, // Includes: name, description, sessionType, capacity, duration, status
       type: 'GYM_SESSION',
       startDate: start,
+      status: data.status || 'PUBLISHED',
       endDate: end,
       location: data.location ?? 'ON_CAMPUS',
       locationDetails: data.locationDetails ?? 'Gym',
