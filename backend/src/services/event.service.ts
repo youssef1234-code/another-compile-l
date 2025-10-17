@@ -557,11 +557,14 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       return newWorkshop;
     }
 
-    async rejectWorkshop(workshopId: string) {
+    async rejectWorkshop(workshopId: string, reason: string) {
       // Logic to reject the workshop
       const workshop = await eventRepository.findById(workshopId);
       if (!workshop) {
         throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+      }
+      if(!reason || reason.trim() === "") {
+        throw new ServiceError("BAD_REQUEST", "Rejection reason must be provided", 400);
       }
       if (workshop.type !== "WORKSHOP") {
         throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
@@ -569,7 +572,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       if (workshop.status !== "PENDING_APPROVAL") {
         throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval", 400);
       }
-      const newWorkshop = await eventRepository.update(workshopId, { status: "REJECTED" });
+      const newWorkshop = await eventRepository.update(workshopId, { status: "REJECTED", rejectionReason: reason });
       return newWorkshop;
     }
 
