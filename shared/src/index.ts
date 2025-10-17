@@ -118,9 +118,13 @@ export const Faculty = {
 export type Faculty = (typeof Faculty)[keyof typeof Faculty];
 
 export const GymSessionType = {
-  CROSSFIT: "CROSSFIT",
   YOGA: "YOGA",
   PILATES: "PILATES",
+  AEROBICS: "AEROBICS",
+  ZUMBA: "ZUMBA",
+  CROSS_CIRCUIT: "CROSS_CIRCUIT",
+  KICK_BOXING: "KICK_BOXING",
+  CROSSFIT: "CROSSFIT",
   CARDIO: "CARDIO",
   STRENGTH: "STRENGTH",
   DANCE: "DANCE",
@@ -130,6 +134,38 @@ export const GymSessionType = {
 
 export type GymSessionType =
   (typeof GymSessionType)[keyof typeof GymSessionType];
+
+// Gym session type color mapping for consistent UI across FE & BE
+export const GYM_SESSION_TYPE_COLORS: Record<GymSessionType, { bg: string; text: string; border: string }> = {
+  YOGA: { bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-200" },
+  PILATES: { bg: "bg-pink-100", text: "text-pink-700", border: "border-pink-200" },
+  AEROBICS: { bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-200" },
+  ZUMBA: { bg: "bg-yellow-100", text: "text-yellow-700", border: "border-yellow-200" },
+  CROSS_CIRCUIT: { bg: "bg-red-100", text: "text-red-700", border: "border-red-200" },
+  KICK_BOXING: { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-200" },
+  CROSSFIT: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200" },
+  CARDIO: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-200" },
+  STRENGTH: { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200" },
+  DANCE: { bg: "bg-fuchsia-100", text: "text-fuchsia-700", border: "border-fuchsia-200" },
+  MARTIAL_ARTS: { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-200" },
+  OTHER: { bg: "bg-neutral-100", text: "text-neutral-700", border: "border-neutral-200" },
+};
+
+// Gym session type display labels
+export const GYM_SESSION_TYPE_LABELS: Record<GymSessionType, string> = {
+  YOGA: "Yoga",
+  PILATES: "Pilates",
+  AEROBICS: "Aerobics",
+  ZUMBA: "Zumba",
+  CROSS_CIRCUIT: "Cross Circuit",
+  KICK_BOXING: "Kick-Boxing",
+  CROSSFIT: "CrossFit",
+  CARDIO: "Cardio",
+  STRENGTH: "Strength Training",
+  DANCE: "Dance",
+  MARTIAL_ARTS: "Martial Arts",
+  OTHER: "Other",
+};
 
 export const NotificationType = {
   INFO: "INFO",
@@ -285,6 +321,7 @@ export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 // ============================================================================
 // EVENT SCHEMAS
 //  ==========================================================================
+// Base schema with common fields - used for generic event creation
 export const CreateEventSchema = z.object({
   name: z.string().min(5, 'Title must be at least 5 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters').max(2000),
@@ -293,17 +330,80 @@ export const CreateEventSchema = z.object({
   locationDetails: z.string().min(5).max(200),
   startDate: z.coerce.date(),
   endDate: z.coerce.date().optional(),
-  capacity: z.number().int().positive().min(1),
-  price: z.number().nonnegative().default(0),
+  capacity: z.number().int().positive().min(1).optional(),
+  price: z.number().nonnegative().optional(),
   imageUrl: z.string().url().optional(), // Deprecated: use images instead
   images: z.array(z.string()).optional(), // Array of file IDs or URLs
   tags: z.array(z.string()).default([]),
   requirements: z.string().max(500).optional(),
   professorName: z.string().optional(), // For academic events
   registrationDeadline: z.coerce.date().optional(),
+  // Workshop-specific fields
+  faculty: z.string().optional(),
+  fullAgenda: z.string().optional(),
+  requiredBudget: z.number().nonnegative().optional(),
+  fundingSource: z.string().optional(),
+  extraResources: z.string().optional(),
+  // Conference-specific fields
+  conferenceWebsite: z.string().url().optional(),
 });
 
 export type CreateEventInput = z.infer<typeof CreateEventSchema>;
+
+// Type-specific schemas based on requirements.csv
+// Req #31: BAZAAR - name, start/end date/time, location, description, registration deadline
+export const CreateBazaarSchema = z.object({
+  name: z.string().min(5).max(100),
+  description: z.string().min(20).max(2000),
+  type: z.literal('BAZAAR'),
+  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
+  locationDetails: z.string().min(5).max(200),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  registrationDeadline: z.coerce.date(),
+  images: z.array(z.string()).optional(),
+  requirements: z.string().max(500).optional(),
+});
+
+export type CreateBazaarInput = z.infer<typeof CreateBazaarSchema>;
+
+// Req #33: TRIP - name, location, price, start/end date/time, description, capacity, registration deadline
+export const CreateTripSchema = z.object({
+  name: z.string().min(5).max(100),
+  description: z.string().min(20).max(2000),
+  type: z.literal('TRIP'),
+  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
+  locationDetails: z.string().min(5).max(200),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  capacity: z.number().int().positive().min(1),
+  price: z.number().nonnegative(),
+  registrationDeadline: z.coerce.date(),
+  images: z.array(z.string()).optional(),
+  requirements: z.string().max(500).optional(),
+});
+
+export type CreateTripInput = z.infer<typeof CreateTripSchema>;
+
+// Req #45: CONFERENCE - name, start/end dates/times, description, full agenda, website link, required budget, funding source, extra resources
+export const CreateConferenceSchema = z.object({
+  name: z.string().min(5).max(100),
+  description: z.string().min(20).max(2000),
+  type: z.literal('CONFERENCE'),
+  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
+  locationDetails: z.string().min(5).max(200),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  conferenceWebsite: z.string().url(),
+  fullAgenda: z.string().min(20),
+  requiredBudget: z.number().nonnegative(),
+  fundingSource: z.enum(['UNIVERSITY', 'EXTERNAL_FUNDING']),
+  extraResources: z.string().optional(),
+  images: z.array(z.string()).optional(),
+  requirements: z.string().max(500).optional(),
+});
+
+export type CreateConferenceInput = z.infer<typeof CreateConferenceSchema>;
 
 export const UpdateEventSchema = CreateEventSchema.partial().extend({
   id: z.string(),
@@ -409,8 +509,32 @@ export const CourtReservationCancelSchema = z.object({
 // ============================================================================
 // WORKSHOP SCHEMAS
 // ============================================================================
-
+// Req #35: WORKSHOP - name, location (GUC Cairo/Berlin), start/end dates/times, description, 
+// full agenda, faculty, professor(s), required budget, funding source, extra resources, capacity, registration deadline
 export const CreateWorkshopSchema = z.object({
+  name: z.string().min(5).max(100),
+  description: z.string().min(20).max(2000),
+  type: z.literal('WORKSHOP'),
+  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
+  locationDetails: z.string().min(5).max(200), // Will specify "GUC Cairo" or "GUC Berlin"
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  fullAgenda: z.string().min(20),
+  faculty: z.string(), // MET, IET, etc.
+  professorName: z.string().optional(), // Professor(s) participating
+  requiredBudget: z.number().nonnegative(),
+  fundingSource: z.enum(['UNIVERSITY', 'EXTERNAL_FUNDING']),
+  extraResources: z.string().optional(),
+  capacity: z.number().int().positive().min(1),
+  registrationDeadline: z.coerce.date(),
+  images: z.array(z.string()).optional(),
+  requirements: z.string().max(500).optional(),
+});
+
+export type CreateWorkshopInput = z.infer<typeof CreateWorkshopSchema>;
+
+// Legacy schema - kept for backwards compatibility but deprecated
+export const LegacyCreateWorkshopSchema = z.object({
   id: z.string(),
   data: z.object({
     name: z.string().optional(),
@@ -429,7 +553,7 @@ export const CreateWorkshopSchema = z.object({
   }),
 });
 
-export type CreateWorkshopInput = z.infer<typeof CreateWorkshopSchema>;
+export type LegacyCreateWorkshopInput = z.infer<typeof LegacyCreateWorkshopSchema>;
 
 export const UpdateWorkshopSchema = z.object({
   id: z.string(),
@@ -640,7 +764,7 @@ export interface User {
 export interface Event {
   id: string;
   name: string;
-  description: string;
+  description?: string; // Optional for gym sessions
   type: EventType;
   location: EventLocation;
   locationDetails: string;
@@ -669,6 +793,9 @@ export interface Event {
   extraResources?: string;
   // Conference-specific fields
   conferenceWebsite?: string;
+  // Gym session-specific fields
+  sessionType?: string;
+  duration?: number;
   // Status for approval workflow
   status?: string;
   rejectionReason?: string;

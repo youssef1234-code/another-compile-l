@@ -408,6 +408,7 @@ export function BackOfficeEventsPage() {
           pageCount={pageCount}
           typeCounts={typeCounts}
           statusCounts={statusCounts}
+          userRole={user?.role}
           isSearching={isLoading}
           onUpdateEvent={handleUpdateEvent}
           onViewDetails={handleViewDetails}

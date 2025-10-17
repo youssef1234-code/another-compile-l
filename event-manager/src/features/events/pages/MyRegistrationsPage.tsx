@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { formatDate } from '@/lib/design-system';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { EventCardImage } from '@/components/ui/event-card-image';
 
 function RegistrationCardSkeleton() {

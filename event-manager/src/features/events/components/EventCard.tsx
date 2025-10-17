@@ -8,7 +8,7 @@
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Users, DollarSign, ArrowRight, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

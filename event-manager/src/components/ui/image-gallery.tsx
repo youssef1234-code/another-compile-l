@@ -17,7 +17,7 @@ import { X, Upload, GripVertical, Image as ImageIcon, Loader2 } from 'lucide-rea
 import { cn } from '@/lib/utils';
 import { Button } from './button';
 import { trpc } from '@/lib/trpc';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 // Component to load and display a single image thumbnail
 function ImageThumbnail({ imageId, alt }: { imageId: string; alt: string }) {

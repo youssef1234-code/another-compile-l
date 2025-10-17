@@ -37,10 +37,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
+import { UserRole } from "@event-manager/shared";
 
 interface GetEventsTableColumnsProps {
   typeCounts: Record<string, number>;
   statusCounts: Record<string, number>;
+  userRole?: string;
   onUpdateEvent?: (eventId: string, field: string, value: string) => Promise<void>;
   onViewDetails?: (eventId: string) => void;
   onEditEvent?: (eventId: string) => void;
@@ -108,6 +110,7 @@ function EventStatusBadge({ status }: { status: string }) {
 export function getEventsTableColumns({
   typeCounts,
   statusCounts,
+  userRole,
   onUpdateEvent,
   onViewDetails,
   onEditEvent,
@@ -115,6 +118,29 @@ export function getEventsTableColumns({
   onDeleteEvent,
   onPublishEvent,
 }: GetEventsTableColumnsProps): ColumnDef<Event>[] {
+  // Define all type options
+  const allTypeOptions = [
+    { label: "Workshop", value: "WORKSHOP", count: typeCounts.WORKSHOP },
+    { label: "Trip", value: "TRIP", count: typeCounts.TRIP },
+    { label: "Bazaar", value: "BAZAAR", count: typeCounts.BAZAAR },
+    { label: "Conference", value: "CONFERENCE", count: typeCounts.CONFERENCE },
+    { label: "Booth", value: "BOOTH", count: typeCounts.BOOTH },
+    { label: "Gym Session", value: "GYM_SESSION", count: typeCounts.GYM_SESSION },
+  ];
+
+  // Filter type options based on user role
+  const typeOptions = allTypeOptions.filter((option) => {
+    if (userRole === UserRole.PROFESSOR) {
+      // Professors can only create/see workshops
+      return option.value === "WORKSHOP";
+    } else if (userRole === UserRole.EVENT_OFFICE || userRole === UserRole.ADMIN) {
+      // Event Office and Admins can create all event types
+      return true;
+    }
+    // Default: show all types
+    return true;
+  });
+
   return [
     {
       id: "select",
@@ -209,14 +235,7 @@ export function getEventsTableColumns({
       meta: {
         label: "Type",
         variant: "multiSelect" as const,
-        options: [
-          { label: "Workshop", value: "WORKSHOP", count: typeCounts.WORKSHOP },
-          { label: "Trip", value: "TRIP", count: typeCounts.TRIP },
-          { label: "Bazaar", value: "BAZAAR", count: typeCounts.BAZAAR },
-          { label: "Conference", value: "CONFERENCE", count: typeCounts.CONFERENCE },
-          { label: "Booth", value: "BOOTH", count: typeCounts.BOOTH },
-          { label: "Gym Session", value: "GYM_SESSION", count: typeCounts.GYM_SESSION },
-        ],
+        options: typeOptions,
       },
       size: 130,
     },

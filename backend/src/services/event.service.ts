@@ -595,6 +595,9 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       faculty: event.faculty,
       fundingSource: event.fundingSource,
       images: event.images || [], // Include images array
+      // Gym session specific fields
+      sessionType: event.sessionType,
+      duration: event.duration,
       createdBy: event.createdBy ? {
         id: (event.createdBy as any)._id?.toString() || (event.createdBy as any).toString(),
         firstName: (event.createdBy as any).firstName,
@@ -733,11 +736,12 @@ async createGymSession(
 
   return this.create(
     {
-      ...data,
+      ...data, // Includes: name, description, sessionType, capacity, duration, status
       type: 'GYM_SESSION',
       startDate: start,
       endDate: end,
-      location: data.location ?? 'Gym',
+      location: data.location ?? 'ON_CAMPUS',
+      locationDetails: data.locationDetails ?? 'Gym',
     } as any,
     options
   );

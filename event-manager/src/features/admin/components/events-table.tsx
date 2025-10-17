@@ -31,6 +31,7 @@ interface EventsTableProps {
   pageCount: number;
   typeCounts?: Record<string, number>;
   statusCounts?: Record<string, number>;
+  userRole?: string;
   queryKeys?: Partial<QueryKeys>;
   isSearching?: boolean;
   onUpdateEvent?: (eventId: string, field: string, value: string) => Promise<void>;
@@ -46,6 +47,7 @@ export function EventsTable({
   pageCount,
   typeCounts = {},
   statusCounts = {},
+  userRole,
   queryKeys,
   isSearching = false,
   onUpdateEvent,
@@ -78,6 +80,7 @@ export function EventsTable({
       getEventsTableColumns({
         typeCounts,
         statusCounts,
+        userRole,
         onUpdateEvent,
         onViewDetails,
         onEditEvent,
@@ -85,7 +88,7 @@ export function EventsTable({
         onDeleteEvent,
         onPublishEvent,
       }),
-    [typeCounts, statusCounts, onUpdateEvent, onViewDetails, onEditEvent, onArchiveEvent, onDeleteEvent, onPublishEvent],
+    [typeCounts, statusCounts, userRole, onUpdateEvent, onViewDetails, onEditEvent, onArchiveEvent, onDeleteEvent, onPublishEvent],
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({

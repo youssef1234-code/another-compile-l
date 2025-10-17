@@ -316,6 +316,7 @@ const eventRoutes = {
 
     /**
      * Create a gym session - EVENT_OFFICE and ADMIN only
+     * Publishes by default (as per requirements)
      */
     createGymSession: eventsOfficeProcedure
     .input(createGymSessionSchema)
@@ -323,11 +324,12 @@ const eventRoutes = {
       const userId = (ctx.user!._id as any).toString();
       return eventService.createGymSession(
         {
-          ...input,
+          ...input, // name, description, sessionType, startDate, duration, capacity
           type: 'GYM_SESSION',
           endDate: new Date(input.startDate.getTime() + input.duration * 60000),
-          location: 'Gym',
-          status: EventStatus.DRAFT,
+          location: 'ON_CAMPUS',
+          locationDetails: 'Gym',
+          status: EventStatus.PUBLISHED, // Publish by default
         },
         { userId }
       );

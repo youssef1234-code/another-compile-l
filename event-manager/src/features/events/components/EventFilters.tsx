@@ -54,11 +54,11 @@ interface EventFiltersProps {
   hidePrice?: boolean; // Hide price-related filters (for My Registrations)
 }
 
+// Only show WORKSHOP, TRIP, CONFERENCE in browse events (no BAZAAR, no GYM_SESSION)
 const EVENT_TYPES = [
   { value: 'WORKSHOP', label: 'Workshops' },
   { value: 'TRIP', label: 'Trips' },
   { value: 'CONFERENCE', label: 'Conferences' },
-  { value: 'BAZAAR', label: 'Bazaars' },
 ];
 
 export function EventFilters({ 
