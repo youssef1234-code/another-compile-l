@@ -29,6 +29,7 @@ import { EventsTable } from '../components/events-table';
 import { CreateEventSheet } from '../../events/components/CreateEventSheet';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/lib/constants';
+import { useSyntheticListeners } from '@dnd-kit/core/dist/hooks/utilities';
 
 export function AdminEventsPage() {
   const utils = trpc.useUtils();
@@ -201,6 +202,39 @@ export function AdminEventsPage() {
     },
   });
 
+  const approveWorkshopMutation = trpc.events.approveWorkshop.useMutation({
+    onSuccess: () =>{
+      toast.success('Workshop Approved Successfully');
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to approve workshop');
+    },
+  });
+
+  const needsEditsWorkshopMutation = trpc.events.workshopNeedsEdits.useMutation({
+    onSuccess: () =>{
+      toast.success('Workshop Needs Edits Successfully');
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to approve workshop');
+    },
+  });
+
+  const  rejectWorkshopMutation = trpc.events.rejectWorkshop.useMutation({
+    onSuccess: () =>{
+      toast.success('Workshop Rejected Successfully');
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to approve workshop');
+    },
+  });
+
   const deleteEventMutation = trpc.events.delete.useMutation({
     onSuccess: () => {
       toast.success('Event deleted successfully');
@@ -302,6 +336,18 @@ export function AdminEventsPage() {
     setDeleteDialog({ open: true, eventId });
   }, []);
 
+  const handleWorkshopApproval = useCallback((eventId: string) => {
+    approveWorkshopMutation.mutate({ eventId: eventId });
+  }, [approveWorkshopMutation]);
+
+  const handleWorkshopRejection = useCallback((eventId: string, rejectionReason: string) => {
+    rejectWorkshopMutation.mutate({ eventId: eventId, rejectionReason: rejectionReason });
+  }, [rejectWorkshopMutation]);
+
+   const handleWorkshopNeedsEdits = useCallback((eventId: string) => {
+    approveWorkshopMutation.mutate({ eventId: eventId });
+  }, [approveWorkshopMutation]);
+
   const confirmDelete = useCallback(() => {
     deleteEventMutation.mutate({ id: deleteDialog.eventId });
     setDeleteDialog({ open: false, eventId: '' });
@@ -381,6 +427,9 @@ export function AdminEventsPage() {
           onEditEvent={handleEditEvent}
           onArchiveEvent={handleArchiveEvent}
           onDeleteEvent={handleDeleteEvent}
+          onApproveWorkshop={handleWorkshopApproval}
+          onRejectWorkshop={handleWorkshopRejection}
+          onNeedsEdits={handleWorkshopNeedsEdits}
         />
       </div>
 

@@ -26,6 +26,7 @@ import {
   DollarSign,
   Users,
   Building2,
+  Check,
 } from 'lucide-react';
 import { formatDate } from '@/lib/design-system';
 
@@ -34,13 +35,21 @@ interface EventExpandedRowProps {
   onEdit?: (eventId: string) => void;
   onArchive?: (eventId: string) => void;
   onDelete?: (eventId: string) => void;
+  onApproveWorkshop?: (eventId: string) => void;
+  onNeedsEdits?: (eventId: string) => void;
+  onRejectWorkshop?: (eventId: string) => void;
 }
+
+
 
 export function EventExpandedRow({
   event,
   onEdit,
   onArchive,
   onDelete,
+  onApproveWorkshop,
+  onNeedsEdits,
+  onRejectWorkshop,
 }: EventExpandedRowProps) {
   const { data: registrationsData, isLoading: loadingRegistrations } =
     trpc.events.getEventRegistrations.useQuery(
@@ -325,6 +334,39 @@ export function EventExpandedRow({
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete Event
                   </Button>
+                )}
+                {onApproveWorkshop && event.type === "WORKSHOP" && event.status === "PENDING_APPROVAL"&&(
+                  <Button
+                    variant= "outline"
+                    className="w-full justify-start"
+                    onClick={()=> onApproveWorkshop(event.id)}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                    Approve Workshop
+                  </Button>
+                  
+                )}
+                {onNeedsEdits && event.type === "WORKSHOP" && event.status === "PENDING_APPROVAL"&&(
+                  <Button
+                    variant= "outline"
+                    className="w-full justify-start"
+                    onClick={()=> onNeedsEdits(event.id)}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                    Needs Edits
+                  </Button>
+                  
+                )}
+                {onRejectWorkshop && event.type === "WORKSHOP" && event.status === "PENDING_APPROVAL"&&(
+                  <Button
+                    variant= "outline"
+                    className="w-full justify-start"
+                    onClick={()=> onRejectWorkshop(event.id)}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                    Reject Workshop
+                  </Button>
+                  
                 )}
               </div>
             </CardContent>

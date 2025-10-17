@@ -21,6 +21,7 @@ import {
   Clock,
   ChevronRight,
   ChevronDown,
+  Check,
 } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { InlineEditCell } from "@/components/generic";
@@ -45,6 +46,9 @@ interface GetEventsTableColumnsProps {
   onEditEvent?: (eventId: string) => void;
   onArchiveEvent?: (eventId: string) => void;
   onDeleteEvent?: (eventId: string) => void;
+  onApproveWorkshop?: (eventId: string) => void;
+  onNeedsEdits?: (eventId: string) => void;
+  onRejectWorkshop?: (eventId: string) => void;
 }
 
 // Event Type Badge Component
@@ -111,6 +115,9 @@ export function getEventsTableColumns({
   onEditEvent,
   onArchiveEvent,
   onDeleteEvent,
+  onApproveWorkshop,
+  onNeedsEdits,
+  onRejectWorkshop,
 }: GetEventsTableColumnsProps): ColumnDef<Event>[] {
   return [
     {
@@ -499,6 +506,33 @@ export function getEventsTableColumns({
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
+                </DropdownMenuItem>
+              )}
+              {onApproveWorkshop && (
+                <DropdownMenuItem
+                  onClick={() => onApproveWorkshop(event.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Approve
+                </DropdownMenuItem>
+              )}
+              {onNeedsEdits && (
+                <DropdownMenuItem
+                  onClick={() => onNeedsEdits(event.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Needs Edits
+                </DropdownMenuItem>
+              )}
+              {onRejectWorkshop && (
+                <DropdownMenuItem
+                  onClick={() => onRejectWorkshop(event.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Reject
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
