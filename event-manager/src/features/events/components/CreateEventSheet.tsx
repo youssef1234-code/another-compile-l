@@ -17,7 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
-import { CreateEventSchema } from '@event-manager/shared';
+import { formatValidationErrors } from '@/lib/format-errors';
 import {
   FormSheet,
   FormSheetContent,
@@ -58,6 +58,8 @@ interface CreateEventSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  initialType?: EventType; // Pre-select event type (e.g., for professors)
+  skipTypeSelection?: boolean; // Skip type selection step and go directly to details
 }
 
 const EVENT_TYPE_LABELS: Record<EventType, string> = {
@@ -70,23 +72,37 @@ const EVENT_TYPE_LABELS: Record<EventType, string> = {
 
 type DateValue = Date | null;
 
-export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventSheetProps) {
+export function CreateEventSheet({ 
+  open, 
+  onOpenChange, 
+  onSuccess,
+  initialType,
+  skipTypeSelection = false
+}: CreateEventSheetProps) {
   const { user } = useAuthStore();
   const [step, setStep] = useState<'type' | 'details'>('type');
   const [pendingType, setPendingType] = useState<EventType | null>(null);
   const [selectedType, setSelectedType] = useState<EventType | null>(null);
 
+  // Auto-set type and skip to details if initialType is provided
+  useEffect(() => {
+    if (open && initialType && skipTypeSelection) {
+      setSelectedType(initialType);
+      setStep('details');
+    }
+  }, [open, initialType, skipTypeSelection]);
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     location: 'ON_CAMPUS' as 'ON_CAMPUS' | 'OFF_CAMPUS',
-    locationDetails: '',
+    locationDetails: 'GUC Cairo', // Default for workshops, will be string for other events
     startDate: null as DateValue,
     endDate: null as DateValue,
     capacity: 50,
     price: 0,
     faculty: '',
-    professorName: '',
+    professors: [''], // Requirement #35: Multiple professors allowed
     requiredBudget: '',
     fundingSource: '',
     extraResources: '',
@@ -95,6 +111,9 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
     requirements: '',
     images: [] as string[],
     registrationDeadline: null as DateValue,
+    // Gym session specific
+    sessionType: 'YOGA' as string,
+    duration: 60,
   });
 
   const resetFlow = useCallback(() => {
@@ -105,13 +124,13 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
       name: '',
       description: '',
       location: 'ON_CAMPUS',
-      locationDetails: '',
+      locationDetails: 'GUC Cairo',
       startDate: null,
       endDate: null,
       capacity: 50,
       price: 0,
       faculty: '',
-      professorName: '',
+      professors: [''],
       requiredBudget: '',
       fundingSource: '',
       extraResources: '',
@@ -120,9 +139,12 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
       requirements: '',
       images: [],
       registrationDeadline: null,
+      sessionType: 'YOGA',
+      duration: 60,
     });
   }, []);
 
+  // Generic create mutation for TRIP, BAZAAR, CONFERENCE (Events Office)
   const createMutation = trpc.events.create.useMutation({
     onSuccess: () => {
       toast.success('Event created successfully!');
@@ -131,7 +153,39 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create event');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+      // DO NOT close the sheet - keep it open so user can fix errors
+    },
+  });
+
+  // Gym session creation mutation (Events Office)
+  const createGymSessionMutation = trpc.events.createGymSession.useMutation({
+    onSuccess: () => {
+      toast.success('Gym session created successfully!');
+      resetFlow();
+      onOpenChange(false);
+      onSuccess?.();
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+      // DO NOT close the sheet - keep it open so user can fix errors
+    },
+  });
+
+  // Workshop creation mutation (Professors) - Sets status to PENDING_APPROVAL
+  const createWorkshopMutation = trpc.events.createWorkshop.useMutation({
+    onSuccess: () => {
+      toast.success('Workshop submitted for approval!');
+      resetFlow();
+      onOpenChange(false);
+      onSuccess?.();
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { duration: 5000 });
+      // DO NOT close the sheet - keep it open so user can fix errors
     },
   });
 
@@ -201,46 +255,77 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
       return;
     }
 
-    const payload: Record<string, unknown> = {
-      name: formData.name.trim(),
-      description: formData.description.trim(),
-      type: selectedType,
-      location: formData.location,
-      locationDetails: formData.locationDetails.trim(),
-      startDate: formData.startDate,
-      endDate: formData.endDate || undefined,
-      capacity: formData.capacity,
-      price: formData.price,
-      registrationDeadline: formData.registrationDeadline || undefined,
-      requirements: formData.requirements?.trim() || undefined,
-      images: formData.images && formData.images.length > 0 ? formData.images : undefined,
-    };
-
-    if (selectedType === 'WORKSHOP') {
-      payload.faculty = formData.faculty;
-      payload.professorName = formData.professorName?.trim() || undefined;
-      payload.requiredBudget = formData.requiredBudget ? Number(formData.requiredBudget) : undefined;
-      payload.fundingSource = formData.fundingSource || undefined;
-      payload.extraResources = formData.extraResources?.trim() || undefined;
-    }
-
-    if (selectedType === 'CONFERENCE') {
-      payload.conferenceWebsite = formData.conferenceWebsite?.trim() || undefined;
-      payload.fullAgenda = formData.fullAgenda?.trim() || undefined;
-      payload.requiredBudget = formData.requiredBudget ? Number(formData.requiredBudget) : undefined;
-      payload.fundingSource = formData.fundingSource || undefined;
-    }
-
-    // Validate using shared schema
     try {
-      CreateEventSchema.parse(payload);
-    } catch (error: any) {
-      const firstError = error.errors?.[0];
-      toast.error(firstError?.message || 'Please check your input and try again.');
-      return;
-    }
+      // Route to correct endpoint based on event type
+      if (selectedType === 'GYM_SESSION') {
+        // Gym sessions use a special endpoint and schema
+        await createGymSessionMutation.mutateAsync({
+          name: formData.name.trim(),
+          description: formData.description.trim() || undefined,
+          sessionType: formData.sessionType as any,
+          startDate: formData.startDate!,
+          capacity: formData.capacity,
+          duration: formData.duration,
+        });
+      } else if (selectedType === 'WORKSHOP' && user?.role === 'PROFESSOR') {
+        // Professors create workshops that need approval (status: PENDING_APPROVAL)
+        await createWorkshopMutation.mutateAsync({
+          type: 'WORKSHOP' as const,
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          location: formData.location,
+          locationDetails: formData.locationDetails as 'GUC Cairo' | 'GUC Berlin',
+          startDate: formData.startDate!,
+          endDate: formData.endDate!,
+          capacity: formData.capacity,
+          registrationDeadline: formData.registrationDeadline!,
+          faculty: formData.faculty as any,
+          professors: formData.professors.filter(p => p.trim()),
+          fullAgenda: formData.fullAgenda?.trim() || '',
+          requiredBudget: formData.requiredBudget ? Number(formData.requiredBudget) : 0,
+          fundingSource: formData.fundingSource as any,
+          extraResources: formData.extraResources?.trim() || undefined,
+        });
+      } else {
+        // TRIP, BAZAAR, CONFERENCE created by Events Office
+        // Build type-specific payloads based on requirements
+        const basePayload = {
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          type: selectedType,
+          location: formData.location,
+          locationDetails: formData.locationDetails.trim(),
+          startDate: formData.startDate!,
+          endDate: formData.endDate || undefined,
+          registrationDeadline: formData.registrationDeadline || undefined,
+          requirements: formData.requirements?.trim() || undefined,
+          images: formData.images && formData.images.length > 0 ? formData.images : undefined,
+        };
 
-    await createMutation.mutateAsync(payload as any);
+        let payload: Record<string, unknown> = { ...basePayload };
+
+        if (selectedType === 'TRIP') {
+          // Req #33: Trip needs price and capacity
+          payload.capacity = formData.capacity;
+          payload.price = formData.price;
+        } else if (selectedType === 'BAZAAR') {
+          // Req #31: Bazaar is simple - only base fields (no capacity, price, budget)
+          // Base payload is enough
+        } else if (selectedType === 'CONFERENCE') {
+          // Req #45: Conference needs website, agenda, budget, funding, resources (NO capacity)
+          payload.conferenceWebsite = formData.conferenceWebsite?.trim();
+          payload.fullAgenda = formData.fullAgenda?.trim();
+          payload.requiredBudget = formData.requiredBudget ? Number(formData.requiredBudget) : undefined;
+          payload.fundingSource = formData.fundingSource || undefined;
+          payload.extraResources = formData.extraResources?.trim() || undefined;
+        }
+
+        await createMutation.mutateAsync(payload as any);
+      }
+    } catch (error: any) {
+      // Error already handled by mutation onError
+      console.error('Create event error:', error);
+    }
   };
 
   const renderTypeStep = () => (
@@ -352,25 +437,25 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
           </div>
 
           <FormSheetSection title="Basic information" description="Essential event details">
-            <FormSheetField label="Event title" required>
+            <FormSheetField label={selectedType === 'GYM_SESSION' ? 'Session name' : 'Event title'} required>
               <Input
                 required
                 minLength={5}
                 maxLength={100}
                 value={formData.name}
                 onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="Enter event title"
+                placeholder={selectedType === 'GYM_SESSION' ? 'e.g., Morning Yoga Session' : 'Enter event title'}
               />
             </FormSheetField>
 
-            <FormSheetField label="Description" required>
+            <FormSheetField label="Description" required={selectedType !== 'GYM_SESSION'}>
               <Textarea
-                required
-                minLength={20}
+                required={selectedType !== 'GYM_SESSION'}
+                minLength={selectedType === 'GYM_SESSION' ? 0 : 20}
                 maxLength={2000}
                 value={formData.description}
                 onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe the event experience"
+                placeholder={selectedType === 'GYM_SESSION' ? 'Optional session description' : 'Describe the event experience'}
                 className="min-h-[110px]"
               />
             </FormSheetField>
@@ -399,45 +484,104 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
                 </Select>
               </FormSheetField>
 
-              <FormSheetField label="Professor name">
-                <Input
-                  value={formData.professorName}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, professorName: e.target.value }))}
-                  placeholder="Lead professor or facilitator"
-                />
+              <FormSheetField label="Campus location" required>
+                <Select
+                  value={formData.locationDetails}
+                  onValueChange={(value: 'GUC Cairo' | 'GUC Berlin') => setFormData((prev) => ({ ...prev, locationDetails: value }))}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select campus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GUC Cairo">GUC Cairo</SelectItem>
+                    <SelectItem value="GUC Berlin">GUC Berlin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormSheetField>
+
+              <FormSheetField label="Professor(s) participating" required>
+                <div className="space-y-2">
+                  {formData.professors.map((professor, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={professor}
+                        onChange={(e) => {
+                          const newProfessors = [...formData.professors];
+                          newProfessors[index] = e.target.value;
+                          setFormData((prev) => ({ ...prev, professors: newProfessors }));
+                        }}
+                        placeholder={`Professor ${index + 1} name`}
+                        required={index === 0}
+                      />
+                      {index === formData.professors.length - 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setFormData((prev) => ({ ...prev, professors: [...prev.professors, ''] }))}
+                        >
+                          +
+                        </Button>
+                      )}
+                      {formData.professors.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            const newProfessors = formData.professors.filter((_, i) => i !== index);
+                            setFormData((prev) => ({ ...prev, professors: newProfessors.length > 0 ? newProfessors : [''] }));
+                          }}
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </FormSheetField>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <FormSheetField label="Required budget (EGP)">
+                <FormSheetField label="Required budget (EGP)" required>
                   <Input
                     type="number"
                     min="0"
                     step="0.01"
+                    required
                     value={formData.requiredBudget}
                     onChange={(e) => setFormData((prev) => ({ ...prev, requiredBudget: e.target.value }))}
                   />
                 </FormSheetField>
 
-                <FormSheetField label="Funding source">
+                <FormSheetField label="Funding source" required>
                   <Select
                     value={formData.fundingSource}
                     onValueChange={(value) => setFormData((prev) => ({ ...prev, fundingSource: value }))}
+                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select source" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="UNIVERSITY">University</SelectItem>
-                      <SelectItem value="SPONSORS">External sponsors</SelectItem>
-                      <SelectItem value="STUDENT_UNION">Student Union</SelectItem>
-                      <SelectItem value="EXTERNAL_FUNDING">External funding</SelectItem>
-                      <SelectItem value="SELF_FUNDED">Self-funded</SelectItem>
+                      <SelectItem value="GUC">GUC</SelectItem>
+                      <SelectItem value="EXTERNAL">External</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormSheetField>
               </div>
 
-              <FormSheetField label="Additional resources">
+              <FormSheetField label="Full agenda" required>
+                <Textarea
+                  required
+                  value={formData.fullAgenda}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, fullAgenda: e.target.value }))}
+                  placeholder="Include sessions, topics, and schedule"
+                  className="min-h-[110px]"
+                />
+              </FormSheetField>
+
+              <FormSheetField label="Additional resources (optional)">
                 <Textarea
                   value={formData.extraResources}
                   onChange={(e) => setFormData((prev) => ({ ...prev, extraResources: e.target.value }))}
@@ -447,19 +591,77 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
             </FormSheetSection>
           )}
 
+          {selectedType === 'GYM_SESSION' && (
+            <FormSheetSection title="Gym session details" description="Session type and capacity">
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormSheetField label="Session type" required>
+                  <Select
+                    value={formData.sessionType}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, sessionType: value }))}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select session type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="YOGA">Yoga</SelectItem>
+                      <SelectItem value="PILATES">Pilates</SelectItem>
+                      <SelectItem value="AEROBICS">Aerobics</SelectItem>
+                      <SelectItem value="ZUMBA">Zumba</SelectItem>
+                      <SelectItem value="CROSS_CIRCUIT">Cross Circuit</SelectItem>
+                      <SelectItem value="KICK_BOXING">Kick-Boxing</SelectItem>
+                      <SelectItem value="CROSSFIT">CrossFit</SelectItem>
+                      <SelectItem value="CARDIO">Cardio</SelectItem>
+                      <SelectItem value="STRENGTH">Strength Training</SelectItem>
+                      <SelectItem value="DANCE">Dance</SelectItem>
+                      <SelectItem value="MARTIAL_ARTS">Martial Arts</SelectItem>
+                      <SelectItem value="OTHER">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormSheetField>
+
+                <FormSheetField label="Duration (minutes)" required>
+                  <Input
+                    type="number"
+                    min="15"
+                    max="180"
+                    step="15"
+                    value={formData.duration}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, duration: parseInt(e.target.value) || 60 }))}
+                    placeholder="60"
+                    required
+                  />
+                </FormSheetField>
+              </div>
+
+              <FormSheetField label="Max number of participants" required>
+                <Input
+                  type="number"
+                  min="1"
+                  required
+                  value={formData.capacity}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, capacity: Number(e.target.value) || 0 }))}
+                  placeholder="20"
+                />
+              </FormSheetField>
+            </FormSheetSection>
+          )}
+
           {selectedType === 'CONFERENCE' && (
-            <FormSheetSection title="Conference details">
-              <FormSheetField label="Website URL">
+            <FormSheetSection title="Conference details" description="Academic information and budget">
+              <FormSheetField label="Website URL" required>
                 <Input
                   type="url"
+                  required
                   value={formData.conferenceWebsite}
                   onChange={(e) => setFormData((prev) => ({ ...prev, conferenceWebsite: e.target.value }))}
                   placeholder="https://conference.example.com"
                 />
               </FormSheetField>
 
-              <FormSheetField label="Full agenda">
+              <FormSheetField label="Full agenda" required>
                 <Textarea
+                  required
                   value={formData.fullAgenda}
                   onChange={(e) => setFormData((prev) => ({ ...prev, fullAgenda: e.target.value }))}
                   placeholder="Include keynote speakers, sessions, and time slots"
@@ -468,34 +670,41 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
               </FormSheetField>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <FormSheetField label="Required budget (EGP)">
+                <FormSheetField label="Required budget (EGP)" required>
                   <Input
                     type="number"
                     min="0"
                     step="0.01"
+                    required
                     value={formData.requiredBudget}
                     onChange={(e) => setFormData((prev) => ({ ...prev, requiredBudget: e.target.value }))}
                   />
                 </FormSheetField>
 
-                <FormSheetField label="Funding source">
+                <FormSheetField label="Funding source" required>
                   <Select
                     value={formData.fundingSource}
                     onValueChange={(value) => setFormData((prev) => ({ ...prev, fundingSource: value }))}
+                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select source" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="UNIVERSITY">University</SelectItem>
-                      <SelectItem value="SPONSORS">External sponsors</SelectItem>
-                      <SelectItem value="STUDENT_UNION">Student Union</SelectItem>
-                      <SelectItem value="EXTERNAL_FUNDING">External funding</SelectItem>
-                      <SelectItem value="SELF_FUNDED">Self-funded</SelectItem>
+                      <SelectItem value="GUC">GUC</SelectItem>
+                      <SelectItem value="EXTERNAL">External</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormSheetField>
               </div>
+
+              <FormSheetField label="Extra required resources (optional)">
+                <Textarea
+                  value={formData.extraResources}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, extraResources: e.target.value }))}
+                  placeholder="List equipment, materials, or special requirements"
+                />
+              </FormSheetField>
             </FormSheetSection>
           )}
 
@@ -509,11 +718,14 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
                 />
               </FormSheetField>
 
-              <FormSheetField label="End date & time">
+              <FormSheetField 
+                label="End date & time" 
+                required={selectedType === 'BAZAAR' || selectedType === 'TRIP' || selectedType === 'WORKSHOP' || selectedType === 'CONFERENCE'}
+              >
                 <DateTimePicker
                   value={formData.endDate}
                   onChange={(value) => setFormData((prev) => ({ ...prev, endDate: value }))}
-                  placeholder="Select end date"
+                  placeholder={selectedType === 'BAZAAR' || selectedType === 'TRIP' || selectedType === 'WORKSHOP' || selectedType === 'CONFERENCE' ? 'Select end date' : 'Optional end date'}
                   minDate={formData.startDate || undefined}
                 />
               </FormSheetField>
@@ -535,51 +747,62 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
                 </Select>
               </FormSheetField>
 
-              <FormSheetField label="Location details" required>
-                <Input
-                  required
-                  minLength={5}
-                  value={formData.locationDetails}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, locationDetails: e.target.value }))}
-                  placeholder="Building, room, or meeting point"
-                />
-              </FormSheetField>
+              {selectedType !== 'WORKSHOP' && (
+                <FormSheetField label="Location details" required>
+                  <Input
+                    required
+                    minLength={5}
+                    value={typeof formData.locationDetails === 'string' ? formData.locationDetails : ''}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, locationDetails: e.target.value }))}
+                    placeholder="Building, room, or meeting point"
+                  />
+                </FormSheetField>
+              )}
             </div>
 
-            <FormSheetField label="Registration deadline">
+            <FormSheetField 
+              label="Registration deadline" 
+              required={selectedType === 'BAZAAR' || selectedType === 'TRIP' || selectedType === 'WORKSHOP'}
+            >
               <DateTimePicker
                 value={formData.registrationDeadline}
                 onChange={(value) => setFormData((prev) => ({ ...prev, registrationDeadline: value }))}
-                placeholder="Optional deadline"
+                placeholder={selectedType === 'BAZAAR' || selectedType === 'TRIP' || selectedType === 'WORKSHOP' ? 'Select deadline' : 'Optional deadline'}
                 minDate={new Date()}
               />
             </FormSheetField>
           </FormSheetSection>
 
-          <FormSheetSection title="Capacity & pricing">
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormSheetField label="Capacity" required>
-                <Input
-                  type="number"
-                  min="1"
-                  required
-                  value={formData.capacity}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, capacity: Number(e.target.value) || 0 }))}
-                />
-              </FormSheetField>
+          {/* Capacity & pricing - different fields per type */}
+          {/* TRIP & WORKSHOP need capacity; BAZAAR, CONFERENCE, GYM_SESSION don't */}
+          {(selectedType === 'TRIP' || selectedType === 'WORKSHOP') && (
+            <FormSheetSection title={selectedType === 'TRIP' ? 'Capacity & pricing' : 'Capacity'}>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormSheetField label="Capacity" required>
+                  <Input
+                    type="number"
+                    min="1"
+                    required
+                    value={formData.capacity}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, capacity: Number(e.target.value) || 0 }))}
+                  />
+                </FormSheetField>
 
-              <FormSheetField label="Price (EGP)" required>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  required
-                  value={formData.price}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, price: Number(e.target.value) || 0 }))}
-                />
-              </FormSheetField>
-            </div>
-          </FormSheetSection>
+                {selectedType === 'TRIP' && (
+                  <FormSheetField label="Price (EGP)" required>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      required
+                      value={formData.price}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, price: Number(e.target.value) || 0 }))}
+                    />
+                  </FormSheetField>
+                )}
+              </div>
+            </FormSheetSection>
+          )}
 
           <FormSheetSection title="Additional information">
             <FormSheetField label="Participant requirements">
@@ -606,14 +829,16 @@ export function CreateEventSheet({ open, onOpenChange, onSuccess }: CreateEventS
       </FormSheetContent>
 
       <FormSheetFooter>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleBackToTypeSelection}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+        {!skipTypeSelection && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleBackToTypeSelection}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+        )}
         <Button type="submit" disabled={createMutation.isPending}>
           {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           <Save className="mr-2 h-4 w-4" />

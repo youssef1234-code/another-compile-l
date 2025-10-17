@@ -104,3 +104,4 @@ export const AdminRoute = createRoleRoute('ADMIN');
 export const EventOfficeRoute = createRoleRoute(['ADMIN', 'EVENT_OFFICE']);
 export const ProfessorRoute = createRoleRoute('PROFESSOR');
 export const VendorRoute = createRoleRoute('VENDOR');
+export const EventManagementRoute = createRoleRoute(['ADMIN', 'EVENT_OFFICE', 'PROFESSOR']);

@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { FileText, Plus, X } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
@@ -47,7 +47,7 @@ export function CreateWorkshopPage() {
   const createWorkshopMutation = trpc.events.create.useMutation({
     onSuccess: () => {
       toast.success('Workshop created successfully! Pending approval from Events Office.');
-      navigate(ROUTES.MY_WORKSHOPS);
+      navigate(ROUTES.ADMIN_EVENTS); // Redirects to BackOfficeEventsPage (unified event management)
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to create workshop');
@@ -337,7 +337,7 @@ export function CreateWorkshopPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate(ROUTES.MY_WORKSHOPS)}
+                  onClick={() => navigate(ROUTES.ADMIN_EVENTS)}
                 >
                   Cancel
                 </Button>

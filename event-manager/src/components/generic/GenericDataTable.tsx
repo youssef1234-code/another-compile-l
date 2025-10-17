@@ -171,7 +171,7 @@ export function GenericDataTable<TData>({
   pagination,
   sorting,
   rowSelection,
-  bulkActions = [],
+  // bulkActions = [], // TODO: Implement bulk actions feature
   emptyStateIcon,
   emptyStateTitle = 'No results found',
   emptyStateDescription = 'Try adjusting your search or filters',
@@ -236,8 +236,6 @@ export function GenericDataTable<TData>({
     onSearchChange?.(value);
   };
 
-  const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
-  const hasSelection = selectedRows.length > 0;
 
   return (
     <div className={cn('w-full space-y-4', className)}>

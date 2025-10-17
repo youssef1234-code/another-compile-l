@@ -21,6 +21,7 @@ import {
   Clock,
   ChevronRight,
   ChevronDown,
+  Send,
 } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { InlineEditCell } from "@/components/generic";
@@ -34,28 +35,40 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
+import { UserRole } from "@event-manager/shared";
 
 interface GetEventsTableColumnsProps {
   typeCounts: Record<string, number>;
   statusCounts: Record<string, number>;
+  userRole?: string;
   onUpdateEvent?: (eventId: string, field: string, value: string) => Promise<void>;
   onViewDetails?: (eventId: string) => void;
   onEditEvent?: (eventId: string) => void;
   onArchiveEvent?: (eventId: string) => void;
   onDeleteEvent?: (eventId: string) => void;
+  onPublishEvent?: (eventId: string) => void;
+  onApproveWorkshop?: (eventId: string) => void;
+  onRejectWorkshop?: (eventId: string) => void;
+  onNeedsEdits?: (eventId: string) => void;
 }
 
 // Event Type Badge Component
 function EventTypeBadge({ type }: { type: string }) {
   const colors: Record<string, string> = {
-    WORKSHOP: "bg-purple-100 text-purple-700 border-purple-200",
-    TRIP: "bg-blue-100 text-blue-700 border-blue-200",
-    BAZAAR: "bg-amber-100 text-amber-700 border-amber-200",
-    CONFERENCE: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    BOOTH: "bg-pink-100 text-pink-700 border-pink-200",
-    GYM_SESSION: "bg-orange-100 text-orange-700 border-orange-200",
+    WORKSHOP: "bg-blue-100 text-blue-700 border-blue-200",
+    TRIP: "bg-green-100 text-green-700 border-green-200",
+    BAZAAR: "bg-orange-100 text-orange-700 border-orange-200",
+    CONFERENCE: "bg-purple-100 text-purple-700 border-purple-200",
+    BOOTH: "bg-amber-100 text-amber-700 border-amber-200",
+    GYM_SESSION: "bg-red-100 text-red-700 border-red-200",
   };
 
   const labels: Record<string, string> = {
@@ -75,11 +88,12 @@ function EventTypeBadge({ type }: { type: string }) {
 }
 
 // Event Status Badge Component
-function EventStatusBadge({ status }: { status: string }) {
+function EventStatusBadge({ status, rejectionReason }: { status: string; rejectionReason?: string }) {
   const colors: Record<string, string> = {
     PUBLISHED: "bg-emerald-100 text-emerald-700 border-emerald-200",
     DRAFT: "bg-slate-100 text-slate-700 border-slate-200",
     PENDING: "bg-amber-100 text-amber-700 border-amber-200",
+    PENDING_APPROVAL: "bg-amber-100 text-amber-700 border-amber-200",
     APPROVED: "bg-green-100 text-green-700 border-green-200",
     REJECTED: "bg-red-100 text-red-700 border-red-200",
     NEEDS_EDITS: "bg-orange-100 text-orange-700 border-orange-200",
@@ -90,28 +104,76 @@ function EventStatusBadge({ status }: { status: string }) {
     PUBLISHED: "Published",
     DRAFT: "Draft",
     PENDING: "Pending",
+    PENDING_APPROVAL: "Pending Approval",
     APPROVED: "Approved",
     REJECTED: "Rejected",
     NEEDS_EDITS: "Needs Edits",
     CANCELLED: "Cancelled",
   };
 
-  return (
+  const badge = (
     <Badge variant="outline" className={cn("font-medium", colors[status])}>
       {labels[status] || status}
     </Badge>
   );
+
+  // Show tooltip for rejected status with rejection reason
+  if (status === 'REJECTED' && rejectionReason) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {badge}
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">
+            <p className="font-semibold mb-1">Rejection Reason:</p>
+            <p className="text-sm">{rejectionReason}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return badge;
 }
 
 export function getEventsTableColumns({
   typeCounts,
   statusCounts,
+  userRole,
   onUpdateEvent,
   onViewDetails,
   onEditEvent,
   onArchiveEvent,
   onDeleteEvent,
+  onPublishEvent,
+  onApproveWorkshop,
+  onRejectWorkshop,
+  onNeedsEdits,
 }: GetEventsTableColumnsProps): ColumnDef<Event>[] {
+  // Define all type options
+  const allTypeOptions = [
+    { label: "Workshop", value: "WORKSHOP", count: typeCounts.WORKSHOP },
+    { label: "Trip", value: "TRIP", count: typeCounts.TRIP },
+    { label: "Bazaar", value: "BAZAAR", count: typeCounts.BAZAAR },
+    { label: "Conference", value: "CONFERENCE", count: typeCounts.CONFERENCE },
+    { label: "Booth", value: "BOOTH", count: typeCounts.BOOTH },
+    { label: "Gym Session", value: "GYM_SESSION", count: typeCounts.GYM_SESSION },
+  ];
+
+  // Filter type options based on user role
+  const typeOptions = allTypeOptions.filter((option) => {
+    if (userRole === UserRole.PROFESSOR) {
+      // Professors can only create/see workshops
+      return option.value === "WORKSHOP";
+    } else if (userRole === UserRole.EVENT_OFFICE || userRole === UserRole.ADMIN) {
+      // Event Office and Admins can create all event types
+      return true;
+    }
+    // Default: show all types
+    return true;
+  });
+
   return [
     {
       id: "select",
@@ -167,7 +229,12 @@ export function getEventsTableColumns({
       ),
       cell: ({ row }) => {
         const event = row.original;
-        return onUpdateEvent ? (
+        const isWorkshop = event.type === 'WORKSHOP';
+        const isAdminOrEventOffice = userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE;
+        const isRejected = event.status === 'REJECTED';
+        const canInlineEdit = onUpdateEvent && !(isWorkshop && isAdminOrEventOffice) && !(isWorkshop && isRejected);
+        
+        return canInlineEdit ? (
           <InlineEditCell
             value={event.name}
             onSave={(newValue) => onUpdateEvent(event.id, 'name', newValue)}
@@ -206,14 +273,7 @@ export function getEventsTableColumns({
       meta: {
         label: "Type",
         variant: "multiSelect" as const,
-        options: [
-          { label: "Workshop", value: "WORKSHOP", count: typeCounts.WORKSHOP },
-          { label: "Trip", value: "TRIP", count: typeCounts.TRIP },
-          { label: "Bazaar", value: "BAZAAR", count: typeCounts.BAZAAR },
-          { label: "Conference", value: "CONFERENCE", count: typeCounts.CONFERENCE },
-          { label: "Booth", value: "BOOTH", count: typeCounts.BOOTH },
-          { label: "Gym Session", value: "GYM_SESSION", count: typeCounts.GYM_SESSION },
-        ],
+        options: typeOptions,
       },
       size: 130,
     },
@@ -223,7 +283,10 @@ export function getEventsTableColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Status" />
       ),
-      cell: ({ row }) => <EventStatusBadge status={row.getValue("status")} />,
+      cell: ({ row }) => {
+        const event = row.original;
+        return <EventStatusBadge status={row.getValue("status")} rejectionReason={event.rejectionReason} />;
+      },
       enableColumnFilter: true,
       filterFn: (row, id, value) => {
         return Array.isArray(value) && value.includes(row.getValue(id));
@@ -235,6 +298,7 @@ export function getEventsTableColumns({
           { label: "Published", value: "PUBLISHED", count: statusCounts.PUBLISHED, icon: CheckCircle2 },
           { label: "Draft", value: "DRAFT", count: statusCounts.DRAFT, icon: Clock },
           { label: "Pending", value: "PENDING", count: statusCounts.PENDING, icon: Clock },
+          { label: "Pending Approval", value: "PENDING_APPROVAL", count: statusCounts.PENDING_APPROVAL, icon: Clock },
           { label: "Approved", value: "APPROVED", count: statusCounts.APPROVED, icon: CheckCircle2 },
           { label: "Rejected", value: "REJECTED", count: statusCounts.REJECTED, icon: XCircle },
           { label: "Needs Edits", value: "NEEDS_EDITS", count: statusCounts.NEEDS_EDITS, icon: Edit },
@@ -477,13 +541,55 @@ export function getEventsTableColumns({
                   View Details
                 </DropdownMenuItem>
               )}
-              {onEditEvent && (
+              {/* Only show edit for non-rejected workshops (professors) and non-workshop events (admin/event office) */}
+              {onEditEvent && !(event.type === 'WORKSHOP' && (userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE)) && !(event.type === 'WORKSHOP' && event.status === 'REJECTED') && (
                 <DropdownMenuItem onClick={() => onEditEvent(event.id)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Event
                 </DropdownMenuItem>
               )}
-              {onArchiveEvent && (
+              {onPublishEvent && event.status === 'DRAFT' && (
+                <DropdownMenuItem onClick={() => onPublishEvent(event.id)}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Publish
+                </DropdownMenuItem>
+              )}
+              
+              {/* Workshop Approval Actions - For PENDING_APPROVAL or NEEDS_EDITS workshops and Event Office/Admin */}
+              {event.type === 'WORKSHOP' && (event.status === 'PENDING_APPROVAL' || event.status === 'NEEDS_EDITS') && (userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE) && (
+                <>
+                  {onApproveWorkshop && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => onApproveWorkshop(event.id)}
+                        className="text-green-600 focus:text-green-600"
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Approve Workshop
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {onNeedsEdits && event.status === 'PENDING_APPROVAL' && (
+                    <DropdownMenuItem onClick={() => onNeedsEdits(event.id)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Request Edits
+                    </DropdownMenuItem>
+                  )}
+                  {onRejectWorkshop && (
+                    <DropdownMenuItem
+                      onClick={() => onRejectWorkshop(event.id)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Reject Workshop
+                    </DropdownMenuItem>
+                  )}
+                </>
+              )}
+
+              {/* Archive and Delete - professors can do this on workshops, admin/event office on non-workshops */}
+              {onArchiveEvent && !((userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE) && event.type === 'WORKSHOP') && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => onArchiveEvent(event.id)}>
@@ -492,7 +598,7 @@ export function getEventsTableColumns({
                   </DropdownMenuItem>
                 </>
               )}
-              {onDeleteEvent && (
+              {onDeleteEvent && !((userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE) && event.type === 'WORKSHOP') && (
                 <DropdownMenuItem
                   onClick={() => onDeleteEvent(event.id)}
                   className="text-destructive focus:text-destructive"

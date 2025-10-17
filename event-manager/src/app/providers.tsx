@@ -43,6 +43,8 @@ export function Providers({ children }: ProvidersProps) {
               fontSize: '14px',
               fontWeight: '500',
               padding: '12px 16px',
+              maxWidth: '500px',
+              whiteSpace: 'pre-line', // Allow multiline error messages
             },
             success: {
               style: {
@@ -55,9 +57,11 @@ export function Providers({ children }: ProvidersProps) {
               },
             },
             error: {
+              duration: 5000, // Longer duration for validation errors
               style: {
                 background: '#ef4444',
                 color: '#fff',
+                maxWidth: '500px',
               },
               iconTheme: {
                 primary: '#fff',

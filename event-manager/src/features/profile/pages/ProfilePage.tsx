@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { getAvatarSrc } from '@event-manager/shared';
 
 export function ProfilePage() {

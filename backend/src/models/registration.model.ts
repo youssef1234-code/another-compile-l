@@ -11,10 +11,12 @@ import { createBaseSchema } from './base.model';
 export interface IEventRegistration extends IBaseDocument {
   event: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
+  status: 'CONFIRMED' | 'CANCELLED' | 'WAITLISTED';
   paymentStatus: 'PENDING' | 'COMPLETED' | 'REFUNDED' | 'FAILED';
   paymentAmount: number;
   paymentMethod?: 'CREDIT_CARD' | 'DEBIT_CARD' | 'WALLET';
   stripePaymentIntentId?: string;
+  registeredAt: Date;
   certificateIssued: boolean;
   attended: boolean;
 }
@@ -31,6 +33,12 @@ const registrationSchema = createBaseSchema<IEventRegistration>(
       ref: 'User',
       required: true,
     },
+    status: {
+      type: String,
+      enum: ['CONFIRMED', 'CANCELLED', 'WAITLISTED'],
+      default: 'CONFIRMED',
+      index: true,
+    },
     paymentStatus: {
       type: String,
       enum: ['PENDING', 'COMPLETED', 'REFUNDED', 'FAILED'],
@@ -45,6 +53,10 @@ const registrationSchema = createBaseSchema<IEventRegistration>(
       enum: ['CREDIT_CARD', 'DEBIT_CARD', 'WALLET'],
     },
     stripePaymentIntentId: String,
+    registeredAt: {
+      type: Date,
+      default: Date.now,
+    },
     certificateIssued: {
       type: Boolean,
       default: false,

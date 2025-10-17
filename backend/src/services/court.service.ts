@@ -36,7 +36,7 @@ async getAvailability({
   // Fetch courts
   const courts = courtId
     ? [await this.repository.findById(courtId)].filter(Boolean) as ICourt[]
-    : await this.repository.findAll({ ...(sport ? { sport } : {}), isDeleted: { $ne: true } });
+    : await this.repository.findAll({ ...(sport ? { sport } : {}), isActive: true });
 
   const results: Array<{
     court: { id: string; name: string; sport: string; location?: string };

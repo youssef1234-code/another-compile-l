@@ -8,31 +8,34 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { GraduationCap, Loader2 } from 'lucide-react';
+import { GraduationCap, Loader2, Plus, X } from 'lucide-react';
 import { z } from 'zod';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
 import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
 import { PageHeader } from '@/components/generic';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const workshopSchema = z.object({
   images: z.array(z.string()).optional(),
   name: z.string().min(5, 'Name must be at least 5 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters'),
-  locationDetails: z.string().min(5, 'Location details required'),
+  locationDetails: z.enum(['GUC Cairo', 'GUC Berlin'], { required_error: 'Location is required' }),
   location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
   startDate: z.date({ required_error: 'Start date is required' }),
-  endDate: z.date().optional(),
-  registrationDeadline: z.date().optional(),
-  faculty: z.string().min(1, 'Faculty is required'),
-  professorName: z.string().optional(),
+  endDate: z.date({ required_error: 'End date is required' }),
+  registrationDeadline: z.date({ required_error: 'Registration deadline is required' }),
+  faculty: z.enum(['MET', 'IET', 'ARTS', 'LAW', 'PHARMACY', 'BUSINESS', 'BIOTECHNOLOGY'], { required_error: 'Faculty is required' }),
+  professors: z.array(z.string()).min(1, 'At least one professor is required'),
   capacity: z.number().min(1, 'Capacity must be at least 1'),
-  price: z.number().min(0, 'Price cannot be negative').default(0),
-  fullAgenda: z.string().optional(),
-  requiredBudget: z.number().min(0).optional(),
-  fundingSource: z.string().optional(),
+  fullAgenda: z.string().min(20, 'Full agenda must be at least 20 characters'),
+  requiredBudget: z.number().min(0, 'Budget cannot be negative'),
+  fundingSource: z.enum(['GUC', 'EXTERNAL'], { required_error: 'Funding source is required' }),
   extraResources: z.string().optional(),
+  requirements: z.string().max(500).optional(),
 });
 
 type WorkshopFormData = z.infer<typeof workshopSchema>;
@@ -48,10 +51,10 @@ export function EditWorkshopPage() {
     { enabled: !!id }
   );
 
-  const updateMutation = trpc.events.update.useMutation({
+  const updateMutation = trpc.events.editWorkshop.useMutation({
     onSuccess: () => {
       toast.success('Workshop updated successfully!');
-      navigate(ROUTES.MY_WORKSHOPS);
+      navigate(ROUTES.ADMIN_EVENTS); // Redirects to BackOfficeEventsPage (unified event management)
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to update workshop');
@@ -61,23 +64,34 @@ export function EditWorkshopPage() {
   // Pre-populate form when data loads
   useEffect(() => {
     if (event && event.type === 'WORKSHOP') {
+      console.log('🔍 Workshop data received:', {
+        fullAgenda: event.fullAgenda,
+        requiredBudget: event.requiredBudget,
+        fundingSource: event.fundingSource,
+        extraResources: event.extraResources,
+        requirements: event.requirements,
+        professors: event.professors,
+        faculty: event.faculty,
+        allFields: event
+      });
+      
       setInitialValues({
         images: event.images || [],
         name: event.name,
         description: event.description,
-        locationDetails: event.locationDetails || '',
+        locationDetails: event.locationDetails as 'GUC Cairo' | 'GUC Berlin' || 'GUC Cairo',
         location: event.location as 'ON_CAMPUS' | 'OFF_CAMPUS',
         startDate: event.startDate ? new Date(event.startDate) : undefined,
         endDate: event.endDate ? new Date(event.endDate) : undefined,
         registrationDeadline: event.registrationDeadline ? new Date(event.registrationDeadline) : undefined,
-        faculty: event.faculty || '',
-        professorName: event.professorName || '',
+        faculty: event.faculty as any || 'MET',
+        professors: event.professors || [],
         capacity: event.capacity || 50,
-        price: event.price || 0,
         fullAgenda: event.fullAgenda || '',
         requiredBudget: event.requiredBudget || 0,
-        fundingSource: event.fundingSource || '',
+        fundingSource: event.fundingSource as 'GUC' | 'EXTERNAL' || 'GUC',
         extraResources: event.extraResources || '',
+        requirements: event.requirements || '',
       });
     }
   }, [event]);
@@ -89,10 +103,7 @@ export function EditWorkshopPage() {
     
     await updateMutation.mutateAsync({
       id,
-      data: {
-        ...data,
-        type: 'WORKSHOP',
-      },
+      ...data, // Spread all fields directly (UpdateWorkshopSchema format)
     });
   };
 
@@ -120,6 +131,16 @@ export function EditWorkshopPage() {
       colSpan: 2,
     },
     {
+      name: 'locationDetails',
+      label: 'Workshop Location',
+      type: 'select',
+      options: [
+        { value: 'GUC Cairo', label: 'GUC Cairo' },
+        { value: 'GUC Berlin', label: 'GUC Berlin' },
+      ],
+      description: 'Select the GUC campus where the workshop will be held',
+    },
+    {
       name: 'location',
       label: 'Location Type',
       type: 'select',
@@ -127,12 +148,6 @@ export function EditWorkshopPage() {
         { value: 'ON_CAMPUS', label: 'On Campus' },
         { value: 'OFF_CAMPUS', label: 'Off Campus' },
       ],
-    },
-    {
-      name: 'locationDetails',
-      label: 'Location Details',
-      type: 'text',
-      placeholder: 'Building, room number, or meeting point',
     },
     {
       name: 'faculty',
@@ -147,12 +162,65 @@ export function EditWorkshopPage() {
         { value: 'BUSINESS', label: 'Business Administration' },
         { value: 'BIOTECHNOLOGY', label: 'Biotechnology' },
       ],
+      colSpan: 2,
     },
     {
-      name: 'professorName',
-      label: 'Lead Professor',
-      type: 'text',
-      placeholder: 'Professor name(s)',
+      name: 'professors',
+      label: 'Participating Professors',
+      type: 'custom',
+      colSpan: 2,
+      render: (value, form) => {
+        const professors = (value as string[]) || [''];
+        
+        const addProfessor = () => {
+          form.setValue('professors', [...professors, '']);
+        };
+        
+        const removeProfessor = (index: number) => {
+          if (professors.length > 1) {
+            form.setValue('professors', professors.filter((_, i) => i !== index));
+          }
+        };
+        
+        const updateProfessor = (index: number, value: string) => {
+          const updated = [...professors];
+          updated[index] = value;
+          form.setValue('professors', updated);
+        };
+        
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <Label>Participating Professors</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addProfessor}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Professor
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {professors.map((prof: string, index: number) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={prof}
+                    onChange={(e) => updateProfessor(index, e.target.value)}
+                    placeholder="Professor name"
+                  />
+                  {professors.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeProfessor(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      },
     },
     {
       name: 'startDate',
@@ -186,12 +254,12 @@ export function EditWorkshopPage() {
       name: 'registrationDeadline',
       label: 'Registration Deadline',
       type: 'custom',
-      colSpan: 1,
+      colSpan: 2,
       render: (value, form) => (
         <DateTimePicker
           value={value}
           onChange={(date) => form.setValue('registrationDeadline', date)}
-          placeholder="Optional deadline"
+          placeholder="Registration deadline (required)"
           minDate={new Date()}
         />
       ),
@@ -205,18 +273,10 @@ export function EditWorkshopPage() {
       colSpan: 1,
     },
     {
-      name: 'price',
-      label: 'Price (EGP)',
-      type: 'number',
-      placeholder: '0',
-      min: 0,
-      step: 0.01,
-    },
-    {
       name: 'fullAgenda',
       label: 'Full Agenda',
       type: 'textarea',
-      placeholder: 'Detailed schedule and topics covered',
+      placeholder: 'Detailed schedule and topics covered (minimum 20 characters)',
       colSpan: 2,
     },
     {
@@ -231,11 +291,8 @@ export function EditWorkshopPage() {
       label: 'Funding Source',
       type: 'select',
       options: [
-        { value: 'UNIVERSITY', label: 'GUC Internal' },
-        { value: 'SPONSORS', label: 'External Sponsors' },
-        { value: 'STUDENT_UNION', label: 'Student Union' },
-        { value: 'EXTERNAL_FUNDING', label: 'External Funding' },
-        { value: 'SELF_FUNDED', label: 'Self-Funded' },
+        { value: 'GUC', label: 'GUC Internal' },
+        { value: 'EXTERNAL', label: 'External Funding' },
       ],
     },
     {
@@ -243,6 +300,13 @@ export function EditWorkshopPage() {
       label: 'Extra Resources',
       type: 'textarea',
       placeholder: 'List any additional equipment, materials, or special requirements',
+      colSpan: 2,
+    },
+    {
+      name: 'requirements',
+      label: 'Requirements',
+      type: 'textarea',
+      placeholder: 'Prerequisites or requirements for attendees (max 500 characters)',
       colSpan: 2,
     },
   ];

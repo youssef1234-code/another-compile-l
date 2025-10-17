@@ -31,6 +31,7 @@ interface EventsTableProps {
   pageCount: number;
   typeCounts?: Record<string, number>;
   statusCounts?: Record<string, number>;
+  userRole?: string;
   queryKeys?: Partial<QueryKeys>;
   isSearching?: boolean;
   onUpdateEvent?: (eventId: string, field: string, value: string) => Promise<void>;
@@ -38,6 +39,10 @@ interface EventsTableProps {
   onEditEvent?: (eventId: string) => void;
   onArchiveEvent?: (eventId: string) => void;
   onDeleteEvent?: (eventId: string) => void;
+  onPublishEvent?: (eventId: string) => void;
+  onApproveWorkshop?: (eventId: string) => void;
+  onRejectWorkshop?: (eventId: string) => void;
+  onNeedsEdits?: (eventId: string) => void;
 }
 
 export function EventsTable({
@@ -45,6 +50,7 @@ export function EventsTable({
   pageCount,
   typeCounts = {},
   statusCounts = {},
+  userRole,
   queryKeys,
   isSearching = false,
   onUpdateEvent,
@@ -52,6 +58,10 @@ export function EventsTable({
   onEditEvent,
   onArchiveEvent,
   onDeleteEvent,
+  onPublishEvent,
+  onApproveWorkshop,
+  onRejectWorkshop,
+  onNeedsEdits,
 }: EventsTableProps) {
   // Toggle between advanced and simple filters (default to simple)
   const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
@@ -76,13 +86,18 @@ export function EventsTable({
       getEventsTableColumns({
         typeCounts,
         statusCounts,
+        userRole,
         onUpdateEvent,
         onViewDetails,
         onEditEvent,
         onArchiveEvent,
         onDeleteEvent,
+        onPublishEvent,
+        onApproveWorkshop,
+        onRejectWorkshop,
+        onNeedsEdits,
       }),
-    [typeCounts, statusCounts, onUpdateEvent, onViewDetails, onEditEvent, onArchiveEvent, onDeleteEvent],
+    [typeCounts, statusCounts, userRole, onUpdateEvent, onViewDetails, onEditEvent, onArchiveEvent, onDeleteEvent, onPublishEvent, onApproveWorkshop, onRejectWorkshop, onNeedsEdits],
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({
@@ -109,6 +124,9 @@ export function EventsTable({
           onEdit={onEditEvent}
           onArchive={onArchiveEvent}
           onDelete={onDeleteEvent}
+          onApproveWorkshop={onApproveWorkshop}
+          onRejectWorkshop={onRejectWorkshop}
+          onNeedsEdits={onNeedsEdits}
         />
       )}
     >

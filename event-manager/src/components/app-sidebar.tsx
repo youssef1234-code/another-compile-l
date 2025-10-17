@@ -20,7 +20,6 @@ import {
   Heart,
   CreditCard,
   BarChart3,
-  UserCheck,
   CheckSquare,
   Package,
   Clipboard,
@@ -87,54 +86,11 @@ const navigationConfig: NavItem[] = [
     url: ROUTES.EVENTS,
     items: [
       { title: "Browse Events", url: ROUTES.EVENTS, icon: Calendar },
-      {
-        title: "Manage Events",
-        url: ROUTES.ADMIN_EVENTS,
-        icon: Settings,
-        roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"],
-      },
-      {
-        title: "My Registrations",
-        url: ROUTES.MY_REGISTRATIONS,
-        icon: CheckSquare,
-        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
-      },
-      {
-        title: "Favorites",
-        url: ROUTES.FAVORITES,
-        icon: Heart,
-        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
-      },
-      {
-        title: "Create Workshop",
-        url: ROUTES.CREATE_WORKSHOP,
-        icon: GraduationCap,
-        roles: ["PROFESSOR"],
-      },
-      {
-        title: "My Workshops",
-        url: ROUTES.MY_WORKSHOPS,
-        icon: FileText,
-        roles: ["PROFESSOR"],
-      },
-      {
-        title: "Create Trip",
-        url: ROUTES.CREATE_TRIP,
-        icon: MapPin,
-        roles: ["EVENT_OFFICE"],
-      },
-      {
-        title: "Create Bazaar",
-        url: ROUTES.CREATE_BAZAAR,
-        icon: ShoppingBag,
-        roles: ["EVENT_OFFICE"],
-      },
-      {
-        title: "Create Conference",
-        url: ROUTES.CREATE_CONFERENCE,
-        icon: Building2,
-        roles: ["EVENT_OFFICE"],
-      },
+      { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: Settings, roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"] },
+      { title: "Favorites", url: ROUTES.FAVORITES, icon: Heart, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
+      { title: "Create Trip", url: ROUTES.CREATE_TRIP, icon: MapPin, roles: ["EVENT_OFFICE"] },
+      { title: "Create Bazaar", url: ROUTES.CREATE_BAZAAR, icon: ShoppingBag, roles: ["EVENT_OFFICE"] },
+      { title: "Create Conference", url: ROUTES.CREATE_CONFERENCE, icon: Building2, roles: ["EVENT_OFFICE"] },
     ],
   },
   {
@@ -211,21 +167,6 @@ const navigationConfig: NavItem[] = [
     roles: ["ADMIN"],
     items: [
       { title: "All Users", url: ROUTES.ADMIN_USERS, icon: Users },
-      {
-        title: "Role Approvals",
-        url: ROUTES.ADMIN_ROLE_APPROVALS,
-        icon: UserCheck,
-      },
-      {
-        title: "Vendor Approvals",
-        url: ROUTES.ADMIN_VENDOR_APPROVALS,
-        icon: CheckSquare,
-      },
-      {
-        title: "Manage Accounts",
-        url: ROUTES.ADMIN_MANAGE_ACCOUNTS,
-        icon: Settings,
-      },
       { title: "Reports", url: ROUTES.ADMIN_REPORTS, icon: BarChart3 },
       { title: "Comments", url: ROUTES.ADMIN_COMMENTS, icon: FileText },
     ],
@@ -233,14 +174,10 @@ const navigationConfig: NavItem[] = [
   {
     title: "Events Office",
     icon: Building2,
-    url: ROUTES.WORKSHOP_APPROVALS,
+    url: ROUTES.ADMIN_EVENTS,
     roles: ["EVENT_OFFICE"],
     items: [
-      {
-        title: "Workshop Approvals",
-        url: ROUTES.WORKSHOP_APPROVALS,
-        icon: GraduationCap,
-      },
+      { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: GraduationCap },
       { title: "Vendor Polls", url: ROUTES.VENDOR_POLLS, icon: Vote },
       { title: "Reports", url: ROUTES.EVENT_OFFICE_REPORTS, icon: BarChart3 },
       { title: "QR Codes", url: ROUTES.QR_CODES, icon: Package },

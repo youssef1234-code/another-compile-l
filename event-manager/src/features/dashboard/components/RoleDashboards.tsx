@@ -135,7 +135,7 @@ export function StudentDashboard() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-20 flex-col gap-2">
-                <Link to={ROUTES.MY_REGISTRATIONS}>
+                <Link to={`${ROUTES.EVENTS}?tab=registrations`}>
                   <CheckCircle2 className="h-5 w-5" />
                   <span>My Registrations</span>
                 </Link>
@@ -259,9 +259,9 @@ export function ProfessorDashboard() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-20 flex-col gap-2">
-                <Link to={ROUTES.MY_WORKSHOPS}>
+                <Link to={ROUTES.ADMIN_EVENTS}>
                   <BookOpen className="h-5 w-5" />
-                  <span>My Workshops</span>
+                  <span>Manage Events</span>
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-20 flex-col gap-2">
@@ -387,9 +387,9 @@ export function EventsOfficeDashboard() {
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Button asChild variant="default" className="h-20 flex-col gap-2">
-                <Link to={ROUTES.WORKSHOP_APPROVALS}>
+                <Link to={ROUTES.ADMIN_EVENTS}>
                   <CheckCircle2 className="h-5 w-5" />
-                  <span>Workshop Approvals</span>
+                  <span>Manage Events</span>
                   {pendingWorkshops.length > 0 && (
                     <Badge variant="destructive" className="absolute top-2 right-2">
                       {pendingWorkshops.length}
@@ -445,7 +445,7 @@ export function EventsOfficeDashboard() {
                       </p>
                     </div>
                     <Button asChild size="sm">
-                      <Link to={ROUTES.WORKSHOP_APPROVALS}>Review</Link>
+                      <Link to={ROUTES.ADMIN_EVENTS}>Review</Link>
                     </Button>
                   </div>
                 ))}
@@ -542,7 +542,7 @@ export function AdminDashboard() {
             <CardDescription>System management and oversight</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <Button asChild variant="outline" className="h-20 flex-col gap-2">
                 <Link to={ROUTES.ADMIN_USERS}>
                   <Users className="h-5 w-5" />
@@ -550,21 +550,9 @@ export function AdminDashboard() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-20 flex-col gap-2">
-                <Link to={ROUTES.ADMIN_ROLE_APPROVALS}>
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>Role Approvals</span>
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-20 flex-col gap-2">
                 <Link to={ROUTES.ADMIN_REPORTS}>
                   <BarChart3 className="h-5 w-5" />
                   <span>View Reports</span>
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-20 flex-col gap-2">
-                <Link to={ROUTES.ADMIN_MANAGE_ACCOUNTS}>
-                  <Users className="h-5 w-5" />
-                  <span>Manage Accounts</span>
                 </Link>
               </Button>
             </div>

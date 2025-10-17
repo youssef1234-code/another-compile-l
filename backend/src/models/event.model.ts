@@ -19,6 +19,7 @@ export interface IEvent extends IBaseDocument {
   location: string;
   locationDetails?: string;
   status: keyof typeof EventStatus;
+  rejectionReason?: string;
   isArchived: boolean;
   capacity?: number;
   registeredCount: number;
@@ -28,11 +29,12 @@ export interface IEvent extends IBaseDocument {
   // Workshop specific
   fullAgenda?: string;
   faculty?: keyof typeof Faculty;
-  professors?: mongoose.Types.ObjectId[];
-  professorName?: string; // For search/display
+  professors?: string[]; // Professor names (not user refs) - Requirement #35
+  professorName?: string; // Deprecated: kept for backwards compatibility
   requiredBudget?: number;
   fundingSource?: keyof typeof FundingSource;
   extraResources?: string;
+  requirements?: string; // Prerequisites or requirements for attendees
   price?: number;
   
   // Media
@@ -67,7 +69,10 @@ const eventSchema = createBaseSchema<IEvent>(
     },
     description: {
       type: String,
-      required: true,
+      required: function(this: IEvent) {
+        // Description is optional for GYM_SESSION
+        return this.type !== 'GYM_SESSION';
+      },
     },
     startDate: {
       type: Date,
@@ -109,22 +114,26 @@ const eventSchema = createBaseSchema<IEvent>(
     fullAgenda: String,
     faculty: {
       type: String,
-      enum: ['MET', 'IET', 'PHARMACY', 'BIOTECHNOLOGY', 'MANAGEMENT', 'LAW', 'DESIGN'],
+      enum: ['MET', 'IET', 'ARTS', 'LAW', 'PHARMACY', 'BUSINESS', 'BIOTECHNOLOGY'],
     },
     professors: [{
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String, // Professor names as strings - Requirement #35
     }],
-    professorName: String, // For easier search and display
+    professorName: String, // Deprecated: kept for backwards compatibility
     requiredBudget: Number,
     fundingSource: {
       type: String,
       enum: ['EXTERNAL', 'GUC'],
     },
     extraResources: String,
+    requirements: String, // Prerequisites or requirements for attendees
     price: {
       type: Number,
       default: 0,
+    },
+    rejectionReason:{
+      type: String,
+      required: false,
     },
     
     // Media

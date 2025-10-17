@@ -31,7 +31,6 @@ import { EditBazaarPage } from "@/features/events/pages/EditBazaarPage";
 import {
   MyRegistrationsPage,
   CreateWorkshopPage,
-  MyWorkshopsPage,
   CreateTripPage,
   CreateBazaarPage,
   CreateConferencePage,
@@ -59,10 +58,7 @@ import {
 // Admin
 import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
 import {
-  AcademicRoleApprovalsPage,
-  VendorApprovalsPage,
   CommentsPage,
-  ManageAccountsPage,
   ReportsPage,
 } from "@/features/admin/pages";
 
@@ -72,7 +68,7 @@ import { BackOfficeEventsPage } from "@/features/events/pages";
 // Events Office
 import { BazaarManagementPage } from "@/features/events-office/pages/BazaarManagementPage";
 import {
-  WorkshopApprovalsPage,
+  // WorkshopApprovalsPage, // Removed - functionality moved to BackOfficeEventsPage
   VendorPollsPage,
   EventOfficeReportsPage,
   QRCodesPage,
@@ -89,8 +85,10 @@ import {
   ProtectedRoute,
   AdminRoute,
   EventOfficeRoute,
+  EventManagementRoute
 } from "@/components/auth/ProtectedRoute";
 import { AllApplicationPage } from "@/features/vendors/pages/AllApplicationsPage";
+
 
 export const router = createBrowserRouter([
   {
@@ -170,7 +168,7 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.MY_WORKSHOPS,
-        element: <MyWorkshopsPage />,
+        element: <Navigate to={ROUTES.ADMIN_EVENTS} replace />, // Redirects to BackOfficeEventsPage
       },
       {
         path: ROUTES.CREATE_TRIP,
@@ -253,25 +251,9 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.ADMIN_EVENTS,
         element: (
-          <EventOfficeRoute>
+          <EventManagementRoute>
             <BackOfficeEventsPage />
-          </EventOfficeRoute>
-        ),
-      },
-      {
-        path: ROUTES.ADMIN_ROLE_APPROVALS,
-        element: (
-          <AdminRoute>
-            <AcademicRoleApprovalsPage />
-          </AdminRoute>
-        ),
-      },
-      {
-        path: ROUTES.ADMIN_VENDOR_APPROVALS,
-        element: (
-          <AdminRoute>
-            <VendorApprovalsPage />
-          </AdminRoute>
+          </EventManagementRoute>
         ),
       },
       {
@@ -279,14 +261,6 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <CommentsPage />
-          </AdminRoute>
-        ),
-      },
-      {
-        path: ROUTES.ADMIN_MANAGE_ACCOUNTS,
-        element: (
-          <AdminRoute>
-            <ManageAccountsPage />
           </AdminRoute>
         ),
       },
@@ -302,11 +276,7 @@ export const router = createBrowserRouter([
       // Events Office Routes
       {
         path: ROUTES.WORKSHOP_APPROVALS,
-        element: (
-          <EventOfficeRoute>
-            <WorkshopApprovalsPage />
-          </EventOfficeRoute>
-        ),
+        element: <Navigate to={ROUTES.ADMIN_EVENTS} replace />, // Redirects to BackOfficeEventsPage
       },
       {
         path: ROUTES.VENDOR_POLLS,

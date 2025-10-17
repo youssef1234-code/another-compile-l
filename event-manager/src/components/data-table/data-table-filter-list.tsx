@@ -637,7 +637,7 @@ function onFilterInputRender<TData>({
         <Select
           open={showValueSelector}
           onOpenChange={setShowValueSelector}
-          value={filter.value}
+          value={filter.value as string}
           onValueChange={(value) =>
             onFilterUpdate(filter.filterId, {
               value,
