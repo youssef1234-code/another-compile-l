@@ -4,6 +4,7 @@ import {
 } from "../models/vendor-application.model";
 import { BaseRepository } from "./base.repository";
 import type { FilterQuery } from "mongoose";
+import { userRepository } from "./user.repository";
 
 /**
  * Repository Pattern for Vendor Application entity
@@ -15,25 +16,33 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
   constructor() {
     super(VendorApplication);
   }
-  async advancedSearch(params: {
-    search?: string;
-    type?: string;
-    location?: number;
-    startDate?: Date;
-    status?: string;
-    isApproved?: boolean;
-    boothSize?: string;
-    duration?: number;
-    skip?: number;
-    limit?: number;
-    sortBy?: string;
-    sortOrder?: "asc" | "desc";
-  }): Promise<{ applications: IVendorApplication[]; total: number }> {
+  async advancedSearch(
+    vendorId: string,
+    params: {
+      search?: string;
+      type?: string;
+      location?: number;
+      startDate?: Date;
+      status?: string;
+      isApproved?: boolean;
+      boothSize?: string;
+      duration?: number;
+      skip?: number;
+      limit?: number;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    },
+  ): Promise<{ applications: IVendorApplication[]; total: number }> {
     const filter: FilterQuery<IVendorApplication> =
       {} as FilterQuery<IVendorApplication>;
 
-    // Text search
+    const vendor = await userRepository.findById(vendorId);
+    if (vendor?.role === "VENDOR") {
+      filter.createdBy = vendorId;
+    }
+
     if (params.search) {
+      // Text search
       const searchRegex = new RegExp(params.search, "i");
       filter.$or = [{ companyName: searchRegex }, { bazaarName: searchRegex }];
     }

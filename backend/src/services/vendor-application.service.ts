@@ -54,12 +54,13 @@ export class VendorApplicationService extends BaseService<
       sortBy?: string;
       sortOrder?: "asc" | "desc";
     } = {},
+    vendorId: string,
   ): Promise<{ applications: IVendorApplication[]; total: number }> {
     const page = params.page || 1;
     const limit = params.limit || 10;
     const skip = (page - 1) * limit;
 
-    const res = await this.repository.advancedSearch({
+    const res = await this.repository.advancedSearch(vendorId, {
       ...params,
       skip,
       limit,

@@ -113,7 +113,7 @@ export function VendorRequestsPage() {
           <CardHeader>
             <CardTitle className="text-3xl font-bold flex items-center gap-2">
               <CheckCircle2 className="h-8 w-8" />
-              Application Applrovals
+              Application Approvals
             </CardTitle>
             <CardDescription>
               Review and approve vendor application submissions
