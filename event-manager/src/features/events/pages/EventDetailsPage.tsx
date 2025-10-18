@@ -22,6 +22,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { VendorCard } from "@/features/events/components/VendorCard";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { 
   Edit, 
   Calendar, 
@@ -36,7 +39,10 @@ import {
   XCircle,
   Mail,
   CheckSquare,
-  GraduationCap
+  GraduationCap,
+  Store,
+  Plane,
+  Dumbbell
 } from "lucide-react";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
@@ -79,6 +85,7 @@ export function EventDetailsPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
 
   const { data: event, isLoading } = trpc.events.getEventById.useQuery(
     { id: id! },
@@ -202,11 +209,11 @@ export function EventDetailsPage() {
   };
 
   const typeConfigMap: Record<string, { label: string; color: string; icon: any }> = {
-    WORKSHOP: { label: 'Workshop', color: 'bg-blue-500', icon: Building2 },
-    TRIP: { label: 'Trip', color: 'bg-green-500', icon: MapPin },
+    WORKSHOP: { label: 'Workshop', color: 'bg-blue-500', icon: GraduationCap },
+    TRIP: { label: 'Trip', color: 'bg-green-500', icon: Plane },
     CONFERENCE: { label: 'Conference', color: 'bg-purple-500', icon: Users },
-    BAZAAR: { label: 'Bazaar', color: 'bg-orange-500', icon: DollarSign },
-    GYM_SESSION: { label: 'Gym Session', color: 'bg-red-500', icon: Users },
+    BAZAAR: { label: 'Bazaar', color: 'bg-orange-500', icon: Store },
+    GYM_SESSION: { label: 'Gym Session', color: 'bg-red-500', icon: Dumbbell },
   };
   const typeConfig = typeConfigMap[event.type] || { label: event.type, color: 'bg-gray-500', icon: Calendar };
 
@@ -234,7 +241,16 @@ export function EventDetailsPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
           </div>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
+          <div className="absolute inset-0 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+            <div className="text-[120px] opacity-20">
+              {event.type === 'WORKSHOP' && '📚'}
+              {event.type === 'TRIP' && '✈️'}
+              {event.type === 'BAZAAR' && '🛍️'}
+              {event.type === 'CONFERENCE' && '🎤'}
+              {event.type === 'GYM_SESSION' && '🏋️'}
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+          </div>
         )}
         <div className="relative max-w-7xl mx-auto h-full flex items-end p-8 pb-6">
           <div className="space-y-3 text-white w-full">
@@ -379,18 +395,38 @@ export function EventDetailsPage() {
             {event.type === "BAZAAR" && event.vendors && event.vendors.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Participating Vendors ({event.vendors.length})</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5" />
+                      Participating Vendors ({event.vendors.length})
+                    </CardTitle>
+                    {(user?.role === "ADMIN" || user?.role === "EVENT_OFFICE") && (
+                      <div className="flex items-center gap-2">
+                        <Switch 
+                          id="show-participants" 
+                          checked={showParticipants}
+                          onCheckedChange={setShowParticipants}
+                        />
+                        <Label htmlFor="show-participants" className="text-sm cursor-pointer">
+                          Show Participants
+                        </Label>
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {event.vendors.map((vendor: any) => (
-                      <div 
+                      <VendorCard 
                         key={vendor.id}
-                        className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <p className="font-semibold">{vendor.companyName}</p>
-                        <p className="text-sm text-muted-foreground">{vendor.email}</p>
-                      </div>
+                        vendor={vendor}
+                        showParticipants={
+                          (user?.role === "ADMIN" || user?.role === "EVENT_OFFICE") 
+                            ? showParticipants 
+                            : false
+                        }
+                        defaultExpanded={false}
+                      />
                     ))}
                   </div>
                 </CardContent>

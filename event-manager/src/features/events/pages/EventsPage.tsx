@@ -193,10 +193,10 @@ export function EventsPage() {
 
     let events = [...eventsData.events];
 
-    // IMPORTANT: Only show WORKSHOP, TRIP, CONFERENCE in browse events
-    // Exclude: GYM_SESSION (handled by gym pages), BAZAAR (vendor-specific)
+    // IMPORTANT: Show WORKSHOP, TRIP, CONFERENCE, BAZAAR in browse events
+    // Exclude: GYM_SESSION (handled by gym pages)
     events = events.filter((event) => 
-      event.type === 'WORKSHOP' || event.type === 'TRIP' || event.type === 'CONFERENCE'
+      event.type === 'WORKSHOP' || event.type === 'TRIP' || event.type === 'CONFERENCE' || event.type === 'BAZAAR'
     );
 
     // Filter by open registration status (only on browse tab)

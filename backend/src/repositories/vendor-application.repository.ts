@@ -42,17 +42,14 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
     }
 
     if (params.search) {
-      // Text search
       const searchRegex = new RegExp(params.search, "i");
       filter.$or = [{ companyName: searchRegex }, { bazaarName: searchRegex }];
     }
 
-    // Type filter
     if (params.type) {
       filter.type = params.type as any;
     }
 
-    // Location filter
     if (params.location) {
       filter.location = params.location as any;
     }
@@ -62,30 +59,26 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
     } else if (params.isApproved === false) {
       filter.status = { $in: ["PENDING", "REJECTED"] };
     }
-    // Status filter
+    
     if (params.status) {
       filter.status = params.status as any;
     }
 
-    // Booth Size filter
     if (params.boothSize) {
       filter.boothSize = params.boothSize as any;
     }
 
-    // Duration filter
     if (params.duration) {
       filter.duration = params.duration as any;
     }
 
-    // Sorting
     const sort: Record<string, 1 | -1> = {};
     if (params.sortBy) {
       sort[params.sortBy] = params.sortOrder === "desc" ? -1 : 1;
     } else {
-      sort.startDate = 1; // Default sort by start date ascending
+      sort.startDate = -1; // Default: newest first
     }
 
-    // Execute query with pagination
     const [applications, total] = await Promise.all([
       this.findAll(filter, {
         skip: params.skip || 0,

@@ -30,7 +30,6 @@ import { FavoritesPage } from "@/features/events/pages/FavoritesPage";
 import { EditBazaarPage } from "@/features/events/pages/EditBazaarPage";
 import {
   MyRegistrationsPage,
-  CreateWorkshopPage,
   CreateTripPage,
   CreateBazaarPage,
   CreateConferencePage,
@@ -45,7 +44,11 @@ import {
   VendorApplicationsPage,
   LoyaltyProgramPage,
   VendorRequestsPage,
+  PlatformBoothApplicationPage,
 } from "@/features/vendors/pages";
+
+// Platform
+import { PlatformSetupPage } from "@/features/platform/pages/PlatformSetupPage";
 
 // Gym & Sports
 import {
@@ -87,7 +90,6 @@ import {
   EventOfficeRoute,
   EventManagementRoute
 } from "@/components/auth/ProtectedRoute";
-import { AllApplicationPage } from "@/features/vendors/pages/AllApplicationsPage";
 
 
 export const router = createBrowserRouter([
@@ -164,7 +166,7 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.CREATE_WORKSHOP,
-        element: <CreateWorkshopPage />,
+        element: <Navigate to={ROUTES.ADMIN_EVENTS} replace />, // Redirects to BackOfficeEventsPage - use Create button
       },
       {
         path: ROUTES.MY_WORKSHOPS,
@@ -213,12 +215,36 @@ export const router = createBrowserRouter([
         element: <LoyaltyProgramPage />,
       },
       {
+        path: ROUTES.VENDOR_APPLICATIONS,
+        element: <VendorApplicationsPage />,
+      },
+      {
+        path: ROUTES.APPLY_PLATFORM_BOOTH,
+        element: <PlatformBoothApplicationPage />,
+      },
+      {
         path: ROUTES.VENDOR_REQUESTS,
-        element: <VendorRequestsPage />,
+        element: (
+          <EventManagementRoute>
+            <VendorRequestsPage />
+          </EventManagementRoute>
+        ),
+      },
+      {
+        path: ROUTES.PLATFORM_SETUP,
+        element: (
+          <EventManagementRoute>
+            <PlatformSetupPage />
+          </EventManagementRoute>
+        ),
       },
       {
         path: ROUTES.ALL_APPLICATIONS,
-        element: <AllApplicationPage />,
+        element: (
+          <EventManagementRoute>
+            <VendorRequestsPage />
+          </EventManagementRoute>
+        ),
       },
 
       // Gym & Sports Routes

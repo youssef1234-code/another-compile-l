@@ -26,8 +26,11 @@ export interface IVendorApplication extends IBaseDocument {
   location?: number;
   duration?: number;
   startDate?: Date;
+  boothLocationId?: string; // Reference to booth placement ID on platform map
+  boothLabel?: string; // Human-readable booth number (e.g., "A1", "B2")
 
   status: keyof typeof VendorApprovalStatus;
+  rejectionReason?: string;
 }
 
 const applicationSchema = createBaseSchema<IVendorApplication>(
@@ -77,11 +80,23 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
       max: 4,
     },
     startDate: Date,
+    boothLocationId: {
+      type: String,
+      required: false,
+    },
+    boothLabel: {
+      type: String,
+      required: false,
+    },
     status: {
       type: String,
       enum: ["APPROVED", "PENDING", "REJECTED"],
       default: "PENDING",
       required: true,
+    },
+    rejectionReason: {
+      type: String,
+      required: false,
     },
   },
   {
@@ -95,6 +110,38 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
     },
   },
 );
+
+// Compound index to prevent duplicate applications for same vendor+bazaar
+// Only for BAZAAR applications (where bazaarId exists)
+applicationSchema.index(
+  { createdBy: 1, bazaarId: 1 },
+  { 
+    unique: true,
+    name: "vendor_bazaar_unique_v2",
+    partialFilterExpression: { 
+      type: "BAZAAR",
+      bazaarId: { $exists: true }
+    }
+  }
+);
+
+// Compound index to prevent duplicate platform booth reservations
+// Same vendor cannot reserve same booth location on same start date
+applicationSchema.index(
+  { boothLocationId: 1, createdBy: 1, startDate: 1 },
+  { 
+    unique: true,
+    name: "platform_booth_unique",
+    partialFilterExpression: { 
+      type: "PLATFORM",
+      boothLocationId: { $exists: true },
+      startDate: { $exists: true }
+    }
+  }
+);
+
+// Index for efficient booth availability queries
+applicationSchema.index({ boothLocationId: 1, startDate: 1, duration: 1 });
 
 export const VendorApplication = mongoose.model<IVendorApplication>(
   "VendorApplication",

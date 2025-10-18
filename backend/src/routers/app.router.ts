@@ -12,13 +12,15 @@ import { eventsRouter } from "./events.router.js";
 import { fileRouter } from "./file.router.js";
 import { vendorApplicationRouter } from "./vendor-application.router.js";
 import { courtsRouter } from './courts.router.js';
+import { platformMapRouter } from './platform-map.router.js';
 
 export const appRouter = router({
   auth: authRouter,
   events: eventsRouter,
   files: fileRouter,
   vendorApplications: vendorApplicationRouter,
-  courts: courtsRouter
+  courts: courtsRouter,
+  platformMaps: platformMapRouter,
 
   // Additional routers will be added here as development progresses
   // registrations: registrationsRouter,

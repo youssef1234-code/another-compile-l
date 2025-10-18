@@ -1,25 +1,24 @@
 /**
  * Bazaars List Page (Vendor View)
- *
- * Vendors can:
- * - View all upcoming bazaars
- * - Apply to participate in bazaars
- * - See bazaar details and requirements
- *
- * Requirement: #59, #60
+ * 
+ * Optimized with React 19 features:
+ * - useDeferredValue for search performance
+ * - useTransition for non-blocking updates
+ * - Proper DataTable with advanced/simple filters
+ * 
+ * Requirements: #59, #60
  */
 
-import { useState } from "react";
+import { useState, useMemo, useTransition, useDeferredValue } from "react";
+import { useQueryState, parseAsString, parseAsBoolean } from "nuqs";
 import { trpc } from "@/lib/trpc";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/generic";
+import { DataTable } from "@/components/data-table/data-table";
+import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { DataTableAdvancedToolbar } from "@/components/data-table/data-table-advanced-toolbar";
+import { DataTableFilterList } from "@/components/data-table/data-table-filter-list";
+import { DataTableSortList } from "@/components/data-table/data-table-sort-list";
+import { useDataTable } from "@/hooks/use-data-table";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -37,298 +37,361 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "react-hot-toast";
-import { ShoppingBag, Calendar, MapPin, Clock, Users } from "lucide-react";
-import { motion } from "framer-motion";
-import { LoadingSpinner } from "@/components/generic/LoadingSpinner";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, Plus, Trash2, ShoppingBag, Calendar, MapPin, Clock, Info, Search, ListFilter } from "lucide-react";
+import { toast } from 'react-hot-toast';
+import { getBazaarsTableColumns } from "../components/bazaars-table-columns";
+import { formatDate } from "@/lib/design-system";
 import type { Event } from "@event-manager/shared";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
+interface Attendee {
+  name: string;
+  email: string;
+}
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-};
+// Expandable Row Component
+function BazaarExpandedRow({ bazaar }: { bazaar: Event }) {
+  return (
+    <div className="p-6 bg-muted/30">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Calendar className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Event Dates</p>
+                <p className="text-base font-semibold mt-1">
+                  {bazaar.startDate ? formatDate(new Date(bazaar.startDate)) : 'TBD'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  to {bazaar.endDate ? formatDate(new Date(bazaar.endDate)) : 'TBD'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-interface VendorApplication {
-  attendees: Array<{ name: string; email: string }>;
-  boothSize: "TWO_BY_TWO" | "FOUR_BY_FOUR";
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <MapPin className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Location</p>
+                <p className="text-base font-semibold mt-1">{bazaar.location || 'TBD'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Clock className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Registration Deadline</p>
+                <p className="text-base font-semibold mt-1">
+                  {bazaar.registrationDeadline ? formatDate(new Date(bazaar.registrationDeadline)) : 'TBD'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {bazaar.description && (
+          <Card className="md:col-span-3">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-primary mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
+                  <p className="text-base leading-relaxed">{bazaar.description}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function BazaarsListPage() {
-  const [selectedBazaar, setSelectedBazaar] = useState<Event>();
-  const [applicationDialog, setApplicationDialog] = useState(false);
-  const [application, setApplication] = useState<VendorApplication>({
-    attendees: [{ name: "", email: "" }],
-    boothSize: "TWO_BY_TWO",
-  });
+  const [isPending, startTransition] = useTransition();
+  const [selectedBazaar, setSelectedBazaar] = useState<Event | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [attendees, setAttendees] = useState<Attendee[]>([{ name: "", email: "" }]);
+  const [boothSize, setBoothSize] = useState<"TWO_BY_TWO" | "FOUR_BY_FOUR">("TWO_BY_TWO");
 
-  // Fetch bazaars
-  const { data: eventsData, isLoading } = trpc.events.getEvents.useQuery({
+  // Get trpc utils for invalidation
+  const utils = trpc.useUtils();
+
+  // Advanced filter toggle
+  const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
+    'advanced',
+    parseAsBoolean.withOptions({
+      history: 'replace',
+      shallow: false,
+    }).withDefault(false)
+  );
+
+  // Global search with deferred value for performance
+  const [search, setSearch] = useQueryState(
+    'search',
+    parseAsString.withOptions({
+      history: 'replace',
+      shallow: false,
+    }).withDefault('')
+  );
+  const deferredSearch = useDeferredValue(search);
+
+  // Fetch upcoming bazaars
+  const { data, isLoading, refetch } = trpc.events.getEvents.useQuery({
     page: 1,
-    limit: 50,
+    limit: 100,
     type: "BAZAAR",
     onlyUpcoming: true,
   });
 
-  const bazaars = (eventsData?.events || []) as Event[];
+  const bazaars = useMemo(() => (data?.events || []) as Event[], [data?.events]);
+
+  // Check which bazaars vendor has already applied to
+  const { data: existingApplications, refetch: refetchApplications } = trpc.vendorApplications.checkExistingApplications.useQuery(
+    { bazaarIds: bazaars.map((b) => b.id) },
+    { enabled: bazaars.length > 0 }
+  );
+
+  const appliedBazaarIds = existingApplications || [];
+
+  // Apply mutation
+  const applyMutation = trpc.vendorApplications.create.useMutation({
+    onSuccess: () => {
+      toast.success("Application submitted successfully!");
+      setShowDialog(false);
+      resetForm();
+      // Invalidate both queries to refresh the data
+      utils.vendorApplications.checkExistingApplications.invalidate();
+      utils.vendorApplications.getApplications.invalidate();
+      refetch();
+      refetchApplications();
+    },
+    onError: (error) => {
+      toast.error(`Failed to submit application: ${error.message}`);
+    },
+  });
+
+  // Table columns with Apply callback
+  const columns = useMemo(
+    () => getBazaarsTableColumns({
+      onApply: (bazaar) => {
+        startTransition(() => {
+          setSelectedBazaar(bazaar);
+          setShowDialog(true);
+        });
+      },
+      appliedBazaarIds,
+    }),
+    [appliedBazaarIds]
+  );
+
+  // Setup DataTable
+  const { table, shallow, debounceMs, throttleMs } = useDataTable({
+    data: bazaars,
+    columns,
+    pageCount: 1,
+    enableAdvancedFilter,
+    initialState: {
+      sorting: [{ id: "registrationDeadline", desc: false }],
+    },
+    getRowId: (originalRow) => originalRow.id,
+    getRowCanExpand: () => true,
+  });
 
   const handleAddAttendee = () => {
-    if (application.attendees.length < 5) {
-      setApplication({
-        ...application,
-        attendees: [...application.attendees, { name: "", email: "" }],
-      });
+    if (attendees.length < 5) {
+      setAttendees([...attendees, { name: "", email: "" }]);
+    } else {
+      toast.error("Maximum 5 attendees allowed");
     }
   };
 
   const handleRemoveAttendee = (index: number) => {
-    if (application.attendees.length > 1) {
-      setApplication({
-        ...application,
-        attendees: application.attendees.filter((_, i) => i !== index),
-      });
+    if (attendees.length > 1) {
+      setAttendees(attendees.filter((_, i) => i !== index));
     }
   };
 
   const handleUpdateAttendee = (
     index: number,
     field: "name" | "email",
-    value: string,
+    value: string
   ) => {
-    const updatedAttendees = [...application.attendees];
-    updatedAttendees[index][field] = value;
-    setApplication({ ...application, attendees: updatedAttendees });
+    const updated = [...attendees];
+    updated[index][field] = value;
+    setAttendees(updated);
   };
 
-  const applicationMut = trpc.vendorApplications.create.useMutation({
-    onSuccess: () => {
-      toast.success("Application submitted successfully!");
-      setApplicationDialog(false);
-      setApplication({
-        attendees: [{ name: "", email: "" }],
-        boothSize: "TWO_BY_TWO",
-      });
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to create application");
-    },
-  });
-  const handleApply = (bazaar?: Event) => {
-    // Validate
-    const hasEmptyFields = application.attendees.some(
-      (a) => !a.name.trim() || !a.email.trim(),
-    );
-    if (hasEmptyFields) {
-      toast.error("Please fill in all attendee details");
+  const handleSubmit = () => {
+    if (!selectedBazaar) {
+      toast.error("No bazaar selected");
       return;
     }
 
-    const value = {
-      names: application.attendees.map((v) => v.name),
-      emails: application.attendees.map((v) => v.email),
-      boothSize: application.boothSize,
-      status: "PENDING" as any,
-      type: "BAZAAR" as any,
-      bazaarName: bazaar?.name,
-      startDate: bazaar?.startDate,
-      bazaarId: bazaar?.id,
-    };
-    console.log(value);
+    // Check if already applied
+    if (appliedBazaarIds.includes(selectedBazaar.id)) {
+      toast.error("You have already applied to this bazaar");
+      return;
+    }
 
-    applicationMut.mutate(value);
+    if (attendees.some((a) => !a.name || !a.email)) {
+      toast.error("All attendees must have a name and email");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (attendees.some((a) => !emailRegex.test(a.email))) {
+      toast.error("Please provide valid email addresses");
+      return;
+    }
+
+    applyMutation.mutate({
+      type: "BAZAAR",
+      bazaarId: selectedBazaar.id,
+      bazaarName: selectedBazaar.name,
+      startDate: selectedBazaar.startDate,
+      names: attendees.map((a) => a.name),
+      emails: attendees.map((a) => a.email),
+      boothSize,
+      status: "PENDING",
+    });
   };
+
+  const resetForm = () => {
+    setAttendees([{ name: "", email: "" }]);
+    setBoothSize("TWO_BY_TWO");
+    setSelectedBazaar(null);
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[400px]">
-        <LoadingSpinner size="lg" />
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="container mx-auto p-6 space-y-6"
-    >
-      {/* Header */}
-      <motion.div variants={itemVariants}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl font-bold flex items-center gap-2">
-              <ShoppingBag className="h-8 w-8" />
-              Browse Bazaars
-            </CardTitle>
-            <CardDescription>
-              Discover upcoming bazaars and apply to participate
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </motion.div>
+    <div className="container mx-auto p-6 space-y-6">
+      <PageHeader
+        title="Browse Bazaars"
+        description="View upcoming bazaars and apply to participate as a vendor"
+      />
 
-      {/* Bazaar Cards */}
-      <motion.div variants={itemVariants}>
-        {bazaars.length === 0 ? (
-          <Card>
-            <CardContent className="py-16">
-              <div className="flex flex-col items-center justify-center gap-4">
-                <ShoppingBag className="h-16 w-16 text-muted-foreground" />
-                <div className="text-center space-y-2">
-                  <h3 className="text-xl font-semibold">No upcoming bazaars</h3>
-                  <p className="text-muted-foreground">
-                    Check back later for new bazaar opportunities
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <DataTable 
+        table={table}
+        renderSubComponent={(row) => <BazaarExpandedRow bazaar={row.original} />}
+      >
+        {/* Toggle Buttons */}
+        <div className="flex items-center gap-2 p-1">
+          <Button
+            variant={!enableAdvancedFilter ? "default" : "outline"}
+            size="sm"
+            onClick={() => setEnableAdvancedFilter(false)}
+            className="gap-2"
+          >
+            <Search className="h-4 w-4" />
+            Simple filters
+          </Button>
+
+          <Button
+            variant={enableAdvancedFilter ? "default" : "outline"}
+            size="sm"
+            onClick={() => setEnableAdvancedFilter(true)}
+            className="gap-2"
+          >
+            <ListFilter className="h-4 w-4" />
+            Advanced filters
+          </Button>
+        </div>
+
+        {/* Conditional Toolbar */}
+        {enableAdvancedFilter ? (
+          <DataTableAdvancedToolbar table={table}>
+            <DataTableSortList table={table} align="start" />
+            <DataTableFilterList
+              table={table}
+              shallow={shallow}
+              debounceMs={debounceMs}
+              throttleMs={throttleMs}
+              align="start"
+            />
+          </DataTableAdvancedToolbar>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {bazaars.map((bazaar, index) => (
-              <motion.div
-                key={bazaar.id}
-                variants={itemVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className="h-full flex flex-col hover:shadow-lg transition-all">
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-xl">{bazaar.name}</CardTitle>
-                      <Badge variant="secondary">Bazaar</Badge>
-                    </div>
-                    <CardDescription className="line-clamp-2">
-                      {bazaar.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-1 space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          {new Date(
-                            bazaar?.startDate as any,
-                          ).toLocaleDateString()}{" "}
-                          -{" "}
-                          {bazaar.endDate
-                            ? new Date(bazaar.endDate).toLocaleDateString()
-                            : "TBD"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span>{bazaar.location}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          Deadline:{" "}
-                          {bazaar.registrationDeadline
-                            ? new Date(
-                                bazaar.registrationDeadline,
-                              ).toLocaleDateString()
-                            : "TBD"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          {bazaar.registeredCount || 0} / {bazaar.capacity}{" "}
-                          vendors
-                        </span>
-                      </div>
-                    </div>
-
-                    <Button
-                      className="w-full mt-auto"
-                      onClick={() => {
-                        setSelectedBazaar(bazaar);
-                        setApplicationDialog(true);
-                      }}
-                      disabled={
-                        (bazaar.registrationDeadline &&
-                          new Date(bazaar.registrationDeadline) < new Date()) ||
-                        (bazaar.registeredCount || 0) >= bazaar.capacity
-                      }
-                    >
-                      {bazaar.registrationDeadline &&
-                      new Date(bazaar.registrationDeadline) < new Date()
-                        ? "Registration Closed"
-                        : (bazaar.registeredCount || 0) >= bazaar.capacity
-                          ? "Full"
-                          : "Apply to Participate"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+          <DataTableToolbar
+            table={table}
+            showGlobalSearch={true}
+            globalSearchValue={deferredSearch}
+            onGlobalSearchChange={(value) => setSearch(value || null)}
+            globalSearchPlaceholder="Search bazaars by name, location..."
+            isSearching={isPending || isLoading}
+          />
         )}
-      </motion.div>
+      </DataTable>
 
       {/* Application Dialog */}
-      <Dialog open={applicationDialog} onOpenChange={setApplicationDialog}>
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Apply to {selectedBazaar?.name}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5" />
+              Apply to {selectedBazaar?.name}
+            </DialogTitle>
             <DialogDescription>
-              Fill in your application details to participate in this bazaar
+              Fill in the details below to apply for participation. Maximum 5
+              attendees allowed.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Booth Size */}
-            <div className="space-y-3">
-              <Label>Booth Size</Label>
+            {/* Booth Size Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="boothSize">Booth Size *</Label>
               <Select
-                value={application.boothSize}
-                onValueChange={(value: any) =>
-                  setApplication({ ...application, boothSize: value })
+                value={boothSize}
+                onValueChange={(value: "TWO_BY_TWO" | "FOUR_BY_FOUR") =>
+                  setBoothSize(value)
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="boothSize">
                   <SelectValue placeholder="Select booth size" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TWO_BY_TWO">
-                    2x2 meters (Standard)
-                  </SelectItem>
-                  <SelectItem value="FOUR_BY_FOUR">
-                    4x4 meters (Large)
-                  </SelectItem>
+                  <SelectItem value="TWO_BY_TWO">2×2 Small Booth</SelectItem>
+                  <SelectItem value="FOUR_BY_FOUR">4×4 Large Booth</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Attendees */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label>Attendees (Max 5)</Label>
+                <Label>Attendees ({attendees.length}/5) *</Label>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleAddAttendee}
-                  disabled={application.attendees.length >= 5}
+                  disabled={attendees.length >= 5}
                 >
+                  <Plus className="h-4 w-4 mr-2" />
                   Add Attendee
                 </Button>
               </div>
 
-              <div className="space-y-4">
-                {application.attendees.map((attendee, index) => (
-                  <Card key={index}>
-                    <CardContent className="pt-4">
-                      <div className="grid gap-4 md:grid-cols-2">
+              {attendees.map((attendee, index) => (
+                <Card key={index}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-1 grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
                           <Label htmlFor={`name-${index}`}>Name</Label>
                           <Input
@@ -336,11 +399,7 @@ export function BazaarsListPage() {
                             placeholder="Full name"
                             value={attendee.name}
                             onChange={(e) =>
-                              handleUpdateAttendee(
-                                index,
-                                "name",
-                                e.target.value,
-                              )
+                              handleUpdateAttendee(index, "name", e.target.value)
                             }
                           />
                         </div>
@@ -352,49 +411,57 @@ export function BazaarsListPage() {
                             placeholder="email@example.com"
                             value={attendee.email}
                             onChange={(e) =>
-                              handleUpdateAttendee(
-                                index,
-                                "email",
-                                e.target.value,
-                              )
+                              handleUpdateAttendee(index, "email", e.target.value)
                             }
                           />
                         </div>
                       </div>
-                      {application.attendees.length > 1 && (
+                      {attendees.length > 1 && (
                         <Button
+                          type="button"
                           variant="ghost"
-                          size="sm"
-                          className="mt-2 text-destructive"
+                          size="icon"
                           onClick={() => handleRemoveAttendee(index)}
                         >
-                          Remove
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
 
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setApplicationDialog(false)}
+              onClick={() => {
+                setShowDialog(false);
+                resetForm();
+              }}
             >
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                handleApply(selectedBazaar);
-              }}
+              onClick={handleSubmit}
+              disabled={applyMutation.isPending}
             >
-              Submit Application
+              {applyMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                  Submit Application
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </div>
   );
 }

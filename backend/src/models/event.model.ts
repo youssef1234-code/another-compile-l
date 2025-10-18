@@ -97,7 +97,7 @@ const eventSchema = createBaseSchema<IEvent>(
     isArchived: {
       type: Boolean,
       default: false,
-      index: true,
+      // Note: isActive already has an index from base schema
     },
     capacity: Number,
     registeredCount: {
@@ -186,7 +186,7 @@ const eventSchema = createBaseSchema<IEvent>(
 eventSchema.index({ type: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ startDate: 1 });
-eventSchema.index({ createdBy: 1 });
+// Note: createdBy and isActive already have indexes from base schema
 eventSchema.index({ name: 'text', description: 'text' });
 
 eventSchema.pre('validate', function (next) {

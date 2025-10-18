@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/authStore';
+import { VendorCard } from '@/features/events/components/VendorCard';
 import {
   Edit,
   Trash2,
@@ -306,15 +307,14 @@ export function EventExpandedRow({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {(event as any).vendors.map((vendor: any) => (
-                    <div
+                    <VendorCard 
                       key={vendor.id}
-                      className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <p className="font-semibold">{vendor.companyName}</p>
-                      <p className="text-sm text-muted-foreground">{vendor.email}</p>
-                    </div>
+                      vendor={vendor}
+                      showParticipants={isAdminOrEventOffice}
+                      defaultExpanded={false}
+                    />
                   ))}
                 </div>
               </CardContent>

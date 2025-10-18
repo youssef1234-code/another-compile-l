@@ -1,14 +1,23 @@
-import { useState } from "react";
+/**
+ * Vendor Requests Page (Admin/Event Office Management)
+ * 
+ * ADMIN/EVENT OFFICE ONLY - Full management with approve/reject dialogs
+ * For vendor view, see VendorApplicationsPage
+ * 
+ * Optimized for performance:
+ * - useCallback for stable function references
+ * - useMemo for expensive computations
+ * - Minimal re-renders
+ * 
+ * Requirements #75, #77
+ */
+
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson } from "nuqs";
 import { trpc } from "@/lib/trpc";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/generic";
+import { CheckCircle2, XCircle, Clock, Package } from "lucide-react";
+import { VendorRequestsTable } from "../components/vendor-requests-table";
 import {
   Dialog,
   DialogContent,
@@ -17,297 +26,304 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { toast } from "react-hot-toast";
-import {
-  CheckCircle2,
-  XCircle,
-  Calendar,
-  MapPin,
-  Clock,
-  Briefcase,
-  Store,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { LoadingSpinner } from "@/components/generic/LoadingSpinner";
 import type { VendorApplication } from "@event-manager/shared";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-};
-
 export function VendorRequestsPage() {
-  const [selectedApplication, setSelectedApplication] =
-    useState<VendorApplication | null>(null);
-  const [actionDialog, setActionDialog] = useState<"approve" | "reject" | null>(
-    null,
+  // Pagination
+  const [page] = useQueryState('page', parseAsInteger.withDefault(1));
+  const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
+  
+  // Search
+  const [search] = useQueryState('search', parseAsString.withDefault(''));
+  
+  // Sorting
+  const [sortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>([] as any).withDefault([]));
+  
+  // Simple filters
+  const [typeFilter] = useQueryState('type', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [statusFilter] = useQueryState('status', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [boothSizeFilter] = useQueryState('boothSize', parseAsArrayOf(parseAsString, ',').withDefault([]));
+
+  const [approveDialog, setApproveDialog] = useState<{ open: boolean; applicationId: string | null }>({
+    open: false,
+    applicationId: null,
+  });
+
+  const [rejectDialog, setRejectDialog] = useState<{
+    open: boolean;
+    applicationId: string | null;
+    reason: string;
+  }>({
+    open: false,
+    applicationId: null,
+    reason: "",
+  });
+
+  // Parse sort state
+  const parsedSort = useMemo(() => {
+    try {
+      if (Array.isArray(sortState) && sortState.length > 0) {
+        const firstSort = sortState[0];
+        return {
+          sortBy: firstSort.id,
+          sortOrder: firstSort.desc ? 'desc' as const : 'asc' as const,
+        };
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }, [sortState]);
+
+  // Build simple filters for backend
+  const filters = useMemo(() => {
+    const result: Record<string, any> = {};
+    
+    if (typeFilter.length > 0) {
+      result.type = typeFilter[0];
+    }
+    
+    if (statusFilter.length > 0) {
+      result.status = statusFilter[0];
+    }
+    
+    if (boothSizeFilter.length > 0) {
+      result.boothSize = boothSizeFilter[0];
+    }
+    
+    return result;
+  }, [typeFilter, statusFilter, boothSizeFilter]);
+
+  // Build query input
+  const queryInput = useMemo(() => {
+    const input: Record<string, any> = {
+      page,
+      limit: perPage,
+    };
+    
+    if (search) {
+      input.search = search;
+    }
+    
+    if (parsedSort) {
+      input.sortBy = parsedSort.sortBy;
+      input.sortOrder = parsedSort.sortOrder;
+    }
+    
+    Object.assign(input, filters);
+    
+    return input;
+  }, [page, perPage, search, parsedSort, filters]);
+
+  // Get applications with ALL URL parameters
+  const { data, refetch, isLoading, isFetching } = trpc.vendorApplications.getApplications.useQuery(
+    queryInput,
+    {
+      // Keep previous data while fetching new data
+      placeholderData: (previousData) => previousData,
+      // Refetch when URL params change
+      refetchOnMount: true,
+      // Shorter stale time to ensure fresh data
+      staleTime: 2000,
+    }
   );
 
-  const {
-    data: applicationData,
-    isLoading,
-    refetch,
-  } = trpc.vendorApplications.getApplications.useQuery({
-    page: 1,
-    limit: 100,
-    status: "PENDING",
-  });
+  // Get aggregated statistics from backend
+  const { data: stats } = trpc.vendorApplications.getApplicationStats.useQuery();
 
-  const updateMutation = trpc.vendorApplications.update.useMutation({
+  // Approve mutation
+  const approveMutation = trpc.vendorApplications.approveApplication.useMutation({
     onSuccess: () => {
-      toast.success("Application updated successfully");
-      setActionDialog(null);
-      setSelectedApplication(null);
+      toast.success("Application approved successfully");
+      setApproveDialog({ open: false, applicationId: null });
       refetch();
     },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update application");
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to approve application");
     },
   });
 
-  const applications = (applicationData?.applications ||
-    []) as VendorApplication[];
+  // Reject mutation
+  const rejectMutation = trpc.vendorApplications.rejectApplication.useMutation({
+    onSuccess: () => {
+      toast.success("Application rejected");
+      setRejectDialog({ open: false, applicationId: null, reason: "" });
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to reject application");
+    },
+  });
 
-  const handleApprove = () => {
-    if (!selectedApplication) return;
-    updateMutation.mutate({
-      id: selectedApplication.id,
-      status: { status: "APPROVED" as any },
-    });
-  };
+  // ✅ Stable callback refs that never change
+  const handleApproveRef = useRef((applicationId: string) => {
+    setApproveDialog({ open: true, applicationId });
+  });
+  
+  const handleRejectRef = useRef((applicationId: string) => {
+    setRejectDialog({ open: true, applicationId, reason: "" });
+  });
+  
+  // Update refs if needed (though these never change)
+  useEffect(() => {
+    handleApproveRef.current = (applicationId: string) => {
+      setApproveDialog({ open: true, applicationId });
+    };
+    handleRejectRef.current = (applicationId: string) => {
+      setRejectDialog({ open: true, applicationId, reason: "" });
+    };
+  });
 
-  const handleReject = () => {
-    if (!selectedApplication) return;
-    updateMutation.mutate({
-      id: selectedApplication.id,
-      status: { status: "REJECTED" as any },
-    });
-  };
+  // Stable callback functions
+  const handleApprove = useCallback((applicationId: string) => {
+    handleApproveRef.current(applicationId);
+  }, []);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[400px]">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+  const handleReject = useCallback((applicationId: string) => {
+    handleRejectRef.current(applicationId);
+  }, []);
+
+  const closeApproveDialog = useCallback(() => {
+    setApproveDialog({ open: false, applicationId: null });
+  }, []);
+
+  const closeRejectDialog = useCallback(() => {
+    setRejectDialog({ open: false, applicationId: null, reason: "" });
+  }, []);
+
+  const confirmApprove = useCallback(() => {
+    if (approveDialog.applicationId) {
+      approveMutation.mutate({ applicationId: approveDialog.applicationId });
+    }
+  }, [approveDialog.applicationId, approveMutation]);
+
+  const confirmReject = useCallback(() => {
+    if (rejectDialog.applicationId && rejectDialog.reason.trim()) {
+      rejectMutation.mutate({
+        applicationId: rejectDialog.applicationId,
+        reason: rejectDialog.reason,
+      });
+    } else {
+      toast.error("Rejection reason is required");
+    }
+  }, [rejectDialog.applicationId, rejectDialog.reason, rejectMutation]);
+
+  const applications = (data?.applications || []) as VendorApplication[];
+  const total = data?.total || 0;
+  const pageCount = Math.ceil(total / perPage);
+
+  // ✅ Memoized count calculations using stats from backend
+  const statusCounts = useMemo(() => ({
+    PENDING: stats?.pending || 0,
+    APPROVED: stats?.approved || 0,
+    REJECTED: stats?.rejected || 0,
+  }), [stats]);
+
+  const eventTypeCounts = useMemo(() => ({
+    BAZAAR: stats?.byType?.BAZAAR || 0,
+    PLATFORM: stats?.byType?.PLATFORM || 0,
+  }), [stats]);
+
+  const boothSizeCounts = useMemo(() => ({
+    TWO_BY_TWO: stats?.byBoothSize?.TWO_BY_TWO || 0,
+    FOUR_BY_FOUR: stats?.byBoothSize?.FOUR_BY_FOUR || 0,
+  }), [stats]);
+
+  // ✅ Memoized stats for page header - only recalculate when stats change
+  const headerStats = useMemo(() => [
+    { label: 'Total Requests', value: stats?.total || 0, icon: Package, colorRole: 'info' as const },
+    { label: 'Approved', value: stats?.approved || 0, icon: CheckCircle2, colorRole: 'success' as const },
+    { label: 'Pending Review', value: stats?.pending || 0, icon: Clock, colorRole: 'warning' as const },
+    { label: 'Rejected', value: stats?.rejected || 0, icon: XCircle, colorRole: 'critical' as const },
+  ], [stats]);
+
+  const handleReasonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setRejectDialog(prev => ({ ...prev, reason: e.target.value }));
+  }, []);
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="container mx-auto p-6 space-y-6"
-    >
-      {/* Header */}
-      <motion.div variants={itemVariants}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl font-bold flex items-center gap-2">
-              <CheckCircle2 className="h-8 w-8" />
-              Application Approvals
-            </CardTitle>
-            <CardDescription>
-              Review and approve vendor application submissions
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </motion.div>
+    <>
+      <PageHeader
+        title="Vendor Requests"
+        description="Review and manage vendor participation requests for bazaars and platform booths"
+        stats={headerStats}
+      />
 
-      {/* Applications List */}
-      <motion.div variants={itemVariants}>
-        {applications.length === 0 ? (
-          <Card>
-            <CardContent className="py-16">
-              <div className="flex flex-col items-center justify-center gap-4">
-                <CheckCircle2 className="h-16 w-16 text-muted-foreground" />
-                <div className="text-center space-y-2">
-                  <h3 className="text-xl font-semibold">All caught up!</h3>
-                  <p className="text-muted-foreground">
-                    No pending application approvals at this time
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-6">
-            {applications.map((application, index) => (
-              <motion.div
-                key={application.id}
-                variants={itemVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <CardHeader className="bg-muted/30 border-b">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="text-2xl">
-                          {application.type === "BAZAAR"
-                            ? "Application for " +
-                              application.bazaarName +
-                              " Booth"
-                            : "Application for Platform Booth"}
-                        </CardTitle>
-                      </div>
-                      <Badge variant="secondary" className="ml-4">
-                        Pending Review
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <div className="grid gap-6 md:grid-cols-2">
-                      {/* Left Column - Details */}
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Briefcase className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Vendor:</span>
-                          <span> {application.companyName}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Date:</span>
-                          <span>
-                            {new Date(
-                              application.startDate || "0",
-                            ).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {application.duration && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">Duration:</span>
-                            <span>
-                              {application.duration}{" "}
-                              {application.duration === 1 ? "week" : "weeks"}
-                            </span>
-                          </div>
-                        )}
-                        {application.location && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">Location: </span>
-                            <span> Zone {application.location}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 text-sm">
-                          <Store className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Booth Size:</span>
-                          <span>
-                            {application.boothSize === "TWO_BY_TWO"
-                              ? "2x2"
-                              : "4x4"}
-                          </span>
-                        </div>
-                      </div>
+      <div className="mt-6">
+        <VendorRequestsTable
+          data={applications}
+          pageCount={pageCount}
+          statusCounts={statusCounts}
+          eventTypeCounts={eventTypeCounts}
+          boothSizeCounts={boothSizeCounts}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          isSearching={isLoading || isFetching}
+        />
+      </div>
 
-                      {/* Right Column - Additional Info */}
-                      <div className="space-y-4">
-                        <h4 className="font-bold text-m mb-2">Attendees:</h4>
-                        {application.names.map((name, i) => (
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="font-medium">Name: </span>
-                            <span> {name}</span>
-                            <span className="font-medium">Email: </span>
-                            <span> {application.emails[i]}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-3 mt-6 pt-6 border-t">
-                      <Button
-                        onClick={() => {
-                          setSelectedApplication(application);
-                          setActionDialog("approve");
-                        }}
-                        className="flex-1"
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Approve
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => {
-                          setSelectedApplication(application);
-                          setActionDialog("reject");
-                        }}
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Reject
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </motion.div>
-
-      {/* Approve Dialog */}
-      <Dialog
-        open={actionDialog === "approve"}
-        onOpenChange={() => setActionDialog(null)}
-      >
+      {/* Approve Confirmation Dialog */}
+      <Dialog open={approveDialog.open} onOpenChange={closeApproveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Approve Workshop</DialogTitle>
+            <DialogTitle>Approve Application</DialogTitle>
             <DialogDescription>
-              Are you sure you want to approve{" "}
-              {selectedApplication?.companyName}'s application? This will make
-              it visible to all users.
+              Are you sure you want to approve this vendor application? The vendor will be notified.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setActionDialog(null)}>
+            <Button variant="outline" onClick={closeApproveDialog}>
               Cancel
             </Button>
-            <Button onClick={handleApprove} disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? "Approving..." : "Approve & Publish"}
+            <Button onClick={confirmApprove} disabled={approveMutation.isPending}>
+              {approveMutation.isPending ? "Approving..." : "Approve"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Reject Dialog */}
-      <Dialog
-        open={actionDialog === "reject"}
-        onOpenChange={() => setActionDialog(null)}
-      >
+      {/* Reject Dialog with Reason */}
+      <Dialog open={rejectDialog.open} onOpenChange={closeRejectDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject Workshop</DialogTitle>
+            <DialogTitle>Reject Application</DialogTitle>
             <DialogDescription>
-              Are you sure you want to reject {selectedApplication?.companyName}
-              's request?
+              Please provide a reason for rejecting this application. The vendor will receive this feedback.
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reason">Rejection Reason *</Label>
+              <Textarea
+                id="reason"
+                placeholder="Enter the reason for rejection..."
+                value={rejectDialog.reason}
+                onChange={handleReasonChange}
+                rows={4}
+              />
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setActionDialog(null)}>
+            <Button
+              variant="outline"
+              onClick={closeRejectDialog}
+            >
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={handleReject}
-              disabled={updateMutation.isPending}
+              onClick={confirmReject}
+              disabled={rejectMutation.isPending || !rejectDialog.reason.trim()}
             >
-              {updateMutation.isPending ? "Rejecting..." : "Reject Workshop"}
+              {rejectMutation.isPending ? "Rejecting..." : "Reject"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </>
   );
 }

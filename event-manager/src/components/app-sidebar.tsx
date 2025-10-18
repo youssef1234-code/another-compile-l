@@ -26,6 +26,7 @@ import {
   ClipboardList,
   Vote,
   MapPin,
+  LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 
@@ -85,12 +86,12 @@ const navigationConfig: NavItem[] = [
     icon: Calendar,
     url: ROUTES.EVENTS,
     items: [
-      { title: "Browse Events", url: ROUTES.EVENTS, icon: Calendar },
+      { title: "Browse Events", url: ROUTES.EVENTS, icon: Calendar,roles:["STUDENT", "STAFF", "TA", "PROFESSOR","ADMIN","EVENT_OFFICE"] },
       { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: Settings, roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"] },
       { title: "Favorites", url: ROUTES.FAVORITES, icon: Heart, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
-      { title: "Create Trip", url: ROUTES.CREATE_TRIP, icon: MapPin, roles: ["EVENT_OFFICE"] },
-      { title: "Create Bazaar", url: ROUTES.CREATE_BAZAAR, icon: ShoppingBag, roles: ["EVENT_OFFICE"] },
-      { title: "Create Conference", url: ROUTES.CREATE_CONFERENCE, icon: Building2, roles: ["EVENT_OFFICE"] },
+      // { title: "Create Trip", url: ROUTES.CREATE_TRIP, icon: MapPin, roles: ["EVENT_OFFICE"] },
+      // { title: "Create Bazaar", url: ROUTES.CREATE_BAZAAR, icon: ShoppingBag, roles: ["EVENT_OFFICE"] },
+      // { title: "Create Conference", url: ROUTES.CREATE_CONFERENCE, icon: Building2, roles: ["EVENT_OFFICE"] },
     ],
   },
   {
@@ -114,16 +115,16 @@ const navigationConfig: NavItem[] = [
         roles: ["VENDOR"],
       },
       {
+        title: "Apply Platform Booth",
+        url: ROUTES.APPLY_PLATFORM_BOOTH,
+        icon: MapPin,
+        roles: ["VENDOR"],
+      },
+      {
         title: "My Applications",
         url: ROUTES.VENDOR_APPLICATIONS,
         icon: ClipboardList,
         roles: ["VENDOR"],
-      },
-      {
-        title: "View Applications",
-        url: ROUTES.ALL_APPLICATIONS,
-        icon: ClipboardList,
-        roles: ["ADMIN", "EVENT_OFFICE"],
       },
       {
         title: "Manage Requests",
@@ -139,7 +140,8 @@ const navigationConfig: NavItem[] = [
     icon: Dumbbell,
     url: ROUTES.GYM_SCHEDULE,
     items: [
-      { title: "Gym Schedule", url: ROUTES.GYM_SCHEDULE, icon: Calendar },
+      { title: "Gym Schedule", url: ROUTES.GYM_SCHEDULE, icon: Calendar , 
+        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR","EVENT_OFFICE","ADMIN"] },
       {
         title: "My Sessions",
         url: ROUTES.MY_SESSIONS,
@@ -175,9 +177,9 @@ const navigationConfig: NavItem[] = [
     title: "Events Office",
     icon: Building2,
     url: ROUTES.ADMIN_EVENTS,
-    roles: ["EVENT_OFFICE"],
+    roles: ["EVENT_OFFICE", "ADMIN"],
     items: [
-      { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: GraduationCap },
+      { title: "Platform Setup", url: ROUTES.PLATFORM_SETUP, icon: LayoutGrid },
       { title: "Vendor Polls", url: ROUTES.VENDOR_POLLS, icon: Vote },
       { title: "Reports", url: ROUTES.EVENT_OFFICE_REPORTS, icon: BarChart3 },
       { title: "QR Codes", url: ROUTES.QR_CODES, icon: Package },

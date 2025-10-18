@@ -418,7 +418,7 @@ export async function seedComprehensiveData(): Promise<void> {
     const eventsOffice = createdUsers.filter((u) => u.role === "EVENT_OFFICE");
 
     for (const eventData of sampleEvents) {
-      const existingEvent = await Event.findOne({ title: eventData.title });
+      const existingEvent = await Event.findOne({ name: eventData.name });
       if (!existingEvent) {
         // Assign creator based on event type
         let createdBy;
@@ -436,10 +436,8 @@ export async function seedComprehensiveData(): Promise<void> {
 
         const event = await Event.create(eventPayload);
         createdEvents.push(event);
-        console.log(`  ✓ Created ${eventData.type}: ${eventData.title}`);
       } else {
         createdEvents.push(existingEvent);
-        console.log(`  ⊚ Skipped (exists): ${eventData.title}`);
       }
     }
 

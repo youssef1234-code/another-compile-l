@@ -38,6 +38,7 @@ export const ROUTES = {
   // Vendors
   BROWSE_BAZAARS: "/vendors/bazaars",
   VENDOR_APPLICATIONS: "/vendors/applications",
+  APPLY_PLATFORM_BOOTH: "/vendors/apply/platform",
   LOYALTY_PROGRAM: "/vendors/loyalty",
   VENDOR_REQUESTS: "/vendors/requests",
   ALL_APPLICATIONS: "/vendors/all",
@@ -61,6 +62,7 @@ export const ROUTES = {
   EVENT_OFFICE_REPORTS: "/events-office/reports",
   QR_CODES: "/events-office/qr-codes",
   BAZAAR_MANAGEMENT: "/events-office/bazaars",
+  PLATFORM_SETUP: "/events-office/platform-setup",
 
   // Other
   WALLET: "/wallet",

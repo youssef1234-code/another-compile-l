@@ -641,6 +641,8 @@ export const CreateApplicationSchema = z.object({
   location: z.number().optional(),
   duration: z.number().min(1).max(4).optional(),
   startDate: z.coerce.date().optional(),
+  boothLocationId: z.string().optional(), // For platform booth applications
+  boothLabel: z.string().optional(), // Human-readable booth number
 
   status: z.enum(["APPROVED", "REJECTED", "PENDING"]),
 });
@@ -666,6 +668,10 @@ export const ApplicationFilterSchema = z.object({
 
   isApproved: z.boolean().optional(),
   status: z.enum(["APPROVED", "REJECTED", "PENDING"]).optional(),
+  
+  // ✅ Sorting parameters
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
 });
 export type ApplicationFilterSchema = z.infer<typeof ApplicationFilterSchema>;
 // ============================================================================
@@ -845,8 +851,11 @@ export interface VendorApplication {
   location?: number;
   duration?: number;
   startDate?: Date;
+  boothLocationId?: string; // Platform booth location ID
+  boothLabel?: string; // Human-readable booth number (e.g., "A1", "B2")
 
   status: VendorApprovalStatus;
+  rejectionReason?: string;
 }
 export interface Registration {
   id: string;

@@ -1,5 +1,7 @@
 import { EventRepository, eventRepository } from '../repositories/event.repository';
 import { registrationRepository } from '../repositories/registration.repository';
+import { vendorApplicationRepository } from '../repositories/vendor-application.repository';
+import { userRepository } from '../repositories/user.repository';
 import { BaseService, type ServiceOptions } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IEvent } from '../models/event.model';
@@ -340,9 +342,40 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        
+        // For BAZAAR events, populate vendors with their application details
+        let vendorDetails = null;
+        if (event.type === 'BAZAAR') {
+          // Get approved vendor applications for this event (regardless of vendors array)
+          const vendorApplications = await vendorApplicationRepository.findAll({
+            bazaarId: (event._id as any).toString(),
+            status: 'APPROVED'
+          } as any, {});
+          
+          // Populate with user details
+          if (vendorApplications.length > 0) {
+            vendorDetails = await Promise.all(
+              vendorApplications.map(async (app: any) => {
+                const user = await userRepository.findById(app.createdBy.toString());
+                return {
+                  id: app._id.toString(),
+                  companyName: app.companyName,
+                  email: app.email,
+                  boothSize: app.boothSize,
+                  names: app.names || [],
+                  emails: app.emails || [],
+                  type: app.type,
+                  userId: (user?._id as any)?.toString(),
+                };
+              })
+            );
+          }
+        }
+        
         return {
           ...this.formatEvent(event),
           registeredCount,
+          vendors: vendorDetails,
         };
       })
     );
@@ -394,13 +427,41 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       limit
     });
 
-    // Populate registeredCount for each event
+    // Populate registeredCount and vendors (for bazaars) for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        
+        // For BAZAAR events, include approved vendor applications
+        let vendors = [];
+        if (event.type === 'BAZAAR') {
+          const applications = await vendorApplicationRepository.findAll({
+            bazaarId: (event._id as any).toString(),
+            status: 'APPROVED',
+          } as any);
+          
+          // Populate vendor details for each application
+          if (applications && applications.length > 0) {
+            for (const app of applications) {
+              const vendor: any = await userRepository.findById(
+                (app.createdBy as any).toString()
+              );
+              if (vendor) {
+                vendors.push({
+                  id: vendor._id.toString(),
+                  companyName: vendor.companyName || 'N/A',
+                  email: vendor.email,
+                  boothSize: app.boothSize,
+                });
+              }
+            }
+          }
+        }
+        
         return {
           ...this.formatEvent(event),
           registeredCount,
+          vendors,
         };
       })
     );
@@ -454,9 +515,40 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   async getEventById(id: string): Promise<any> {
     const event = await this.findById(id);
     const registeredCount = await registrationRepository.countByEvent(id);
+    
+    // For BAZAAR events, populate vendors with their application details
+    let vendorDetails = null;
+    if (event.type === 'BAZAAR') {
+      // Get approved vendor applications for this event (regardless of vendors array)
+      const vendorApplications = await vendorApplicationRepository.findAll({
+        bazaarId: id,
+        status: 'APPROVED'
+      } as any, {});
+            
+      // Populate with user details
+      if (vendorApplications.length > 0) {
+        vendorDetails = await Promise.all(
+          vendorApplications.map(async (app: any) => {
+            const user = await userRepository.findById(app.createdBy.toString());
+            return {
+              id: app._id.toString(),
+              companyName: app.companyName,
+              email: app.email,
+              boothSize: app.boothSize,
+              names: app.names || [],
+              emails: app.emails || [],
+              type: app.type,
+              userId: (user?._id as any)?.toString(),
+            };
+          })
+        );
+      }
+    }
+    
     return {
       ...this.formatEvent(event),
       registeredCount,
+      vendors: vendorDetails,
     };
   }
 
