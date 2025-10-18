@@ -13,11 +13,11 @@ import { z } from 'zod';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
 import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
-import { PageHeader } from '@/components/generic';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 const workshopSchema = z.object({
   images: z.array(z.string()).optional(),
@@ -41,9 +41,17 @@ const workshopSchema = z.object({
 type WorkshopFormData = z.infer<typeof workshopSchema>;
 
 export function EditWorkshopPage() {
+  const { setPageMeta } = usePageMeta();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [initialValues, setInitialValues] = useState<Partial<WorkshopFormData> | null>(null);
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Edit Workshop',
+      description: 'Update workshop details',
+    });
+  }, [setPageMeta]);
 
   // Fetch existing workshop data
   const { data: event, isLoading: isFetching } = trpc.events.getEventById.useQuery(
@@ -326,13 +334,8 @@ export function EditWorkshopPage() {
   }
 
   return (
-    <div className="container max-w-full px-6 py-6">
-      <PageHeader
-        title="Edit Workshop"
-        description="Update your workshop details. Changes will be visible after Events Office review."
-      />
-
-      <div className="mt-8 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6 p-6">
+      <div className="bg-card rounded-lg border shadow-sm">
         <GenericForm
           fields={fields}
           schema={workshopSchema}

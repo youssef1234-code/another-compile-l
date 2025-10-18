@@ -9,10 +9,9 @@
  * Requirements: #59, #60
  */
 
-import { useState, useMemo, useTransition, useDeferredValue } from "react";
+import { useState, useMemo, useTransition, useDeferredValue, useEffect } from "react";
 import { useQueryState, parseAsString, parseAsBoolean } from "nuqs";
 import { trpc } from "@/lib/trpc";
-import { PageHeader } from "@/components/generic";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { DataTableAdvancedToolbar } from "@/components/data-table/data-table-advanced-toolbar";
@@ -43,6 +42,7 @@ import { toast } from 'react-hot-toast';
 import { getBazaarsTableColumns } from "../components/bazaars-table-columns";
 import { formatDate } from "@/lib/design-system";
 import type { Event } from "@event-manager/shared";
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 interface Attendee {
   name: string;
@@ -116,11 +116,19 @@ function BazaarExpandedRow({ bazaar }: { bazaar: Event }) {
 }
 
 export function BazaarsListPage() {
+  const { setPageMeta } = usePageMeta();
   const [isPending, startTransition] = useTransition();
   const [selectedBazaar, setSelectedBazaar] = useState<Event | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([{ name: "", email: "" }]);
   const [boothSize, setBoothSize] = useState<"TWO_BY_TWO" | "FOUR_BY_FOUR">("TWO_BY_TWO");
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Browse Bazaars',
+      description: 'View upcoming bazaars and apply to participate as a vendor',
+    });
+  }, [setPageMeta]);
 
   // Get trpc utils for invalidation
   const utils = trpc.useUtils();
@@ -280,12 +288,7 @@ export function BazaarsListPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <PageHeader
-        title="Browse Bazaars"
-        description="View upcoming bazaars and apply to participate as a vendor"
-      />
-
+    <div className="flex flex-col gap-6 p-6">
       <DataTable 
         table={table}
         renderSubComponent={(row) => <BazaarExpandedRow bazaar={row.original} />}

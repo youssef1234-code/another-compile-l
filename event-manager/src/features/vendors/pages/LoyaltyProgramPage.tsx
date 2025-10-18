@@ -1,5 +1,20 @@
-import { PlaceholderPage } from "@/components/PlaceholderPage"
+import { ComingSoonPage } from '@/components/ComingSoonPage';
 
 export function LoyaltyProgramPage() {
-  return <PlaceholderPage title="Loyalty Program" description="View vendor loyalty program partners" />
+  return (
+    <ComingSoonPage
+      title="Loyalty Program"
+      description="Discover exclusive vendor partnerships, earn rewards, and unlock special benefits through our comprehensive loyalty program."
+      features={[
+        'Earn points with every event registration',
+        'Exclusive vendor discounts and offers',
+        'Partner rewards and cashback',
+        'VIP access to special events',
+        'Early bird registration privileges',
+        'Birthday and anniversary bonuses',
+        'Referral program rewards',
+        'Tiered membership benefits',
+      ]}
+    />
+  );
 }

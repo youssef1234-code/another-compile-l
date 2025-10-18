@@ -7,6 +7,8 @@
 import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@event-manager/shared';
 import { LoadingSpinner } from '@/components/generic/LoadingSpinner';
+import { usePageMeta } from '@/components/layout/AppLayout';
+import { useEffect } from 'react';
 import {
   StudentDashboard,
   ProfessorDashboard,
@@ -17,6 +19,14 @@ import {
 
 export function DashboardPage() {
   const { user } = useAuthStore();
+  const { setPageMeta } = usePageMeta();
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Dashboard',
+      description: user ? `Welcome back, ${user.firstName}!` : 'Welcome back!',
+    });
+  }, [setPageMeta, user]);
 
   if (!user) {
     return (
@@ -47,17 +57,7 @@ export function DashboardPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Welcome Header */}
-      <div>
-        <h1 className="text-3xl font-bold">
-          Welcome back, {user.firstName}!
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Here's what's happening with your account today.
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-6 p-6">
       {/* Role-Specific Dashboard */}
       {renderDashboard()}
     </div>

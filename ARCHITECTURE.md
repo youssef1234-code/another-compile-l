@@ -6,33 +6,33 @@ We follow a **Clean Architecture** approach with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Presentation Layer                    │
-│  (React Components, Pages, UI State Management with Zustand) │
+│                        Presentation Layer                   │
+│  (React Components, Pages, UI State Management with Zustand)│
 └─────────────────────────────────────────────────────────────┘
                             ↕️
 ┌─────────────────────────────────────────────────────────────┐
-│                      Application Layer                       │
-│        (tRPC Client, React Query, Custom Hooks)              │
+│                      Application Layer                      │
+│        (tRPC Client, React Query, Custom Hooks)             │
 └─────────────────────────────────────────────────────────────┘
                             ↕️
 ┌─────────────────────────────────────────────────────────────┐
-│                         API Layer                            │
-│              (tRPC Routers, Middleware)                      │
+│                         API Layer                           │
+│              (tRPC Routers, Middleware)                     │
 └─────────────────────────────────────────────────────────────┘
                             ↕️
 ┌─────────────────────────────────────────────────────────────┐
-│                       Business Logic                         │
-│         (Services, Use Cases, Domain Rules)                  │
+│                       Business Logic                        │
+│         (Services, Use Cases, Domain Rules)                 │
 └─────────────────────────────────────────────────────────────┘
                             ↕️
 ┌─────────────────────────────────────────────────────────────┐
-│                      Data Access Layer                       │
-│            (Mongoose Models, Repositories)                   │
+│                      Data Access Layer                      │
+│            (Mongoose Models, Repositories)                  │
 └─────────────────────────────────────────────────────────────┘
                             ↕️
 ┌─────────────────────────────────────────────────────────────┐
-│                         Database                             │
-│                        (MongoDB)                             │
+│                         Database                            │
+│                        (MongoDB)                            │
 └─────────────────────────────────────────────────────────────┘
 ```
 

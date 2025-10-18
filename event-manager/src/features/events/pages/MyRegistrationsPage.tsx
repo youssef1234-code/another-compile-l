@@ -5,7 +5,7 @@
  * with better UX and visual design
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { trpc } from '@/lib/trpc';
 import { useAuthStore } from '@/store/authStore';
@@ -30,6 +30,7 @@ import { formatDate } from '@/lib/design-system';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { EventCardImage } from '@/components/ui/event-card-image';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 function RegistrationCardSkeleton() {
   return (
@@ -184,7 +185,15 @@ function RegistrationCard({ registration, onCancel, isCancelling }: Registration
 
 export function MyRegistrationsPage() {
   const { user } = useAuthStore();
+  const { setPageMeta } = usePageMeta();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    setPageMeta({
+      title: 'My Registrations',
+      description: 'View and manage your event registrations',
+    });
+  }, [setPageMeta]);
   
   const { data: registrationsData, isLoading } = trpc.events.getMyRegistrations.useQuery(
     { page: 1, limit: 100 },
@@ -229,11 +238,7 @@ export function MyRegistrationsPage() {
   
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-5 w-96" />
-        </div>
+      <div className="flex flex-col gap-6 p-6">
         <div className="space-y-4">
           <RegistrationCardSkeleton />
           <RegistrationCardSkeleton />
@@ -244,7 +249,7 @@ export function MyRegistrationsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-6 p-6">
       {/* Tabs */}
       <Tabs defaultValue="upcoming" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-3">

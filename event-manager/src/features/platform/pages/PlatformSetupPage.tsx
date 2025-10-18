@@ -5,7 +5,6 @@
  * Requirements: #61 - Platform booth setup with location selection on map
  */
 
-import { PageHeader } from '@/components/generic';
 import {
     Alert,
     AlertDescription,
@@ -57,6 +56,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import { toast } from 'react-hot-toast';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 interface Booth {
   id: string;
@@ -80,6 +80,7 @@ interface PlatformMap {
 }
 
 export function PlatformSetupPage() {
+  const { setPageMeta } = usePageMeta();
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<any>(null);
   const [platform, setPlatform] = useState<PlatformMap | null>(null);
@@ -96,6 +97,13 @@ export function PlatformSetupPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [draggedBooth, setDraggedBooth] = useState<string | null>(null);
   const [isDraggingBooth, setIsDraggingBooth] = useState(false);
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Platform Setup',
+      description: 'Design the campus platform layout by placing vendor booths on the grid',
+    });
+  }, [setPageMeta]);
 
   const { data, isLoading, refetch } = trpc.platformMaps.getActivePlatform.useQuery();
   const updatePlatform = trpc.platformMaps.updatePlatform.useMutation({
@@ -465,12 +473,7 @@ export function PlatformSetupPage() {
   const selectedBoothData = platform.booths.find((b) => b.id === selectedBooth);
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Platform Setup"
-        description="Design the campus platform layout by placing vendor booths on the grid"
-      />
-
+    <div className="flex flex-col gap-6 p-6">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Controls Panel */}
         <Card className="lg:col-span-1">

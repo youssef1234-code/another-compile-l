@@ -1,5 +1,21 @@
-import { PlaceholderPage } from "@/components/PlaceholderPage"
+import { usePageMeta } from '@/components/layout/AppLayout';
+import { useEffect } from 'react';
 
 export function ManageSessionsPage() {
-  return <PlaceholderPage title="Manage Gym Sessions" description="Create and manage gym sessions" />
+  const { setPageMeta } = usePageMeta();
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Manage Gym Sessions',
+      description: 'Create and manage gym sessions',
+    });
+  }, [setPageMeta]);
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">No sessions created yet</p>
+      </div>
+    </div>
+  );
 }

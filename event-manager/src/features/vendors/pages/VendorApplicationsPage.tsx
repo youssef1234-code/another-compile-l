@@ -10,25 +10,33 @@
  * Requirements #68, #69
  */
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useQueryState, parseAsInteger, parseAsStringEnum } from "nuqs";
 import { trpc } from "@/lib/trpc";
-import { PageHeader } from "@/components/generic";
 import { CheckCircle2, XCircle, Clock, Package, Filter } from "lucide-react";
 import { VendorApplicationsTable } from "../components/vendor-applications-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { VendorApplication } from "@event-manager/shared";
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 type QuickFilter = "all" | "participating" | "pending-rejected";
 
 export function VendorApplicationsPage() {
+  const { setPageMeta } = usePageMeta();
   const [page] = useQueryState('page', parseAsInteger.withDefault(1));
   const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
   const [quickFilter, setQuickFilter] = useQueryState(
     'quickFilter',
     parseAsStringEnum<QuickFilter>(['all', 'participating', 'pending-rejected']).withDefault('all')
   );
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'My Applications',
+      description: 'View and track your vendor application submissions',
+    });
+  }, [setPageMeta]);
 
   // Get applications with pagination and filter
   const { data } = trpc.vendorApplications.getApplications.useQuery({
@@ -85,15 +93,40 @@ export function VendorApplicationsPage() {
   ], [stats]);
 
   return (
-    <>
-      <PageHeader
-        title="My Applications"
-        description="View and track your vendor application submissions"
-        stats={headerStats}
-      />
+    <div className="flex flex-col gap-6 p-6">
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        {headerStats.map((stat, index) => {
+          const Icon = stat.icon;
+          const colorClasses = {
+            success: 'text-green-600 bg-green-50 border-green-200',
+            warning: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+            critical: 'text-red-600 bg-red-50 border-red-200',
+            info: 'text-blue-600 bg-blue-50 border-blue-200',
+            brand: 'text-purple-600 bg-purple-50 border-purple-200',
+          };
+          const colorRole = stat.colorRole || 'info';
+          
+          return (
+            <div key={index} className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-card">
+              {Icon && (
+                <div className={`p-2 rounded-md ${colorClasses[colorRole]}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-muted-foreground truncate">{stat.label}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-semibold tracking-tight">{stat.value}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Quick Filter Buttons - Requirements #68, #69 */}
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-muted-foreground">Quick Filters:</span>
@@ -155,6 +188,6 @@ export function VendorApplicationsPage() {
           eventTypeCounts={eventTypeCounts}
         />
       </div>
-    </>
+    </div>
   );
 }

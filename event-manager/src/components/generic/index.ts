@@ -42,18 +42,6 @@ export type {
   WarningAlertDialogProps
 } from './AlertDialog';
 
-export { 
-  PageHeader, 
-  CompactPageHeader, 
-  SectionHeader 
-} from './AdvancedPageHeader';
-export type { 
-  PageHeaderProps, 
-  CompactPageHeaderProps, 
-  SectionHeaderProps,
-  Breadcrumb,
-  StatCard
-} from './AdvancedPageHeader';
 
 export { AvatarPicker } from './AvatarPicker';
 export type { AvatarPickerProps } from './AvatarPicker';

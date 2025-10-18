@@ -5,8 +5,11 @@ import { generateEditBazaarUrl, generateEventDetailsUrl, ROUTES } from "@/lib/co
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Edit, Eye, Plus } from "lucide-react";
+import { useEffect } from "react";
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 export function BazaarManagementPage() {
+  const { setPageMeta } = usePageMeta();
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { data: events, isLoading } = trpc.events.getEvents.useQuery({
@@ -14,6 +17,13 @@ export function BazaarManagementPage() {
     page: 1,
     limit: 20,
   });
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Bazaar Management',
+      description: 'Manage bazaar events and vendor booths',
+    });
+  }, [setPageMeta]);
 
   // Only allow Events Office role
   if (!user || user.role !== "EVENT_OFFICE") {
@@ -27,7 +37,7 @@ export function BazaarManagementPage() {
   const bazaars = events?.events || [];
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="flex flex-col gap-6 p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Bazaar Management</h1>

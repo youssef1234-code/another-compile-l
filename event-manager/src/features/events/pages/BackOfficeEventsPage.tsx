@@ -10,12 +10,12 @@
  */
 
 import type { Event } from '@event-manager/shared';
-import { Download, Plus, Calendar, CheckCircle2, Clock } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock } from 'lucide-react';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson } from 'nuqs';
 
-import { PageHeader, ConfirmDialog } from '@/components/generic';
+import { ConfirmDialog } from '@/components/generic';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,8 +34,10 @@ import {
   generateEditBazaarUrl
 } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 export function BackOfficeEventsPage() {
+  const { setPageMeta } = usePageMeta();
   const utils = trpc.useUtils();
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -555,47 +557,74 @@ export function BackOfficeEventsPage() {
     : 'Manage all events including workshops, trips, bazaars, conferences, and gym sessions';
   const createButtonText = isProfessor ? 'Create Workshop' : 'Create Event';
 
-  return (
-    <>
-      <PageHeader
-        title={pageTitle}
-        description={pageDescription}
-        stats={stats}
-        actions={
-          <>
-            <Button variant="outline" onClick={handleExport} className="gap-2" disabled={isLoading}>
-              <Download className="h-4 w-4" />
-              Export {search || Object.keys(filters).length > 0 ? 'Filtered' : 'All'}
-            </Button>
-            <Button onClick={handleCreateEvent} className="gap-2">
-              <Plus className="h-4 w-4" />
-              {createButtonText}
-            </Button>
-          </>
-        }
-      />
+  useEffect(() => {
+    setPageMeta({
+      title: pageTitle,
+      description: pageDescription,
+    });
+  }, [setPageMeta, pageTitle, pageDescription]);
 
-      <div className="mt-6">
-        <EventsTable
-          data={events}
-          pageCount={pageCount}
-          typeCounts={typeCounts}
-          statusCounts={statusCounts}
-          userRole={user?.role}
-          isSearching={isLoading}
-          onUpdateEvent={handleUpdateEvent}
-          onViewDetails={handleViewDetails}
-          onEditEvent={handleEditEvent}
-          // Professors CAN archive and delete their own workshops
-          onArchiveEvent={handleArchiveEvent}
-          onDeleteEvent={handleDeleteEvent}
-          onPublishEvent={isProfessor ? undefined : handlePublishEvent}
-          // Workshop approval actions for admin/event office only
-          onApproveWorkshop={!isProfessor ? handleApproveWorkshop : undefined}
-          onRejectWorkshop={!isProfessor ? handleRejectWorkshop : undefined}
-          onNeedsEdits={!isProfessor ? handleNeedsEdits : undefined}
-        />
-      </div>
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      {/* Stats Cards */}
+      {stats && stats.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-3">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            const colorClasses = {
+              success: 'text-green-600 bg-green-50 border-green-200',
+              warning: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+              critical: 'text-red-600 bg-red-50 border-red-200',
+              info: 'text-blue-600 bg-blue-50 border-blue-200',
+              brand: 'text-purple-600 bg-purple-50 border-purple-200',
+            };
+            const colorRole = stat.colorRole || 'info';
+            
+            return (
+              <div key={index} className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-card">
+                {Icon && (
+                  <div className={`p-2 rounded-md ${colorClasses[colorRole]}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground truncate">{stat.label}</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-semibold tracking-tight">{stat.value}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Table */}
+      <EventsTable
+        data={events}
+        pageCount={pageCount}
+        typeCounts={typeCounts}
+        statusCounts={statusCounts}
+        userRole={user?.role}
+        isSearching={isLoading}
+        onUpdateEvent={handleUpdateEvent}
+        onViewDetails={handleViewDetails}
+        onEditEvent={handleEditEvent}
+        // Professors CAN archive and delete their own workshops
+        onArchiveEvent={handleArchiveEvent}
+        onDeleteEvent={handleDeleteEvent}
+        onPublishEvent={isProfessor ? undefined : handlePublishEvent}
+        // Workshop approval actions for admin/event office only
+        onApproveWorkshop={!isProfessor ? handleApproveWorkshop : undefined}
+        onRejectWorkshop={!isProfessor ? handleRejectWorkshop : undefined}
+        onNeedsEdits={!isProfessor ? handleNeedsEdits : undefined}
+        // Action buttons
+        onExport={handleExport}
+        onCreate={handleCreateEvent}
+        exportDisabled={isLoading}
+        exportLabel={`Export ${search || Object.keys(filters).length > 0 ? 'Filtered' : 'All'}`}
+        createLabel={createButtonText}
+      />
 
       <ConfirmDialog
         open={archiveDialog.open}
@@ -687,6 +716,6 @@ export function BackOfficeEventsPage() {
           utils.events.getEventStats.invalidate();
         }}
       />
-    </>
+    </div>
   );
 }

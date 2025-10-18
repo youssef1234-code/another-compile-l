@@ -8,6 +8,7 @@ import { z } from "zod";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { EnhancedAlertDialog } from "@/components/generic/AlertDialog";
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 const fields = [
   { name: "title", label: "Bazaar Name", type: "text" as FieldType, required: true },
@@ -49,6 +50,7 @@ const schema = z.object({
 });
 
 export function EditBazaarPage() {
+  const { setPageMeta } = usePageMeta();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -59,6 +61,14 @@ export function EditBazaarPage() {
     message: "",
     details: undefined
   });
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Edit Bazaar',
+      description: 'Update bazaar event details',
+    });
+  }, [setPageMeta]);
+
   const updateBazaar = trpc.events.update.useMutation({
     onSuccess: () => {
       // Invalidate all relevant caches after successful update
@@ -172,8 +182,7 @@ export function EditBazaarPage() {
   }
 
   return (
-    <div>
-      <h1>Edit Bazaar</h1>
+    <div className="flex flex-col gap-6 p-6">
       {isDisabled && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
           <p className="font-medium">Editing Disabled</p>

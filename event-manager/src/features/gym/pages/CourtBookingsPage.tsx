@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "react-hot-toast";
-import { CalendarSearch, Dumbbell } from "lucide-react";
+import { CalendarSearch } from "lucide-react";
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 const SPORTS = ["ALL", "BASKETBALL", "TENNIS", "FOOTBALL"] as const;
 type SportFilter = typeof SPORTS[number];
@@ -39,12 +40,20 @@ function trpcErrMsg(err: any) {
 }
 
 export function CourtBookingsPage() {
+  const { setPageMeta } = usePageMeta();
   const todayLocal = new Date();
   const defaultDate = todayLocal.toISOString().slice(0, 10); // YYYY-MM-DD
 
   const [sport, setSport] = useState<SportFilter>("ALL");
   const [dateStr, setDateStr] = useState<string>(defaultDate);
   const [selectedCourtId, setSelectedCourtId] = useState<string | "ALL">("ALL");
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Court Bookings',
+      description: 'View availability and reserve basketball, tennis, or football courts',
+    });
+  }, [setPageMeta]);
 
   // courts list (filterable by sport)
   const courtsQuery = trpc.courts.list.useQuery({ sport });
@@ -92,58 +101,47 @@ export function CourtBookingsPage() {
   }, [courtsQuery.data, sport]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Dumbbell className="h-7 w-7" />
-          <div>
-            <h1 className="text-xl font-semibold">Court Bookings</h1>
-            <p className="text-muted-foreground text-sm">View availability and reserve basketball, tennis, or football courts</p>
-          </div>
-        </div>
+    <div className="flex flex-col gap-6 p-6">
+      {/* Controls */}
+      <div className="flex items-center justify-end gap-2">
+        <Select
+          value={sport}
+          onValueChange={(v) => {
+            setSport(v as any);
+            setSelectedCourtId("ALL");
+          }}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Sport" />
+          </SelectTrigger>
+          <SelectContent>
+            {SPORTS.map((s) => (
+              <SelectItem key={s} value={s}>
+                {s}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {/* Controls */}
-        <div className="flex items-center gap-2">
-          <Select
-            value={sport}
-            onValueChange={(v) => {
-              setSport(v as any);
-              setSelectedCourtId("ALL");
-            }}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Sport" />
-            </SelectTrigger>
-            <SelectContent>
-              {SPORTS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Select value={selectedCourtId} onValueChange={setSelectedCourtId}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Court" />
+          </SelectTrigger>
+          <SelectContent>
+            {courtOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select value={selectedCourtId} onValueChange={setSelectedCourtId}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Court" />
-            </SelectTrigger>
-            <SelectContent>
-              {courtOptions.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Input type="date" value={dateStr} onChange={(e) => setDateStr(e.target.value)} />
 
-          <Input type="date" value={dateStr} onChange={(e) => setDateStr(e.target.value)} />
-
-          <Button variant="outline" onClick={() => availability.refetch()} disabled={availability.isFetching}>
-            <CalendarSearch className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => availability.refetch()} disabled={availability.isFetching}>
+          <CalendarSearch className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       {/* Grid */}

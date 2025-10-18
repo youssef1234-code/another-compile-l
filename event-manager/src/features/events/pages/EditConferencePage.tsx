@@ -13,8 +13,8 @@ import { z } from 'zod';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
 import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
-import { PageHeader } from '@/components/generic';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 const conferenceSchema = z.object({
   images: z.array(z.string()).optional(),
@@ -37,12 +37,20 @@ const conferenceSchema = z.object({
 type ConferenceFormData = z.infer<typeof conferenceSchema>;
 
 export function EditConferencePage() {
+  const { setPageMeta } = usePageMeta();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [initialValues, setInitialValues] = useState<Partial<ConferenceFormData> | null>(null);
 
+  useEffect(() => {
+    setPageMeta({
+      title: 'Edit Conference',
+      description: 'Update conference event details',
+    });
+  }, [setPageMeta]);
+
   // Fetch existing conference data
-  const { data: event, isLoading: isFetching } = trpc.events.getEventById.useQuery(
+  const { data: event, isLoading: isFetching} = trpc.events.getEventById.useQuery(
     { id: id! },
     { enabled: !!id }
   );
@@ -247,13 +255,8 @@ export function EditConferencePage() {
   }
 
   return (
-    <div className="container max-w-full px-6 py-6">
-      <PageHeader
-        title="Edit Conference"
-        description="Update conference details and schedule."
-      />
-
-      <div className="mt-8 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6 p-6">
+      <div className="max-w-6xl">
         <GenericForm
           fields={fields}
           schema={conferenceSchema}

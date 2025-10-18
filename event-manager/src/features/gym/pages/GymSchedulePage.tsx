@@ -1,19 +1,21 @@
-import { ConfirmDialog, PageHeader } from '@/components/generic';
+import { ConfirmDialog } from '@/components/generic';
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@event-manager/shared';
 import { Calendar as CalendarIcon, List as ListIcon, Plus } from "lucide-react";
 import { parseAsArrayOf, parseAsInteger, parseAsJson, parseAsString, useQueryState } from 'nuqs';
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { GymCalendar } from '../components/calendar';
 import { GymScheduleTable } from "../components/gym-schedule-table";
 import { CreateGymSessionDialog } from "./components/CreateGymSessionDialog";
 import EditSessionDialog from "./components/EditSessionDialog";
 import { cn } from '@/lib/utils';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 export function GymSchedulePage(){
+  const { setPageMeta } = usePageMeta();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth()+1);
@@ -25,6 +27,13 @@ export function GymSchedulePage(){
     open: false,
     sessionId: '',
   });
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Gym Schedule',
+      description: 'Manage and view gym sessions',
+    });
+  }, [setPageMeta]);
 
   const { user } = useAuthStore();
   const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.EVENT_OFFICE;
@@ -193,76 +202,69 @@ export function GymSchedulePage(){
   }, []);
 
   return (
-    <>
-      <PageHeader
-        title="Gym Schedule"
-        description="Manage and view gym sessions"
-        actions={
-          <div className="flex items-center gap-3">
-            {/* View Toggle - Matching calendar header style */}
-            <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
-              <Button 
-                variant="ghost"
-                size="sm" 
-                onClick={() => setView("TABLE")}
-                className={cn(
-                  'gap-2 transition-all',
-                  view === "TABLE"
-                    ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
-                    : 'hover:bg-muted text-muted-foreground'
-                )}
-              >
-                <ListIcon className="h-4 w-4"/> Table
-              </Button>
-              <Button 
-                variant="ghost"
-                size="sm" 
-                onClick={() => setView("CALENDAR")}
-                className={cn(
-                  'gap-2 transition-all',
-                  view === "CALENDAR"
-                    ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
-                    : 'hover:bg-muted text-muted-foreground'
-                )}
-              >
-                <CalendarIcon className="h-4 w-4"/> Calendar
-              </Button>
-            </div>
-
-            {isAdmin && (
-              <Button onClick={() => setCreateOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Create Session
-              </Button>
+    <div className="flex flex-col gap-6 p-6">
+      {/* View Toggle and Action Buttons */}
+      <div className="flex items-center justify-between">
+        {/* View Toggle - Matching calendar header style */}
+        <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
+          <Button 
+            variant="ghost"
+            size="sm" 
+            onClick={() => setView("TABLE")}
+            className={cn(
+              'gap-2 transition-all',
+              view === "TABLE"
+                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                : 'hover:bg-muted text-muted-foreground'
             )}
-          </div>
-        }
-      />
+          >
+            <ListIcon className="h-4 w-4"/> Table
+          </Button>
+          <Button 
+            variant="ghost"
+            size="sm" 
+            onClick={() => setView("CALENDAR")}
+            className={cn(
+              'gap-2 transition-all',
+              view === "CALENDAR"
+                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                : 'hover:bg-muted text-muted-foreground'
+            )}
+          >
+            <CalendarIcon className="h-4 w-4"/> Calendar
+          </Button>
+        </div>
 
-      {/* Table or Calendar View */}
-      <div className="mt-6">
-        {view === "TABLE" ? (
-          <GymScheduleTable
-            data={sessions}
-            pageCount={pageCount}
-            typeCounts={typeCounts}
-            statusCounts={statusCounts}
-            isSearching={isLoading}
-            onEditSession={isAdmin ? handleEditSession : undefined}
-            onDeleteSession={isAdmin ? handleDeleteSession : undefined}
-          />
-        ) : (
-          <GymCalendar 
-            events={sessions as any} 
-            onUpdateEvent={isAdmin ? handleUpdateEvent : undefined}
-            onCreateSession={isAdmin ? handleCreateSession : undefined}
-            onEditSession={isAdmin ? handleCalendarEditSession : undefined}
-            onDeleteSession={isAdmin ? handleCalendarDeleteSession : undefined}
-            onMonthChange={handleMonthChange}
-            readOnly={!isAdmin}
-          />
+        {isAdmin && (
+          <Button onClick={() => setCreateOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Session
+          </Button>
         )}
       </div>
+
+      {/* Table or Calendar View */}
+      {view === "TABLE" ? (
+        <GymScheduleTable
+          data={sessions}
+          pageCount={pageCount}
+          typeCounts={typeCounts}
+          statusCounts={statusCounts}
+          isSearching={isLoading}
+          onEditSession={isAdmin ? handleEditSession : undefined}
+          onDeleteSession={isAdmin ? handleDeleteSession : undefined}
+        />
+      ) : (
+        <GymCalendar 
+          events={sessions as any} 
+          onUpdateEvent={isAdmin ? handleUpdateEvent : undefined}
+          onCreateSession={isAdmin ? handleCreateSession : undefined}
+          onEditSession={isAdmin ? handleCalendarEditSession : undefined}
+          onDeleteSession={isAdmin ? handleCalendarDeleteSession : undefined}
+          onMonthChange={handleMonthChange}
+          readOnly={!isAdmin}
+        />
+      )}
 
       {/* Edit dialog */}
       {isAdmin && editing && (
@@ -305,6 +307,6 @@ export function GymSchedulePage(){
         onConfirm={confirmDelete}
         variant="destructive"
       />
-    </>
+    </div>
   );
 }

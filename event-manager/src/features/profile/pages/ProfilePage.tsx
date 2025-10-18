@@ -3,7 +3,7 @@
  * User profile with avatar picker
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,9 +21,11 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
 import { getAvatarSrc } from '@event-manager/shared';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 export function ProfilePage() {
   const { user, setUser } = useAuthStore();
+  const { setPageMeta } = usePageMeta();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [avatarValue, setAvatarValue] = useState<{
     type: 'preset' | 'upload';
@@ -33,6 +35,13 @@ export function ProfilePage() {
       ? { type: (user.avatarType as 'preset' | 'upload') || 'preset', data: user.avatar }
       : undefined
   );
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Profile',
+      description: 'Manage your account settings',
+    });
+  }, [setPageMeta]);
 
   const updateAvatarMutation = trpc.auth.updateAvatar.useMutation({
     onSuccess: () => {
@@ -71,12 +80,7 @@ export function ProfilePage() {
   const avatarSrc = getAvatarSrc(user.avatar, user.avatarType as 'upload' | 'preset');
 
   return (
-    <div className="container max-w-4xl py-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <p className="text-neutral-500 mt-2">Manage your account settings</p>
-      </div>
-
+    <div className="flex flex-col gap-6 p-6">
       <Card>
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>

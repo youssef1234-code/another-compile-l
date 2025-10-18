@@ -6,15 +6,14 @@
  * participating professors, budget, funding source, resources, capacity, registration deadline
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { FileText, Plus, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
 
-import { PageHeader } from '@/components/generic/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,9 +22,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageGallery } from '@/components/ui/image-gallery';
 import { designSystem } from '@/styles/design-system';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 export function CreateWorkshopPage() {
+  const { setPageMeta } = usePageMeta();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Create Workshop',
+      description: 'Submit a workshop proposal for Events Office approval',
+    });
+  }, [setPageMeta]);
+
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -98,18 +107,11 @@ export function CreateWorkshopPage() {
   };
 
   return (
-    <div className={`${designSystem.layout.padding} py-8`}>
-      <PageHeader
-        icon={FileText}
-        title="Create Workshop"
-        description="Submit a workshop proposal for Events Office approval"
-      />
-
+    <div className="flex flex-col gap-6 p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="mt-6"
       >
         <form onSubmit={handleSubmit}>
           <Card className={designSystem.card.elevated}>

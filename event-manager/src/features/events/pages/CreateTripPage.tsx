@@ -5,24 +5,32 @@
  * Fields: name, location, price, start/end dates, description, capacity, registration deadline
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { Plane } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
 
-import { PageHeader } from '@/components/generic/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { designSystem } from '@/styles/design-system';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 export function CreateTripPage() {
+  const { setPageMeta } = usePageMeta();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Create Trip',
+      description: 'Create a new trip event',
+    });
+  }, [setPageMeta]);
+
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -72,18 +80,11 @@ export function CreateTripPage() {
   };
 
   return (
-    <div className={`${designSystem.layout.padding} py-8`}>
-      <PageHeader
-        icon={Plane}
-        title="Create Trip"
-        description="Organize a new trip for students and staff"
-      />
-
+    <div className="flex flex-col gap-6 p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="mt-6"
       >
         <form onSubmit={handleSubmit}>
           <Card className={designSystem.card.elevated}>

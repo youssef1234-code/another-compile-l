@@ -24,7 +24,7 @@ import { getEventsTableColumns } from "./events-table-columns";
 import { EventExpandedRow } from "./EventExpandedRow";
 import { useQueryState, parseAsBoolean, parseAsString } from "nuqs";
 import { Button } from "@/components/ui/button";
-import { ListFilter, Search } from "lucide-react";
+import { ListFilter, Search, Download, Plus } from "lucide-react";
 
 interface EventsTableProps {
   data: Event[];
@@ -43,6 +43,12 @@ interface EventsTableProps {
   onApproveWorkshop?: (eventId: string) => void;
   onRejectWorkshop?: (eventId: string) => void;
   onNeedsEdits?: (eventId: string) => void;
+  // Action buttons for toolbar
+  onExport?: () => void;
+  onCreate?: () => void;
+  exportDisabled?: boolean;
+  exportLabel?: string;
+  createLabel?: string;
 }
 
 export function EventsTable({
@@ -62,6 +68,11 @@ export function EventsTable({
   onApproveWorkshop,
   onRejectWorkshop,
   onNeedsEdits,
+  onExport,
+  onCreate,
+  exportDisabled,
+  exportLabel = 'Export All',
+  createLabel = 'Create Event',
 }: EventsTableProps) {
   // Toggle between advanced and simple filters (default to simple)
   const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
@@ -130,27 +141,57 @@ export function EventsTable({
         />
       )}
     >
-      {/* Toggle Buttons */}
-      <div className="flex items-center gap-2 p-1">
-        <Button
-          variant={!enableAdvancedFilter ? "default" : "outline"}
-          size="sm"
-          onClick={() => setEnableAdvancedFilter(false)}
-          className="gap-2"
-        >
-          <Search className="h-4 w-4" />
-          Simple filters
-        </Button>
+      {/* Toggle Buttons and Action Buttons */}
+      <div className="flex items-center justify-between gap-2 p-1">
+        <div className="flex items-center gap-2">
+          <Button
+            variant={!enableAdvancedFilter ? "default" : "outline"}
+            size="sm"
+            onClick={() => setEnableAdvancedFilter(false)}
+            className="gap-2"
+          >
+            <Search className="h-4 w-4" />
+            Simple filters
+          </Button>
 
-        <Button
-          variant={enableAdvancedFilter ? "default" : "outline"}
-          size="sm"
-          onClick={() => setEnableAdvancedFilter(true)}
-          className="gap-2"
-        >
-          <ListFilter className="h-4 w-4" />
-          Advanced filters
-        </Button>
+          <Button
+            variant={enableAdvancedFilter ? "default" : "outline"}
+            size="sm"
+            onClick={() => setEnableAdvancedFilter(true)}
+            className="gap-2"
+          >
+            <ListFilter className="h-4 w-4" />
+            Advanced filters
+          </Button>
+        </div>
+
+        {/* Action Buttons */}
+        {(onExport || onCreate) && (
+          <div className="flex items-center gap-2">
+            {onExport && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onExport} 
+                disabled={exportDisabled}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                {exportLabel}
+              </Button>
+            )}
+            {onCreate && (
+              <Button 
+                size="sm" 
+                onClick={onCreate}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                {createLabel}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Conditional Toolbar Rendering */}

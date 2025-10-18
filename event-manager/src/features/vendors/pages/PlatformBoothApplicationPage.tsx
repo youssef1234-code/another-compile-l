@@ -17,7 +17,6 @@
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
 import { Stage, Layer, Rect, Text, Line } from 'react-konva';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader } from '@/components/generic';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -33,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ROUTES } from '@/lib/constants';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 interface Attendee {
   name: string;
@@ -62,6 +62,7 @@ interface PlatformMap {
 export function PlatformBoothApplicationPage() {
   const navigate = useNavigate();
   const utils = trpc.useUtils();
+  const { setPageMeta } = usePageMeta();
   const [, startTransition] = useTransition();
   const [platform, setPlatform] = useState<PlatformMap | null>(null);
   const [selectedBoothSize, setSelectedBoothSize] = useState<'2' | '4'>('2');
@@ -70,6 +71,13 @@ export function PlatformBoothApplicationPage() {
   const [duration, setDuration] = useState<string>('1');
   const [startDate, setStartDate] = useState<string>('');
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Apply for Platform Booth',
+      description: 'Select a booth location and provide attendee details',
+    });
+  }, [setPageMeta]);
 
   const { data, isLoading } = trpc.platformMaps.getActivePlatform.useQuery();
   const createApplication = trpc.vendorApplications.create.useMutation({
@@ -204,22 +212,16 @@ export function PlatformBoothApplicationPage() {
 
   if (!platform) {
     return (
-      <div className="p-6">
-        <PageHeader
-          title="Platform Booth Application"
-          description="No platform layout available. Contact administrator."
-        />
+      <div className="flex flex-col gap-6 p-6">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No platform layout available. Contact administrator.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Apply for Platform Booth"
-        description="Select a booth location and provide attendee details"
-      />
-
+    <div className="flex flex-col gap-6 p-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Application Form */}
         <Card className="lg:col-span-1">

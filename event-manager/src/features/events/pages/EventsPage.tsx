@@ -16,7 +16,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Grid3x3, List, ArrowUpDown, Loader2, CheckSquare } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { EventFilters, type EventFiltersState } from '../components/EventFilters';
-import { PageHeader } from '@/components/generic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,8 +27,10 @@ import { formatDate } from '@/lib/design-system';
 import { getEventTypeConfig, getEventStatus, hasOpenRegistration, EVENT_STATUS_COLORS } from '@/lib/event-colors';
 import type { Event } from '@event-manager/shared';
 import { useAuthStore } from '@/store/authStore';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 export function EventsPage() {
+  const { setPageMeta } = usePageMeta();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -51,6 +52,13 @@ export function EventsPage() {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'price'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Events',
+      description: 'Browse workshops, trips, conferences, and more or manage your registrations',
+    });
+  }, [setPageMeta]);
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value });
@@ -273,26 +281,16 @@ export function EventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <div className="w-full px-6 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <PageHeader
-            title="Events"
-            description="Browse workshops, trips, conferences, and more or manage your registrations"
-          />
-        </div>
-
-        {/* Single unified view - no tabs content, just conditional rendering */}
-        <div className="space-y-6">
-          {/* Filters */}
-          <div className={cn("transition-opacity duration-200", isPending && "opacity-60")}>
-            <EventFilters
-              filters={filters}
-              onChange={handleFiltersChange}
-              onReset={handleResetFilters}
-              searchInput={searchInput}
-              onSearchInputChange={setSearchInput}
+    <div className="flex flex-col gap-6 p-6">
+      {/* Single unified view - no tabs content, just conditional rendering */}
+      {/* Filters */}
+      <div className={cn("transition-opacity duration-200", isPending && "opacity-60")}>
+        <EventFilters
+          filters={filters}
+          onChange={handleFiltersChange}
+          onReset={handleResetFilters}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
               isSearching={searchInput !== debouncedSearch}
               hidePrice={activeTab === 'registrations'}
             />
@@ -480,8 +478,6 @@ export function EventsPage() {
                 )}
               </>
             )}
-        </div>
-      </div>
     </div>
   );
 }

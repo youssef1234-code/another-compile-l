@@ -13,12 +13,12 @@
  */
 
 import type { User } from '@event-manager/shared';
-import { Download, UserPlus, Users, UserCheck, UserX, Filter, FilterX } from 'lucide-react';
-import { useMemo, useState, useCallback } from 'react';
+import { Users, UserCheck, UserX } from 'lucide-react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson, parseAsBoolean } from 'nuqs';
 
-import { PageHeader, FormSheet, FormSheetContent, FormSheetField, FormSheetFooter, ConfirmDialog } from '@/components/generic';
+import { FormSheet, FormSheetContent, FormSheetField, FormSheetFooter, ConfirmDialog } from '@/components/generic';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,9 +35,19 @@ import {
 import { exportToCSV, formatDate } from '@/lib/design-system';
 import { trpc } from '@/lib/trpc';
 import { UsersTable } from '../components/users-table';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 export function AdminUsersPage() {
   const utils = trpc.useUtils();
+  const { setPageMeta } = usePageMeta();
+  
+  // Set page title and description in the top bar
+  useEffect(() => {
+    setPageMeta({
+      title: 'Users',
+      description: 'Manage all users in the system with advanced filters and sorting',
+    });
+  }, [setPageMeta]);
   
   // Confirmation dialog state
   const [blockDialog, setBlockDialog] = useState<{ open: boolean; userId: string; isBlocked: boolean }>({
@@ -439,54 +449,62 @@ export function AdminUsersPage() {
   }, [utils, search, filters, extendedFilters, joinOperator, parsedSort]);
 
   return (
-    <>
-      {/* Page Header */}
-      <PageHeader
-        title="Users"
-        description="Manage all users in the system with advanced filters and sorting"
-        stats={stats}
-        actions={
-          <>
-            <Button 
-              variant={showPendingApprovals ? "default" : "outline"} 
-              onClick={handleTogglePendingApprovals} 
-              className="gap-2"
-            >
-              {showPendingApprovals ? <FilterX className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
-              {showPendingApprovals ? 'Show All Users' : 'Show Pending Approvals'}
-            </Button>
-            <Button variant="outline" onClick={handleExport} className="gap-2" disabled={isLoading}>
-              <Download className="h-4 w-4" />
-              Export {search || Object.keys(filters).length > 0 ? 'Filtered' : 'All'}
-            </Button>
-            <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-              <UserPlus className="h-4 w-4" />
-              Create User
-            </Button>
-          </>
-        }
-      />
+    <div className="flex flex-col gap-6 p-6">
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {stats.map((stat, index) => {
+          const Icon = stat.icon;
+          const colorClasses = {
+            success: 'text-green-600 bg-green-50 border-green-200',
+            warning: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+            critical: 'text-red-600 bg-red-50 border-red-200',
+            info: 'text-blue-600 bg-blue-50 border-blue-200',
+            brand: 'text-purple-600 bg-purple-50 border-purple-200',
+          };
+          const colorRole = stat.colorRole || 'info';
+          
+          return (
+            <div key={index} className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-card">
+              {Icon && (
+                <div className={`p-2 rounded-md ${colorClasses[colorRole]}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-muted-foreground truncate">{stat.label}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-semibold tracking-tight">{stat.value}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Users Table with full tablecn integration */}
-      <div className="mt-6">
-        <UsersTable
-          data={users}
-          pageCount={pageCount}
-          roleCounts={roleCounts}
-          statusCounts={{
-            active: statsData?.active || 0,
-            blocked: statsData?.blocked || 0,
-          }}
-          isSearching={isLoading}
-          onUpdateUser={handleUpdateUser}
-          onVerifyRole={handleVerifyRole}
-          onApproveVendor={handleApproveVendor}
-          onRejectVendor={handleRejectVendor}
-          onBlockUser={handleBlockUser}
-          onUnblockUser={handleUnblockUser}
-          onDeleteUser={handleDeleteUser}
-        />
-      </div>
+      <UsersTable
+        data={users}
+        pageCount={pageCount}
+        roleCounts={roleCounts}
+        statusCounts={{
+          active: statsData?.active || 0,
+          blocked: statsData?.blocked || 0,
+        }}
+        isSearching={isLoading}
+        showPendingApprovals={showPendingApprovals}
+        onTogglePendingApprovals={handleTogglePendingApprovals}
+        onExport={handleExport}
+        onCreateUser={() => setIsCreateOpen(true)}
+        exportDisabled={isLoading}
+        exportLabel={search || Object.keys(filters).length > 0 ? 'Export Filtered' : 'Export All'}
+        onUpdateUser={handleUpdateUser}
+        onVerifyRole={handleVerifyRole}
+        onApproveVendor={handleApproveVendor}
+        onRejectVendor={handleRejectVendor}
+        onBlockUser={handleBlockUser}
+        onUnblockUser={handleUnblockUser}
+        onDeleteUser={handleDeleteUser}
+      />
 
       {/* Create User Sheet */}
       <FormSheet
@@ -633,6 +651,6 @@ export function AdminUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

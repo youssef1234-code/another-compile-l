@@ -13,8 +13,8 @@ import { z } from 'zod';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
 import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
-import { PageHeader } from '@/components/generic';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 const tripSchema = z.object({
   images: z.array(z.string()).optional(),
@@ -33,9 +33,17 @@ const tripSchema = z.object({
 type TripFormData = z.infer<typeof tripSchema>;
 
 export function EditTripPage() {
+  const { setPageMeta } = usePageMeta();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [initialValues, setInitialValues] = useState<Partial<TripFormData> | null>(null);
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Edit Trip',
+      description: 'Update trip event details',
+    });
+  }, [setPageMeta]);
 
   // Fetch existing trip data
   const { data: event, isLoading: isFetching } = trpc.events.getEventById.useQuery(
@@ -219,13 +227,8 @@ export function EditTripPage() {
   }
 
   return (
-    <div className="container max-w-full px-6 py-6">
-      <PageHeader
-        title="Edit Trip"
-        description="Update trip details. Note: Cannot edit after the start date has passed."
-      />
-
-      <div className="mt-8 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6 p-6">
+      <div className="bg-card rounded-lg border shadow-sm">
         <GenericForm
           fields={fields}
           schema={tripSchema}

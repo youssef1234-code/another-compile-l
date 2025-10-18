@@ -11,7 +11,7 @@
  * - Related events section
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/store/authStore";
@@ -48,6 +48,7 @@ import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import { EventImageCarousel } from "@/components/ui/event-image-carousel";
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 function EventDetailsPageSkeleton() {
   return (
@@ -81,6 +82,7 @@ function EventDetailsPageSkeleton() {
 }
 
 export function EventDetailsPage() {
+  const { setPageMeta } = usePageMeta();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -91,6 +93,16 @@ export function EventDetailsPage() {
     { id: id! },
     { enabled: !!id }
   );
+
+  // Update page title when event loads
+  useEffect(() => {
+    if (event) {
+      setPageMeta({
+        title: event.name,
+        description: `${event.type} - ${event.location || 'TBD'}`,
+      });
+    }
+  }, [event, setPageMeta]);
 
   const { data: isRegisteredData } = trpc.events.isRegistered.useQuery(
     { eventId: id! },

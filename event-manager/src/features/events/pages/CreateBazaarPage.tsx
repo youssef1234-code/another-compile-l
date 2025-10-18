@@ -7,7 +7,8 @@ import type { FieldType } from "@/components/generic/GenericForm";
 import { z } from "zod";
 import { toast } from "react-hot-toast";
 import { EnhancedAlertDialog } from "@/components/generic/AlertDialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePageMeta } from '@/components/layout/AppLayout';
 
 const fields = [
   { name: "name", label: "Bazaar Name", type: "text" as FieldType, required: true },
@@ -49,6 +50,7 @@ const schema = z.object({
 });
 
 export function CreateBazaarPage() {
+  const { setPageMeta } = usePageMeta();
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
@@ -58,6 +60,14 @@ export function CreateBazaarPage() {
     message: "",
     details: undefined
   });
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Create Bazaar',
+      description: 'Create a new bazaar event',
+    });
+  }, [setPageMeta]);
+
   const createBazaar = trpc.events.create.useMutation({
     onSuccess: (data) => {
       // Invalidate events cache to show the new bazaar
@@ -122,8 +132,7 @@ export function CreateBazaarPage() {
   };
 
   return (
-    <div>
-      <h1>Create Bazaar</h1>
+    <div className="flex flex-col gap-6 p-6">
       <GenericForm
         fields={fields}
         schema={schema}
