@@ -2,55 +2,42 @@ import { router, publicProcedure, protectedProcedure } from "../trpc/trpc";
 import { z } from "zod";
 import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
-import { CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport } from "@event-manager/shared";
+import { CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport, CourtAvailabilityResponseSchema } from "@event-manager/shared";
 
 
-const CourtListInput = z.object({
-  // allow omitting sport => return all
-  sport: z.nativeEnum(CourtSport).optional().or(z.literal("ALL").optional()),
-});
 export const courtsRouter = router({
   // list courts (optionally by sport)
-  list: publicProcedure
-    .input(CourtListInput.optional())
-     .query(async ({ input }) => {
-      const filter =
-        input?.sport && input.sport !== "ALL" ? { sport: input.sport } : {};
-      return courtService.findAll(filter, { sort: { name: 1 } });
+    list: publicProcedure
+    .input(
+      z.object({
+        sport: z.nativeEnum(CourtSport).optional(), // ← optional
+      }).optional() // ← allow empty {}
+    )
+    .query(async ({ input }) => {
+      const filter: any = { isDeleted: false };
+      if (input?.sport) filter.sport = input.sport;
+      return courtService.findAll(filter);
     }),
 
- availability : protectedProcedure
+availability: publicProcedure
   .input(
     z.object({
       date: z.coerce.date(),
-      // if courtId is given, ignore sport; otherwise sport is optional (or "ALL")
       courtId: z.string().optional(),
-      sport: z.nativeEnum(CourtSport).optional().or(z.literal("ALL").optional()),
+      sport: z.nativeEnum(CourtSport).optional(),   
       slotMinutes: z.number().default(60),
-      openHour: z.number().min(0).max(23).optional(),   // optional, defaults in service
-      closeHour: z.number().min(1).max(24).optional(),  // optional, defaults in service
     })
   )
+  .output(CourtAvailabilityResponseSchema) 
   .query(async ({ input, ctx }) => {
-    const sport =
-      input.courtId
-        ? undefined
-        : input.sport && input.sport !== "ALL"
-        ? input.sport
-        : undefined;
-
-    const me = (ctx.user!._id as any).toString();
-
-    const rows = await courtService.getAvailability({
-      date: input.date,
-      courtId: input.courtId,
-      sport,
-      slotMinutes: input.slotMinutes,
-      openHour: input.openHour,
-      closeHour: input.closeHour,
-      me, // pass current user id for byMe tagging
+    const me = (ctx.user?._id as any)?.toString?.();
+    return courtService.getAvailability({
+      date: input.date as Date,
+      courtId: typeof input.courtId === "string" ? input.courtId : undefined,
+      sport: input.sport,
+      slotMinutes: Number(input.slotMinutes ?? 60),
+      me,
     });
-    return rows;
   }),
   
   // create reservation (student)

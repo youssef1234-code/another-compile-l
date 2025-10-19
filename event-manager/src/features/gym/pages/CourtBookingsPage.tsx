@@ -11,6 +11,7 @@ import { toast } from "react-hot-toast";
 import { CalendarSearch } from "lucide-react";
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
+import type { CourtAvailabilityRow } from "@event-manager/shared";
 
 const SPORTS = ["ALL", "BASKETBALL", "TENNIS", "FOOTBALL"] as const;
 type SportFilter = typeof SPORTS[number];
@@ -72,20 +73,26 @@ export function CourtBookingsPage() {
   }, [setPageMeta]);
 
   // courts list (filterable by sport)
-  const courtsQuery = trpc.courts.list.useQuery({ sport });
-
+const courtsQuery = trpc.courts.list.useQuery(
+  sport === "ALL" ? {} : { sport }     // ✅ omit sport when ALL
+);
   // availability input (date at local midnight pushed as UTC Date)
-  const availabilityInput = useMemo(() => {
-    const midnightLocalISO = toISOFromLocal(dateStr, "00:00");
-    const dateObj = new Date(midnightLocalISO);
-    return selectedCourtId !== "ALL"
-      ? { date: dateObj, courtId: selectedCourtId, slotMinutes: 60 }
-      : { date: dateObj, sport, slotMinutes: 60 };
-  }, [dateStr, sport, selectedCourtId]);
+ const availabilityInput = useMemo(() => {
+  const midnightLocalISO = toISOFromLocal(dateStr, "00:00");
+  const dateObj = new Date(midnightLocalISO);
+  const sportFilter = sport === "ALL" ? undefined : sport;  // ✅
+
+  return selectedCourtId !== "ALL"
+    ? { date: dateObj, courtId: selectedCourtId, slotMinutes: 60 }
+    : { date: dateObj, sport: sportFilter, slotMinutes: 60 };
+}, [dateStr, sport, selectedCourtId]);
+
 
   const availability = trpc.courts.availability.useQuery(availabilityInput, {
     enabled: !!dateStr,
   });
+  const rows: CourtAvailabilityRow[] = availability.data ?? [];
+
 
   const utils = trpc.useUtils();
 
@@ -110,17 +117,21 @@ export function CourtBookingsPage() {
       toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
+const courtOptions = useMemo(() => {
+  const raw = (courtsQuery.data ?? []) as Array<any>;
+  const cleaned = raw
+    .map(c => {
+      const id = c?.id ?? c?._id;                 
+      if (!id) return null;
+      return { id: String(id), name: c?.name ?? "", sport: c?.sport ?? "" };
+    })
+    .filter(Boolean) as Array<{ id: string; name: string; sport: string }>;
 
-  const courtOptions = useMemo(() => {
-    const items = courtsQuery.data ?? [];
-    return [
-      { id: "ALL", name: "All courts", sport },
-      ...items.map((c) => {
-        const court = c as { id: string; name: string; sport: string };
-        return { id: court.id, name: court.name, sport: court.sport };
-      }),
-    ];
-  }, [courtsQuery.data, sport]);
+  const unique = Array.from(new Map(cleaned.map(c => [c.id, c])).values());
+  return [{ id: "ALL", name: "All courts", sport: "ALL" as const }, ...unique];
+}, [courtsQuery.data]);
+
+
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -145,18 +156,19 @@ export function CourtBookingsPage() {
           </SelectContent>
         </Select>
 
-        <Select value={selectedCourtId} onValueChange={setSelectedCourtId}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Court" />
-          </SelectTrigger>
-          <SelectContent>
-            {courtOptions.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+  <Select value={selectedCourtId} onValueChange={setSelectedCourtId}>
+  <SelectTrigger className="w-48">
+    <SelectValue placeholder="Court" />
+  </SelectTrigger>
+  <SelectContent>
+    {courtOptions.map((c, idx) => (
+      <SelectItem key={`court-${c.id}-${idx}`} value={c.id}>
+        {c.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+
 
         <Input type="date" value={dateStr} onChange={(e) => setDateStr(e.target.value)} />
 
