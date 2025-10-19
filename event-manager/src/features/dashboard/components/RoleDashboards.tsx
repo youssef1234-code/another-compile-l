@@ -399,19 +399,19 @@ export function EventsOfficeDashboard() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-20 flex-col gap-2">
-                <Link to={ROUTES.CREATE_TRIP}>
+                <Link to={`${ROUTES.ADMIN_EVENTS}?createType=TRIP`}>
                   <MapPin className="h-5 w-5" />
                   <span>Create Trip</span>
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-20 flex-col gap-2">
-                <Link to={ROUTES.CREATE_BAZAAR}>
+                <Link to={`${ROUTES.ADMIN_EVENTS}?createType=BAZAAR`}>
                   <ShoppingBag className="h-5 w-5" />
                   <span>Create Bazaar</span>
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-20 flex-col gap-2">
-                <Link to={ROUTES.MANAGE_SESSIONS}>
+                <Link to={ROUTES.GYM_SCHEDULE}>
                   <Dumbbell className="h-5 w-5" />
                   <span>Manage Gym</span>
                 </Link>

@@ -1,21 +1,16 @@
-import { usePageMeta } from '@/components/layout/page-meta-context';
-import { useEffect } from 'react';
+import { ComingSoonPage } from '@/components/ComingSoonPage';
 
 export function ManageSessionsPage() {
-  const { setPageMeta } = usePageMeta();
-
-  useEffect(() => {
-    setPageMeta({
-      title: 'Manage Gym Sessions',
-      description: 'Create and manage gym sessions',
-    });
-  }, [setPageMeta]);
-
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">No sessions created yet</p>
-      </div>
-    </div>
+    <ComingSoonPage
+      title="Manage Gym Sessions"
+      description="Create, edit, and manage gym sessions. This page is under construction."
+      features={[
+        'Create and schedule sessions',
+        'Edit details and capacity',
+        'Manage registrations and waitlists',
+        'View attendance analytics',
+      ]}
+    />
   );
 }

@@ -1,55 +1,103 @@
 import { GenericForm } from "@/components/generic/GenericForm";
+import type { FormFieldConfig } from "@/components/generic/GenericForm";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { usePageMeta } from '@/components/layout/page-meta-context';
+import { ROUTES } from "@/lib/constants";
+import { formatValidationErrors } from '@/lib/format-errors';
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/store/authStore";
-import { useNavigate, useParams } from "react-router-dom";
-import { ROUTES } from "@/lib/constants";
-import type { FormFieldConfig } from "@/components/generic/GenericForm";
-import { z } from "zod";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { EnhancedAlertDialog } from "@/components/generic/AlertDialog";
-import { usePageMeta } from '@/components/layout/page-meta-context';
-import { formatValidationErrors } from '@/lib/format-errors';
+import { useNavigate, useParams } from "react-router-dom";
+import { z } from "zod";
 
 const schema = z.object({
-  title: z.string().min(5, "Bazaar Name must be at least 5 characters"),
-  description: z.string().min(20, "Description must be at least 20 characters"),
-  location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]),
-  locationDetails: z.string().min(1, "Location Details are required"),
-  startDate: z.string().min(1, "Start Date is required"),
-  startTime: z.string().min(1, "Start Time is required"),
-  endDate: z.string().min(1, "End Date is required"),
-  endTime: z.string().min(1, "End Time is required"),
-  capacity: z.preprocess(val => Number(val), z.number().min(1, "Capacity is required")),
-  registrationDeadline: z.string().min(1, "Registration Deadline is required"),
-  registrationDeadlineTime: z.string().min(1, "Registration Deadline Time is required"),
-  professorName: z.string().optional(),
+  images: z.array(z.string()).optional(),
+  name: z.string().min(5, 'Bazaar name must be at least 5 characters'),
+  description: z.string().min(20, 'Description must be at least 20 characters'),
+  locationDetails: z.string().min(1, 'Location details are required'),
+  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
+  startDate: z.date({ required_error: 'Start date is required' }),
+  endDate: z.date({ required_error: 'End date is required' }),
+  registrationDeadline: z.date({ required_error: 'Registration deadline is required' }),
 });
 
 type BazaarFormValues = z.infer<typeof schema>;
 
-const fields: FormFieldConfig<BazaarFormValues>[] = [
-  { name: "title", label: "Bazaar Name", type: "text", required: true },
-  { name: "description", label: "Description", type: "textarea", required: true },
+const makeFields = (): FormFieldConfig<BazaarFormValues>[] => [
   {
-    name: "location",
-    label: "Location",
-    type: "select",
-    required: true,
-    options: [
-      { label: "On Campus", value: "ON_CAMPUS" },
-      { label: "Off Campus", value: "OFF_CAMPUS" }
-    ]
+    name: 'images',
+    label: 'Bazaar Images',
+    type: 'imageGallery',
+    description: 'Upload images for the bazaar. The first image will be the primary image.',
+    colSpan: 2,
   },
-  { name: "locationDetails", label: "Location Details", type: "text", required: true },
-  { name: "startDate", label: "Start Date", type: "date", required: true },
-  { name: "startTime", label: "Start Time", type: "time", required: true, placeholder: "HH:MM" },
-  { name: "endDate", label: "End Date", type: "date", required: true },
-  { name: "endTime", label: "End Time", type: "time", required: true, placeholder: "HH:MM" },
-  { name: "capacity", label: "Capacity", type: "number", required: true },
-  { name: "registrationDeadline", label: "Registration Deadline", type: "date", required: true },
-  { name: "registrationDeadlineTime", label: "Registration Deadline Time", type: "time", required: true, placeholder: "HH:MM" },
-  { name: "professorName", label: "Professor Name (optional)", type: "text", required: false },
+  { name: 'name', label: 'Bazaar Name', type: 'text', placeholder: 'e.g., Spring Campus Bazaar', colSpan: 2 },
+  { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Describe the bazaar theme and highlights', colSpan: 2 },
+  {
+    name: 'location',
+    label: 'Location Type',
+    type: 'select',
+    options: [
+      { value: 'ON_CAMPUS', label: 'On Campus' },
+      { value: 'OFF_CAMPUS', label: 'Off Campus' },
+    ],
+  },
+  { name: 'locationDetails', label: 'Location Details', type: 'text', placeholder: 'Building, hall, or venue name' },
+  {
+    name: 'datesSectionHeader',
+    label: 'Schedule',
+    type: 'custom',
+    colSpan: 2,
+    render: () => (
+      <div className="pt-2 pb-1">
+        <h3 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Dates & Deadlines</h3>
+      </div>
+    ),
+  },
+  {
+    name: 'startDate',
+    label: 'Start Date & Time',
+    type: 'custom',
+    colSpan: 1,
+    render: (value, form) => (
+      <DateTimePicker
+        value={(value as Date | null) ?? null}
+        onChange={(date) => date && form.setValue('startDate', date)}
+        placeholder="Select start date and time"
+        minDate={new Date()}
+      />
+    ),
+  },
+  {
+    name: 'endDate',
+    label: 'End Date & Time',
+    type: 'custom',
+    colSpan: 1,
+    render: (value, form) => (
+      <DateTimePicker
+        value={(value as Date | null) ?? null}
+        onChange={(date) => form.setValue('endDate', date ?? undefined as unknown as Date)}
+        placeholder="Select end date and time"
+        minDate={new Date()}
+      />
+    ),
+  },
+  {
+    name: 'registrationDeadline',
+    label: 'Registration Deadline',
+    type: 'custom',
+    colSpan: 1,
+    render: (value, form) => (
+      <DateTimePicker
+        value={(value as Date | null) ?? null}
+        onChange={(date) => form.setValue('registrationDeadline', date ?? undefined as unknown as Date)}
+        placeholder="Select registration deadline"
+        minDate={new Date()}
+      />
+    ),
+  },
 ];
 
 export function EditBazaarPage() {
@@ -58,12 +106,6 @@ export function EditBazaarPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
-  const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; message: string; details?: string }>({
-    open: false,
-    title: "",
-    message: "",
-    details: undefined
-  });
 
   useEffect(() => {
     setPageMeta({
@@ -74,54 +116,47 @@ export function EditBazaarPage() {
 
   const updateBazaar = trpc.events.update.useMutation({
     onSuccess: () => {
-      // Invalidate all relevant caches after successful update
-      utils.events.getEvents.invalidate();
+      // Keep Manage Events data fresh in case of redirect/navigation
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
       utils.events.getEventById.invalidate({ id: id! });
-      
-      // Show success message
-      toast.success("Bazaar updated successfully!");
-      
-      // Navigate to the event details page to see the updated event
+      toast.success('Bazaar updated successfully!');
       navigate(`${ROUTES.EVENTS}/${id}`);
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
       toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
-    }
+    },
   });
   const { data: bazaar, isLoading: isLoadingBazaar } = trpc.events.getEventById.useQuery(
     { id: id! },
-    { enabled: !!id }
+    {
+      enabled: !!id,
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnReconnect: 'always',
+      refetchOnWindowFocus: 'always',
+    }
   );
 
-  const [defaultValues, setDefaultValues] = useState<Partial<BazaarFormValues>>({});
+  const [defaultValues, setDefaultValues] = useState<Partial<BazaarFormValues> | null>(null);
   const [isDisabled, setIsDisabled] = useState(false);
   const isUnauthorized = !user || user.role !== "EVENT_OFFICE";
 
   useEffect(() => {
-    if (bazaar) {
-      // Check if bazaar has started (disable editing if started)
-      const hasStarted = new Date(bazaar.startDate) <= new Date();
+    if (bazaar && bazaar.type === 'BAZAAR') {
+      const hasStarted = bazaar.startDate ? new Date(bazaar.startDate) <= new Date() : false;
       setIsDisabled(hasStarted);
 
-      // Format dates for form inputs
-      const startDate = new Date(bazaar.startDate);
-      const endDate = new Date(bazaar.endDate);
-      const regDeadline = bazaar.registrationDeadline ? new Date(bazaar.registrationDeadline) : null;
-
       setDefaultValues({
-        title: bazaar.name || "",
-        description: bazaar.description || "",
-        location: bazaar.location || "ON_CAMPUS",
-        locationDetails: bazaar.locationDetails || "",
-        startDate: startDate.toISOString().split('T')[0],
-        startTime: startDate.toTimeString().slice(0, 5),
-        endDate: endDate.toISOString().split('T')[0],
-        endTime: endDate.toTimeString().slice(0, 5),
-        capacity: bazaar.capacity || 0,
-        registrationDeadline: regDeadline ? regDeadline.toISOString().split('T')[0] : "",
-        registrationDeadlineTime: regDeadline ? regDeadline.toTimeString().slice(0, 5) : "",
-        professorName: bazaar.professorName || "",
+        images: bazaar.images || [],
+        name: bazaar.name || '',
+        description: bazaar.description || '',
+        location: (bazaar.location as 'ON_CAMPUS' | 'OFF_CAMPUS') || 'ON_CAMPUS',
+        locationDetails: bazaar.locationDetails || '',
+        startDate: bazaar.startDate ? new Date(bazaar.startDate) : undefined as unknown as Date,
+        endDate: bazaar.endDate ? new Date(bazaar.endDate) : undefined as unknown as Date,
+        registrationDeadline: bazaar.registrationDeadline ? new Date(bazaar.registrationDeadline) : undefined as unknown as Date,
       });
     }
   }, [bazaar]);
@@ -136,35 +171,28 @@ export function EditBazaarPage() {
   }
 
   const handleSubmit = async (values: BazaarFormValues) => {
-    const registrationDeadline = values.registrationDeadline && values.registrationDeadlineTime
-      ? new Date(`${values.registrationDeadline}T${values.registrationDeadlineTime}`)
-      : undefined;
-
     await updateBazaar.mutateAsync({
       id: id!,
       data: {
-        type: "BAZAAR",
-        name: values.title,
+        type: 'BAZAAR',
+        images: values.images,
+        name: values.name,
         description: values.description,
         location: values.location,
         locationDetails: values.locationDetails,
-        startDate: new Date(`${values.startDate}T${values.startTime}`),
-        endDate: new Date(`${values.endDate}T${values.endTime}`),
-        capacity: values.capacity,
-        registrationDeadline,
-        professorName: values.professorName,
-      }
+        startDate: values.startDate,
+        endDate: values.endDate,
+        registrationDeadline: values.registrationDeadline,
+      },
     });
-    // Navigation is now handled in the onSuccess callback
   };
 
-  if (isLoadingBazaar) {
-    return <div>Loading bazaar...</div>;
-  }
-
-  // Don't render the form until we have the data and defaultValues are set
-  if (!bazaar || Object.keys(defaultValues).length === 0) {
-    return <div>Loading bazaar data...</div>;
+  if (isLoadingBazaar || !defaultValues) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
@@ -175,28 +203,21 @@ export function EditBazaarPage() {
           <p className="text-sm">This bazaar has already started and cannot be edited.</p>
         </div>
       )}
-  <GenericForm<BazaarFormValues>
-        key={bazaar.id} // Force form re-render when bazaar changes
-        fields={fields.map(field => ({ ...field, disabled: isDisabled }))}
-        schema={schema}
-        onSubmit={isDisabled ? () => {} : handleSubmit}
-        isLoading={updateBazaar.status === "pending" || isDisabled}
-  defaultValues={defaultValues}
-        submitButtonText={isDisabled ? "Cannot Edit (Event Started)" : "Update Bazaar"}
-      />
-
-      {/* Error Alert Dialog */}
-      <EnhancedAlertDialog
-        open={errorDialog.open}
-        onOpenChange={(open) => setErrorDialog(prev => ({ ...prev, open }))}
-        variant="danger"
-        title={errorDialog.title}
-        description={errorDialog.message}
-        details={errorDialog.details}
-        confirmLabel="Try Again"
-        cancelLabel="Close"
-        onConfirm={() => setErrorDialog(prev => ({ ...prev, open: false }))}
-      />
+      <div className="bg-card rounded-lg border shadow-sm">
+        <GenericForm<BazaarFormValues>
+          key={bazaar.id}
+          fields={makeFields().map((f) => ({ ...f, disabled: isDisabled }))}
+          schema={schema}
+          onSubmit={isDisabled ? () => {} : handleSubmit}
+          isLoading={updateBazaar.isPending || isDisabled}
+          defaultValues={defaultValues}
+          submitButtonText={isDisabled ? 'Cannot Edit (Event Started)' : 'Save Changes'}
+          columns={2}
+          animate
+          cardBorder
+          cardShadow
+        />
+      </div>
     </div>
   );
 }

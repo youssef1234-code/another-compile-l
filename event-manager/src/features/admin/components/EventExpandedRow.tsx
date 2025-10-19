@@ -80,9 +80,29 @@ export function EventExpandedRow({
   
   // Hide edit/delete/archive for workshops when admin/event office
   // Also hide edit for rejected workshops (professors cannot edit rejected workshops)
-  const canEdit = onEdit && !(isWorkshop && isAdminOrEventOffice) && !(isWorkshop && isRejected);
+  // Additional rule: Admins cannot edit Bazaars (visible only to Events Office)
+  const isBazaar = event.type === 'BAZAAR';
+  const canEdit = onEdit 
+    && !(isWorkshop && isAdminOrEventOffice)
+    && !(isWorkshop && isRejected)
+    && !(isBazaar && user?.role === UserRole.ADMIN);
   const canArchive = onArchive && !(isWorkshop && isAdminOrEventOffice);
   const canDelete = onDelete && !(isWorkshop && isAdminOrEventOffice);
+
+  // Determine if any quick actions are available to render
+  const hasWorkshopApprovalActions =
+    event.type === 'WORKSHOP' && (
+      (onApproveWorkshop && (event.status === 'PENDING_APPROVAL' || event.status === 'NEEDS_EDITS')) ||
+      (onNeedsEdits && event.status === 'PENDING_APPROVAL') ||
+      (onRejectWorkshop && (event.status === 'PENDING_APPROVAL' || event.status === 'NEEDS_EDITS'))
+    );
+
+  const hasAnyQuickActions = Boolean(
+    canEdit ||
+    canArchive ||
+    canDelete ||
+    hasWorkshopApprovalActions
+  );
 
   return (
     <div className="p-6 bg-muted/30">
@@ -335,12 +355,13 @@ export function EventExpandedRow({
 
         {/* Right Column - Actions */}
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-3">
+          {hasAnyQuickActions && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-3">
                 {canEdit && (
                   <Button
                     variant="outline"
@@ -401,9 +422,10 @@ export function EventExpandedRow({
                     Reject Workshop
                   </Button>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Event Statistics */}
           <Card>

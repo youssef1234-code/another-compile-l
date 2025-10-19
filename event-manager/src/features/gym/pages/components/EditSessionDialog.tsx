@@ -43,7 +43,7 @@ export default function EditSessionDialog({
 
   const utils = trpc.useUtils();
   const updateM = trpc.events.updateGymSession.useMutation({
-    onSuccess: () => { utils.events.getEvents.invalidate(); onSaved(); },
+    onSuccess: () => { utils.events.getAllEvents.invalidate(); onSaved(); },
     onError: (e: TRPCError) => { 
       const errorMessage = formatValidationErrors(e);
       toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } }); 

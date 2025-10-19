@@ -11,7 +11,7 @@
  * @module routers/events.router
  */
 
-import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router, eventsOfficeProfessorProcedure, professorProcedure } from '../trpc/trpc';
+import { publicProcedure, protectedProcedure, eventsOfficeProcedure, adminProcedure, router, professorProcedure, eventsOfficeOnlyProcedure } from '../trpc/trpc';
 import { TRPCError } from '@trpc/server';
 import { createSearchSchema } from './base.router';
 import { eventService } from '../services/event.service';
@@ -122,12 +122,17 @@ const eventRoutes = {
     }),
 
   /**
-   * Create event - EVENT_OFFICE and ADMIN only
+   * Create event - EVENT_OFFICE and ADMIN only (Professors use createWorkshop)
+   * Note: BAZAAR can only be created by Events Office (Admins excluded)
    */
-  create: eventsOfficeProfessorProcedure
+  create: eventsOfficeProcedure
     .input(CreateEventSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx.user!._id as any).toString();
+      // Only Events Office can create Bazaars
+      if (input.type === 'BAZAAR' && ctx.user!.role !== 'EVENT_OFFICE') {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Only Events Office can create bazaars' });
+      }
       return eventService.create(input as any, { userId, role: ctx.user!.role.toString() });
     }),
 
@@ -265,8 +270,11 @@ const eventRoutes = {
    */
   getEventStats: protectedProcedure
     .query(async ({ ctx }) => {
-      const userId = ctx.user!.role === 'PROFESSOR' ? (ctx.user!._id as any).toString() : undefined;
-      return eventService.getStatistics(userId);
+      const role = ctx.user!.role;
+      const userId = role === 'PROFESSOR' ? (ctx.user!._id as any).toString() : undefined;
+      // For Manage Events page (Admin/Event Office), exclude gym sessions from counts
+      const excludeTypes = role === 'ADMIN' || role === 'EVENT_OFFICE' ? ['GYM_SESSION'] : undefined;
+      return eventService.getStatistics(userId, { excludeTypes });
     }),
 
   /**
@@ -383,7 +391,8 @@ const eventRoutes = {
      * Create a gym session - EVENT_OFFICE and ADMIN only
      * Publishes by default (as per requirements)
      */
-    createGymSession: eventsOfficeProcedure
+    // Only Events Office can create Gym Sessions (Admins excluded)
+    createGymSession: eventsOfficeOnlyProcedure
     .input(createGymSessionSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx.user!._id as any).toString();
@@ -419,8 +428,8 @@ const eventRoutes = {
     return eventService.updateGymSession(id, patch, { userId });
   }),
 
-    // Approve workshop - EVENT_OFFICE ONLY
-    approveWorkshop : eventsOfficeProcedure
+  // Approve workshop - EVENT_OFFICE ONLY (Admins excluded)
+  approveWorkshop : eventsOfficeOnlyProcedure
     .input(z.object({
       eventId: z.string(),
     }))
@@ -428,8 +437,8 @@ const eventRoutes = {
       return eventService.approveWorkshop(input.eventId);
     }),
 
-    // Reject Workshop - EVENT_OFFICE ONLY
-    rejectWorkshop : eventsOfficeProcedure
+  // Reject Workshop - EVENT_OFFICE ONLY (Admins excluded)
+  rejectWorkshop : eventsOfficeOnlyProcedure
     .input(z.object({
       eventId: z.string(),
       rejectionReason: z.string(),
@@ -438,8 +447,8 @@ const eventRoutes = {
       return eventService.rejectWorkshop(input.eventId, input.rejectionReason);
     }),
 
-    // Workshop needs edits - EVENT_OFFICE ONLY
-    workshopNeedsEdits : eventsOfficeProcedure
+  // Workshop needs edits - EVENT_OFFICE ONLY (Admins excluded)
+  workshopNeedsEdits : eventsOfficeOnlyProcedure
     .input(z.object({
       eventId: z.string(),
       feedback: z.string().optional(),

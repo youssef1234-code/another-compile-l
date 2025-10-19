@@ -39,7 +39,8 @@ export function GymSchedulePage(){
   }, [setPageMeta]);
 
   const { user } = useAuthStore();
-  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.EVENT_OFFICE;
+  // Only Events Office can create/edit sessions (Admin excluded)
+  const canManage = user?.role === UserRole.EVENT_OFFICE;
 
   const utils = trpc.useUtils();
 
@@ -248,7 +249,7 @@ export function GymSchedulePage(){
           </Button>
         </div>
 
-        {isAdmin && (
+        {canManage && (
           <Button onClick={() => setCreateOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             Create Session
@@ -264,23 +265,23 @@ export function GymSchedulePage(){
           typeCounts={typeCounts}
           statusCounts={statusCounts}
           isSearching={isLoading}
-          onEditSession={isAdmin ? handleEditSession : undefined}
-          onDeleteSession={isAdmin ? handleDeleteSession : undefined}
+          onEditSession={canManage ? handleEditSession : undefined}
+          onDeleteSession={canManage ? handleDeleteSession : undefined}
         />
       ) : (
         <GymCalendar 
           events={sessions as CalendarEvent[]} 
-          onUpdateEvent={isAdmin ? handleUpdateEvent : undefined}
-          onCreateSession={isAdmin ? handleCreateSession : undefined}
-          onEditSession={isAdmin ? handleCalendarEditSession : undefined}
-          onDeleteSession={isAdmin ? handleCalendarDeleteSession : undefined}
+          onUpdateEvent={canManage ? handleUpdateEvent : undefined}
+          onCreateSession={canManage ? handleCreateSession : undefined}
+          onEditSession={canManage ? handleCalendarEditSession : undefined}
+          onDeleteSession={canManage ? handleCalendarDeleteSession : undefined}
           onMonthChange={handleMonthChange}
-          readOnly={!isAdmin}
+          readOnly={!canManage}
         />
       )}
 
       {/* Edit dialog */}
-      {isAdmin && editing && (
+      {canManage && editing && (
         <EditSessionDialog
           session={editing}
           onOpenChange={(open) => !open && setEditing(null)}
@@ -293,7 +294,7 @@ export function GymSchedulePage(){
       )}
 
       {/* Create dialog */}
-      {isAdmin && (
+      {canManage && (
         <CreateGymSessionDialog
           open={createOpen}
           onOpenChange={(o) => {

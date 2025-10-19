@@ -13,6 +13,7 @@
  */
 
 import { useForm, type DefaultValues, type FieldPath, type UseFormReturn } from 'react-hook-form';
+import { useEffect, useRef } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, type Variants } from 'framer-motion';
@@ -245,6 +246,23 @@ export function GenericForm<TFieldValues extends GenericFormValues = GenericForm
     defaultValues: (defaultValues ?? fallbackDefaults) as DefaultValues<TFieldValues>,
   });
 
+  // Keep form values in sync when defaultValues prop changes (e.g., after refetch)
+  const prevDefaultsRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!defaultValues) return;
+    try {
+      const next = JSON.stringify(defaultValues);
+      if (prevDefaultsRef.current !== next) {
+        form.reset(defaultValues as DefaultValues<TFieldValues>);
+        prevDefaultsRef.current = next;
+      }
+    } catch {
+      // Fallback: always reset if serialization fails
+      form.reset(defaultValues as DefaultValues<TFieldValues>);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultValues]);
+
   // Watch form values for conditional alerts
   const formValues = form.watch();
 
@@ -292,7 +310,7 @@ export function GenericForm<TFieldValues extends GenericFormValues = GenericForm
               ) : fieldConfig.type === 'select' ? (
                 <Select
                   onValueChange={(value) => field.onChange(value)}
-                  defaultValue={typeof field.value === 'string' ? field.value : undefined}
+                  value={typeof field.value === 'string' ? field.value : undefined}
                 >
                   <SelectTrigger className={cn('w-full', fieldConfig.inputClassName)}>
                     <SelectValue placeholder={fieldConfig.placeholder || `Select ${fieldConfig.label}`} />
