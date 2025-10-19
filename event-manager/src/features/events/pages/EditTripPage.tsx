@@ -38,6 +38,7 @@ export function EditTripPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [initialValues, setInitialValues] = useState<Partial<TripFormData> | null>(null);
+  const utils = trpc.useUtils();
 
   useEffect(() => {
     setPageMeta({
@@ -54,6 +55,12 @@ export function EditTripPage() {
 
   const updateMutation = trpc.events.update.useMutation({
     onSuccess: () => {
+      // Invalidate all events queries to refresh the table
+      utils.events.getEvents.invalidate();
+      utils.events.getEventById.invalidate();
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
+      
       toast.success('Trip updated successfully!');
       navigate(ROUTES.ADMIN_EVENTS);
     },

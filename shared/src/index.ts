@@ -360,7 +360,7 @@ export const CreateEventSchema = z.object({
   fundingSource: z.string().optional(),
   extraResources: z.string().optional(),
   // Conference-specific fields
-  conferenceWebsite: z.string().url().optional(),
+  websiteUrl: z.string().url().optional(),
 });
 
 export type CreateEventInput = z.infer<typeof CreateEventSchema>;
@@ -409,7 +409,7 @@ export const CreateConferenceSchema = z.object({
   locationDetails: z.string().min(5).max(200),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
-  conferenceWebsite: z.string().url(),
+  websiteUrl: z.string().url(),
   fullAgenda: z.string().min(20),
   requiredBudget: z.number().nonnegative(),
   fundingSource: z.enum(['UNIVERSITY', 'EXTERNAL_FUNDING']),
@@ -872,7 +872,7 @@ export interface Event {
   fundingSource?: string;
   extraResources?: string;
   // Conference-specific fields
-  conferenceWebsite?: string;
+  websiteUrl?: string;
   // Gym session-specific fields
   sessionType?: string;
   duration?: number;

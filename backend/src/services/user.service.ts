@@ -37,6 +37,13 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     if (data.email) {
       const existingUser = await userRepository.findByEmail(data.email);
       if (existingUser) {
+        // Check if the existing account is inactive/deleted
+        if (existingUser.isActive === false) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'This account has been deleted. Please contact the administration for assistance.'
+          });
+        }
         throw new TRPCError({
           code: 'CONFLICT',
           message: 'An account with this email already exists'

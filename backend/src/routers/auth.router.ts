@@ -105,6 +105,14 @@ const authRoutes = {
         });
       }
 
+      // Check if account is deleted/inactive
+      if (user.isActive === false) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'This account has been deleted. Please contact the administration for assistance.',
+        });
+      }
+
       // Check password
       const isPasswordValid = await comparePassword(input.password, user.password);
       if (!isPasswordValid) {

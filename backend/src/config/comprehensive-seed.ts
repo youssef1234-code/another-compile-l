@@ -318,7 +318,7 @@ const sampleEvents = [
     tags: ["Conference", "AI", "Research"],
     fullAgenda:
       "Keynote speakers, panel discussions, workshops, and networking sessions",
-    conferenceWebsite: "https://ai-conference.guc.edu.eg",
+    websiteUrl: "https://ai-conference.guc.edu.eg",
     requiredBudget: 50000,
     fundingSource: "EXTERNAL",
   },
@@ -337,7 +337,7 @@ const sampleEvents = [
     tags: ["Conference", "Environment", "Sustainability"],
     fullAgenda:
       "Expert talks on renewable energy, waste management, and green technology",
-    conferenceWebsite: "https://sustainability.guc.edu.eg",
+    websiteUrl: "https://sustainability.guc.edu.eg",
     requiredBudget: 30000,
     fundingSource: "GUC",
   },

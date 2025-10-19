@@ -77,6 +77,8 @@ export function EditBazaarPage() {
       // Invalidate all relevant caches after successful update
       utils.events.getEvents.invalidate();
       utils.events.getEventById.invalidate({ id: id! });
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
       
       // Show success message
       toast.success("Bazaar updated successfully!");

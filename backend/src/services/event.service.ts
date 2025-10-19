@@ -785,6 +785,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       requiredBudget: event.requiredBudget,
       extraResources: event.extraResources,
       requirements: event.requirements,
+      // Conference-specific fields
+      websiteUrl: event.websiteUrl,
       // Gym session specific fields
       sessionType: event.sessionType,
       duration: event.duration,
