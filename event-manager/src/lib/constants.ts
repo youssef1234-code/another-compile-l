@@ -4,8 +4,8 @@
  * @module lib/constants
  */
 
-export const APP_NAME = "Event Manager";
-export const APP_DESCRIPTION = "GUC Event Management System";
+export const APP_NAME = "Another Compile L";
+export const APP_DESCRIPTION = "Another Compile L Event Management System";
 
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 

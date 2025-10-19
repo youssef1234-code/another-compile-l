@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { EnhancedAlertDialog } from "@/components/generic/AlertDialog";
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 const schema = z.object({
   title: z.string().min(5, "Bazaar Name must be at least 5 characters"),
@@ -83,28 +84,9 @@ export function EditBazaarPage() {
       // Navigate to the event details page to see the updated event
       navigate(`${ROUTES.EVENTS}/${id}`);
     },
-    onError: (error, variables) => {
-      // Map backend error messages to user-friendly explanations
-      let userMessage = "An unexpected error occurred while updating the bazaar.";
-      // Extract dates from variables for more helpful messages
-      const startDate = variables?.data?.startDate ? new Date(variables.data.startDate).toLocaleString() : undefined;
-      const endDate = variables?.data?.endDate ? new Date(variables.data.endDate).toLocaleString() : undefined;
-      const regDeadline = variables?.data?.registrationDeadline ? new Date(variables.data.registrationDeadline).toLocaleString() : undefined;
-      if (error.message?.includes("Start date must be before end date")) {
-        userMessage = `The event's start date (${startDate}) must be earlier than its end date (${endDate}). Please check both dates and make sure the start date is before the end date.`;
-      } else if (error.message?.includes("Registration deadline must be before start date")) {
-        userMessage = `The registration deadline (${regDeadline}) must be set before the event's start date (${startDate}). Please choose a registration deadline that is earlier than the event start date.`;
-      } else if (error.message?.includes("Capacity must be a positive number")) {
-        userMessage = "The event capacity must be a positive number. Please enter a value greater than zero for capacity.";
-      } else if (error.message?.includes("Only professors can create workshops")) {
-        userMessage = "Only users with the professor role can create workshops. Please contact your administrator if you need access.";
-      }
-      setErrorDialog({
-        open: true,
-        title: "Failed to Update Bazaar",
-        message: userMessage,
-        details: undefined
-      });
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     }
   });
   const { data: bazaar, isLoading: isLoadingBazaar } = trpc.events.getEventById.useQuery(

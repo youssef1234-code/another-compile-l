@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatValidationErrors } from "@/lib/format-errors";
 
 
 function toISOFromLocal(dateStr: string, timeStr: string) {
@@ -67,7 +68,8 @@ export function CreateGymSessionDialog({
       setName(""); setDescription(""); setSessionType("YOGA"); setDate(""); setTime(""); setDuration(60); setCapacity(20);
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to create session");
+      const errorMessage = formatValidationErrors(err);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 

@@ -13,7 +13,7 @@ import { useState } from 'react';
 import type { PageMeta, PageMetaContext } from './page-meta-context';
 
 export function AppLayout() {
-  const [pageMeta, setPageMeta] = useState<PageMeta>({ title: 'Event Manager' });
+  const [pageMeta, setPageMeta] = useState<PageMeta>({ title: 'Another Compile L' });
 
   return (
     <SidebarProvider>

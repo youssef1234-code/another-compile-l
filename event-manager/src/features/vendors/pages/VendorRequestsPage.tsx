@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "react-hot-toast";
 import type { VendorApplication } from "@event-manager/shared";
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 type SortState = Array<{ id: string; desc: boolean }>;
 
@@ -170,8 +171,10 @@ export function VendorRequestsPage() {
       refetch();
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Failed to approve application";
-      toast.error(message || "Failed to approve application");
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, {
+        style: { whiteSpace: 'pre-line' },
+      });
     },
   });
 
@@ -183,8 +186,10 @@ export function VendorRequestsPage() {
       refetch();
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Failed to reject application";
-      toast.error(message || "Failed to reject application");
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, {
+        style: { whiteSpace: 'pre-line' },
+      });
     },
   });
 

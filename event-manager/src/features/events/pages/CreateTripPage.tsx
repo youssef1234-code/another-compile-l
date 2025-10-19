@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +49,8 @@ export function CreateTripPage() {
       navigate(ROUTES.EVENTS);
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create trip');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 

@@ -405,20 +405,10 @@ export function BackOfficeEventsPage() {
         });
       }
     } catch (error: unknown) {
-      let errorMessage = 'Failed to update event';
-      const err = error as { data?: { zodError?: { fieldErrors?: Record<string, string[]> } }; message?: string };
+      // Use universal error formatter
+      const errorMessage = formatValidationErrors(error);
       
-      if (err?.data?.zodError?.fieldErrors) {
-        const fieldErrors = err.data.zodError.fieldErrors;
-        const firstFieldErrors = Object.values(fieldErrors)[0];
-        if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-          errorMessage = firstFieldErrors[0];
-        }
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-      
-      toast.error(errorMessage);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
       throw new Error(errorMessage);
     }
   }, [events, editWorkshopMutation, updateEventMutation]);

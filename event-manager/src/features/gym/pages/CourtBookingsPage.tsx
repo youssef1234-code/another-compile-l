@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "react-hot-toast";
 import { CalendarSearch } from "lucide-react";
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 const SPORTS = ["ALL", "BASKETBALL", "TENNIS", "FOOTBALL"] as const;
 type SportFilter = typeof SPORTS[number];
@@ -93,7 +94,10 @@ export function CourtBookingsPage() {
       toast.success("Reservation successful");
       utils.courts.availability.invalidate(availabilityInput);
     },
-    onError: (e) => toast.error(e.message || "Failed to reserve court"),
+    onError: (e) => {
+      const errorMessage = formatValidationErrors(e);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+    },
   });
 
   const cancelM = trpc.courts.cancel.useMutation({
@@ -101,7 +105,10 @@ export function CourtBookingsPage() {
       toast.success("Reservation cancelled");
       utils.courts.availability.invalidate(availabilityInput);
     },
-    onError: (e) => toast.error(e.message || "Failed to cancel reservation"),
+    onError: (e) => {
+      const errorMessage = formatValidationErrors(e);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+    },
   });
 
   const courtOptions = useMemo(() => {

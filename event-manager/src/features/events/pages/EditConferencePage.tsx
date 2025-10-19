@@ -15,6 +15,7 @@ import { ROUTES } from '@/lib/constants';
 import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 const conferenceSchema = z.object({
   images: z.array(z.string()).optional(),
@@ -61,7 +62,8 @@ export function EditConferencePage() {
       navigate(ROUTES.ADMIN_EVENTS);
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to update conference');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 

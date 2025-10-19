@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/lib/constants';
 import { trpc } from '@/lib/trpc';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 type EventType = 'WORKSHOP' | 'TRIP' | 'BAZAAR' | 'CONFERENCE' | 'GYM_SESSION' | 'OTHER';
 type EventLocation = 'ON_CAMPUS' | 'OFF_CAMPUS';
@@ -81,7 +82,8 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
       utils.events.getMyRegistrations.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to register for event');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 

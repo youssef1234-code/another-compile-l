@@ -4,7 +4,7 @@ export function NotificationsPage() {
   return (
     <ComingSoonPage
       title="Notifications Center"
-      description="Stay informed with real-time notifications about your events, registrations, bookings, and important updates from the GUC Events platform."
+      description="Stay informed with real-time notifications about your events, registrations, bookings, and important updates from the Another Compile L platform."
       features={[
         'Real-time event notifications',
         'Registration confirmations and updates',

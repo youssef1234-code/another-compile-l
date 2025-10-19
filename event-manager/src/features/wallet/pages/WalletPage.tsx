@@ -4,7 +4,7 @@ export function WalletPage() {
   return (
     <ComingSoonPage
       title="Digital Wallet"
-      description="Manage your digital wallet balance, track transactions, and handle payments seamlessly within the GUC Events platform."
+      description="Manage your digital wallet balance, track transactions, and handle payments seamlessly within the Another Compile L platform."
       features={[
         'View wallet balance in real-time',
         'Track all transactions history',

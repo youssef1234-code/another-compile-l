@@ -14,6 +14,7 @@ import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 export function RequestVerificationPage() {
   const [searchParams] = useSearchParams();
@@ -48,7 +49,10 @@ export function RequestVerificationPage() {
         const waitSeconds = parseInt(match[1]);
         setCooldownSeconds(waitSeconds);
       }
-      toast.error(error.message);
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, {
+        style: { whiteSpace: 'pre-line' },
+      });
     },
   });
 

@@ -7,7 +7,6 @@
 import {
   Calendar,
   ChevronRight,
-  GraduationCap,
   LayoutDashboard,
   Settings,
   ShoppingBag,
@@ -240,24 +239,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       className="border-r bg-gradient-to-b from-sidebar/95 via-sidebar to-sidebar/98"
       {...props}
     >
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link to={ROUTES.DASHBOARD}>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <GraduationCap className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">GUC Events</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    Event Management
-                  </span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarHeader className="p-2 pb-4 overflow-hidden">
+        <Link to={ROUTES.DASHBOARD} className="block">
+          <img 
+            src={state === "collapsed" ? "/favicon.png" : "/logo.png"}
+            alt="Another Compile L" 
+            className={`w-full h-auto max-h-12 object-contain transition-transform duration-300 ${
+              state === "collapsed" ? "scale-100" : "scale-320"
+           }`}
+          />
+        </Link>
       </SidebarHeader>
 
       <SidebarContent>

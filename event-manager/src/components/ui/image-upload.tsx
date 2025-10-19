@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 interface ImageUploadProps {
   value?: string; // File ID or URL
@@ -56,7 +57,8 @@ export function ImageUpload({
       toast.success('Image uploaded successfully!');
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to upload image');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
       setPreview(null);
     },
   });

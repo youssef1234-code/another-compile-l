@@ -4,7 +4,7 @@ export function ReportsPage() {
   return (
     <ComingSoonPage
       title="Admin Reports & Analytics"
-      description="Comprehensive reporting and analytics dashboard for monitoring platform performance, user activities, and event statistics across the entire GUC Events system."
+      description="Comprehensive reporting and analytics dashboard for monitoring platform performance, user activities, and event statistics across the entire Another Compile L system."
       features={[
         'Platform-wide usage statistics',
         'User registration and activity trends',

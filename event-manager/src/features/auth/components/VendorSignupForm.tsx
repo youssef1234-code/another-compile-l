@@ -16,6 +16,7 @@ import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
 import { Building2, Mail, Lock, Briefcase, User } from 'lucide-react';
 import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 // Zod Schema
 const vendorSignupSchema = z.object({
@@ -69,8 +70,12 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(error.message, {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, {
         duration: 5000,
+        style: {
+          whiteSpace: 'pre-line', // Allow line breaks
+        },
       });
     }
   });
@@ -137,7 +142,7 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
   return (
   <GenericForm<VendorSignupFormData>
       title="Vendor Signup"
-      description="Register your company to participate in GUC events"
+      description="Register your company to participate in Another Compile L events"
       icon={<Building2 className="h-6 w-6 text-primary" />}
       fields={fields}
       schema={vendorSignupSchema}

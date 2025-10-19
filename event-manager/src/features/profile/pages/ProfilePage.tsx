@@ -22,6 +22,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { getAvatarSrc } from '@event-manager/shared';
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 export function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -57,7 +58,10 @@ export function ProfilePage() {
       }
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to update avatar');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, {
+        style: { whiteSpace: 'pre-line' },
+      });
     },
   });
 

@@ -26,6 +26,7 @@ type ExtendedFilter = {
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson, parseAsBoolean } from 'nuqs';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 import { FormSheet, FormSheetContent, FormSheetField, FormSheetFooter, ConfirmDialog } from '@/components/generic';
 import { Button } from '@/components/ui/button';
@@ -230,7 +231,8 @@ export function AdminUsersPage() {
       setCreateForm({ email: '', firstName: '', lastName: '', role: '', password: '' });
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create user');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 
@@ -248,7 +250,8 @@ export function AdminUsersPage() {
       utils.auth.getAllUsers.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to verify role');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 
@@ -259,7 +262,8 @@ export function AdminUsersPage() {
       utils.auth.getUserStats.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to approve vendor');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 
@@ -270,7 +274,8 @@ export function AdminUsersPage() {
       utils.auth.getUserStats.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to reject vendor');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 
@@ -281,7 +286,8 @@ export function AdminUsersPage() {
       utils.auth.getUserStats.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to block user');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 
@@ -292,7 +298,8 @@ export function AdminUsersPage() {
       utils.auth.getUserStats.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to unblock user');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 
@@ -303,7 +310,8 @@ export function AdminUsersPage() {
       utils.auth.getUserStats.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to delete user');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 
@@ -318,41 +326,11 @@ export function AdminUsersPage() {
         ...updates 
       });
     } catch (error: unknown) {
-      // Extract user-friendly error message from tRPC/Zod errors
-      let errorMessage = 'Failed to update user';
-      const err = error as { data?: { zodError?: { fieldErrors?: Record<string, string[]> } }; message?: string };
-      
-      // Handle tRPC validation errors (standard tRPC format)
-      if (err?.data?.zodError?.fieldErrors) {
-        const fieldErrors = err.data.zodError.fieldErrors;
-        const firstFieldErrors = Object.values(fieldErrors)[0];
-        if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
-          errorMessage = firstFieldErrors[0];
-        }
-      } 
-      // Handle error.message that contains stringified JSON array
-      else if (err?.message && typeof err.message === 'string' && err.message.trim().startsWith('[')) {
-        try {
-          const parsed = JSON.parse(err.message) as Array<{ message?: string }>;
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.message) {
-            errorMessage = parsed[0].message;
-          }
-        } catch {
-          // If parsing fails, use the raw message
-          errorMessage = err.message;
-        }
-      }
-      // Handle direct array of errors
-      else if (Array.isArray(err) && err.length > 0 && (err[0] as { message?: string })?.message) {
-        errorMessage = (err[0] as { message: string }).message;
-      }
-      // Handle simple error message string
-      else if (err?.message) {
-        errorMessage = err.message;
-      }
+      // Use universal error formatter
+      const errorMessage = formatValidationErrors(error);
       
       // Show toast with clean error message
-      toast.error(errorMessage);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
       
       // Re-throw with clean message for InlineEditCell to catch
       throw new Error(errorMessage);

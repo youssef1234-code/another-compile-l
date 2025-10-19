@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { VendorCard } from "@/features/events/components/VendorCard";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { formatValidationErrors } from '@/lib/format-errors';
 import { 
   Edit, 
   Calendar, 
@@ -159,7 +160,8 @@ export function EventDetailsPage() {
       utils.events.isRegistered.invalidate({ eventId: id! });
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to register for event");
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
       setIsRegistering(false);
     },
   });

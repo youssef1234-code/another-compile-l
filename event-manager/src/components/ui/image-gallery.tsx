@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { Button } from './button';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 // Component to load and display a single image thumbnail
 function ImageThumbnail({ imageId, alt }: { imageId: string; alt: string }) {
@@ -110,7 +111,8 @@ export function ImageGallery({
           return newMap;
         });
       }
-      toast.error(error.message || 'Upload failed');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 

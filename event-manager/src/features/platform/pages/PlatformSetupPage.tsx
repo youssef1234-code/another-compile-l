@@ -60,6 +60,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import type Konva from 'konva';
 import { toast } from 'react-hot-toast';
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 interface Booth {
   id: string;
@@ -115,7 +116,8 @@ export function PlatformSetupPage() {
       refetch();
     },
     onError: (error) => {
-      toast.error(`Failed to save: ${error.message}`);
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 

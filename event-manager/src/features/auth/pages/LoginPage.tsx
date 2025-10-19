@@ -13,6 +13,7 @@ import { trpc } from '@/lib/trpc';
 import { useAuthStore } from '@/store/authStore';
 import { ROUTES } from '@/lib/constants';
 import { Mail, Lock } from 'lucide-react';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -51,13 +52,15 @@ export function LoginPage() {
         return;
       }
 
-      toast.error(error.message || 'Login failed', {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, {
         icon: '❌',
         duration: 4000,
         style: {
           background: '#ef4444',
           color: '#fff',
           fontWeight: '500',
+          whiteSpace: 'pre-line', // Allow line breaks
         },
       });
     },

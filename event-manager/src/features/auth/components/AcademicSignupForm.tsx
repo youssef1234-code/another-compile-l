@@ -17,6 +17,7 @@ import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
 import { GraduationCap, UserCheck, Mail, Lock, User, IdCard } from 'lucide-react';
 import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 // Zod Schema
 const academicSignupSchema = z.object({
@@ -70,8 +71,12 @@ export function AcademicSignupForm({ onSuccess }: AcademicSignupFormProps) {
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(error.message, {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, {
         duration: 5000,
+        style: {
+          whiteSpace: 'pre-line', // Allow line breaks
+        },
       });
     }
   });

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatValidationErrors } from '@/lib/format-errors';
 import { 
   Calendar, 
   MapPin, 
@@ -211,7 +212,8 @@ export function MyRegistrationsPage() {
       utils.events.getMyRegistrations.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to cancel registration');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
       setCancellingId(null);
     },
   });

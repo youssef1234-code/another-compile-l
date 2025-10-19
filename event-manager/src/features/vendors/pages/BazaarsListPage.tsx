@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatValidationErrors } from "@/lib/format-errors";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -183,7 +184,8 @@ export function BazaarsListPage() {
       refetchApplications();
     },
     onError: (error) => {
-      toast.error(`Failed to submit application: ${error.message}`);
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 

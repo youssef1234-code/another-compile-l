@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import type { CalendarEvent } from "../../components/calendar/types";
 import toast from "react-hot-toast";
+import { formatValidationErrors } from "@/lib/format-errors";
 
 function toLocalYMD(dt: Date){ const d=new Date(dt); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function toLocalHM(dt: Date){ const d=new Date(dt); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -43,7 +44,10 @@ export default function EditSessionDialog({
   const utils = trpc.useUtils();
   const updateM = trpc.events.updateGymSession.useMutation({
     onSuccess: () => { utils.events.getEvents.invalidate(); onSaved(); },
-    onError: (e: TRPCError) => { toast.error(e.message || "Failed to save"); },
+    onError: (e: TRPCError) => { 
+      const errorMessage = formatValidationErrors(e);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } }); 
+    },
   });
 
   const saving = updateM.isPending;

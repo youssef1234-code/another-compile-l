@@ -15,6 +15,7 @@ import EditSessionDialog from "./components/EditSessionDialog";
 import type { CalendarEvent } from '../components/calendar/types';
 import { cn } from '@/lib/utils';
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 export function GymSchedulePage(){
   const { setPageMeta } = usePageMeta();
@@ -152,7 +153,8 @@ export function GymSchedulePage(){
       utils.events.getAllEvents.invalidate();
     },
     onError: (e) => {
-      toast.error(e.message || "Failed to delete session");
+      const errorMessage = formatValidationErrors(e);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 
@@ -161,7 +163,8 @@ export function GymSchedulePage(){
       utils.events.getAllEvents.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to update session');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
       throw error; // Re-throw so the calendar can handle it
     },
   });

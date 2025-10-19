@@ -10,6 +10,12 @@
 import formData from 'form-data';
 import Mailgun from 'mailgun.js';
 import { config } from '../config/env.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import types from mailgun.js internal structure
 type IMailgunClient = ReturnType<InstanceType<typeof Mailgun>['client']>;
@@ -75,9 +81,96 @@ export interface PaymentReceiptEmailData {
  */
 export abstract class BaseMailService {
   protected from: string;
+  protected logsDir: string;
 
   constructor(from?: string) {
     this.from = from || config.emailFrom;
+    
+    // Setup logs directory
+    this.logsDir = path.join(__dirname, '../../logs/emails');
+    this.ensureLogsDirectory();
+  }
+
+  /**
+   * Ensure logs directory exists
+   */
+  private ensureLogsDirectory(): void {
+    if (!fs.existsSync(this.logsDir)) {
+      fs.mkdirSync(this.logsDir, { recursive: true });
+      console.log(`📁 Created email logs directory: ${this.logsDir}`);
+    }
+  }
+
+  /**
+   * Save email HTML to logs folder
+   */
+  protected saveEmailToLogs(
+    type: string,
+    recipient: string,
+    subject: string,
+    html: string
+  ): void {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const sanitizedRecipient = recipient.replace(/[^a-z0-9]/gi, '_');
+      const filename = `${timestamp}_${type}_${sanitizedRecipient}.html`;
+      const filepath = path.join(this.logsDir, filename);
+
+      // Create a complete HTML document with metadata
+      const fullHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+  <style>
+    .email-metadata {
+      background-color: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    .email-metadata h3 {
+      margin-top: 0;
+      color: #2456d3;
+    }
+    .email-metadata p {
+      margin: 8px 0;
+    }
+    .email-content {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      background-color: #ffffff;
+    }
+  </style>
+</head>
+<body style="background-color: #fafafa; padding: 20px;">
+  <div class="email-metadata">
+    <h3>📧 Email Metadata</h3>
+    <p><strong>Type:</strong> ${type}</p>
+    <p><strong>To:</strong> ${recipient}</p>
+    <p><strong>Subject:</strong> ${subject}</p>
+    <p><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>
+    <p><strong>Log File:</strong> ${filename}</p>
+  </div>
+  
+  <div class="email-content">
+    ${html}
+  </div>
+</body>
+</html>
+      `.trim();
+
+      fs.writeFileSync(filepath, fullHtml, 'utf-8');
+      console.log(`💾 Email saved to logs: ${filename}`);
+    } catch (error: any) {
+      console.error('⚠️  Failed to save email to logs:', error.message);
+    }
   }
 
   /**
@@ -92,11 +185,15 @@ export abstract class BaseMailService {
     email: string,
     data: VerificationEmailData
   ): Promise<void> {
+    console.log(`📧 Sending verification email to: ${email}`);
     const html = this.generateVerificationEmailHTML(data);
+    const subject = 'Verify Your Email - Another Compile L';
+    
+    this.saveEmailToLogs('verification', email, subject, html);
     
     await this.sendMail({
       to: email,
-      subject: 'Verify Your Email - Event Manager',
+      subject,
       html,
     });
   }
@@ -108,11 +205,15 @@ export abstract class BaseMailService {
     email: string,
     data: WelcomeEmailData
   ): Promise<void> {
+    console.log(`📧 Sending welcome email to: ${email}`);
     const html = this.generateWelcomeEmailHTML(data);
+    const subject = 'Welcome to Another Compile L!';
+    
+    this.saveEmailToLogs('welcome', email, subject, html);
     
     await this.sendMail({
       to: email,
-      subject: 'Welcome to Event Manager!',
+      subject,
       html,
     });
   }
@@ -124,11 +225,15 @@ export abstract class BaseMailService {
     email: string,
     data: PasswordResetEmailData
   ): Promise<void> {
+    console.log(`📧 Sending password reset email to: ${email}`);
     const html = this.generatePasswordResetEmailHTML(data);
+    const subject = 'Reset Your Password - Another Compile L';
+    
+    this.saveEmailToLogs('password-reset', email, subject, html);
     
     await this.sendMail({
       to: email,
-      subject: 'Reset Your Password - Event Manager',
+      subject,
       html,
     });
   }
@@ -140,11 +245,15 @@ export abstract class BaseMailService {
     email: string,
     data: EventReminderEmailData
   ): Promise<void> {
+    console.log(`📧 Sending event reminder email to: ${email}`);
     const html = this.generateEventReminderEmailHTML(data);
+    const subject = `Reminder: ${data.eventName}`;
+    
+    this.saveEmailToLogs('event-reminder', email, subject, html);
     
     await this.sendMail({
       to: email,
-      subject: `Reminder: ${data.eventName}`,
+      subject,
       html,
     });
   }
@@ -156,11 +265,15 @@ export abstract class BaseMailService {
     email: string,
     data: PaymentReceiptEmailData
   ): Promise<void> {
+    console.log(`📧 Sending payment receipt email to: ${email}`);
     const html = this.generatePaymentReceiptEmailHTML(data);
+    const subject = `Payment Receipt - ${data.eventName}`;
+    
+    this.saveEmailToLogs('payment-receipt', email, subject, html);
     
     await this.sendMail({
       to: email,
-      subject: `Payment Receipt - ${data.eventName}`,
+      subject,
       html,
     });
   }
@@ -173,6 +286,10 @@ export abstract class BaseMailService {
     subject: string,
     html: string
   ): Promise<void> {
+    console.log(`📧 Sending custom email to: ${email}`);
+    
+    this.saveEmailToLogs('custom', email, subject, html);
+    
     await this.sendMail({
       to: email,
       subject,
@@ -216,7 +333,7 @@ export abstract class BaseMailService {
                       <table width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0;">
                         <tr>
                           <td align="center">
-                            <a href="${verificationUrl}" style="display: inline-block; padding: 12px 32px; background-color: #171717; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">Verify Email</a>
+                            <a href="${verificationUrl}" style="display: inline-block; padding: 12px 32px; background-color: #2456d3; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">Verify Email</a>
                           </td>
                         </tr>
                       </table>
@@ -232,7 +349,7 @@ export abstract class BaseMailService {
                   <tr>
                     <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
                       <p style="margin: 0; font-size: 13px; color: #a3a3a3;">If you didn't sign up, you can safely ignore this email.</p>
-                      <p style="margin: 8px 0 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Event Manager</p>
+                      <p style="margin: 8px 0 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
                     </td>
                   </tr>
                 </table>
@@ -262,7 +379,7 @@ export abstract class BaseMailService {
                   <!-- Header -->
                   <tr>
                     <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5;">
-                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #171717;">Welcome to Event Manager</h1>
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #2456d3;">Welcome to Another Compile L</h1>
                     </td>
                   </tr>
                   
@@ -276,7 +393,7 @@ export abstract class BaseMailService {
                       <table width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0;">
                         <tr>
                           <td align="center">
-                            <a href="${loginUrl}" style="display: inline-block; padding: 12px 32px; background-color: #171717; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">Get Started</a>
+                            <a href="${loginUrl}" style="display: inline-block; padding: 12px 32px; background-color: #2456d3; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">Get Started</a>
                           </td>
                         </tr>
                       </table>
@@ -286,7 +403,7 @@ export abstract class BaseMailService {
                   <!-- Footer -->
                   <tr>
                     <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
-                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Event Manager</p>
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
                     </td>
                   </tr>
                 </table>
@@ -330,7 +447,7 @@ export abstract class BaseMailService {
                       <table width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0;">
                         <tr>
                           <td align="center">
-                            <a href="${resetUrl}" style="display: inline-block; padding: 12px 32px; background-color: #171717; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">Reset Password</a>
+                            <a href="${resetUrl}" style="display: inline-block; padding: 12px 32px; background-color: #2456d3; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">Reset Password</a>
                           </td>
                         </tr>
                       </table>
@@ -347,7 +464,7 @@ export abstract class BaseMailService {
                   <!-- Footer -->
                   <tr>
                     <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
-                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Event Manager</p>
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
                     </td>
                   </tr>
                 </table>
@@ -380,7 +497,7 @@ export abstract class BaseMailService {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <div style="background: linear-gradient(135deg, #2456d3 0%, #1a3fa8 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="color: white; margin: 0;">📅 Event Reminder</h1>
           </div>
           
@@ -388,8 +505,8 @@ export abstract class BaseMailService {
             <h2 style="color: #1f2937; margin-top: 0;">Hi ${name}!</h2>
             <p style="font-size: 16px; color: #4b5563;">This is a friendly reminder about your upcoming event:</p>
             
-            <div style="background-color: white; padding: 25px; border-radius: 8px; margin: 30px 0; border: 2px solid #10b981;">
-              <h3 style="color: #10b981; margin-top: 0;">${eventName}</h3>
+            <div style="background-color: white; padding: 25px; border-radius: 8px; margin: 30px 0; border: 2px solid #2456d3;">
+              <h3 style="color: #2456d3; margin-top: 0;">${eventName}</h3>
               <div style="color: #4b5563; font-size: 15px;">
                 <p style="margin: 10px 0;"><strong>📅 Date:</strong> ${formattedDate}</p>
                 <p style="margin: 10px 0;"><strong>🕐 Time:</strong> ${formattedTime}</p>
@@ -399,7 +516,7 @@ export abstract class BaseMailService {
             
             <div style="text-align: center; margin: 40px 0;">
               <a href="${eventUrl}" 
-                 style="background-color: #10b981; color: white; padding: 14px 40px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">
+                 style="background-color: #2456d3; color: white; padding: 14px 40px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">
                 View Event Details
               </a>
             </div>
@@ -408,7 +525,7 @@ export abstract class BaseMailService {
           </div>
           
           <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
-            <p>&copy; ${new Date().getFullYear()} Event Manager. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Another Compile L. All rights reserved.</p>
           </div>
         </body>
       </html>
@@ -431,7 +548,7 @@ export abstract class BaseMailService {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background-color: #059669; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <div style="background-color: #2456d3; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="color: white; margin: 0;">💳 Payment Receipt</h1>
           </div>
           
@@ -440,7 +557,7 @@ export abstract class BaseMailService {
             <p style="font-size: 16px; color: #4b5563;">Your payment has been processed successfully. Here are the details:</p>
             
             <div style="background-color: white; padding: 25px; border-radius: 8px; margin: 30px 0; border: 1px solid #e5e7eb;">
-              <h3 style="color: #059669; margin-top: 0;">Payment Details</h3>
+              <h3 style="color: #2456d3; margin-top: 0;">Payment Details</h3>
               <table style="width: 100%; border-collapse: collapse;">
                 <tr>
                   <td style="padding: 10px 0; color: #6b7280; font-weight: 600;">Event:</td>
@@ -467,8 +584,8 @@ export abstract class BaseMailService {
               </table>
             </div>
             
-            <div style="background-color: #ecfdf5; padding: 20px; border-radius: 6px; border-left: 4px solid #059669; margin-top: 30px;">
-              <p style="margin: 0; color: #065f46; font-size: 14px;">
+            <div style="background-color: #eff6ff; padding: 20px; border-radius: 6px; border-left: 4px solid #2456d3; margin-top: 30px;">
+              <p style="margin: 0; color: #1e3a8a; font-size: 14px;">
                 <strong>✓ Your registration is confirmed!</strong> You'll receive event details and reminders via email.
               </p>
             </div>
@@ -476,7 +593,7 @@ export abstract class BaseMailService {
           
           <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
             <p>Keep this email for your records.</p>
-            <p style="margin-top: 10px;">&copy; ${new Date().getFullYear()} Event Manager. All rights reserved.</p>
+            <p style="margin-top: 10px;">&copy; ${new Date().getFullYear()} Another Compile L. All rights reserved.</p>
           </div>
         </body>
       </html>
@@ -543,9 +660,9 @@ export class MailgunService extends BaseMailService {
 
       await this.mailgun.messages.create(this.domain, messageData);
       
-      console.log(`✓ Email sent successfully to ${options.to}`);
+      console.log(`📧 ✓ Email sent successfully to ${options.to}`);
     } catch (error: any) {
-      console.error('Failed to send email:', error.message);
+      console.error('📧 ✗ Failed to send email:', error.message);
       throw new Error(`Failed to send email: ${error.message}`);
     }
   }
@@ -558,9 +675,13 @@ export class MailgunService extends BaseMailService {
     subject: string,
     html: string
   ): Promise<void> {
+    console.log(`📧 Sending bulk email to ${recipients.length} recipients`);
     if (recipients.length > 1000) {
       throw new Error('Mailgun supports up to 1000 recipients per batch');
     }
+
+    // Save a sample email to logs
+    this.saveEmailToLogs('bulk', recipients.join(', '), subject, html);
 
     await this.sendMail({
       to: recipients,

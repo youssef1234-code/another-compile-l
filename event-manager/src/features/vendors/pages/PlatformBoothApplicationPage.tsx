@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
 import { Loader2, Plus, Trash2, Save, MapPin } from 'lucide-react';
+import { formatValidationErrors } from '@/lib/format-errors';
 import { 
   Select,
   SelectContent,
@@ -96,8 +97,8 @@ export function PlatformBoothApplicationPage() {
       navigate(ROUTES.VENDOR_APPLICATIONS);
     },
     onError: (error: TRPCError) => {
-      const errorMessage = error?.message || 'Unknown error';
-      toast.error(`Failed to submit application: ${errorMessage}`);
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 

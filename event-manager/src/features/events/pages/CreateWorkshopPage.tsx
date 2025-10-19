@@ -13,6 +13,7 @@ import { toast } from 'react-hot-toast';
 import { Plus, X } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
+import { formatValidationErrors } from '@/lib/format-errors';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,7 +60,8 @@ export function CreateWorkshopPage() {
       navigate(ROUTES.ADMIN_EVENTS); // Redirects to BackOfficeEventsPage (unified event management)
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create workshop');
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
 
