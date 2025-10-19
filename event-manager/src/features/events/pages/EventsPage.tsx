@@ -3,18 +3,20 @@
  * 
  * Student-facing page for browsing all available events
  * Features:
- * - Advanced filtering (type, location, date, price)
- * - Search by name, professor, description
+ * - Backend-driven filtering (type, location, date, price)
+ * - Backend search by name, professor, description
+ * - Backend sorting
  * - Beautiful card grid with images
- * - Sorting options
  * - Responsive design
  * - Empty states and loading skeletons
+ * - URL state management for all filters
  */
 
 
-import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, Grid3x3, List, ArrowUpDown, Loader2, CheckSquare } from 'lucide-react';
+import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson } from 'nuqs';
 import { trpc } from '@/lib/trpc';
 import { EventFilters, type EventFiltersState } from '../components/EventFilters';
 import { Button } from '@/components/ui/button';
@@ -22,10 +24,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/design-system';
-import { getEventTypeConfig, getEventStatus, hasOpenRegistration, EVENT_STATUS_COLORS } from '@/lib/event-colors';
+import { getEventTypeConfig, getEventStatus, EVENT_STATUS_COLORS } from '@/lib/event-colors';
 import type { Event, Registration } from '@event-manager/shared';
 import { useAuthStore } from '@/store/authStore';
 import { usePageMeta } from '@/components/layout/page-meta-context';
@@ -39,25 +40,41 @@ export function EventsPage() {
   const { setPageMeta } = usePageMeta();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'browse';
+
+  // URL state management - matching BackOfficeEventsPage pattern
+  const [activeTab, setActiveTab] = useQueryState('tab', parseAsString.withDefault('browse'));
+  const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1));
+  const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(24));
+  const [search, setSearch] = useQueryState('search', parseAsString.withDefault(''));
+  const [view, setView] = useQueryState('view', parseAsString.withDefault('grid'));
   
-  const [isPending, startTransition] = useTransition();
-  const [page, setPage] = useState(1);
-  const [showOpenOnly, setShowOpenOnly] = useState(true);
-  const [searchInput, setSearchInput] = useState(''); // Local state for search input
-  const [debouncedSearch, setDebouncedSearch] = useState(''); // Debounced search for API
-  const [filters, setFilters] = useState<EventFiltersState>({
-    search: '',
-    types: [],
-    location: undefined,
-    dateRange: 'upcoming',
-    maxPrice: undefined,
-    showFreeOnly: false,
-  });
-  const [view, setView] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'date' | 'name' | 'price'>('date');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  // Sort state - proper format for getAllEvents
+  const [sortState, setSortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>((v) => {
+    if (!v) return null;
+    if (typeof v === 'string') {
+      try {
+        return JSON.parse(v) as Array<{id: string; desc: boolean}>;
+      } catch {
+        return null;
+      }
+    }
+    return v as Array<{id: string; desc: boolean}>;
+  }).withDefault([{ id: 'startDate', desc: false }]));
+
+  // Simple filters from URL
+  const [typeFilter, setTypeFilter] = useQueryState('type', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [locationFilter, setLocationFilter] = useQueryState('location', parseAsString.withDefault(''));
+  const [statusFilter] = useQueryState('status', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  
+  // Advanced filters URL state
+  const [dateRange, setDateRange] = useQueryState('dateRange', parseAsString.withDefault(''));
+  const [dateFrom, setDateFrom] = useQueryState('dateFrom', parseAsString.withDefault(''));
+  const [dateTo, setDateTo] = useQueryState('dateTo', parseAsString.withDefault(''));
+  const [maxPrice, setMaxPrice] = useQueryState('maxPrice', parseAsString.withDefault(''));
+  const [showFreeOnly, setShowFreeOnly] = useQueryState('freeOnly', parseAsString.withDefault(''));
+
+  // Local search input state for debouncing
+  const [searchInput, setSearchInput] = useState(search);
 
   useEffect(() => {
     setPageMeta({
@@ -66,29 +83,179 @@ export function EventsPage() {
     });
   }, [setPageMeta]);
 
-  const handleTabChange = (value: string) => {
-    setSearchParams({ tab: value });
-    // Refetch data when tab changes
-    if (value === 'registrations') {
-      myRegistrationsRefetch();
-    } else {
-      eventsRefetch();
-    }
+  // Sync search input with URL state (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== search) {
+        setSearch(searchInput);
+        setPage(1);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput, search, setSearch, setPage]);
+
+  const handleTabChange = (tab: 'browse' | 'registrations') => {
+    setActiveTab(tab);
+    setPage(1);
   };
 
-  // Fetch user's registrations to mark registered events
-  const { data: myRegistrationsData, refetch: myRegistrationsRefetch } = trpc.events.getMyRegistrations.useQuery(
-    { page: 1, limit: 100 }, // Backend max limit is 100
-    { enabled: !!user }
+  // Build simple filters for getAllEvents
+  const filters = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    
+    // Always exclude gym sessions and booths from public events page
+    const publicTypes = ['WORKSHOP', 'TRIP', 'CONFERENCE', 'BAZAAR'];
+    
+    if (typeFilter.length > 0) {
+      // User selected specific types - only include those
+      result.type = typeFilter;
+    } else {
+      // No user selection - show all public event types
+      result.type = publicTypes;
+    }
+    
+    // Location filter - convert single value to array format
+    if (locationFilter) {
+      result.location = [locationFilter];
+    }
+    
+    if (statusFilter.length > 0) {
+      result.status = statusFilter;
+    }
+    
+    return result;
+  }, [typeFilter, locationFilter, statusFilter]);
+
+  // Build extended filters for advanced options (date range, price)
+  const extendedFilters = useMemo(() => {
+    type ExtendedFilter = {
+      id: string;
+      value: string | string[];
+      operator: 'iLike' | 'notILike' | 'eq' | 'ne' | 'isEmpty' | 'isNotEmpty' | 'lt' | 'lte' | 'gt' | 'gte' | 'isBetween' | 'inArray' | 'notInArray' | 'isRelativeToToday';
+      variant: 'text' | 'number' | 'range' | 'date' | 'dateRange' | 'boolean' | 'select' | 'multiSelect';
+      filterId: string;
+    };
+    
+    const result: ExtendedFilter[] = [];
+
+    // Date range filter
+    if (dateRange) {
+      const now = new Date();
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+
+      switch (dateRange) {
+        case 'this_week': {
+          const today = new Date(now);
+          const dayOfWeek = today.getDay();
+          const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+          startDate = new Date(today);
+          startDate.setDate(today.getDate() + diffToMonday);
+          startDate.setHours(0, 0, 0, 0);
+          
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        }
+        case 'this_month': {
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+          break;
+        }
+        case 'custom': {
+          if (dateFrom) startDate = new Date(dateFrom);
+          if (dateTo) endDate = new Date(dateTo);
+          break;
+        }
+      }
+
+      if (startDate && endDate) {
+        result.push({
+          id: 'startDate',
+          value: [startDate.toISOString(), endDate.toISOString()],
+          operator: 'isBetween' as const,
+          variant: 'dateRange' as const,
+          filterId: 'date-range-filter'
+        });
+      }
+    }
+
+    // Price filter
+    if (showFreeOnly === 'true') {
+      result.push({
+        id: 'price',
+        value: '0',
+        operator: 'eq' as const,
+        variant: 'number' as const,
+        filterId: 'free-only-filter'
+      });
+    } else if (maxPrice) {
+      result.push({
+        id: 'price',
+        value: maxPrice,
+        operator: 'lte' as const,
+        variant: 'number' as const,
+        filterId: 'max-price-filter'
+      });
+    }
+
+    return result.length > 0 ? result : undefined;
+  }, [dateRange, dateFrom, dateTo, maxPrice, showFreeOnly]);
+
+  // Parse sort state
+  const parsedSort = useMemo(() => {
+    try {
+      if (Array.isArray(sortState)) {
+        return sortState as Array<{id: string; desc: boolean}>;
+      }
+      return [{ id: 'startDate', desc: false }];
+    } catch {
+      return [{ id: 'startDate', desc: false }];
+    }
+  }, [sortState]);
+
+  // Fetch events for browse tab using getAllEvents with proper sorting
+  const { data: browseData, isLoading: isBrowseLoading } = trpc.events.getAllEvents.useQuery(
+    {
+      page,
+      perPage,
+      search: search || undefined,
+      sort: parsedSort,
+      filters: Object.keys(filters).length > 0 ? filters : undefined,
+      extendedFilters: extendedFilters,
+      joinOperator: 'and' as const,
+    },
+    {
+      enabled: activeTab === 'browse',
+      placeholderData: (previousData) => previousData,
+      staleTime: 5000,
+    }
+  );
+
+  // Fetch user's registrations for "My Registrations" tab
+  const { data: registrationsData, isLoading: isRegistrationsLoading } = trpc.events.getMyRegistrations.useQuery(
+    { 
+      page: 1, 
+      limit: 100,
+    },
+    { 
+      enabled: activeTab === 'registrations' && !!user,
+      staleTime: 5000,
+    }
+  );
+
+  // Fetch user's registrations to mark registered events in browse tab
+  const { data: myRegistrationsData } = trpc.events.getMyRegistrations.useQuery(
+    { page: 1, limit: 100 },
+    { enabled: !!user && activeTab === 'browse' }
   );
 
   // Create a Set of registered event IDs for quick lookup
-  // Per requirements: Show ALL registrations regardless of payment status
   const registeredEventIds = useMemo(() => {
     const ids = new Set<string>();
     if (myRegistrationsData?.registrations) {
       (myRegistrationsData.registrations as Registration[]).forEach((reg) => {
-        // Show as registered if not cancelled
         if (reg.status !== 'CANCELLED' && reg.eventId) {
           ids.add(reg.eventId);
         }
@@ -97,179 +264,83 @@ export function EventsPage() {
     return ids;
   }, [myRegistrationsData]);
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      startTransition(() => {
-        setDebouncedSearch(searchInput);
-        setFilters(prev => ({ ...prev, search: searchInput }));
-      });
-    }, 500); // 500ms debounce
-
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
-  const toggleSortDirection = useCallback(() => {
-    startTransition(() => {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    });
-  }, []);
-
-  // Build backend query from filters
-  const backendQuery = useMemo(() => {
-    const query: Record<string, unknown> = {
-      page,
-      limit: 24, // More items per page for grid view
-      search: filters.search || undefined,
-      type: filters.types.length === 1 ? filters.types[0] : undefined,
-      location: filters.location,
-      onlyUpcoming: filters.dateRange === 'upcoming',
-    };
-
-    // Custom date range
-    if (filters.dateRange === 'custom') {
-      if (filters.dateFrom) query.startDate = filters.dateFrom;
-      if (filters.dateTo) query.endDate = filters.dateTo;
-    }
-
-    // Price filters
-    if (filters.showFreeOnly) {
-      query.maxPrice = 0;
-    } else if (filters.maxPrice) {
-      query.maxPrice = filters.maxPrice;
-    }
-
-    return query;
-  }, [page, filters]);
-
-  // Fetch events with backend pagination and filtering
-  const { data: eventsData, isLoading, refetch: eventsRefetch } = trpc.events.getEvents.useQuery(backendQuery);
-
-  // Client-side sorting and type filtering (for multiple types)
+  // Display events based on active tab
   const displayedEvents = useMemo(() => {
-    // If on "My Registrations" tab, use events from registrations data
     if (activeTab === 'registrations') {
-      if (!myRegistrationsData?.registrations) return [];
+      const registrations = registrationsData?.registrations as PopulatedRegistration[] | undefined;
+      if (!registrations) return [];
       
-      // Extract events from registrations and filter out cancelled ones
-      let events = (myRegistrationsData.registrations as PopulatedRegistration[])
-        .filter((reg) => reg.status !== 'CANCELLED' && reg.event)
-        .map((reg) => {
-          const event = reg.event as Event;
-          // Ensure ID is consistent - use _id or id
-          return {
-            ...event,
-            id: event.id || (event as { _id?: string })._id
-          };
-        });
-
-      // Apply filters
-      if (filters.types.length > 0) {
-        events = events.filter((event) => filters.types.includes(event.type));
-      }
-
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        events = events.filter((event) => 
-          event.name.toLowerCase().includes(searchLower) ||
-          event.description?.toLowerCase().includes(searchLower) ||
-          (event as { professorName?: string }).professorName?.toLowerCase().includes(searchLower)
-        );
-      }
-
-      // Apply sorting
-      events.sort((a, b) => {
-        let comparison = 0;
-        
-        switch (sortBy) {
-          case 'name':
-            comparison = a.name.localeCompare(b.name);
-            break;
-          case 'price':
-            comparison = (a.price || 0) - (b.price || 0);
-            break;
-          case 'date':
-          default:
-            if (!a.startDate) return 1;
-            if (!b.startDate) return -1;
-            comparison = new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-            break;
-        }
-        
-        return sortDirection === 'asc' ? comparison : -comparison;
-      });
-
-      return events;
+      // Extract populated events from registrations
+      return registrations
+        .map((reg) => reg.event)
+        .filter((event): event is Event => !!event);
     }
 
-    // Browse tab - use regular events data
-    if (!eventsData?.events) return [];
+    // Browse tab - return what backend gives us
+    return browseData?.events || [];
+  }, [browseData, registrationsData, activeTab]);
 
-    let events = [...eventsData.events];
+  const totalPages = activeTab === 'browse' ? (browseData?.totalPages || 1) : 1;
+  const totalEvents = activeTab === 'browse' 
+    ? (browseData?.total || 0)
+    : displayedEvents.length;
 
-    // IMPORTANT: Show WORKSHOP, TRIP, CONFERENCE, BAZAAR in browse events
-    // Exclude: GYM_SESSION (handled by gym pages)
-    events = events.filter((event) => 
-      event.type === 'WORKSHOP' || event.type === 'TRIP' || event.type === 'CONFERENCE' || event.type === 'BAZAAR'
-    );
+  const isLoading = activeTab === 'browse' ? isBrowseLoading : isRegistrationsLoading;
 
-    // Filter by open registration status (only on browse tab)
-    if (showOpenOnly) {
-      events = events.filter((event) => hasOpenRegistration(event));
-    }
-
-    // Additional client-side filtering for multiple types (backend only supports single type)
-    if (filters.types.length > 1) {
-      events = events.filter((event) => filters.types.includes(event.type));
-    }
-
-    // Simple sorting with direction support
-    events.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortBy) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case 'price':
-          comparison = (a.price || 0) - (b.price || 0);
-          break;
-        case 'date':
-        default:
-          if (!a.startDate) return 1;
-          if (!b.startDate) return -1;
-          comparison = new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-          break;
+  // Helper to update sort
+  const updateSort = (field: string) => {
+    setSortState((prev) => {
+      const existing = prev.find(s => s.id === field);
+      if (existing) {
+        // Toggle direction
+        return [{ id: field, desc: !existing.desc }];
       }
-      
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-
-    return events;
-  }, [eventsData, myRegistrationsData, filters, sortBy, sortDirection, showOpenOnly, activeTab]);
-
-  const totalPages = eventsData?.totalPages || 1;
-  const totalEvents = activeTab === 'registrations' 
-    ? displayedEvents.length 
-    : (eventsData?.total || 0);
-
-  const handleResetFilters = () => {
-    setPage(1);
-    setFilters({
-      search: '',
-      types: [],
-      location: undefined,
-      dateRange: 'upcoming',
-      maxPrice: undefined,
-      showFreeOnly: false,
+      // New sort field
+      return [{ id: field, desc: false }];
     });
   };
 
+  const getCurrentSortDirection = (field: string): 'asc' | 'desc' => {
+    const sort = parsedSort.find(s => s.id === field);
+    return sort?.desc ? 'desc' : 'asc';
+  };
+
+  // Sync filters state for EventFilters component
+  const filtersState = useMemo((): EventFiltersState => ({
+    search: search,
+    types: typeFilter,
+    location: (locationFilter as 'ON_CAMPUS' | 'OFF_CAMPUS') || undefined,
+    dateRange: (dateRange as 'upcoming' | 'this_week' | 'this_month' | 'custom') || undefined,
+    dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+    dateTo: dateTo ? new Date(dateTo) : undefined,
+    maxPrice: maxPrice ? Number(maxPrice) : undefined,
+    showFreeOnly: showFreeOnly === 'true',
+  }), [search, typeFilter, locationFilter, dateRange, dateFrom, dateTo, maxPrice, showFreeOnly]);
+
+  const handleResetFilters = () => {
+    setPage(1);
+    setSearch('');
+    setTypeFilter([]);
+    setLocationFilter('');
+    setDateRange('');
+    setDateFrom('');
+    setDateTo('');
+    setMaxPrice('');
+    setShowFreeOnly('');
+    setSearchInput('');
+  };
+
   const handleFiltersChange = (newFilters: EventFiltersState) => {
-    startTransition(() => {
-      setPage(1); // Reset to first page when filters change
-      setFilters(newFilters);
-    });
+    setPage(1);
+    setSearch(newFilters.search);
+    setTypeFilter(newFilters.types);
+    setLocationFilter(newFilters.location || '');
+    setDateRange(newFilters.dateRange || '');
+    setDateFrom(newFilters.dateFrom ? newFilters.dateFrom.toISOString() : '');
+    setDateTo(newFilters.dateTo ? newFilters.dateTo.toISOString() : '');
+    setMaxPrice(newFilters.maxPrice ? String(newFilters.maxPrice) : '');
+    setShowFreeOnly(newFilters.showFreeOnly ? 'true' : '');
+    setSearchInput(newFilters.search);
   };
 
   if (isLoading) {
@@ -288,202 +359,206 @@ export function EventsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      {/* Single unified view - no tabs content, just conditional rendering */}
       {/* Filters */}
-      <div className={cn("transition-opacity duration-200", isPending && "opacity-60")}>
-        <EventFilters
-          filters={filters}
-          onChange={handleFiltersChange}
-          onReset={handleResetFilters}
-          searchInput={searchInput}
-          onSearchInputChange={setSearchInput}
-              isSearching={searchInput !== debouncedSearch}
-              hidePrice={activeTab === 'registrations'}
-            />
+      <EventFilters
+        filters={filtersState}
+        onChange={handleFiltersChange}
+        onReset={handleResetFilters}
+        searchInput={searchInput}
+        onSearchInputChange={setSearchInput}
+        isSearching={searchInput !== search}
+        hidePrice={activeTab === 'registrations'}
+      />
+
+      {/* Toolbar - Gym page style */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground font-medium">
+            {totalEvents} {totalEvents === 1 ? 'event' : 'events'}
+          </span>
+
+          {/* View Mode Toggle - Gym page style */}
+          <div className="flex items-center gap-2 border rounded-lg p-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleTabChange('browse')}
+              className={cn(
+                'gap-2 transition-all',
+                activeTab === 'browse'
+                  ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                  : 'hover:bg-muted text-muted-foreground'
+              )}
+            >
+              <Calendar className="h-4 w-4" />
+              Browse Events
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleTabChange('registrations')}
+              className={cn(
+                'gap-2 transition-all',
+                activeTab === 'registrations'
+                  ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                  : 'hover:bg-muted text-muted-foreground'
+              )}
+            >
+              <CheckSquare className="h-4 w-4" />
+              My Registrations
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Sort Controls */}
+          <Select 
+            value={parsedSort[0]?.id || 'startDate'} 
+            onValueChange={(value: string) => updateSort(value)}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="startDate">Date</SelectItem>
+              <SelectItem value="name">Name</SelectItem>
+              <SelectItem value="price">Price</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              const currentField = parsedSort[0]?.id || 'startDate';
+              updateSort(currentField);
+            }}
+            title={getCurrentSortDirection(parsedSort[0]?.id || 'startDate') === 'asc' ? 'Ascending' : 'Descending'}
+          >
+            <ArrowUpDown className="h-4 w-4" />
+          </Button>
+          
+          {/* View Toggle */}
+          <div className="flex border rounded-lg">
+            <Button
+              variant={view === 'grid' ? 'default' : 'ghost'}
+              size="icon"
+              onClick={() => setView('grid')}
+              className="rounded-r-none"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={view === 'list' ? 'default' : 'ghost'}
+              size="icon"
+              onClick={() => setView('list')}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Events Grid/List */}
+      {displayedEvents.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Calendar className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No events found</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              {activeTab === 'registrations' 
+                ? "You haven't registered for any events yet"
+                : "Try adjusting your filters or check back later for new events"}
+            </p>
+            {activeTab === 'browse' && (
+              <Button onClick={handleResetFilters} variant="outline">
+                Clear Filters
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div
+            className={cn(
+              view === 'grid'
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
+                : 'space-y-4'
+            )}
+          >
+            {displayedEvents.map((event) => {
+              // Check if the current user is a professor who owns this workshop
+              const eventCreatorId = typeof event.createdBy === 'object' && event.createdBy !== null
+                ? (event.createdBy as { id?: string }).id
+                : event.createdBy;
+              
+              const isProfessorOwned = user?.role === 'PROFESSOR' && 
+                event.type === 'WORKSHOP' &&
+                eventCreatorId === user.id;
+              
+              return (
+                <EventCardProduction
+                  key={event.id}
+                  event={event}
+                  view={(view === 'grid' || view === 'list') ? view : 'grid'}
+                  onClick={() => navigate(`/events/${event.id}`)}
+                  isRegistered={registeredEventIds.has(event.id)}
+                  isProfessorOwned={isProfessorOwned}
+                />
+              );
+            })}
           </div>
 
-          {/* Toolbar with Tabs */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground font-medium">
-                {totalEvents} {totalEvents === 1 ? 'event' : 'events'}
-              </span>
-              {activeTab === 'browse' && (
-                <Button
-                  variant={showOpenOnly ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setShowOpenOnly(!showOpenOnly)}
-                  className="gap-2"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Open Registration
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Tabs beside sort controls */}
-              <Tabs value={activeTab} onValueChange={handleTabChange}>
-                <TabsList>
-                  <TabsTrigger value="browse" className="gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Browse
-                  </TabsTrigger>
-                  <TabsTrigger value="registrations" className="gap-2">
-                    <CheckSquare className="h-4 w-4" />
-                    My Registrations
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-                {/* Sort Controls */}
-                <Select 
-                  value={sortBy} 
-                  onValueChange={(value: string) => startTransition(() => setSortBy(value as 'date' | 'name' | 'price'))}
-                >
-                  <SelectTrigger className="w-[130px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="date">Date</SelectItem>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="price">Price</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={toggleSortDirection}
-                  title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
-                >
-                  <ArrowUpDown className="h-4 w-4" />
-                </Button>
-                
-                {/* View Toggle */}
-                <div className="flex border rounded-lg">
-                  <Button
-                    variant={view === 'grid' ? 'default' : 'ghost'}
-                    size="icon"
-                    onClick={() => setView('grid')}
-                    className="rounded-r-none"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={view === 'list' ? 'default' : 'ghost'}
-                    size="icon"
-                    onClick={() => setView('list')}
-                    className="rounded-l-none"
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Events Grid/List */}
-            {displayedEvents.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-16">
-                  <Calendar className="h-4 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No events found</h3>
-                  <p className="text-muted-foreground text-center mb-4">
-                    {activeTab === 'registrations' 
-                      ? "You haven't registered for any events yet"
-                      : "Try adjusting your filters or check back later for new events"}
-                  </p>
-                  {activeTab === 'browse' && (
-                    <Button onClick={handleResetFilters} variant="outline">
-                      Clear Filters
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                <div
-                  className={cn(
-                    'transition-opacity duration-200',
-                    isPending && 'opacity-60',
-                    view === 'grid'
-                      ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-                      : 'space-y-4'
-                  )}
-                >
-                  {displayedEvents.map((event) => {
-                    // Check if the current user is a professor who owns this workshop (compare IDs, not names!)
-                    // createdBy might be populated (object) or just an ID (string)
-                    const eventCreatorId = typeof event.createdBy === 'object' && event.createdBy !== null
-                      ? (event.createdBy as { id?: string }).id
-                      : event.createdBy;
-                    
-                    const isProfessorOwned = user?.role === 'PROFESSOR' && 
-                      event.type === 'WORKSHOP' &&
-                      eventCreatorId === user.id;
-                    
-                    return (
-                      <EventCardProduction
-                        key={event.id}
-                        event={event}
-                        view={view}
-                        onClick={() => navigate(`/events/${event.id}`)}
-                        isRegistered={registeredEventIds.has(event.id)}
-                        isProfessorOwned={isProfessorOwned}
-                      />
-                    );
-                  })}
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2">
+          {/* Pagination - only for browse tab */}
+          {activeTab === 'browse' && totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <div className="flex items-center gap-2">
+                {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                  const pageNum = i + 1;
+                  return (
                     <Button
-                      variant="outline"
+                      key={pageNum}
+                      variant={page === pageNum ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={page === 1}
+                      onClick={() => setPage(pageNum)}
                     >
-                      Previous
+                      {pageNum}
                     </Button>
-                    <div className="flex items-center gap-2">
-                      {[...Array(Math.min(totalPages, 5))].map((_, i) => {
-                        const pageNum = i + 1;
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={page === pageNum ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setPage(pageNum)}
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-                      {totalPages > 5 && (
-                        <>
-                          <span className="text-muted-foreground">...</span>
-                          <Button
-                            variant={page === totalPages ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setPage(totalPages)}
-                          >
-                            {totalPages}
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                  );
+                })}
+                {totalPages > 5 && (
+                  <>
+                    <span className="text-muted-foreground">...</span>
                     <Button
-                      variant="outline"
+                      variant={page === totalPages ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
+                      onClick={() => setPage(totalPages)}
                     >
-                      Next
+                      {totalPages}
                     </Button>
-                  </div>
+                  </>
                 )}
-              </>
-            )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
