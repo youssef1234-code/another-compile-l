@@ -5,6 +5,7 @@
  * Route: /workshops/edit/:id
  */
 
+
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -17,7 +18,7 @@ import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 const workshopSchema = z.object({
   images: z.array(z.string()).optional(),
@@ -92,7 +93,7 @@ export function EditWorkshopPage() {
         startDate: event.startDate ? new Date(event.startDate) : undefined,
         endDate: event.endDate ? new Date(event.endDate) : undefined,
         registrationDeadline: event.registrationDeadline ? new Date(event.registrationDeadline) : undefined,
-        faculty: event.faculty as any || 'MET',
+        faculty: (event.faculty as 'MET' | 'IET' | 'ARTS' | 'LAW' | 'PHARMACY' | 'BUSINESS' | 'BIOTECHNOLOGY') || 'MET',
         professors: event.professors || [],
         capacity: event.capacity || 50,
         fullAgenda: event.fullAgenda || '',
@@ -115,7 +116,7 @@ export function EditWorkshopPage() {
     });
   };
 
-  const fields: FormFieldConfig[] = [
+  const fields: FormFieldConfig<WorkshopFormData>[] = [
     {
       name: 'images',
       label: 'Workshop Images',
@@ -237,8 +238,12 @@ export function EditWorkshopPage() {
       colSpan: 1,
       render: (value, form) => (
         <DateTimePicker
-          value={value}
-          onChange={(date) => form.setValue('startDate', date)}
+          value={(value as Date | null) ?? null}
+          onChange={(date) => {
+            if (date) {
+              form.setValue('startDate', date);
+            }
+          }}
           placeholder="Select start date and time"
           minDate={new Date()}
         />
@@ -251,8 +256,12 @@ export function EditWorkshopPage() {
       colSpan: 1,
       render: (value, form) => (
         <DateTimePicker
-          value={value}
-          onChange={(date) => form.setValue('endDate', date)}
+          value={(value as Date | null) ?? null}
+          onChange={(date) => {
+            if (date) {
+              form.setValue('endDate', date);
+            }
+          }}
           placeholder="Select end date and time"
           minDate={new Date()}
         />
@@ -265,8 +274,12 @@ export function EditWorkshopPage() {
       colSpan: 2,
       render: (value, form) => (
         <DateTimePicker
-          value={value}
-          onChange={(date) => form.setValue('registrationDeadline', date)}
+          value={(value as Date | null) ?? null}
+          onChange={(date) => {
+            if (date) {
+              form.setValue('registrationDeadline', date);
+            }
+          }}
           placeholder="Registration deadline (required)"
           minDate={new Date()}
         />
@@ -336,7 +349,7 @@ export function EditWorkshopPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="bg-card rounded-lg border shadow-sm">
-        <GenericForm
+  <GenericForm<WorkshopFormData>
           fields={fields}
           schema={workshopSchema}
           onSubmit={handleSubmit}

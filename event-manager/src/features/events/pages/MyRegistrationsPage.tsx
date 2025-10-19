@@ -5,8 +5,10 @@
  * with better UX and visual design
  */
 
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { Registration, Event } from '@event-manager/shared';
 import { trpc } from '@/lib/trpc';
 import { useAuthStore } from '@/store/authStore';
 import { ROUTES } from '@/lib/constants';
@@ -30,7 +32,7 @@ import { formatDate } from '@/lib/design-system';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { EventCardImage } from '@/components/ui/event-card-image';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 function RegistrationCardSkeleton() {
   return (
@@ -52,7 +54,7 @@ function RegistrationCardSkeleton() {
 }
 
 interface RegistrationCardProps {
-  registration: any;
+  registration: Registration & { event: Event };
   onCancel: (registrationId: string) => void;
   isCancelling: boolean;
 }
@@ -62,7 +64,7 @@ function RegistrationCard({ registration, onCancel, isCancelling }: Registration
   const event = registration.event;
   
   const now = new Date();
-  const startDate = new Date(event.startDate);
+  const startDate = event.startDate ? new Date(event.startDate) : new Date();
   const endDate = event.endDate ? new Date(event.endDate) : null;
   
   const hasStarted = startDate <= now;
@@ -134,7 +136,7 @@ function RegistrationCard({ registration, onCancel, isCancelling }: Registration
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <CalendarClock className="h-4 w-4" />
-                <span>{formatDate(event.startDate)}</span>
+                <span>{event.startDate ? formatDate(event.startDate) : 'TBD'}</span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <MapPin className="h-4 w-4" />
@@ -146,10 +148,10 @@ function RegistrationCard({ registration, onCancel, isCancelling }: Registration
                   <span>{event.registeredCount || 0} / {event.capacity} registered</span>
                 </div>
               )}
-              {registration.registeredAt && (
+              {registration.createdAt && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Clock className="h-4 w-4" />
-                  <span>Registered {formatDate(registration.registeredAt)}</span>
+                  <span>Registered {formatDate(registration.createdAt)}</span>
                 </div>
               )}
             </div>
@@ -219,22 +221,22 @@ export function MyRegistrationsPage() {
     cancelMutation.mutate({ registrationId });
   };
   
-  const registrations = registrationsData?.registrations || [];
+  const registrations = (registrationsData?.registrations || []) as Array<Registration & { event: Event }>;
   
   // Filter registrations by status
-  const upcomingRegistrations = registrations.filter((r: any) => {
+  const upcomingRegistrations = registrations.filter((r) => {
     const event = r.event;
-    const startDate = new Date(event.startDate);
+    const startDate = event.startDate ? new Date(event.startDate) : new Date();
     return r.status === 'CONFIRMED' && startDate > new Date();
   });
   
-  const pastRegistrations = registrations.filter((r: any) => {
+  const pastRegistrations = registrations.filter((r) => {
     const event = r.event;
-    const endDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
+    const endDate = event.endDate ? new Date(event.endDate) : (event.startDate ? new Date(event.startDate) : new Date());
     return endDate < new Date();
   });
   
-  const cancelledRegistrations = registrations.filter((r: any) => r.status === 'CANCELLED');
+  const cancelledRegistrations = registrations.filter((r) => r.status === 'CANCELLED');
   
   if (isLoading) {
     return (
@@ -279,7 +281,7 @@ export function MyRegistrationsPage() {
               </Button>
             </Card>
           ) : (
-            upcomingRegistrations.map((registration: any) => (
+            upcomingRegistrations.map((registration) => (
               <RegistrationCard
                 key={registration.id}
                 registration={registration}
@@ -301,7 +303,7 @@ export function MyRegistrationsPage() {
               </p>
             </Card>
           ) : (
-            pastRegistrations.map((registration: any) => (
+            pastRegistrations.map((registration) => (
               <RegistrationCard
                 key={registration.id}
                 registration={registration}
@@ -323,7 +325,7 @@ export function MyRegistrationsPage() {
               </p>
             </Card>
           ) : (
-            cancelledRegistrations.map((registration: any) => (
+            cancelledRegistrations.map((registration) => (
               <RegistrationCard
                 key={registration.id}
                 registration={registration}

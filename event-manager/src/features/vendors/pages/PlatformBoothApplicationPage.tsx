@@ -16,6 +16,7 @@
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
 import { Stage, Layer, Rect, Text, Line } from 'react-konva';
+import type { KonvaEventObject } from 'konva/lib/Node';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -32,7 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ROUTES } from '@/lib/constants';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 interface Attendee {
   name: string;
@@ -57,6 +58,10 @@ interface PlatformMap {
   cellSize: number;
   booths: Booth[];
   isActive: boolean;
+}
+
+interface TRPCError {
+  message?: string;
 }
 
 export function PlatformBoothApplicationPage() {
@@ -90,8 +95,8 @@ export function PlatformBoothApplicationPage() {
       toast.success('Platform booth application submitted successfully!');
       navigate(ROUTES.VENDOR_APPLICATIONS);
     },
-    onError: (error: any) => {
-      const errorMessage = error?.message || JSON.stringify(error);
+    onError: (error: TRPCError) => {
+      const errorMessage = error?.message || 'Unknown error';
       toast.error(`Failed to submit application: ${errorMessage}`);
     },
   });
@@ -105,10 +110,11 @@ export function PlatformBoothApplicationPage() {
     }
   }, [data]);
 
-  const handleStageClick = (e: any) => {
+  const handleStageClick = (e: KonvaEventObject<MouseEvent>) => {
     if (!platform) return;
 
     const stage = e.target.getStage();
+    if (!stage) return;
     const pointerPosition = stage.getPointerPosition();
     if (!pointerPosition) return;
 
@@ -181,17 +187,16 @@ export function PlatformBoothApplicationPage() {
     const boothSize = selectedBoothSize === '2' ? 'TWO_BY_TWO' : 'FOUR_BY_FOUR';
     
     createApplication.mutate({
-      companyName: '', // Will be filled by backend from user profile
       names: attendees.map((a) => a.name),
       emails: attendees.map((a) => a.email),
-      type: 'PLATFORM',
+      type: 'PLATFORM' as const,
       boothSize,
       duration: parseInt(duration),
-      startDate: new Date(startDate).toISOString(),
+      startDate: new Date(startDate), // Convert to Date object
       boothLocationId: selectedBooth.id,
       boothLabel: selectedBooth.label || `${selectedBooth.width}×${selectedBooth.height}`, // Store human-readable label
-      status: 'PENDING', // Required field - initial status
-    } as any);
+      status: 'PENDING' as const, // Required field - initial status
+    });
   };
 
   // Memoize available booths calculation - MUST be before early returns!

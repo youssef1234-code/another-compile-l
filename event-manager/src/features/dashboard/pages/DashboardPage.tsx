@@ -7,7 +7,7 @@
 import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@event-manager/shared';
 import { LoadingSpinner } from '@/components/generic/LoadingSpinner';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 import { useEffect } from 'react';
 import {
   StudentDashboard,

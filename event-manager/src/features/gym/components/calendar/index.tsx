@@ -3,6 +3,7 @@
  * Main calendar wrapper for gym schedule with drag-drop support
  */
 
+
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { CalendarProvider, useCalendar } from './calendar-context';
 import { DragDropProvider } from './dnd/dnd-context';
@@ -11,6 +12,7 @@ import { CalendarBody } from './calendar-body';
 import { EventDetailsDialog } from './dialogs/event-details-dialog';
 import { DnDConfirmationDialog } from './dnd/dnd-confirmation-dialog';
 import type { CalendarEvent } from './types';
+import type { Event } from '@event-manager/shared';
 import { toast } from 'react-hot-toast';
 import { exportCalendarToPDF } from '../../utils/export-calendar-pdf';
 
@@ -91,7 +93,7 @@ function GymCalendarContent({
   const handleExportPDF = useCallback(() => {
     try {
       exportCalendarToPDF({
-        events: filteredEvents as any,
+        events: filteredEvents as Event[],
         month: currentDate,
         title: 'Gym Schedule'
       });

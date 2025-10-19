@@ -85,7 +85,7 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
     });
   };
 
-  const fields: FormFieldConfig[] = [
+  const fields: FormFieldConfig<VendorSignupFormData>[] = [
     {
       name: 'firstName',
       label: 'First Name',
@@ -135,7 +135,7 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
   ];
 
   return (
-    <GenericForm
+  <GenericForm<VendorSignupFormData>
       title="Vendor Signup"
       description="Register your company to participate in GUC events"
       icon={<Building2 className="h-6 w-6 text-primary" />}

@@ -44,7 +44,7 @@ export function ForgotPasswordPage() {
     <>
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4 py-12">
         <div className="w-full max-w-md">
-          <GenericForm
+          <GenericForm<ForgotPasswordForm>
             title="Forgot password?"
             description="Enter your email and we'll send you a reset link"
             schema={forgotPasswordSchema}

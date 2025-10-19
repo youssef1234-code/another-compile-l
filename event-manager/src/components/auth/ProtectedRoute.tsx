@@ -90,7 +90,7 @@ export function ProtectedRoute({
  * </AdminRoute>
  * ```
  */
-export function createRoleRoute(role: string | string[]) {
+function createRoleRoute(role: string | string[]) {
   return function RoleRoute({ children }: { children: React.ReactNode }) {
     if (typeof role === 'string') {
       return <ProtectedRoute requiredRole={role}>{children}</ProtectedRoute>;

@@ -30,7 +30,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-hot-toast";
 import type { VendorApplication } from "@event-manager/shared";
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
+
+type SortState = Array<{ id: string; desc: boolean }>;
+
+type VendorApplicationType = 'BAZAAR' | 'PLATFORM';
+type VendorApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+type VendorBoothSize = 'TWO_BY_TWO' | 'FOUR_BY_FOUR';
+
+type VendorApplicationsQueryInput = {
+  page: number;
+  limit: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  type?: VendorApplicationType;
+  status?: VendorApplicationStatus;
+  boothSize?: VendorBoothSize;
+};
 
 export function VendorRequestsPage() {
   const { setPageMeta } = usePageMeta();
@@ -49,7 +66,16 @@ export function VendorRequestsPage() {
   const [search] = useQueryState('search', parseAsString.withDefault(''));
   
   // Sorting
-  const [sortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>([] as any).withDefault([]));
+  const [sortStateRaw] = useQueryState(
+    'sort',
+    parseAsJson<Array<{ id: string; desc: boolean }>>((value) => {
+      if (Array.isArray(value)) {
+        return value as Array<{ id: string; desc: boolean }>;
+      }
+      return null;
+    }).withDefault([])
+  );
+  const sortState: SortState = useMemo(() => sortStateRaw ?? [], [sortStateRaw]);
   
   // Simple filters
   const [typeFilter] = useQueryState('type', parseAsArrayOf(parseAsString, ',').withDefault([]));
@@ -88,43 +114,36 @@ export function VendorRequestsPage() {
   }, [sortState]);
 
   // Build simple filters for backend
-  const filters = useMemo(() => {
-    const result: Record<string, any> = {};
-    
-    if (typeFilter.length > 0) {
-      result.type = typeFilter[0];
+  const filters = useMemo<Partial<VendorApplicationsQueryInput>>(() => {
+    const result: Partial<VendorApplicationsQueryInput> = {};
+
+    const typeValue = typeFilter[0];
+    if (typeValue === 'BAZAAR' || typeValue === 'PLATFORM') {
+      result.type = typeValue;
     }
-    
-    if (statusFilter.length > 0) {
-      result.status = statusFilter[0];
+
+    const statusValue = statusFilter[0];
+    if (statusValue === 'PENDING' || statusValue === 'APPROVED' || statusValue === 'REJECTED') {
+      result.status = statusValue;
     }
-    
-    if (boothSizeFilter.length > 0) {
-      result.boothSize = boothSizeFilter[0];
+
+    const boothSizeValue = boothSizeFilter[0];
+    if (boothSizeValue === 'TWO_BY_TWO' || boothSizeValue === 'FOUR_BY_FOUR') {
+      result.boothSize = boothSizeValue;
     }
-    
+
     return result;
   }, [typeFilter, statusFilter, boothSizeFilter]);
 
   // Build query input
-  const queryInput = useMemo(() => {
-    const input: Record<string, any> = {
+  const queryInput = useMemo<VendorApplicationsQueryInput>(() => {
+    return {
       page,
       limit: perPage,
+      ...(search ? { search } : {}),
+      ...(parsedSort ? { sortBy: parsedSort.sortBy, sortOrder: parsedSort.sortOrder } : {}),
+      ...filters,
     };
-    
-    if (search) {
-      input.search = search;
-    }
-    
-    if (parsedSort) {
-      input.sortBy = parsedSort.sortBy;
-      input.sortOrder = parsedSort.sortOrder;
-    }
-    
-    Object.assign(input, filters);
-    
-    return input;
   }, [page, perPage, search, parsedSort, filters]);
 
   // Get applications with ALL URL parameters
@@ -150,8 +169,9 @@ export function VendorRequestsPage() {
       setApproveDialog({ open: false, applicationId: null });
       refetch();
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to approve application");
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Failed to approve application";
+      toast.error(message || "Failed to approve application");
     },
   });
 
@@ -162,8 +182,9 @@ export function VendorRequestsPage() {
       setRejectDialog({ open: false, applicationId: null, reason: "" });
       refetch();
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to reject application");
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Failed to reject application";
+      toast.error(message || "Failed to reject application");
     },
   });
 

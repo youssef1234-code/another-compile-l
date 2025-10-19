@@ -87,7 +87,7 @@ export function AcademicSignupForm({ onSuccess }: AcademicSignupFormProps) {
     });
   };
 
-  const fields: FormFieldConfig[] = [
+  const fields: FormFieldConfig<AcademicSignupFormData>[] = [
     {
       name: 'firstName',
       label: 'First Name',
@@ -147,7 +147,7 @@ export function AcademicSignupForm({ onSuccess }: AcademicSignupFormProps) {
   ];
 
   return (
-    <GenericForm
+  <GenericForm<AcademicSignupFormData>
       title="Academic Signup"
       description="Create your account using your GUC email address"
       icon={<GraduationCap className="h-6 w-6 text-primary" />}

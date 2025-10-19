@@ -5,7 +5,7 @@
  * Currently redirects to Platform Booth Application page.
  */
 
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 import { useEffect } from 'react';
 
 export function PlatformApplicationsPage() {

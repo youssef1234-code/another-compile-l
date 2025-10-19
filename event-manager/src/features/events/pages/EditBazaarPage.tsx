@@ -3,36 +3,12 @@ import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigate, useParams } from "react-router-dom";
 import { ROUTES } from "@/lib/constants";
-import type { FieldType } from "@/components/generic/GenericForm";
+import type { FormFieldConfig } from "@/components/generic/GenericForm";
 import { z } from "zod";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { EnhancedAlertDialog } from "@/components/generic/AlertDialog";
-import { usePageMeta } from '@/components/layout/AppLayout';
-
-const fields = [
-  { name: "title", label: "Bazaar Name", type: "text" as FieldType, required: true },
-  { name: "description", label: "Description", type: "textarea" as FieldType, required: true },
-  {
-    name: "location",
-    label: "Location",
-    type: "select" as FieldType,
-    required: true,
-    options: [
-      { label: "On Campus", value: "ON_CAMPUS" },
-      { label: "Off Campus", value: "OFF_CAMPUS" }
-    ]
-  },
-  { name: "locationDetails", label: "Location Details", type: "text" as FieldType, required: true },
-  { name: "startDate", label: "Start Date", type: "date" as FieldType, required: true },
-  { name: "startTime", label: "Start Time", type: "time" as FieldType, required: true, placeholder: "HH:MM" },
-  { name: "endDate", label: "End Date", type: "date" as FieldType, required: true },
-  { name: "endTime", label: "End Time", type: "time" as FieldType, required: true, placeholder: "HH:MM" },
-  { name: "capacity", label: "Capacity", type: "number" as FieldType, required: true },
-  { name: "registrationDeadline", label: "Registration Deadline", type: "date" as FieldType, required: true },
-  { name: "registrationDeadlineTime", label: "Registration Deadline Time", type: "time" as FieldType, required: true, placeholder: "HH:MM" },
-  { name: "professorName", label: "Professor Name (optional)", type: "text" as FieldType, required: false },
-];
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 const schema = z.object({
   title: z.string().min(5, "Bazaar Name must be at least 5 characters"),
@@ -48,6 +24,32 @@ const schema = z.object({
   registrationDeadlineTime: z.string().min(1, "Registration Deadline Time is required"),
   professorName: z.string().optional(),
 });
+
+type BazaarFormValues = z.infer<typeof schema>;
+
+const fields: FormFieldConfig<BazaarFormValues>[] = [
+  { name: "title", label: "Bazaar Name", type: "text", required: true },
+  { name: "description", label: "Description", type: "textarea", required: true },
+  {
+    name: "location",
+    label: "Location",
+    type: "select",
+    required: true,
+    options: [
+      { label: "On Campus", value: "ON_CAMPUS" },
+      { label: "Off Campus", value: "OFF_CAMPUS" }
+    ]
+  },
+  { name: "locationDetails", label: "Location Details", type: "text", required: true },
+  { name: "startDate", label: "Start Date", type: "date", required: true },
+  { name: "startTime", label: "Start Time", type: "time", required: true, placeholder: "HH:MM" },
+  { name: "endDate", label: "End Date", type: "date", required: true },
+  { name: "endTime", label: "End Time", type: "time", required: true, placeholder: "HH:MM" },
+  { name: "capacity", label: "Capacity", type: "number", required: true },
+  { name: "registrationDeadline", label: "Registration Deadline", type: "date", required: true },
+  { name: "registrationDeadlineTime", label: "Registration Deadline Time", type: "time", required: true, placeholder: "HH:MM" },
+  { name: "professorName", label: "Professor Name (optional)", type: "text", required: false },
+];
 
 export function EditBazaarPage() {
   const { setPageMeta } = usePageMeta();
@@ -110,22 +112,12 @@ export function EditBazaarPage() {
     { enabled: !!id }
   );
 
-  const [defaultValues, setDefaultValues] = useState<Record<string, any>>({});
+  const [defaultValues, setDefaultValues] = useState<Partial<BazaarFormValues>>({});
   const [isDisabled, setIsDisabled] = useState(false);
-
-  // Only allow Events Office role
-  if (!user || user.role !== "EVENT_OFFICE") {
-    return <div>Access denied. Only Events Office can edit bazaars.</div>;
-  }
-
-  // Check if bazaar exists and is a bazaar
-  if (!isLoadingBazaar && (!bazaar || bazaar.type !== "BAZAAR")) {
-    return <div>Bazaar not found.</div>;
-  }
+  const isUnauthorized = !user || user.role !== "EVENT_OFFICE";
 
   useEffect(() => {
     if (bazaar) {
-      console.log("Bazaar data received:", bazaar);
       // Check if bazaar has started (disable editing if started)
       const hasStarted = new Date(bazaar.startDate) <= new Date();
       setIsDisabled(hasStarted);
@@ -152,8 +144,20 @@ export function EditBazaarPage() {
     }
   }, [bazaar]);
 
-  const handleSubmit = async (values: Record<string, any>) => {
-    console.log("Edit submit pressed");
+  if (isUnauthorized) {
+    return <div>Access denied. Only Events Office can edit bazaars.</div>;
+  }
+
+  // Check if bazaar exists and is a bazaar
+  if (!isLoadingBazaar && (!bazaar || bazaar.type !== "BAZAAR")) {
+    return <div>Bazaar not found.</div>;
+  }
+
+  const handleSubmit = async (values: BazaarFormValues) => {
+    const registrationDeadline = values.registrationDeadline && values.registrationDeadlineTime
+      ? new Date(`${values.registrationDeadline}T${values.registrationDeadlineTime}`)
+      : undefined;
+
     await updateBazaar.mutateAsync({
       id: id!,
       data: {
@@ -164,8 +168,8 @@ export function EditBazaarPage() {
         locationDetails: values.locationDetails,
         startDate: new Date(`${values.startDate}T${values.startTime}`),
         endDate: new Date(`${values.endDate}T${values.endTime}`),
-        capacity: values.capacity ? Number(values.capacity) : 0,
-        registrationDeadline: new Date(`${values.registrationDeadline}T${values.registrationDeadlineTime}`),
+        capacity: values.capacity,
+        registrationDeadline,
         professorName: values.professorName,
       }
     });
@@ -189,13 +193,13 @@ export function EditBazaarPage() {
           <p className="text-sm">This bazaar has already started and cannot be edited.</p>
         </div>
       )}
-      <GenericForm
+  <GenericForm<BazaarFormValues>
         key={bazaar.id} // Force form re-render when bazaar changes
         fields={fields.map(field => ({ ...field, disabled: isDisabled }))}
         schema={schema}
         onSubmit={isDisabled ? () => {} : handleSubmit}
         isLoading={updateBazaar.status === "pending" || isDisabled}
-        defaultValues={defaultValues}
+  defaultValues={defaultValues}
         submitButtonText={isDisabled ? "Cannot Edit (Event Started)" : "Update Bazaar"}
       />
 

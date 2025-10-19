@@ -1,10 +1,12 @@
 
+
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import type { CalendarEvent } from "../../components/calendar/types";
 import toast from "react-hot-toast";
 
 function toLocalYMD(dt: Date){ const d=new Date(dt); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
@@ -16,26 +18,32 @@ function buildDate(dateStr:string, hmStr:string){
 }
 
 
+interface TRPCError {
+  message?: string;
+}
+
 export default function EditSessionDialog({
   session,
   onOpenChange,
   onSaved,
 }: {
-  session: any;
+  session: CalendarEvent;
   onOpenChange: (open:boolean)=>void;
   onSaved: ()=>void;
 }){
-  const start = new Date(session.startDate);
+  const start = session.startDate ? new Date(session.startDate) : new Date();
   const [date, setDate] = useState(toLocalYMD(start));
   const [time, setTime] = useState(toLocalHM(start));
-  const [duration, setDuration] = useState<number>(session.duration ?? session.durationMinutes ?? 60);
+  const [duration, setDuration] = useState<number>(session.duration ?? 60);
   const [capacity, setCapacity] = useState<number>(session.capacity ?? 20);
   const [status, setStatus] = useState<string>(session.status ?? "PUBLISHED");
+
+  if (!session.startDate) return null;
 
   const utils = trpc.useUtils();
   const updateM = trpc.events.updateGymSession.useMutation({
     onSuccess: () => { utils.events.getEvents.invalidate(); onSaved(); },
-    onError: (e:any) => { toast.error(e.message || "Failed to save"); },
+    onError: (e: TRPCError) => { toast.error(e.message || "Failed to save"); },
   });
 
   const saving = updateM.isPending;
@@ -87,7 +95,7 @@ export default function EditSessionDialog({
             <Button
               onClick={()=>{
                 const startDate = buildDate(date, time);
-                const patch: any = { startDate, duration, capacity, status };
+                const patch: Record<string, unknown> = { startDate, duration, capacity, status };
                 // Remove unchanged fields (optional)
                 Object.keys(patch).forEach(k => patch[k] === undefined && delete patch[k]);
                 updateM.mutate({ id: session.id, ...patch });

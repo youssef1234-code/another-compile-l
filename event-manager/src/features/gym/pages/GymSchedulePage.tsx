@@ -1,3 +1,4 @@
+
 import { ConfirmDialog } from '@/components/generic';
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -11,8 +12,9 @@ import { GymCalendar } from '../components/calendar';
 import { GymScheduleTable } from "../components/gym-schedule-table";
 import { CreateGymSessionDialog } from "./components/CreateGymSessionDialog";
 import EditSessionDialog from "./components/EditSessionDialog";
+import type { CalendarEvent } from '../components/calendar/types';
 import { cn } from '@/lib/utils';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 export function GymSchedulePage(){
   const { setPageMeta } = usePageMeta();
@@ -20,7 +22,7 @@ export function GymSchedulePage(){
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth()+1);
   const [view, setView] = useState<"TABLE" | "CALENDAR">("TABLE");
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<CalendarEvent | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createInitialDate, setCreateInitialDate] = useState<Date | undefined>(undefined);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; sessionId: string }>({
@@ -44,7 +46,15 @@ export function GymSchedulePage(){
   const [page] = useQueryState('page', parseAsInteger.withDefault(1));
   const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
   const [search] = useQueryState('search', parseAsString.withDefault(''));
-  const [sortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>([] as any).withDefault([]));
+  const [sortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>((v) => {
+    if (!v || typeof v !== 'string') return [];
+    try {
+      const parsed = JSON.parse(v);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }).withDefault([]));
   
   // Read simple filters from URL
   const [typeFilter] = useQueryState('sessionType', parseAsArrayOf(parseAsString, ',').withDefault([]));
@@ -181,7 +191,7 @@ export function GymSchedulePage(){
   }, [updateGymSessionMutation]);
 
   // Wrapper for calendar edit - receives event object
-  const handleCalendarEditSession = useCallback((event: any) => {
+  const handleCalendarEditSession = useCallback((event: CalendarEvent) => {
     handleEditSession(event.id);
   }, [handleEditSession]);
 
@@ -256,7 +266,7 @@ export function GymSchedulePage(){
         />
       ) : (
         <GymCalendar 
-          events={sessions as any} 
+          events={sessions as CalendarEvent[]} 
           onUpdateEvent={isAdmin ? handleUpdateEvent : undefined}
           onCreateSession={isAdmin ? handleCreateSession : undefined}
           onEditSession={isAdmin ? handleCalendarEditSession : undefined}

@@ -64,7 +64,7 @@ export function ResetPasswordPage() {
     <>
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4 py-12">
         <div className="w-full max-w-md">
-          <GenericForm
+          <GenericForm<ResetPasswordForm>
             title="Reset your password"
             description="Enter your new password below"
             schema={resetPasswordSchema}

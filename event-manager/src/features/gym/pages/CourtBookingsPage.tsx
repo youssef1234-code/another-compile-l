@@ -1,3 +1,4 @@
+
 import { useMemo, useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,34 @@ import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "react-hot-toast";
 import { CalendarSearch } from "lucide-react";
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 const SPORTS = ["ALL", "BASKETBALL", "TENNIS", "FOOTBALL"] as const;
 type SportFilter = typeof SPORTS[number];
+
+interface Court {
+  id: string;
+  name: string;
+  sport: string;
+  location?: string;
+}
+
+interface FreeSlot {
+  hour: number;
+  startUtc: string;
+}
+
+interface Booking {
+  id: string;
+  hour: number;
+  byMe?: boolean;
+}
+
+interface AvailabilityBlock {
+  court: Court;
+  freeSlots?: FreeSlot[];
+  booked?: Booking[];
+}
 
 function toISOFromLocal(dateStr: string, timeStr: string) {
   const d = new Date(`${dateStr}T${timeStr}:00`);
@@ -27,16 +52,6 @@ function slotIsPastEnd(dateStr: string, hour: number) {
   const end = new Date(`${dateStr}T${String(hour + 1).padStart(2, "0")}:00:00`);
   const now = new Date();
   return end.getTime() <= now.getTime() + 60_000;
-}
-
-function trpcErrMsg(err: any) {
-  return (
-    err?.message ||
-    err?.data?.message ||
-    err?.shape?.message ||
-    err?.data?.zodError?.formErrors?.join(", ") ||
-    "Something went wrong"
-  );
 }
 
 export function CourtBookingsPage() {
@@ -76,17 +91,17 @@ export function CourtBookingsPage() {
   const reserveM = trpc.courts.reserve.useMutation({
     onSuccess: () => {
       toast.success("Reservation successful");
-      utils.courts.availability.invalidate(availabilityInput as any);
+      utils.courts.availability.invalidate(availabilityInput);
     },
-    onError: (e) => toast.error(trpcErrMsg(e)),
+    onError: (e) => toast.error(e.message || "Failed to reserve court"),
   });
 
   const cancelM = trpc.courts.cancel.useMutation({
     onSuccess: () => {
       toast.success("Reservation cancelled");
-      utils.courts.availability.invalidate(availabilityInput as any);
+      utils.courts.availability.invalidate(availabilityInput);
     },
-    onError: (e) => toast.error(trpcErrMsg(e)),
+    onError: (e) => toast.error(e.message || "Failed to cancel reservation"),
   });
 
   const courtOptions = useMemo(() => {
@@ -107,7 +122,7 @@ export function CourtBookingsPage() {
         <Select
           value={sport}
           onValueChange={(v) => {
-            setSport(v as any);
+            setSport(v as SportFilter);
             setSelectedCourtId("ALL");
           }}
         >
@@ -157,7 +172,7 @@ export function CourtBookingsPage() {
               ))}
             </div>
           ) : availability.error ? (
-            <div className="text-sm text-red-600">{trpcErrMsg(availability.error)}</div>
+            <div className="text-sm text-red-600">{availability.error.message || "Failed to load availability"}</div>
           ) : !availability.data || availability.data.length === 0 ? (
             <div className="text-sm text-muted-foreground">No courts or availability found.</div>
           ) : (
@@ -174,12 +189,12 @@ export function CourtBookingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {availability.data.map((block: any) => {
+                  {(availability.data as AvailabilityBlock[]).map((block) => {
                     // Build lookups for fast cell rendering
                     const free = new Map<number, string>(); // hour -> startUtc
-                    (block.freeSlots ?? []).forEach((s: any) => free.set(s.hour, s.startUtc));
-                    const booked = new Map<number, any>(); // hour -> booking
-                    (block.booked ?? []).forEach((b: any) => booked.set(b.hour, b));
+                    (block.freeSlots ?? []).forEach((s) => free.set(s.hour, s.startUtc));
+                    const booked = new Map<number, Booking>(); // hour -> booking
+                    (block.booked ?? []).forEach((b) => booked.set(b.hour, b));
 
                     return (
                       <TableRow key={block.court.id}>
@@ -206,7 +221,7 @@ export function CourtBookingsPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    onClick={() => cancelM.mutate({ id: b.id } as any)}
+                                    onClick={() => cancelM.mutate({ id: b.id })}
                                   >
                                     Cancel
                                   </Button>
@@ -225,9 +240,9 @@ export function CourtBookingsPage() {
                                   onClick={() =>
                                     reserveM.mutate({
                                       courtId: block.court.id,
-                                      startDate: f, // UTC ISO from API
+                                      startDate: new Date(f), // Convert UTC ISO string to Date
                                       duration: 60,
-                                    } as any)
+                                    })
                                   }
                                 >
                                   Book

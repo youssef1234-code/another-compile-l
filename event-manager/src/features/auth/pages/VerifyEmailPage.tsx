@@ -40,7 +40,7 @@ export function VerifyEmailPage() {
     } else {
       setVerifying(false);
     }
-  }, [token]);
+  }, [token, verifyEmailMutation]);
 
   const handleContinue = () => {
     navigate(ROUTES.LOGIN);

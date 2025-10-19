@@ -47,7 +47,7 @@ export function ImageUpload({
         setPreview(value);
       }
     }
-  }, []); // Only run on mount
+  }, [value, preview]); // Only run on mount
 
   const uploadMutation = trpc.files.uploadFile.useMutation({
     onSuccess: (data) => {

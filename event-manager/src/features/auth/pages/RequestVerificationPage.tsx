@@ -36,12 +36,12 @@ export function RequestVerificationPage() {
   }, [location, navigate]);
 
   const resendMutation = trpc.auth.resendVerificationEmail.useMutation({
-    onSuccess: (data: any) => {
+    onSuccess: (data: { message: string }) => {
       setEmailSent(true);
       setCooldownSeconds(300); // 5 minutes
       toast.success(data.message);
     },
-    onError: (error: any) => {
+    onError: (error: { message: string }) => {
       // Extract wait time from error message if present
       const match = error.message.match(/wait (\d+) seconds/);
       if (match) {

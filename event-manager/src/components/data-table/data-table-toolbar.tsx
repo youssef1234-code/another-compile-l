@@ -18,6 +18,23 @@ import {
 import { cn } from "@/lib/utils";
 import type { FilterOperator } from "@/types/data-table";
 
+const OPERATOR_LABELS: Record<FilterOperator, string> = {
+  iLike: "Contains",
+  notILike: "Not contains",
+  eq: "Equals",
+  ne: "Not equals",
+  isEmpty: "Is empty",
+  isNotEmpty: "Is not empty",
+  lt: "Less than",
+  lte: "Less or equal",
+  gt: "Greater than",
+  gte: "Greater or equal",
+  isBetween: "Between",
+  isRelativeToToday: "Relative to today",
+  inArray: "In array",
+  notInArray: "Not in array",
+};
+
 interface DataTableToolbarProps<TData> extends React.ComponentProps<"div"> {
   table: Table<TData>;
   showColumnFilters?: boolean; // Control whether to show auto column filters
@@ -137,30 +154,14 @@ function DataTableToolbarFilter<TData>({
     (columnMeta?.operators?.[0] as FilterOperator) ?? "iLike"
   );
 
-  const operatorLabels: Record<FilterOperator, string> = {
-    iLike: "Contains",
-    notILike: "Not contains",
-    eq: "Equals",
-    ne: "Not equals",
-    isEmpty: "Is empty",
-    isNotEmpty: "Is not empty",
-    lt: "Less than",
-    lte: "Less or equal",
-    gt: "Greater than",
-    gte: "Greater or equal",
-    isBetween: "Between",
-    isRelativeToToday: "Relative to today",
-    inArray: "In array",
-    notInArray: "Not in array",
-  };
-
   const onFilterRender = React.useCallback(() => {
     if (!columnMeta?.variant) return null;
 
     switch (columnMeta.variant) {
-      case "text":
-        const hasOperators = columnMeta.operators && columnMeta.operators.length > 0;
-        
+      case "text": {
+        const hasOperators =
+          columnMeta.operators && columnMeta.operators.length > 0;
+
         return (
           <div className="flex items-center gap-1">
             {hasOperators && (
@@ -174,7 +175,7 @@ function DataTableToolbarFilter<TData>({
                 <SelectContent>
                   {columnMeta.operators!.map((op) => (
                     <SelectItem key={op} value={op}>
-                      {operatorLabels[op as FilterOperator]}
+                      {OPERATOR_LABELS[op as FilterOperator]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -190,6 +191,7 @@ function DataTableToolbarFilter<TData>({
           </div>
         );
 
+      }
       case "number":
         return (
           <div className="relative">
@@ -223,7 +225,7 @@ function DataTableToolbarFilter<TData>({
       default:
         return null;
     }
-  }, [column, columnMeta, operator, operatorLabels]);
+  }, [column, columnMeta, operator]);
 
   return onFilterRender();
 }

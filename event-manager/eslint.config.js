@@ -19,5 +19,9 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Ignore this rule instead of warning
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])

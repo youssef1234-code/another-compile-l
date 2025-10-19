@@ -42,7 +42,7 @@ import { toast } from 'react-hot-toast';
 import { getBazaarsTableColumns } from "../components/bazaars-table-columns";
 import { formatDate } from "@/lib/design-system";
 import type { Event } from "@event-manager/shared";
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 interface Attendee {
   name: string;
@@ -168,7 +168,7 @@ export function BazaarsListPage() {
     { enabled: bazaars.length > 0 }
   );
 
-  const appliedBazaarIds = existingApplications || [];
+  const appliedBazaarIds = useMemo(() => existingApplications || [], [existingApplications]);
 
   // Apply mutation
   const applyMutation = trpc.vendorApplications.create.useMutation({

@@ -5,6 +5,7 @@
  * Step 1: Choose event type (based on user role)
  * Step 2: Fill event details (fields vary by type)
  */
+
 /**
  * Create Event Sheet
  *
@@ -262,7 +263,7 @@ export function CreateEventSheet({
         await createGymSessionMutation.mutateAsync({
           name: formData.name.trim(),
           description: formData.description.trim() || undefined,
-          sessionType: formData.sessionType as any,
+          sessionType: formData.sessionType as 'YOGA' | 'PILATES' | 'AEROBICS' | 'ZUMBA' | 'CROSS_CIRCUIT' | 'KICK_BOXING' | 'CROSSFIT' | 'CARDIO' | 'STRENGTH' | 'DANCE' | 'MARTIAL_ARTS' | 'OTHER',
           startDate: formData.startDate!,
           capacity: formData.capacity,
           duration: formData.duration,
@@ -279,11 +280,11 @@ export function CreateEventSheet({
           endDate: formData.endDate!,
           capacity: formData.capacity,
           registrationDeadline: formData.registrationDeadline!,
-          faculty: formData.faculty as any,
+          faculty: formData.faculty as 'MET' | 'IET' | 'ARTS' | 'LAW' | 'PHARMACY' | 'BUSINESS' | 'BIOTECHNOLOGY',
           professors: formData.professors.filter(p => p.trim()),
           fullAgenda: formData.fullAgenda?.trim() || '',
           requiredBudget: formData.requiredBudget ? Number(formData.requiredBudget) : 0,
-          fundingSource: formData.fundingSource as any,
+          fundingSource: formData.fundingSource as 'GUC' | 'EXTERNAL',
           extraResources: formData.extraResources?.trim() || undefined,
         });
       } else {
@@ -302,7 +303,7 @@ export function CreateEventSheet({
           images: formData.images && formData.images.length > 0 ? formData.images : undefined,
         };
 
-        let payload: Record<string, unknown> = { ...basePayload };
+        const payload: Record<string, unknown> = { ...basePayload };
 
         if (selectedType === 'TRIP') {
           // Req #33: Trip needs price and capacity
@@ -319,10 +320,10 @@ export function CreateEventSheet({
           payload.fundingSource = formData.fundingSource || undefined;
           payload.extraResources = formData.extraResources?.trim() || undefined;
         }
-
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await createMutation.mutateAsync(payload as any);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Error already handled by mutation onError
       console.error('Create event error:', error);
     }

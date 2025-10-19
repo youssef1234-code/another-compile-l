@@ -89,6 +89,11 @@ export function AvatarPicker({ value, onChange, disabled }: AvatarPickerProps) {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isCropping, setIsCropping] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleTabChange = (nextTab: string) => {
+    if (nextTab === 'preset' || nextTab === 'upload') {
+      setActiveTab(nextTab);
+    }
+  };
 
   const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -135,7 +140,7 @@ export function AvatarPicker({ value, onChange, disabled }: AvatarPickerProps) {
 
   return (
     <div className="space-y-4">
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+  <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="preset">Preset Avatars</TabsTrigger>
           <TabsTrigger value="upload">Upload Image</TabsTrigger>

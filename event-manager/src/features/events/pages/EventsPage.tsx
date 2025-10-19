@@ -11,6 +11,7 @@
  * - Empty states and loading skeletons
  */
 
+
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Grid3x3, List, ArrowUpDown, Loader2, CheckSquare } from 'lucide-react';
@@ -25,9 +26,14 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/design-system';
 import { getEventTypeConfig, getEventStatus, hasOpenRegistration, EVENT_STATUS_COLORS } from '@/lib/event-colors';
-import type { Event } from '@event-manager/shared';
+import type { Event, Registration } from '@event-manager/shared';
 import { useAuthStore } from '@/store/authStore';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
+
+// Type for populated registration from backend
+type PopulatedRegistration = Registration & {
+  event?: Event;
+};
 
 export function EventsPage() {
   const { setPageMeta } = usePageMeta();
@@ -81,10 +87,10 @@ export function EventsPage() {
   const registeredEventIds = useMemo(() => {
     const ids = new Set<string>();
     if (myRegistrationsData?.registrations) {
-      myRegistrationsData.registrations.forEach((reg: any) => {
+      (myRegistrationsData.registrations as Registration[]).forEach((reg) => {
         // Show as registered if not cancelled
-        if (reg.status !== 'CANCELLED' && reg.event) {
-          ids.add(reg.event._id || reg.event.id);
+        if (reg.status !== 'CANCELLED' && reg.eventId) {
+          ids.add(reg.eventId);
         }
       });
     }
@@ -111,7 +117,7 @@ export function EventsPage() {
 
   // Build backend query from filters
   const backendQuery = useMemo(() => {
-    const query: any = {
+    const query: Record<string, unknown> = {
       page,
       limit: 24, // More items per page for grid view
       search: filters.search || undefined,
@@ -146,33 +152,33 @@ export function EventsPage() {
       if (!myRegistrationsData?.registrations) return [];
       
       // Extract events from registrations and filter out cancelled ones
-      let events = myRegistrationsData.registrations
-        .filter((reg: any) => reg.status !== 'CANCELLED' && reg.event)
-        .map((reg: any) => {
-          const event = reg.event;
+      let events = (myRegistrationsData.registrations as PopulatedRegistration[])
+        .filter((reg) => reg.status !== 'CANCELLED' && reg.event)
+        .map((reg) => {
+          const event = reg.event as Event;
           // Ensure ID is consistent - use _id or id
           return {
             ...event,
-            id: event.id || event._id
+            id: event.id || (event as { _id?: string })._id
           };
         });
 
       // Apply filters
       if (filters.types.length > 0) {
-        events = events.filter((event: any) => filters.types.includes(event.type));
+        events = events.filter((event) => filters.types.includes(event.type));
       }
 
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
-        events = events.filter((event: any) => 
+        events = events.filter((event) => 
           event.name.toLowerCase().includes(searchLower) ||
           event.description?.toLowerCase().includes(searchLower) ||
-          event.professorName?.toLowerCase().includes(searchLower)
+          (event as { professorName?: string }).professorName?.toLowerCase().includes(searchLower)
         );
       }
 
       // Apply sorting
-      events.sort((a: any, b: any) => {
+      events.sort((a, b) => {
         let comparison = 0;
         
         switch (sortBy) {
@@ -240,7 +246,7 @@ export function EventsPage() {
     });
 
     return events;
-  }, [eventsData, myRegistrationsData, filters, sortBy, sortDirection, showOpenOnly, activeTab, registeredEventIds]);
+  }, [eventsData, myRegistrationsData, filters, sortBy, sortDirection, showOpenOnly, activeTab]);
 
   const totalPages = eventsData?.totalPages || 1;
   const totalEvents = activeTab === 'registrations' 
@@ -333,7 +339,7 @@ export function EventsPage() {
                 {/* Sort Controls */}
                 <Select 
                   value={sortBy} 
-                  onValueChange={(value: any) => startTransition(() => setSortBy(value))}
+                  onValueChange={(value: string) => startTransition(() => setSortBy(value as 'date' | 'name' | 'price'))}
                 >
                   <SelectTrigger className="w-[130px]">
                     <SelectValue />
@@ -408,7 +414,7 @@ export function EventsPage() {
                     // Check if the current user is a professor who owns this workshop (compare IDs, not names!)
                     // createdBy might be populated (object) or just an ID (string)
                     const eventCreatorId = typeof event.createdBy === 'object' && event.createdBy !== null
-                      ? (event.createdBy as any).id
+                      ? (event.createdBy as { id?: string }).id
                       : event.createdBy;
                     
                     const isProfessorOwned = user?.role === 'PROFESSOR' && 

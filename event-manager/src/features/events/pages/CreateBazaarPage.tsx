@@ -3,36 +3,12 @@ import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/lib/constants";
-import type { FieldType } from "@/components/generic/GenericForm";
+import type { FormFieldConfig } from "@/components/generic/GenericForm";
 import { z } from "zod";
 import { toast } from "react-hot-toast";
 import { EnhancedAlertDialog } from "@/components/generic/AlertDialog";
 import { useState, useEffect } from "react";
-import { usePageMeta } from '@/components/layout/AppLayout';
-
-const fields = [
-  { name: "name", label: "Bazaar Name", type: "text" as FieldType, required: true },
-  { name: "description", label: "Description", type: "textarea" as FieldType, required: true },
-  {
-    name: "location",
-    label: "Location",
-    type: "select" as FieldType,
-    required: true,
-    options: [
-      { label: "On Campus", value: "ON_CAMPUS" },
-      { label: "Off Campus", value: "OFF_CAMPUS" }
-    ]
-  },
-  { name: "locationDetails", label: "Location Details", type: "text" as FieldType, required: true },
-  { name: "startDate", label: "Start Date", type: "date" as FieldType, required: true },
-  { name: "startTime", label: "Start Time", type: "time" as FieldType, required: true, placeholder: "HH:MM" },
-  { name: "endDate", label: "End Date", type: "date" as FieldType, required: true },
-  { name: "endTime", label: "End Time", type: "time" as FieldType, required: true, placeholder: "HH:MM" },
-  { name: "capacity", label: "Capacity", type: "number" as FieldType, required: true },
-  { name: "registrationDeadline", label: "Registration Deadline", type: "date" as FieldType, required: true },
-  { name: "registrationDeadlineTime", label: "Registration Deadline Time", type: "time" as FieldType, required: true, placeholder: "HH:MM" },
-  { name: "professorName", label: "Professor Name (optional)", type: "text" as FieldType, required: false },
-];
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 const schema = z.object({
   name: z.string().min(1, "Bazaar Name is required"),
@@ -48,6 +24,32 @@ const schema = z.object({
   registrationDeadlineTime: z.string().min(1, "Registration Deadline Time is required"),
   professorName: z.string().optional(),
 });
+
+type BazaarFormValues = z.infer<typeof schema>;
+
+const fields: FormFieldConfig<BazaarFormValues>[] = [
+  { name: "name", label: "Bazaar Name", type: "text", required: true },
+  { name: "description", label: "Description", type: "textarea", required: true },
+  {
+    name: "location",
+    label: "Location",
+    type: "select",
+    required: true,
+    options: [
+      { label: "On Campus", value: "ON_CAMPUS" },
+      { label: "Off Campus", value: "OFF_CAMPUS" }
+    ]
+  },
+  { name: "locationDetails", label: "Location Details", type: "text", required: true },
+  { name: "startDate", label: "Start Date", type: "date", required: true },
+  { name: "startTime", label: "Start Time", type: "time", required: true, placeholder: "HH:MM" },
+  { name: "endDate", label: "End Date", type: "date", required: true },
+  { name: "endTime", label: "End Time", type: "time", required: true, placeholder: "HH:MM" },
+  { name: "capacity", label: "Capacity", type: "number", required: true },
+  { name: "registrationDeadline", label: "Registration Deadline", type: "date", required: true },
+  { name: "registrationDeadlineTime", label: "Registration Deadline Time", type: "time", required: true, placeholder: "HH:MM" },
+  { name: "professorName", label: "Professor Name (optional)", type: "text", required: false },
+];
 
 export function CreateBazaarPage() {
   const { setPageMeta } = usePageMeta();
@@ -114,8 +116,7 @@ export function CreateBazaarPage() {
     return <div>Access denied. Only Events Office can create bazaars.</div>;
   }
 
-  const handleSubmit = async (values: Record<string, any>) => {
-    console.log("Submit pressed");
+  const handleSubmit = async (values: BazaarFormValues) => {
     await createBazaar.mutateAsync({
       type: "BAZAAR",
       name: values.name,
@@ -124,16 +125,16 @@ export function CreateBazaarPage() {
       locationDetails: values.locationDetails || values.location,
       startDate: new Date(`${values.startDate}T${values.startTime}`),
       endDate: new Date(`${values.endDate}T${values.endTime}`),
-      capacity: values.capacity ? Number(values.capacity) : 0,
+      capacity: values.capacity,
       registrationDeadline: new Date(`${values.registrationDeadline}T${values.registrationDeadlineTime}`),
-      professorName: values.professorName, 
+      professorName: values.professorName,
     });
     // Navigation is now handled in the onSuccess callback
   };
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <GenericForm
+  <GenericForm<BazaarFormValues>
         fields={fields}
         schema={schema}
         onSubmit={handleSubmit}

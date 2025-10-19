@@ -5,6 +5,7 @@
  * Requirements: #61 - Platform booth setup with location selection on map
  */
 
+
 import {
     Alert,
     AlertDescription,
@@ -53,10 +54,12 @@ import {
     X,
     ZoomIn, ZoomOut
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
+import type { KonvaEventObject } from 'konva/lib/Node';
+import type Konva from 'konva';
 import { toast } from 'react-hot-toast';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 interface Booth {
   id: string;
@@ -82,7 +85,7 @@ interface PlatformMap {
 export function PlatformSetupPage() {
   const { setPageMeta } = usePageMeta();
   const containerRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<Konva.Stage>(null);
   const [platform, setPlatform] = useState<PlatformMap | null>(null);
   const [selectedBoothSize, setSelectedBoothSize] = useState<'2x2' | '4x4'>('2x2');
   const [selectedBooth, setSelectedBooth] = useState<string | null>(null);
@@ -116,13 +119,32 @@ export function PlatformSetupPage() {
     },
   });
 
+  const updateStageSize = useCallback((fullscreen: boolean) => {
+    if (!data) return;
+    if (fullscreen) {
+      setStageSize({ 
+        width: window.innerWidth - 100, 
+        height: window.innerHeight - 250 
+      });
+    } else {
+      // Use container width if available, otherwise use a default
+      const containerWidth = containerRef.current?.offsetWidth || 1200;
+      const gridHeight = (data as PlatformMap).gridHeight * (data as PlatformMap).cellSize;
+      // Subtract padding from container width (32px = 2 * 16px padding)
+      setStageSize({ 
+        width: containerWidth - 32, 
+        height: Math.max(gridHeight, 600)
+      });
+    }
+  }, [data]);
+
   useEffect(() => {
     if (data) {
       setPlatform(data as PlatformMap);
       setEditedName((data as PlatformMap).name);
       updateStageSize(isFullscreen);
     }
-  }, [data, isFullscreen]);
+  }, [data, isFullscreen, updateStageSize]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -145,28 +167,9 @@ export function PlatformSetupPage() {
       window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
     };
-  }, [isFullscreen, data]);
+  }, [isFullscreen, updateStageSize]);
 
-  const updateStageSize = (fullscreen: boolean) => {
-    if (!data) return;
-    if (fullscreen) {
-      setStageSize({ 
-        width: window.innerWidth - 100, 
-        height: window.innerHeight - 250 
-      });
-    } else {
-      // Use container width if available, otherwise use a default
-      const containerWidth = containerRef.current?.offsetWidth || 1200;
-      const gridHeight = (data as PlatformMap).gridHeight * (data as PlatformMap).cellSize;
-      // Subtract padding from container width (32px = 2 * 16px padding)
-      setStageSize({ 
-        width: containerWidth - 32, 
-        height: Math.max(gridHeight, 600)
-      });
-    }
-  };
-
-  const handleStageClick = (e: any) => {
+  const handleStageClick = (e: KonvaEventObject<MouseEvent>) => {
     if (!platform || isDraggingBooth) return;
 
     // Only handle clicks on the stage background, not on booths
@@ -322,12 +325,14 @@ export function PlatformSetupPage() {
     toast('Zoom reset to 100%');
   };
 
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
     const scaleBy = 1.1;
     const stage = e.target.getStage();
+    if (!stage) return;
     const oldScale = stage.scaleX();
     const pointer = stage.getPointerPosition();
+    if (!pointer) return;
 
     const mousePointTo = {
       x: (pointer.x - stage.x()) / oldScale,
@@ -351,7 +356,7 @@ export function PlatformSetupPage() {
     setIsDraggingBooth(true);
   };
 
-  const handleBoothDragEnd = (boothId: string, e: any) => {
+  const handleBoothDragEnd = (boothId: string, e: KonvaEventObject<DragEvent>) => {
     if (!platform) return;
     
     setTimeout(() => setIsDraggingBooth(false), 100);
@@ -432,7 +437,7 @@ export function PlatformSetupPage() {
     setDraggedBooth(null);
   };
 
-  const handleBoothClick = (boothId: string, e: any) => {
+  const handleBoothClick = (boothId: string, e: KonvaEventObject<MouseEvent>) => {
     if (isDraggingBooth) return;
     e.cancelBubble = true;
     setSelectedBooth(boothId);
@@ -792,7 +797,7 @@ export function PlatformSetupPage() {
                         }}
                         onDragEnd={(e) => handleBoothDragEnd(booth.id, e)}
                         onClick={(e) => handleBoothClick(booth.id, e)}
-                        onTap={(e) => handleBoothClick(booth.id, e)}
+                        onTap={(e) => handleBoothClick(booth.id, e as KonvaEventObject<MouseEvent>)}
                         opacity={isDragging ? 0.7 : 1}
                       >
                         <Rect

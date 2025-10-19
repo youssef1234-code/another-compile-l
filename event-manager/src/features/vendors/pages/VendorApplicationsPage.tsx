@@ -18,7 +18,7 @@ import { VendorApplicationsTable } from "../components/vendor-applications-table
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { VendorApplication } from "@event-manager/shared";
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 type QuickFilter = "all" | "participating" | "pending-rejected";
 
@@ -48,7 +48,7 @@ export function VendorApplicationsPage() {
   // Get aggregated statistics from backend
   const { data: stats } = trpc.vendorApplications.getApplicationStats.useQuery();
 
-  const applications = (data?.applications || []) as VendorApplication[];
+  const applications = useMemo(() => (data?.applications || []) as VendorApplication[], [data?.applications]);
   const total = data?.total || 0;
   const pageCount = Math.ceil(total / perPage);
 

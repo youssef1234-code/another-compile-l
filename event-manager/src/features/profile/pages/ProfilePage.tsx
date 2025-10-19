@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
 import { getAvatarSrc } from '@event-manager/shared';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 export function ProfilePage() {
   const { user, setUser } = useAuthStore();

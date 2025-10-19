@@ -9,8 +9,17 @@
  * Features role-based non-deletable filters for professors
  */
 
+
 import type { Event } from '@event-manager/shared';
 import { Calendar, CheckCircle2, Clock } from 'lucide-react';
+
+type ExtendedFilter = {
+  id: string;
+  value: string | string[];
+  operator: "isEmpty" | "isNotEmpty" | "iLike" | "notILike" | "eq" | "ne" | "inArray" | "notInArray" | "lt" | "lte" | "gt" | "gte" | "isBetween" | "isRelativeToToday";
+  variant: "number" | "date" | "text" | "select" | "multiSelect" | "boolean" | "range" | "dateRange";
+  filterId: string;
+};
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson } from 'nuqs';
@@ -34,7 +43,7 @@ import {
   generateEditBazaarUrl
 } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 export function BackOfficeEventsPage() {
   const { setPageMeta } = usePageMeta();
@@ -70,7 +79,17 @@ export function BackOfficeEventsPage() {
   const [page] = useQueryState('page', parseAsInteger.withDefault(1));
   const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
   const [search] = useQueryState('search', parseAsString.withDefault(''));
-  const [sortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>([] as any).withDefault([]));
+  const [sortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>((v) => {
+    if (!v) return null;
+    if (typeof v === 'string') {
+      try {
+        return JSON.parse(v) as Array<{id: string; desc: boolean}>;
+      } catch {
+        return null;
+      }
+    }
+    return v as Array<{id: string; desc: boolean}>;
+  }).withDefault([]));
   
   // Read simple filters from URL - these are managed by DataTableFacetedFilter (advanced mode)
   const [typeFilter, setTypeFilter] = useQueryState('type', parseAsArrayOf(parseAsString, ',').withDefault([]));
@@ -79,7 +98,17 @@ export function BackOfficeEventsPage() {
   const [facultyFilter] = useQueryState('faculty', parseAsArrayOf(parseAsString, ',').withDefault([]));
 
   // Read extended filters from URL - these are managed by DataTableFilterMenu (command mode)
-  const [extendedFiltersState] = useQueryState('filters', parseAsJson<Array<any>>([] as any).withDefault([]));
+  const [extendedFiltersState] = useQueryState('filters', parseAsJson<ExtendedFilter[]>((v) => {
+    if (!v) return null;
+    if (typeof v === 'string') {
+      try {
+        return JSON.parse(v) as ExtendedFilter[];
+      } catch {
+        return null;
+      }
+    }
+    return v as ExtendedFilter[];
+  }).withDefault([]));
   
   // Read join operator for extended filters (and/or)
   const [joinOperator] = useQueryState('joinOperator', parseAsString.withDefault('and'));
@@ -107,13 +136,13 @@ export function BackOfficeEventsPage() {
   // Parse extended filters (command mode) with role-based additions
   const extendedFilters = useMemo(() => {
     try {
-      let parsedFilters = Array.isArray(extendedFiltersState) && extendedFiltersState.length > 0
+      const parsedFilters = Array.isArray(extendedFiltersState) && extendedFiltersState.length > 0
         ? [...extendedFiltersState]
         : [];
 
       // Add professor-specific filter for workshops created by them
       if (user?.role === 'PROFESSOR' && user?.id) {
-        const hasCreatorFilter = parsedFilters.some((f: any) => f.id === 'createdBy');
+        const hasCreatorFilter = parsedFilters.some((f) => f.id === 'createdBy');
         if (!hasCreatorFilter) {
           parsedFilters.push({ 
             id: 'createdBy', 
@@ -359,7 +388,7 @@ export function BackOfficeEventsPage() {
       throw new Error('Event not found');
     }
 
-    const updates: any = {};
+    const updates: Record<string, string> = {};
     updates[field] = value;
     
     try {
@@ -375,17 +404,18 @@ export function BackOfficeEventsPage() {
           data: updates 
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       let errorMessage = 'Failed to update event';
+      const err = error as { data?: { zodError?: { fieldErrors?: Record<string, string[]> } }; message?: string };
       
-      if (error?.data?.zodError?.fieldErrors) {
-        const fieldErrors = error.data.zodError.fieldErrors;
+      if (err?.data?.zodError?.fieldErrors) {
+        const fieldErrors = err.data.zodError.fieldErrors;
         const firstFieldErrors = Object.values(fieldErrors)[0];
         if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
           errorMessage = firstFieldErrors[0];
         }
-      } else if (error?.message) {
-        errorMessage = error.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
       }
       
       toast.error(errorMessage);

@@ -162,7 +162,7 @@ export function ImageGallery({
       };
       reader.readAsDataURL(file);
     }
-  }, [value.length, maxImages, disabled, uploadMutation, toast]);
+  }, [value.length, maxImages, disabled, uploadMutation]);
 
   const handleDelete = (index: number) => {
     if (disabled) return;

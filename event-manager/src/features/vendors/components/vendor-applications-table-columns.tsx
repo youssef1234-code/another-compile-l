@@ -73,6 +73,7 @@ function EventTypeBadge({ type }: { type: string }) {
   );
 }
 
+// @refresh reset
 export function getVendorApplicationsTableColumns({
   statusCounts,
   eventTypeCounts,

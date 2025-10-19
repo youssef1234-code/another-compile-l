@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -195,8 +196,8 @@ export function CreateGymSessionDialog({
                 createM.mutate({
                   name,
                   description: description || undefined,
-                  sessionType: sessionType as any,
-                  startDate: startDateISO as any, // send UTC ISO
+                  sessionType: sessionType as 'YOGA' | 'PILATES' | 'AEROBICS' | 'ZUMBA' | 'CROSS_CIRCUIT' | 'KICK_BOXING' | 'CROSSFIT' | 'CARDIO' | 'STRENGTH' | 'DANCE' | 'MARTIAL_ARTS' | 'OTHER',
+                  startDate: new Date(startDateISO), // send as Date object
                   duration,
                   capacity,
                 });

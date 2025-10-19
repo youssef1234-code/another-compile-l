@@ -22,7 +22,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageGallery } from '@/components/ui/image-gallery';
 import { designSystem } from '@/styles/design-system';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 export function CreateWorkshopPage() {
   const { setPageMeta } = usePageMeta();

@@ -70,9 +70,10 @@ export function InlineEditCell({
     try {
       await onSave(editValue);
       setIsEditing(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Display error message (should be user-friendly from parent handler)
-      const errorMessage = err?.message || err?.toString() || 'Failed to save';
+      const errorMessage =
+        err instanceof Error ? err.message : String(err ?? 'Failed to save');
       setError(errorMessage);
     } finally {
       setIsSaving(false);
@@ -181,7 +182,7 @@ export function InlineEditSelect({
     try {
       await onSave(newValue);
       setIsEditing(false);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to save:', err);
     } finally {
       setIsSaving(false);

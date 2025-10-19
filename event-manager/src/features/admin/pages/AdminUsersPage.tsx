@@ -12,8 +12,17 @@
  * - Shareable URLs (all state in URL params)
  */
 
+
 import type { User } from '@event-manager/shared';
 import { Users, UserCheck, UserX } from 'lucide-react';
+
+type ExtendedFilter = {
+  id: string;
+  value: string | string[];
+  operator: "isEmpty" | "isNotEmpty" | "iLike" | "notILike" | "eq" | "ne" | "inArray" | "notInArray" | "lt" | "lte" | "gt" | "gte" | "isBetween" | "isRelativeToToday";
+  variant: "number" | "date" | "text" | "select" | "multiSelect" | "boolean" | "range" | "dateRange";
+  filterId: string;
+};
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson, parseAsBoolean } from 'nuqs';
@@ -35,7 +44,7 @@ import {
 import { exportToCSV, formatDate } from '@/lib/design-system';
 import { trpc } from '@/lib/trpc';
 import { UsersTable } from '../components/users-table';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 export function AdminUsersPage() {
   const utils = trpc.useUtils();
@@ -79,7 +88,17 @@ export function AdminUsersPage() {
   const [page] = useQueryState('page', parseAsInteger.withDefault(1));
   const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
   const [search] = useQueryState('search', parseAsString.withDefault(''));
-  const [sortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>([] as any).withDefault([]));
+  const [sortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>((v) => {
+    if (!v) return null;
+    if (typeof v === 'string') {
+      try {
+        return JSON.parse(v) as Array<{id: string; desc: boolean}>;
+      } catch {
+        return null;
+      }
+    }
+    return v as Array<{id: string; desc: boolean}>;
+  }).withDefault([]));
   
   // Read simple filters from URL - these are managed by DataTableFacetedFilter (advanced mode)
   const [roleFilter] = useQueryState('role', parseAsArrayOf(parseAsString, ',').withDefault([]));
@@ -90,7 +109,17 @@ export function AdminUsersPage() {
   const [showPendingApprovals, setShowPendingApprovals] = useQueryState('pendingApprovals', parseAsBoolean.withDefault(false));
 
   // Read extended filters from URL - these are managed by DataTableFilterMenu (command mode)
-  const [extendedFiltersState] = useQueryState('filters', parseAsJson<Array<any>>([] as any).withDefault([]));
+  const [extendedFiltersState] = useQueryState('filters', parseAsJson<ExtendedFilter[]>((v) => {
+    if (!v) return null;
+    if (typeof v === 'string') {
+      try {
+        return JSON.parse(v) as ExtendedFilter[];
+      } catch {
+        return null;
+      }
+    }
+    return v as ExtendedFilter[];
+  }).withDefault([]));
   
   // Read join operator for extended filters (and/or)
   const [joinOperator] = useQueryState('joinOperator', parseAsString.withDefault('and'));
@@ -192,7 +221,7 @@ export function AdminUsersPage() {
   }, [statsData, data?.total]);
 
   // Mutations
-  const createUserMutation = (trpc.auth as any).createAdminAccount.useMutation({
+  const createUserMutation = (trpc.auth as typeof trpc.auth & { createAdminAccount: typeof trpc.auth.getAllUsers }).createAdminAccount.useMutation({
     onSuccess: () => {
       toast.success('User created successfully');
       utils.auth.getAllUsers.invalidate();
@@ -200,12 +229,12 @@ export function AdminUsersPage() {
       setIsCreateOpen(false);
       setCreateForm({ email: '', firstName: '', lastName: '', role: '', password: '' });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast.error(error.message || 'Failed to create user');
     },
   });
 
-  const updateUserMutation = (trpc.auth as any).updateUser.useMutation({
+  const updateUserMutation = (trpc.auth as typeof trpc.auth & { updateUser: typeof trpc.auth.getAllUsers }).updateUser.useMutation({
     onSuccess: () => {
       toast.success('User updated successfully');
       utils.auth.getAllUsers.invalidate();
@@ -267,20 +296,20 @@ export function AdminUsersPage() {
     },
   });
 
-  const deleteUserMutation = (trpc.auth as any).deleteAdminAccount.useMutation({
+  const deleteUserMutation = (trpc.auth as typeof trpc.auth & { deleteAdminAccount: typeof trpc.auth.getAllUsers }).deleteAdminAccount.useMutation({
     onSuccess: () => {
       toast.success('User deleted successfully');
       utils.auth.getAllUsers.invalidate();
       utils.auth.getUserStats.invalidate();
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast.error(error.message || 'Failed to delete user');
     },
   });
 
   // Handlers - wrapped in useCallback for performance
   const handleUpdateUser = useCallback(async (userId: string, field: string, value: string) => {
-    const updates: any = {};
+    const updates: Record<string, string> = {};
     updates[field] = value;
     
     try {
@@ -288,37 +317,38 @@ export function AdminUsersPage() {
         userId, 
         ...updates 
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Extract user-friendly error message from tRPC/Zod errors
       let errorMessage = 'Failed to update user';
+      const err = error as { data?: { zodError?: { fieldErrors?: Record<string, string[]> } }; message?: string };
       
       // Handle tRPC validation errors (standard tRPC format)
-      if (error?.data?.zodError?.fieldErrors) {
-        const fieldErrors = error.data.zodError.fieldErrors;
+      if (err?.data?.zodError?.fieldErrors) {
+        const fieldErrors = err.data.zodError.fieldErrors;
         const firstFieldErrors = Object.values(fieldErrors)[0];
         if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
           errorMessage = firstFieldErrors[0];
         }
       } 
       // Handle error.message that contains stringified JSON array
-      else if (error?.message && typeof error.message === 'string' && error.message.trim().startsWith('[')) {
+      else if (err?.message && typeof err.message === 'string' && err.message.trim().startsWith('[')) {
         try {
-          const parsed = JSON.parse(error.message);
+          const parsed = JSON.parse(err.message) as Array<{ message?: string }>;
           if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.message) {
             errorMessage = parsed[0].message;
           }
         } catch {
           // If parsing fails, use the raw message
-          errorMessage = error.message;
+          errorMessage = err.message;
         }
       }
       // Handle direct array of errors
-      else if (Array.isArray(error) && error.length > 0 && error[0]?.message) {
-        errorMessage = error[0].message;
+      else if (Array.isArray(err) && err.length > 0 && (err[0] as { message?: string })?.message) {
+        errorMessage = (err[0] as { message: string }).message;
       }
       // Handle simple error message string
-      else if (error?.message) {
-        errorMessage = error.message;
+      else if (err?.message) {
+        errorMessage = err.message;
       }
       
       // Show toast with clean error message
@@ -424,12 +454,12 @@ export function AdminUsersPage() {
         sort: parsedSort.length > 0 ? parsedSort : undefined,
       });
 
-      const allUsers = allUsersResponse.users.map((user: any) => ({
+      const allUsers = allUsersResponse.users.map((user) => ({
         ...user,
-        status: user.isBlocked ? 'BLOCKED' : 'ACTIVE',
+        status: (user as User & { isBlocked?: boolean }).isBlocked ? 'BLOCKED' : 'ACTIVE',
       }));
 
-      const exportData = allUsers.map((user: User) => ({
+      const exportData = allUsers.map((user) => ({
         Email: user.email,
         'First Name': user.firstName,
         'Last Name': user.lastName,

@@ -11,8 +11,10 @@
  * - Related events section
  */
 
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import type { User as EventUser, Registration } from '@event-manager/shared';
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/store/authStore";
 import { ROUTES } from "@/lib/constants";
@@ -48,7 +50,7 @@ import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import { EventImageCarousel } from "@/components/ui/event-image-carousel";
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 function EventDetailsPageSkeleton() {
   return (
@@ -112,7 +114,7 @@ export function EventDetailsPage() {
   // Check if the current user is a professor who owns this workshop
   // createdBy might be populated (object) or just an ID (string)
   const eventCreatorId = event && typeof event.createdBy === 'object' && event.createdBy !== null
-    ? (event.createdBy as any).id
+    ? (event.createdBy as EventUser).id
     : event?.createdBy;
   
   const isProfessorOwned = user?.role === 'PROFESSOR' && 
@@ -156,7 +158,7 @@ export function EventDetailsPage() {
       utils.events.getEventById.invalidate({ id: id! });
       utils.events.isRegistered.invalidate({ eventId: id! });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message || "Failed to register for event");
       setIsRegistering(false);
     },
@@ -220,7 +222,7 @@ export function EventDetailsPage() {
     registerMutation.mutate({ eventId: event.id });
   };
 
-  const typeConfigMap: Record<string, { label: string; color: string; icon: any }> = {
+  const typeConfigMap: Record<string, { label: string; color: string; icon: typeof GraduationCap }> = {
     WORKSHOP: { label: 'Workshop', color: 'bg-blue-500', icon: GraduationCap },
     TRIP: { label: 'Trip', color: 'bg-green-500', icon: Plane },
     CONFERENCE: { label: 'Conference', color: 'bg-purple-500', icon: Users },
@@ -374,7 +376,7 @@ export function EventDetailsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {registrationsData.registrations.map((reg: any) => (
+                    {(registrationsData.registrations as Array<Registration & { user: EventUser }>).map((reg) => (
                       <div 
                         key={reg.id} 
                         className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
@@ -428,7 +430,7 @@ export function EventDetailsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {event.vendors.map((vendor: any) => (
+                    {event.vendors.map((vendor: { id: string; companyName: string; email: string; boothSize?: string; names?: string[]; emails?: string[] }) => (
                       <VendorCard 
                         key={vendor.id}
                         vendor={vendor}

@@ -4,6 +4,7 @@
  * Different dashboard views for each user role with relevant metrics and actions
  */
 
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc';
@@ -206,7 +207,7 @@ export function ProfessorDashboard() {
 
   const allEvents = (eventsData?.events || []) as Event[];
   const myWorkshops = allEvents; // Filter by createdBy on backend
-  const pendingWorkshops = myWorkshops.filter((w: any) => w.status === 'PENDING_APPROVAL');
+  const pendingWorkshops = myWorkshops.filter((w) => w.status === 'PENDING_APPROVAL');
 
   return (
     <motion.div
@@ -231,13 +232,13 @@ export function ProfessorDashboard() {
         />
         <StatCard
           title="Published"
-          value={myWorkshops.filter((w: any) => w.status === 'PUBLISHED').length}
+          value={myWorkshops.filter((w) => w.status === 'PUBLISHED').length}
           description="Active workshops"
           icon={<CheckCircle2 className="h-4 w-4" />}
         />
         <StatCard
           title="Total Participants"
-          value={myWorkshops.reduce((acc: number, w: any) => acc + (w.registeredCount || 0), 0)}
+          value={myWorkshops.reduce((acc: number, w) => acc + (w.registeredCount || 0), 0)}
           description="Across all workshops"
           icon={<Users className="h-4 w-4" />}
         />
@@ -285,15 +286,15 @@ export function ProfessorDashboard() {
           <CardContent>
             {myWorkshops.length > 0 ? (
               <div className="space-y-4">
-                {myWorkshops.slice(0, 5).map((workshop: any) => (
+                {myWorkshops.slice(0, 5).map((workshop) => (
                   <div
                     key={workshop.id}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                   >
                     <div className="space-y-1">
-                      <h3 className="font-medium">{workshop.title}</h3>
+                      <h3 className="font-medium">{workshop.name}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(workshop.date).toLocaleDateString()} • {workshop.location}
+                        {workshop.startDate ? new Date(workshop.startDate).toLocaleDateString() : 'TBD'} • {workshop.location}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">

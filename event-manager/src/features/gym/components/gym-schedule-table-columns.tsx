@@ -97,6 +97,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// @refresh reset
 export function getGymScheduleTableColumns({
   typeCounts = {},
   statusCounts = {},

@@ -5,16 +5,12 @@
  * Provides consistent layout for all authenticated pages
  */
 
-import { Outlet, useOutletContext } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Separator } from '@/components/ui/separator';
 import { useState } from 'react';
-
-export interface PageMeta {
-  title: string;
-  description?: string;
-}
+import type { PageMeta, PageMetaContext } from './page-meta-context';
 
 export function AppLayout() {
   const [pageMeta, setPageMeta] = useState<PageMeta>({ title: 'Event Manager' });
@@ -37,13 +33,9 @@ export function AppLayout() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto">
-          <Outlet context={{ setPageMeta }} />
+          <Outlet context={{ setPageMeta } satisfies PageMetaContext} />
         </div>
       </main>
     </SidebarProvider>
   );
-}
-
-export function usePageMeta() {
-  return useOutletContext<{ setPageMeta: (meta: PageMeta) => void }>();
 }

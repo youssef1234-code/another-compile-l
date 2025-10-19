@@ -1,3 +1,4 @@
+
 import type { User } from "@event-manager/shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Shield, Mail, MoreHorizontal, UserX, Trash2, UserCheck, Users, CheckCircle, XCircle } from "lucide-react";
@@ -275,14 +276,14 @@ export function getUsersTableColumns({
     },
     {
       id: "vendorStatus",
-      accessorFn: (row) => (row as any).vendorApprovalStatus,
+      accessorFn: (row) => (row as User & { vendorApprovalStatus?: string }).vendorApprovalStatus,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Vendor Status" />
       ),
       cell: ({ row }) => {
         const user = row.original;
-        const vendorStatus = (user as any).vendorApprovalStatus;
-        const rejectionReason = (user as any).vendorRejectionReason;
+        const vendorStatus = (user as User & { vendorApprovalStatus?: string }).vendorApprovalStatus;
+        const rejectionReason = (user as User & { vendorRejectionReason?: string }).vendorRejectionReason;
         
         if (user.role !== 'VENDOR') {
           return <span className="text-xs text-muted-foreground">N/A</span>;
@@ -366,7 +367,7 @@ export function getUsersTableColumns({
       cell: ({ row }) => {
         const user = row.original;
         const isVendor = user.role === 'VENDOR';
-        const vendorStatus = (user as any).vendorApprovalStatus;
+        const vendorStatus = (user as User & { vendorApprovalStatus?: string }).vendorApprovalStatus;
         const isAcademicRole = ['PROFESSOR', 'TA', 'STAFF'].includes(user.role);
         const needsRoleVerification = isAcademicRole && !user.roleVerifiedByAdmin;
         const needsVendorApproval = isVendor && vendorStatus === 'PENDING';

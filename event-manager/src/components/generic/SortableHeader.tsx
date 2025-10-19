@@ -50,33 +50,4 @@ export function SortableHeader<TData, TValue>({
   );
 }
 
-/**
- * Helper function to create a sortable column definition
- * 
- * Usage:
- * ```tsx
- * const columns: ColumnDef<User>[] = [
- *   createSortableColumn('email', 'Email'),
- *   createSortableColumn('firstName', 'First Name'),
- *   // ... custom cell rendering
- *   {
- *     accessorKey: 'role',
- *     header: ({ column }) => <SortableHeader column={column} title="Role" />,
- *     cell: ({ row }) => <Badge>{row.getValue('role')}</Badge>,
- *   },
- * ];
- * ```
- */
-export function createSortableColumn<TData>(
-  accessorKey: string,
-  title: string,
-  cell?: (value: any) => React.ReactNode
-) {
-  return {
-    accessorKey,
-    header: ({ column }: { column: Column<TData, any> }) => (
-      <SortableHeader column={column} title={title} />
-    ),
-    cell: cell ? ({ row }: { row: any }) => cell(row.getValue(accessorKey)) : undefined,
-  };
-}
+export type { Column };

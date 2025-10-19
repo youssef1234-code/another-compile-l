@@ -3,6 +3,7 @@
  * Displays gym sessions in a weekly timeline format
  */
 
+
 import { useMemo } from 'react';
 import { useCalendar } from '../calendar-context';
 import { getWeekDates, formatTime, eventOverlapsWithSlot } from '../helpers';
@@ -159,7 +160,7 @@ interface WeekEventCardProps {
 }
 
 function WeekEventCard({ event, height, onClick }: WeekEventCardProps) {
-  const sessionType = (event as any).sessionType || 'OTHER';
+  const sessionType = event.sessionType || 'OTHER';
   
   if (!event.startDate) return null;
   

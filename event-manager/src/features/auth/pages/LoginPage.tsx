@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { GenericForm } from '@/components/generic';
-import { LoginSchema, type LoginInput } from '@event-manager/shared';
+import { LoginSchema, type LoginInput, type User } from '@event-manager/shared';
 import { trpc } from '@/lib/trpc';
 import { useAuthStore } from '@/store/authStore';
 import { ROUTES } from '@/lib/constants';
@@ -21,7 +21,7 @@ export function LoginPage() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
-      setAuth(data.user as any, data.token, data.refreshToken);
+      setAuth(data.user as User, data.token, data.refreshToken);
       toast.success('Welcome back!', {
         icon: '✅',
         duration: 3000,
@@ -33,7 +33,7 @@ export function LoginPage() {
       });
       navigate(ROUTES.DASHBOARD);
     },
-    onError: (error: any) => {
+    onError: (error: { message?: string }) => {
       console.log('Login error:', error); // Debug log
       
       // Check if error is due to unverified email
@@ -71,7 +71,7 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-neutral-50">
       <div className="w-full max-w-md">
-        <GenericForm
+  <GenericForm<LoginInput>
           title="Welcome Back"
           description="Sign in to your account to continue"
           schema={LoginSchema}

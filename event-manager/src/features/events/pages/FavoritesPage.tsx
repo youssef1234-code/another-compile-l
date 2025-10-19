@@ -1,4 +1,4 @@
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 import { useEffect } from 'react';
 
 export function FavoritesPage() {

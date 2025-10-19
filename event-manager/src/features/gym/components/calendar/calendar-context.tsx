@@ -8,13 +8,13 @@ import type { CalendarView, CalendarEvent, CalendarContextType } from './types';
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined);
 
-export function useCalendar() {
+const useCalendar = () => {
   const context = useContext(CalendarContext);
   if (!context) {
     throw new Error('useCalendar must be used within a CalendarProvider');
   }
   return context;
-}
+};
 
 interface CalendarProviderProps {
   children: React.ReactNode;
@@ -25,7 +25,7 @@ interface CalendarProviderProps {
   readOnly?: boolean;
 }
 
-export function CalendarProvider({
+function CalendarProvider({
   children,
   events,
   initialView = 'month',
@@ -107,3 +107,6 @@ export function CalendarProvider({
 
   return <CalendarContext.Provider value={value}>{children}</CalendarContext.Provider>;
 }
+
+// @refresh reset
+export { CalendarProvider, useCalendar };

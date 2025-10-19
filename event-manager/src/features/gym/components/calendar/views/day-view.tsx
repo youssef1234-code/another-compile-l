@@ -3,6 +3,7 @@
  * Displays gym sessions for a single day in hourly slots
  */
 
+
 import { useMemo } from 'react';
 import { useCalendar } from '../calendar-context';
 import { formatTime, eventOverlapsWithSlot } from '../helpers';
@@ -129,8 +130,8 @@ interface DayEventCardProps {
 }
 
 function DayEventCard({ event, height, onEventClick }: DayEventCardProps) {
-  const sessionType = (event as any).sessionType || 'OTHER';
-  const duration = (event as any).duration || 60;
+  const sessionType = event.sessionType || 'OTHER';
+  const duration = event.duration || 60;
 
   if (!event.startDate) return null;
 

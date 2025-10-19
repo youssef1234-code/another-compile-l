@@ -14,7 +14,7 @@ import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
 import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 const tripSchema = z.object({
   images: z.array(z.string()).optional(),
@@ -99,7 +99,7 @@ export function EditTripPage() {
     });
   };
 
-  const fields: FormFieldConfig[] = [
+  const fields: FormFieldConfig<TripFormData>[] = [
     {
       name: 'images',
       label: 'Trip Images',
@@ -144,8 +144,12 @@ export function EditTripPage() {
       colSpan: 1,
       render: (value, form) => (
         <DateTimePicker
-          value={value}
-          onChange={(date) => form.setValue('startDate', date)}
+          value={(value as Date | null) ?? null}
+          onChange={(date) => {
+            if (date) {
+              form.setValue('startDate', date);
+            }
+          }}
           placeholder="Select start date and time"
           minDate={new Date()}
         />
@@ -158,8 +162,8 @@ export function EditTripPage() {
       colSpan: 1,
       render: (value, form) => (
         <DateTimePicker
-          value={value}
-          onChange={(date) => form.setValue('endDate', date)}
+          value={(value as Date | null) ?? null}
+          onChange={(date) => form.setValue('endDate', date ?? undefined)}
           placeholder="Select end date and time"
           minDate={new Date()}
         />
@@ -172,8 +176,8 @@ export function EditTripPage() {
       colSpan: 1,
       render: (value, form) => (
         <DateTimePicker
-          value={value}
-          onChange={(date) => form.setValue('registrationDeadline', date)}
+          value={(value as Date | null) ?? null}
+          onChange={(date) => form.setValue('registrationDeadline', date ?? undefined)}
           placeholder="Registration deadline"
           minDate={new Date()}
         />
@@ -229,7 +233,7 @@ export function EditTripPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="bg-card rounded-lg border shadow-sm">
-        <GenericForm
+  <GenericForm<TripFormData>
           fields={fields}
           schema={tripSchema}
           onSubmit={handleSubmit}

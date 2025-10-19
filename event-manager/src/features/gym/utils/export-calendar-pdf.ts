@@ -3,6 +3,7 @@
  * Generates a PDF document of the calendar view with all events
  */
 
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Event } from '@event-manager/shared';
@@ -61,7 +62,7 @@ export function exportCalendarToPDF({ events, month, title }: ExportCalendarPDFO
   const sortedDates = Object.keys(eventsByDate).sort();
   
   // Prepare table data
-  const tableData: any[][] = [];
+  const tableData: string[][] = [];
   
   sortedDates.forEach(dateKey => {
     const dateEvents = eventsByDate[dateKey];
@@ -125,7 +126,7 @@ export function exportCalendarToPDF({ events, month, title }: ExportCalendarPDFO
   });
   
   // Add footer
-  const pageCount = (doc as any).internal.getNumberOfPages();
+  const pageCount = (doc as jsPDF & { internal: { getNumberOfPages: () => number } }).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);

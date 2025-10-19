@@ -3,7 +3,7 @@
  * Professional placeholder for features under development
  */
 
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 import { useEffect } from 'react';
 import { Construction, Calendar, Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';

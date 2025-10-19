@@ -14,7 +14,7 @@ import { trpc } from '@/lib/trpc';
 import { ROUTES } from '@/lib/constants';
 import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
-import { usePageMeta } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/components/layout/page-meta-context';
 
 const conferenceSchema = z.object({
   images: z.array(z.string()).optional(),
@@ -100,7 +100,7 @@ export function EditConferencePage() {
     });
   };
 
-  const fields: FormFieldConfig[] = [
+  const fields: FormFieldConfig<ConferenceFormData>[] = [
     {
       name: 'images',
       label: 'Conference Images',
@@ -153,8 +153,12 @@ export function EditConferencePage() {
       colSpan: 1,
       render: (value, form) => (
         <DateTimePicker
-          value={value}
-          onChange={(date) => form.setValue('startDate', date)}
+          value={(value as Date | null) ?? null}
+          onChange={(date) => {
+            if (date) {
+              form.setValue('startDate', date);
+            }
+          }}
           placeholder="Select start date and time"
           minDate={new Date()}
         />
@@ -167,8 +171,8 @@ export function EditConferencePage() {
       colSpan: 1,
       render: (value, form) => (
         <DateTimePicker
-          value={value}
-          onChange={(date) => form.setValue('endDate', date)}
+          value={(value as Date | null) ?? null}
+          onChange={(date) => form.setValue('endDate', date ?? undefined)}
           placeholder="Select end date and time"
           minDate={new Date()}
         />
@@ -181,8 +185,8 @@ export function EditConferencePage() {
       colSpan: 1,
       render: (value, form) => (
         <DateTimePicker
-          value={value}
-          onChange={(date) => form.setValue('registrationDeadline', date)}
+          value={(value as Date | null) ?? null}
+          onChange={(date) => form.setValue('registrationDeadline', date ?? undefined)}
           placeholder="Registration deadline"
           minDate={new Date()}
         />
@@ -257,7 +261,7 @@ export function EditConferencePage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="max-w-6xl">
-        <GenericForm
+  <GenericForm<ConferenceFormData>
           fields={fields}
           schema={conferenceSchema}
           onSubmit={handleSubmit}

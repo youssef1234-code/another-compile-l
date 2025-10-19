@@ -1,7 +1,7 @@
 /**
  * Format TRPC/Zod validation errors into user-friendly messages
  */
-export function formatValidationErrors(error: any): string {
+export function formatValidationErrors(error: unknown): string {
   // Field name mapping for better UX
   const fieldNameMap: Record<string, string> = {
     fullAgenda: 'Full Agenda',
@@ -27,9 +27,12 @@ export function formatValidationErrors(error: any): string {
     return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
   };
 
+  // Type guard for error object
+  const err = error as { data?: { zodError?: { fieldErrors?: Record<string, string[]>; formErrors?: string[] }; code?: string }; message?: string };
+
   // Handle TRPC Zod errors (fieldErrors format)
-  if (error.data?.zodError?.fieldErrors) {
-    const errors = error.data.zodError.fieldErrors;
+  if (err.data?.zodError?.fieldErrors) {
+    const errors = err.data.zodError.fieldErrors;
     const messages: string[] = [];
     
     for (const [field, fieldErrors] of Object.entries(errors)) {
@@ -44,27 +47,27 @@ export function formatValidationErrors(error: any): string {
   }
   
   // Handle raw Zod errors (array format from backend)
-  if (error.data?.code === 'BAD_REQUEST' && error.message) {
+  if (err.data?.code === 'BAD_REQUEST' && err.message) {
     try {
-      const parsed = JSON.parse(error.message);
+      const parsed = JSON.parse(err.message);
       if (Array.isArray(parsed)) {
-        const messages = parsed.map((err: any) => {
-          const field = err.path?.[0] || 'Field';
-          return `• ${formatFieldName(field)}: ${err.message}`;
+        const messages = parsed.map((e: { path?: unknown[]; message: string }) => {
+          const field = e.path?.[0] || 'Field';
+          return `• ${formatFieldName(String(field))}: ${e.message}`;
         });
         return messages.length > 0 
           ? `Validation Error:\n${messages.join('\n')}` 
           : 'Validation failed';
       }
-    } catch (e) {
+    } catch {
       // Not JSON, use as-is
     }
   }
   
   // Handle formErrors (non-field-specific errors)
-  if (error.data?.zodError?.formErrors && error.data.zodError.formErrors.length > 0) {
-    return `Validation Error:\n${error.data.zodError.formErrors.join('\n')}`;
+  if (err.data?.zodError?.formErrors && err.data.zodError.formErrors.length > 0) {
+    return `Validation Error:\n${err.data.zodError.formErrors.join('\n')}`;
   }
   
-  return error.message || 'An error occurred';
+  return err.message || 'An error occurred';
 }

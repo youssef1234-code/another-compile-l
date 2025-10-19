@@ -12,7 +12,7 @@
  * - Full customization options
  */
 
-import { useForm } from 'react-hook-form';
+import { useForm, type DefaultValues, type FieldPath, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, type Variants } from 'framer-motion';
@@ -68,13 +68,16 @@ export type FieldType =
   | 'select'
   | 'checkbox'
   | 'date'
+  | 'time'
   | 'image'
   | 'imageGallery'
   | 'custom';
 
-export interface ConditionalAlert {
+export type GenericFormValues = Record<string, unknown>;
+
+export interface ConditionalAlert<TFieldValues extends GenericFormValues = GenericFormValues> {
   /** Condition function that receives form values and returns true to show alert */
-  condition: (values: any) => boolean;
+  condition: (values: TFieldValues) => boolean;
   /** Alert variant color */
   variant?: 'info' | 'warning' | 'success' | 'error';
   /** Icon to display */
@@ -87,7 +90,7 @@ export interface ConditionalAlert {
   className?: string;
 }
 
-export interface FormFieldConfig {
+export interface FormFieldConfig<TFieldValues extends GenericFormValues = GenericFormValues> {
   name: string;
   label: string;
   type: FieldType;
@@ -100,7 +103,7 @@ export interface FormFieldConfig {
   options?: Array<{ value: string; label: string }>;
   
   // For custom fields
-  render?: (field: any, form: any) => React.ReactNode;
+  render?: (fieldValue: unknown, form: UseFormReturn<TFieldValues>) => React.ReactNode;
   
   // For number fields
   min?: number;
@@ -116,18 +119,21 @@ export interface FormFieldConfig {
   
   // Error message spacing (prevents layout shift)
   reserveErrorSpace?: boolean; // Default true
+
+  // Validation
+  required?: boolean;
 }
 
-export interface GenericFormProps {
+export interface GenericFormProps<TFieldValues extends GenericFormValues = GenericFormValues> {
   // Form configuration
   title?: string;
   description?: string;
   icon?: React.ReactNode;
-  fields: FormFieldConfig[];
-  schema: z.ZodType<any, any, any>;
+  fields: FormFieldConfig<TFieldValues>[];
+  schema: z.ZodTypeAny;
   
   // Callbacks
-  onSubmit: (data: any) => void | Promise<void>;
+  onSubmit: (data: TFieldValues) => void | Promise<void>;
   onCancel?: () => void;
   
   // UI customization
@@ -143,7 +149,7 @@ export interface GenericFormProps {
   formSpacing?: 3 | 4 | 5; // Tailwind space-y-* value
   
   // Default values
-  defaultValues?: Record<string, any>;
+  defaultValues?: Partial<TFieldValues>;
   
   // Animations
   animate?: boolean;
@@ -162,7 +168,7 @@ export interface GenericFormProps {
   headerPadding?: 4 | 6 | 8; // pb-* value
   
   // Conditional alerts/banners
-  conditionalAlerts?: ConditionalAlert[];
+  conditionalAlerts?: Array<ConditionalAlert<TFieldValues>>;
   
   // Footer actions
   footerActions?: React.ReactNode;
@@ -194,7 +200,7 @@ const alertTextColors = {
   error: 'text-red-700 dark:text-red-300',
 };
 
-export function GenericForm({
+export function GenericForm<TFieldValues extends GenericFormValues = GenericFormValues>({
   title,
   description,
   icon,
@@ -226,33 +232,36 @@ export function GenericForm({
   submitButtonSize = 'lg',
   submitButtonFullWidth = true,
   submitButtonClassName,
-}: GenericFormProps) {
-  const form = useForm({
-    resolver: zodResolver(schema),
-    defaultValues: defaultValues || Object.fromEntries(
-      fields.map((f) => [
-        f.name,
-        f.type === 'checkbox' ? false : f.type === 'number' ? 0 : '',
-      ])
-    ),
+}: GenericFormProps<TFieldValues>) {
+  const fallbackDefaults = Object.fromEntries(
+    fields.map((field) => [
+      field.name,
+      field.type === 'checkbox' ? false : field.type === 'number' ? 0 : '',
+    ]),
+  ) as Partial<TFieldValues>;
+
+  const form = useForm<TFieldValues>({
+    resolver: zodResolver(schema as z.ZodTypeAny),
+    defaultValues: (defaultValues ?? fallbackDefaults) as DefaultValues<TFieldValues>,
   });
 
   // Watch form values for conditional alerts
   const formValues = form.watch();
 
-  const renderField = (fieldConfig: FormFieldConfig) => {
+  const renderField = (fieldConfig: FormFieldConfig<TFieldValues>) => {
     const { reserveErrorSpace = true } = fieldConfig;
 
     // Custom field rendering
     if (fieldConfig.type === 'custom' && fieldConfig.render) {
-      return fieldConfig.render(form.getValues(fieldConfig.name), form);
+      const fieldValue = form.getValues(fieldConfig.name as FieldPath<TFieldValues>);
+      return fieldConfig.render(fieldValue, form);
     }
 
     return (
       <FormField
         key={fieldConfig.name}
         control={form.control}
-        name={fieldConfig.name}
+        name={fieldConfig.name as FieldPath<TFieldValues>}
         render={({ field }) => (
           <FormItem className={fieldConfig.className}>
             {fieldConfig.type !== 'checkbox' && (
@@ -266,8 +275,8 @@ export function GenericForm({
             <FormControl>
               {fieldConfig.type === 'image' ? (
                 <ImageUpload
-                  value={field.value}
-                  onChange={field.onChange}
+                  value={typeof field.value === 'string' ? field.value : undefined}
+                  onChange={(nextValue) => field.onChange(nextValue)}
                   entityType="event"
                   aspectRatio="banner"
                   maxSizeMB={5}
@@ -275,13 +284,16 @@ export function GenericForm({
                 />
               ) : fieldConfig.type === 'imageGallery' ? (
                 <ImageGallery
-                  value={field.value}
-                  onChange={field.onChange}
+                  value={Array.isArray(field.value) ? (field.value as string[]) : undefined}
+                  onChange={(nextValue) => field.onChange(nextValue)}
                   maxImages={10}
                   disabled={isLoading}
                 />
               ) : fieldConfig.type === 'select' ? (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={(value) => field.onChange(value)}
+                  defaultValue={typeof field.value === 'string' ? field.value : undefined}
+                >
                   <SelectTrigger className={cn('w-full', fieldConfig.inputClassName)}>
                     <SelectValue placeholder={fieldConfig.placeholder || `Select ${fieldConfig.label}`} />
                   </SelectTrigger>
@@ -296,8 +308,8 @@ export function GenericForm({
               ) : fieldConfig.type === 'checkbox' ? (
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
+                    checked={Boolean(field.value)}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
                     disabled={isLoading}
                   />
                   <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -323,23 +335,34 @@ export function GenericForm({
                     min={fieldConfig.min}
                     max={fieldConfig.max}
                     step={fieldConfig.step}
-                    {...field}
-                    onChange={(e) => {
-                      // For number inputs, parse and remove trailing zeros
+                    name={field.name}
+                    ref={field.ref}
+                    onBlur={field.onBlur}
+                    value={
+                      typeof field.value === 'number'
+                        ? field.value
+                        : typeof field.value === 'string'
+                          ? field.value
+                          : field.value == null
+                            ? ''
+                            : String(field.value)
+                    }
+                    onChange={(event) => {
                       if (fieldConfig.type === 'number') {
-                        const value = e.target.value;
-                        if (value === '') {
+                        const nextValue = event.target.value;
+                        if (!nextValue) {
                           field.onChange('');
-                        } else {
-                          const numValue = parseFloat(value);
-                          // Only update if it's a valid number
-                          if (!isNaN(numValue)) {
-                            field.onChange(numValue);
-                          }
+                          return;
                         }
-                      } else {
-                        field.onChange(e);
+
+                        const numericValue = Number(nextValue);
+                        if (!Number.isNaN(numericValue)) {
+                          field.onChange(numericValue);
+                        }
+                        return;
                       }
+
+                      field.onChange(event.target.value);
                     }}
                   />
                 </div>
@@ -363,8 +386,8 @@ export function GenericForm({
 
   const renderFormContent = () => {
     // Process fields into groups for rendering
-    const fieldGroups: FormFieldConfig[][] = [];
-    let currentGroup: FormFieldConfig[] = [];
+  const fieldGroups: Array<FormFieldConfig<TFieldValues>[]> = [];
+  let currentGroup: FormFieldConfig<TFieldValues>[] = [];
     
     fields.forEach((field) => {
       if (field.colSpan === 2 || columns === 1) {

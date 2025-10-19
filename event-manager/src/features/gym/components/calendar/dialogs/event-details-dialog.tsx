@@ -3,6 +3,7 @@
  * Shows detailed information about a gym session
  */
 
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -33,8 +34,8 @@ export function EventDetailsDialog({
 
   if (!event) return null;
 
-  const sessionType = (event as any).sessionType || 'OTHER';
-  const duration = (event as any).duration || 60;
+  const sessionType = event.sessionType || 'OTHER';
+  const duration = event.duration || 60;
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);

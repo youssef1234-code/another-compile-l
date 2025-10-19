@@ -157,7 +157,7 @@ export function getInitials(name: string): string {
 /**
  * Debounce function
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: never[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -255,7 +255,7 @@ export function downloadFile(data: string, filename: string, type: string = 'tex
 /**
  * Export table data to CSV
  */
-export function exportToCSV(data: any[], filename: string) {
+export function exportToCSV(data: Record<string, unknown>[], filename: string) {
   if (data.length === 0) return;
   
   const headers = Object.keys(data[0]);

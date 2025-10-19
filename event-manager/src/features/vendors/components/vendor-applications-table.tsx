@@ -79,7 +79,7 @@ export function VendorApplicationsTable({
   return (
     <DataTable 
       table={table}
-      renderSubComponent={({ row }) => (
+      renderSubComponent={(row) => (
         <VendorApplicationExpandedRow application={row.original} />
       )}
     >

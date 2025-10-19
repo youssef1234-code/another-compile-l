@@ -5,6 +5,7 @@
  * Includes debounced search, type filter, location filter
  */
 
+
 import { useState, useEffect } from 'react';
 import { Search, Filter, X, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -139,7 +140,7 @@ export function EventSearchBar() {
                 <label className="text-sm font-medium">Event Type</label>
                 <Select
                   value={filters.type || 'all'}
-                  onValueChange={(value) => setType(value === 'all' ? undefined : value as any)}
+                  onValueChange={(value) => setType(value === 'all' ? undefined : value as 'WORKSHOP' | 'TRIP' | 'BAZAAR' | 'CONFERENCE' | 'GYM_SESSION')}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All types" />
@@ -161,7 +162,7 @@ export function EventSearchBar() {
                 <label className="text-sm font-medium">Location</label>
                 <Select
                   value={filters.location || 'all'}
-                  onValueChange={(value) => setLocation(value === 'all' ? undefined : value as any)}
+                  onValueChange={(value) => setLocation(value === 'all' ? undefined : value as 'ON_CAMPUS' | 'OFF_CAMPUS')}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All locations" />

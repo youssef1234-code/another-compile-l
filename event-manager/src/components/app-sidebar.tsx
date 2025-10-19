@@ -44,8 +44,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
-  useSidebar,
 } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +55,7 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import { ROUTES } from "@/lib/constants";
 import { getAvatarSrc } from "@event-manager/shared";
 import {
@@ -95,11 +95,34 @@ const navigationConfig: NavItem[] = [
     ],
   },
   {
+    title: "Browse Bazaars",
+    url: ROUTES.BROWSE_BAZAARS,
+    icon: ShoppingBag,
+    roles: ["VENDOR"],
+  },
+  {
+    title: "Apply Platform Booth",
+    url: ROUTES.APPLY_PLATFORM_BOOTH,
+    icon: MapPin,
+    roles: ["VENDOR"],
+  },
+  {
+    title: "My Applications",
+    url: ROUTES.VENDOR_APPLICATIONS,
+    icon: ClipboardList,
+    roles: ["VENDOR"],
+  },
+  {
+    title: "Loyalty Program",
+    url: ROUTES.LOYALTY_PROGRAM,
+    icon: Trophy,
+    roles: ["VENDOR"],
+  },
+  {
     title: "Vendors",
     icon: ShoppingBag,
     url: ROUTES.BROWSE_BAZAARS,
     roles: [
-      "VENDOR",
       "ADMIN",
       "EVENT_OFFICE",
       "STUDENT",
@@ -108,24 +131,6 @@ const navigationConfig: NavItem[] = [
       "PROFESSOR",
     ],
     items: [
-      {
-        title: "Browse Bazaars",
-        url: ROUTES.BROWSE_BAZAARS,
-        icon: ShoppingBag,
-        roles: ["VENDOR"],
-      },
-      {
-        title: "Apply Platform Booth",
-        url: ROUTES.APPLY_PLATFORM_BOOTH,
-        icon: MapPin,
-        roles: ["VENDOR"],
-      },
-      {
-        title: "My Applications",
-        url: ROUTES.VENDOR_APPLICATIONS,
-        icon: ClipboardList,
-        roles: ["VENDOR"],
-      },
       {
         title: "Manage Requests",
         url: ROUTES.VENDOR_REQUESTS,
@@ -211,8 +216,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       logout();
       toast.success("Logged out successfully");
       navigate(ROUTES.LOGIN);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to logout");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to logout";
+      toast.error(message);
     }
   };
 

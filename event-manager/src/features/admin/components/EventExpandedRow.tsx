@@ -8,7 +8,7 @@
  * - Quick actions
  */
 
-import type { Event } from '@event-manager/shared';
+import type { Event, User as EventUser, Registration } from '@event-manager/shared';
 import { UserRole } from '@event-manager/shared';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,17 @@ interface EventExpandedRowProps {
 }
 
 
+
+type PopulatedRegistration = Registration & { user: EventUser };
+
+type VendorInfo = {
+  id: string;
+  companyName: string;
+  email: string;
+  boothSize?: string;
+  names?: string[];
+  emails?: string[];
+};
 
 export function EventExpandedRow({
   event,
@@ -210,13 +221,13 @@ export function EventExpandedRow({
                       </div>
                       <div>
                         <p className="font-medium">
-                          {(event.createdBy as any).firstName} {(event.createdBy as any).lastName}
+                          {(event.createdBy as EventUser).firstName} {(event.createdBy as EventUser).lastName}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {(event.createdBy as any).email}
+                          {(event.createdBy as EventUser).email}
                         </p>
                         <Badge variant="outline" className="mt-1">
-                          {(event.createdBy as any).role}
+                          {(event.createdBy as EventUser).role}
                         </Badge>
                       </div>
                     </div>
@@ -237,7 +248,7 @@ export function EventExpandedRow({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {registrationsData.registrations.map((reg: any) => (
+                  {(registrationsData.registrations as PopulatedRegistration[]).map((reg) => (
                     <div
                       key={reg.id}
                       className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
@@ -298,17 +309,17 @@ export function EventExpandedRow({
           )}
 
           {/* Vendors (for Bazaars) */}
-          {event.type === 'BAZAAR' && (event as any).vendors && (event as any).vendors.length > 0 && (
+          {event.type === 'BAZAAR' && (event as Event & { vendors?: VendorInfo[] }).vendors && (event as Event & { vendors: VendorInfo[] }).vendors.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Building2 className="h-5 w-5" />
-                  Participating Vendors ({(event as any).vendors.length})
+                  Participating Vendors ({(event as Event & { vendors: VendorInfo[] }).vendors.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(event as any).vendors.map((vendor: any) => (
+                  {(event as Event & { vendors: VendorInfo[] }).vendors.map((vendor) => (
                     <VendorCard 
                       key={vendor.id}
                       vendor={vendor}

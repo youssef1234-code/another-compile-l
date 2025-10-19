@@ -31,7 +31,7 @@ interface DragDropProviderProps {
   onEventDrop?: (eventId: string, targetDate: Date) => void;
 }
 
-export function DragDropProvider({ children, onEventDrop }: DragDropProviderProps) {
+function DragDropProvider({ children, onEventDrop }: DragDropProviderProps) {
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -111,7 +111,7 @@ export function DragDropProvider({ children, onEventDrop }: DragDropProviderProp
     // Always reset drag state
     setActiveId(null);
     setDraggedEvent(null);
-  }, [onEventDrop, draggedEvent]);
+  }, [onEventDrop]);
 
   const handleDragCancel = useCallback(() => {
     console.log('❌ Drag cancelled');
@@ -188,10 +188,13 @@ function DraggedEventBadge({ event }: { event: CalendarEvent }) {
   );
 }
 
-export function useDragDrop() {
+const useDragDrop = () => {
   const context = useContext(DragDropContext);
   if (!context) {
     throw new Error('useDragDrop must be used within DragDropProvider');
   }
   return context;
-}
+};
+
+// @refresh reset
+export { DragDropProvider, useDragDrop };
