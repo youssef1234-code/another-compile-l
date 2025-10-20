@@ -681,7 +681,8 @@ export function BackOfficeEventsPage() {
   onNeedsEdits={user?.role === 'EVENT_OFFICE' ? handleNeedsEdits : undefined}
         // Action buttons
         onExport={handleExport}
-        onCreate={handleCreateEvent}
+        // Only Event Office and Professors can create events, NOT Admins
+        onCreate={user?.role !== 'ADMIN' ? handleCreateEvent : undefined}
         exportDisabled={isLoading}
         exportLabel={`Export ${search || Object.keys(filters).length > 0 ? 'Filtered' : 'All'}`}
         createLabel={createButtonText}

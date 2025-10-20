@@ -232,7 +232,11 @@ export function getEventsTableColumns({
         const isWorkshop = event.type === 'WORKSHOP';
         const isAdminOrEventOffice = userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE;
         const isRejected = event.status === 'REJECTED';
-        const canInlineEdit = onUpdateEvent && !(isWorkshop && isAdminOrEventOffice) && !(isWorkshop && isRejected);
+        // Admins cannot inline edit ANY event, Event Office cannot edit workshops
+        const canInlineEdit = onUpdateEvent 
+          && userRole !== UserRole.ADMIN
+          && !(isWorkshop && isAdminOrEventOffice) 
+          && !(isWorkshop && isRejected);
         
         return canInlineEdit ? (
           <InlineEditCell
@@ -541,12 +545,12 @@ export function getEventsTableColumns({
                 </DropdownMenuItem>
               )}
               {/* Only show edit for:
-                  - Workshops: professors (not rejected)
-                  - Non-workshops: Event Office (Admins cannot edit Bazaars) */}
+                  - Workshops: professors only (not admins, not event office, not rejected)
+                  - Non-workshops: Event Office only (Admins cannot edit ANY events) */}
               {onEditEvent 
-                && !(event.type === 'WORKSHOP' && (userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE))
+                && userRole !== UserRole.ADMIN
+                && !(event.type === 'WORKSHOP' && (userRole === UserRole.EVENT_OFFICE))
                 && !(event.type === 'WORKSHOP' && event.status === 'REJECTED')
-                && !(event.type === 'BAZAAR' && userRole === UserRole.ADMIN)
                 && (
                 <DropdownMenuItem onClick={() => onEditEvent(event.id)}>
                   <Edit className="mr-2 h-4 w-4" />

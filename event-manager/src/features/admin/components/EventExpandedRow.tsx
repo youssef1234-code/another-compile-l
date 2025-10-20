@@ -75,17 +75,17 @@ export function EventExpandedRow({
 
   // Check if current user is admin/event office
   const isAdminOrEventOffice = user?.role === UserRole.ADMIN || user?.role === UserRole.EVENT_OFFICE;
+  const isAdmin = user?.role === UserRole.ADMIN;
   const isWorkshop = event.type === 'WORKSHOP';
   const isRejected = event.status === 'REJECTED';
   
   // Hide edit/delete/archive for workshops when admin/event office
   // Also hide edit for rejected workshops (professors cannot edit rejected workshops)
-  // Additional rule: Admins cannot edit Bazaars (visible only to Events Office)
-  const isBazaar = event.type === 'BAZAAR';
+  // Admins cannot edit ANY event type
   const canEdit = onEdit 
+    && !isAdmin
     && !(isWorkshop && isAdminOrEventOffice)
-    && !(isWorkshop && isRejected)
-    && !(isBazaar && user?.role === UserRole.ADMIN);
+    && !(isWorkshop && isRejected);
   const canArchive = onArchive && !(isWorkshop && isAdminOrEventOffice);
   const canDelete = onDelete && !(isWorkshop && isAdminOrEventOffice);
 
