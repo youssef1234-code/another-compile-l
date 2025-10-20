@@ -191,7 +191,7 @@ const courtOptions = useMemo(() => {
               ))}
             </div>
           ) : availability.error ? (
-            <div className="text-sm text-red-600">{availability.error.message || "Failed to load availability"}</div>
+            <div className="text-sm text-red-600 dark:text-red-400">{availability.error.message || "Failed to load availability"}</div>
           ) : !availability.data || availability.data.length === 0 ? (
             <div className="text-sm text-muted-foreground">No courts or availability found.</div>
           ) : (

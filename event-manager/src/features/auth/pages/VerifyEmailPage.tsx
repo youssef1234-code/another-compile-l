@@ -48,7 +48,7 @@ export function VerifyEmailPage() {
 
   return (
     <>
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4 py-12">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
         <Card className="w-full max-w-md border-neutral-200">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-semibold tracking-tight text-center">

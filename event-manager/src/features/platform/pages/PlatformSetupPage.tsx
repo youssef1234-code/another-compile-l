@@ -61,6 +61,7 @@ import type Konva from 'konva';
 import { toast } from 'react-hot-toast';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
+import { useTheme } from '@/hooks/useTheme';
 
 interface Booth {
   id: string;
@@ -85,6 +86,7 @@ interface PlatformMap {
 
 export function PlatformSetupPage() {
   const { setPageMeta } = usePageMeta();
+  const { resolvedTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const [platform, setPlatform] = useState<PlatformMap | null>(null);
@@ -101,6 +103,20 @@ export function PlatformSetupPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [draggedBooth, setDraggedBooth] = useState<string | null>(null);
   const [isDraggingBooth, setIsDraggingBooth] = useState(false);
+
+  // Theme-aware colors for Konva canvas
+  const isDark = resolvedTheme === 'dark';
+  const colors = {
+    grid: isDark ? '#374151' : '#e5e7eb',        // gray-700 : gray-200
+    occupied: isDark ? '#64748b' : '#94a3b8',    // slate-500 : slate-400
+    booth4x4: isDark ? '#a855f7' : '#c084fc',    // purple-500 : purple-400
+    booth4x4Selected: isDark ? '#9333ea' : '#a855f7',  // purple-600 : purple-500
+    booth4x4Stroke: isDark ? '#7e22ce' : '#9333ea',    // purple-700 : purple-600
+    booth2x2: isDark ? '#60a5fa' : '#93c5fd',    // blue-400 : blue-300
+    booth2x2Selected: isDark ? '#3b82f6' : '#60a5fa',  // blue-500 : blue-400
+    booth2x2Stroke: isDark ? '#2563eb' : '#3b82f6',    // blue-600 : blue-500
+    text: isDark ? '#ffffff' : '#000000',        // white : black
+  };
 
   useEffect(() => {
     setPageMeta({
@@ -570,13 +586,13 @@ export function PlatformSetupPage() {
                 <SelectContent>
                   <SelectItem value="2x2">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-blue-500 rounded" />
+                      <div className="w-4 h-4 bg-blue-500 dark:bg-blue-400 rounded" />
                       2x2 Small
                     </div>
                   </SelectItem>
                   <SelectItem value="4x4">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-purple-500 rounded" />
+                      <div className="w-4 h-4 bg-purple-500 dark:bg-purple-400 rounded" />
                       4x4 Large
                     </div>
                   </SelectItem>
@@ -727,7 +743,7 @@ export function PlatformSetupPage() {
           <CardContent className="p-0">
             <div 
               ref={containerRef}
-              className="border-2 border-dashed rounded-lg m-4 p-4 bg-gray-50 w-auto overflow-hidden"
+              className="border-2 border-dashed rounded-lg m-4 p-4 bg-gray-50 dark:bg-gray-900 w-auto overflow-hidden"
             >
               <Stage
                 ref={stageRef}
@@ -746,12 +762,22 @@ export function PlatformSetupPage() {
                 }}
               >
                 <Layer>
+                  {/* Background Rectangle */}
+                  <Rect
+                    x={0}
+                    y={0}
+                    width={platform.gridWidth * platform.cellSize}
+                    height={platform.gridHeight * platform.cellSize}
+                    fill={isDark ? '#1f2937' : '#ffffff'}
+                    listening={false}
+                  />
+                  
                   {/* Grid lines */}
                   {Array.from({ length: platform.gridWidth + 1 }).map((_, i) => (
                     <Line
                       key={`v-${i}`}
                       points={[i * platform.cellSize, 0, i * platform.cellSize, platform.gridHeight * platform.cellSize]}
-                      stroke="#e5e7eb"
+                      stroke={colors.grid}
                       strokeWidth={1}
                     />
                   ))}
@@ -759,7 +785,7 @@ export function PlatformSetupPage() {
                     <Line
                       key={`h-${i}`}
                       points={[0, i * platform.cellSize, platform.gridWidth * platform.cellSize, i * platform.cellSize]}
-                      stroke="#e5e7eb"
+                      stroke={colors.grid}
                       strokeWidth={1}
                     />
                   ))}
@@ -773,13 +799,13 @@ export function PlatformSetupPage() {
                     
                     // Colors: Gray for occupied, purple for 4x4, blue for 2x2
                     const fillColor = booth.isOccupied 
-                      ? '#94a3b8' 
+                      ? colors.occupied 
                       : isSelected 
-                        ? (is4x4 ? '#9333ea' : '#3b82f6')
-                        : (is4x4 ? '#a855f7' : '#60a5fa');
+                        ? (is4x4 ? colors.booth4x4Selected : colors.booth2x2Selected)
+                        : (is4x4 ? colors.booth4x4 : colors.booth2x2);
                     const strokeColor = isSelected 
-                      ? (is4x4 ? '#7e22ce' : '#1d4ed8')
-                      : (is4x4 ? '#9333ea' : '#2563eb');
+                      ? (is4x4 ? colors.booth4x4Stroke : colors.booth2x2Stroke)
+                      : (is4x4 ? colors.booth4x4Selected : colors.booth2x2Selected);
 
                     return (
                       <Group 
@@ -822,7 +848,7 @@ export function PlatformSetupPage() {
                           text={booth.label || `${booth.width}x${booth.height}`}
                           fontSize={14}
                           fontStyle="bold"
-                          fill="#ffffff"
+                          fill={colors.text}
                           align="center"
                           verticalAlign="middle"
                           listening={false}
@@ -834,7 +860,7 @@ export function PlatformSetupPage() {
                             width={booth.width * platform.cellSize}
                             text="OCCUPIED"
                             fontSize={10}
-                            fill="#ffffff"
+                            fill={colors.text}
                             align="center"
                             listening={false}
                           />
@@ -854,7 +880,7 @@ export function PlatformSetupPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <AlertTriangle className="h-5 w-5 text-orange-500 dark:text-orange-400" />
               Remove Booth
             </DialogTitle>
             <DialogDescription>
@@ -883,7 +909,7 @@ export function PlatformSetupPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <AlertTriangle className="h-5 w-5 text-red-500 dark:text-red-400" />
               Clear All Booths
             </DialogTitle>
             <DialogDescription>

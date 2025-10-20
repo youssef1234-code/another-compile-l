@@ -135,8 +135,8 @@ export function EventImageCarousel({ images, alt, className }: EventImageCarouse
                 className={cn(
                   'w-2 h-2 rounded-full transition-all duration-200',
                   index === currentIndex
-                    ? 'bg-white w-6'
-                    : 'bg-white/50 hover:bg-white/75'
+                    ? 'bg-white dark:bg-primary w-6'
+                    : 'bg-white/50 dark:bg-primary/50 hover:bg-white/75 dark:hover:bg-primary/75'
                 )}
                 aria-label={`Go to image ${index + 1}`}
               />
@@ -181,7 +181,7 @@ export function EventImageCarousel({ images, alt, className }: EventImageCarouse
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-4 right-4 z-50 text-white hover:bg-white/20"
+            className="absolute top-4 right-4 z-50 text-white hover:bg-white/20 dark:hover:bg-black/20"
             onClick={() => setIsFullscreen(false)}
           >
             <X className="h-6 w-6" />

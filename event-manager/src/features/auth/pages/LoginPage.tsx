@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/authStore';
 import { ROUTES } from '@/lib/constants';
 import { Mail, Lock } from 'lucide-react';
 import { formatValidationErrors } from '@/lib/format-errors';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -26,11 +27,6 @@ export function LoginPage() {
       toast.success('Welcome back!', {
         icon: '✅',
         duration: 3000,
-        style: {
-          background: '#10b981',
-          color: '#fff',
-          fontWeight: '500',
-        },
       });
       navigate(ROUTES.DASHBOARD);
     },
@@ -56,12 +52,6 @@ export function LoginPage() {
       toast.error(errorMessage, {
         icon: '❌',
         duration: 4000,
-        style: {
-          background: '#ef4444',
-          color: '#fff',
-          fontWeight: '500',
-          whiteSpace: 'pre-line', // Allow line breaks
-        },
       });
     },
   });
@@ -72,7 +62,12 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-neutral-50">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+      {/* Theme Toggle - Positioned at top right */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
       <div className="w-full max-w-md">
   <GenericForm<LoginInput>
           title="Welcome Back"
@@ -116,7 +111,7 @@ export function LoginPage() {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-muted-foreground">
+                  <span className="bg-card px-2 text-muted-foreground">
                     or
                   </span>
                 </div>

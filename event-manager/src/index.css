@@ -165,6 +165,45 @@
 
   /* Rim lighting - stronger top highlight for 3D effect */
   --rim-light: rgba(255, 255, 255, 0.9);
+  
+  /* Platform Grid Colors - Light Mode */
+  --platform-grid-line: oklch(0.90 0.003 264); /* #e5e7eb equivalent */
+  --platform-booth-available: oklch(0.88 0.14 145); /* #86efac equivalent - green for available */
+  --platform-booth-available-stroke: oklch(0.55 0.16 150); /* #16a34a - darker green */
+  --platform-booth-selected: oklch(0.60 0.19 264); /* #3b82f6 - blue for selected */
+  --platform-booth-selected-stroke: oklch(0.45 0.20 264); /* #1d4ed8 - darker blue */
+  --platform-booth-occupied: oklch(0.66 0.02 264); /* #94a3b8 - gray for occupied */
+  --platform-booth-occupied-stroke: oklch(0.50 0.02 264); /* #64748b - darker gray */
+  --platform-booth-unavailable: oklch(0.79 0.01 264); /* #cbd5e1 - light gray */
+  --platform-booth-unavailable-stroke: oklch(0.48 0.02 264); /* #64748b */
+  --platform-booth-text: oklch(0.22 0.02 264); /* #1e293b - dark text */
+  --platform-booth-4x4: oklch(0.61 0.24 295); /* #9333ea - purple for 4x4 */
+  --platform-booth-4x4-light: oklch(0.70 0.22 295); /* #a855f7 - lighter purple */
+  --platform-booth-4x4-stroke: oklch(0.52 0.25 295); /* #7e22ce - darker purple */
+  --platform-booth-2x2: oklch(0.60 0.19 264); /* #3b82f6 - blue for 2x2 */
+  --platform-booth-2x2-light: oklch(0.69 0.17 264); /* #60a5fa - lighter blue */
+  --platform-booth-2x2-stroke: oklch(0.43 0.20 264); /* #2563eb - darker blue */
+  
+  /* Stat Card Icon Backgrounds - Light Mode */
+  --stat-icon-success-bg: oklch(0.95 0.10 145); /* #f0fdf4 - green-50 */
+  --stat-icon-success-fg: oklch(0.45 0.16 150); /* #16a34a - green-600 */
+  --stat-icon-success-border: oklch(0.85 0.12 145); /* #bbf7d0 - green-200 */
+  
+  --stat-icon-warning-bg: oklch(0.97 0.08 90); /* #fefce8 - yellow-50 */
+  --stat-icon-warning-fg: oklch(0.55 0.15 85); /* #ca8a04 - yellow-600 */
+  --stat-icon-warning-border: oklch(0.90 0.12 90); /* #fef08a - yellow-200 */
+  
+  --stat-icon-critical-bg: oklch(0.97 0.08 25); /* #fef2f2 - red-50 */
+  --stat-icon-critical-fg: oklch(0.55 0.22 25); /* #dc2626 - red-600 */
+  --stat-icon-critical-border: oklch(0.90 0.12 25); /* #fecaca - red-200 */
+  
+  --stat-icon-info-bg: oklch(0.96 0.08 245); /* #eff6ff - blue-50 */
+  --stat-icon-info-fg: oklch(0.52 0.18 260); /* #2563eb - blue-600 */
+  --stat-icon-info-border: oklch(0.87 0.10 245); /* #bfdbfe - blue-200 */
+  
+  --stat-icon-brand-bg: oklch(0.97 0.08 295); /* #faf5ff - purple-50 */
+  --stat-icon-brand-fg: oklch(0.52 0.24 295); /* #9333ea - purple-600 */
+  --stat-icon-brand-border: oklch(0.88 0.12 295); /* #e9d5ff - purple-200 */
 }
 
 .dark {
@@ -223,6 +262,45 @@
     0 40px 80px rgba(0, 0, 0, 0.8);
 
   --rim-light: rgba(255, 255, 255, 0.15);
+  
+  /* Platform Grid Colors - Dark Mode */
+  --platform-grid-line: oklch(0.30 0.02 264); /* Darker grid lines for dark mode */
+  --platform-booth-available: oklch(0.55 0.14 145); /* Darker green for dark mode */
+  --platform-booth-available-stroke: oklch(0.45 0.16 150);
+  --platform-booth-selected: oklch(0.55 0.19 264); /* Darker blue for dark mode */
+  --platform-booth-selected-stroke: oklch(0.40 0.20 264);
+  --platform-booth-occupied: oklch(0.45 0.02 264); /* Darker gray for dark mode */
+  --platform-booth-occupied-stroke: oklch(0.35 0.02 264);
+  --platform-booth-unavailable: oklch(0.35 0.01 264); /* Darker unavailable */
+  --platform-booth-unavailable-stroke: oklch(0.30 0.02 264);
+  --platform-booth-text: oklch(0.96 0.005 264); /* Light text for dark mode */
+  --platform-booth-4x4: oklch(0.56 0.24 295); /* Darker purple for 4x4 */
+  --platform-booth-4x4-light: oklch(0.61 0.22 295);
+  --platform-booth-4x4-stroke: oklch(0.47 0.25 295);
+  --platform-booth-2x2: oklch(0.55 0.19 264); /* Darker blue for 2x2 */
+  --platform-booth-2x2-light: oklch(0.60 0.17 264);
+  --platform-booth-2x2-stroke: oklch(0.38 0.20 264);
+  
+  /* Stat Card Icon Backgrounds - Dark Mode */
+  --stat-icon-success-bg: oklch(0.25 0.08 145); /* Darker green background */
+  --stat-icon-success-fg: oklch(0.70 0.16 150); /* Lighter green text */
+  --stat-icon-success-border: oklch(0.35 0.10 145); /* Darker green border */
+  
+  --stat-icon-warning-bg: oklch(0.25 0.06 90); /* Darker yellow background */
+  --stat-icon-warning-fg: oklch(0.75 0.15 85); /* Lighter yellow text */
+  --stat-icon-warning-border: oklch(0.35 0.08 90); /* Darker yellow border */
+  
+  --stat-icon-critical-bg: oklch(0.25 0.06 25); /* Darker red background */
+  --stat-icon-critical-fg: oklch(0.70 0.22 25); /* Lighter red text */
+  --stat-icon-critical-border: oklch(0.35 0.08 25); /* Darker red border */
+  
+  --stat-icon-info-bg: oklch(0.25 0.06 245); /* Darker blue background */
+  --stat-icon-info-fg: oklch(0.68 0.18 260); /* Lighter blue text */
+  --stat-icon-info-border: oklch(0.35 0.08 245); /* Darker blue border */
+  
+  --stat-icon-brand-bg: oklch(0.25 0.06 295); /* Darker purple background */
+  --stat-icon-brand-fg: oklch(0.70 0.24 295); /* Lighter purple text */
+  --stat-icon-brand-border: oklch(0.35 0.08 295); /* Darker purple border */
 }
 
 /* ============================================================================
@@ -517,6 +595,64 @@
     font-family: var(--font-mono);
     font-size: 0.9em;
   }
+  
+  /* ========================================
+     SCROLLBAR STYLES - Theme-aware scrollbars
+     ======================================== */
+  
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: oklch(0.95 0.002 264);
+    border-radius: 6px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.70 0.01 264);
+    border-radius: 6px;
+    border: 2px solid oklch(0.95 0.002 264);
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.60 0.02 264);
+  }
+  
+  ::-webkit-scrollbar-thumb:active {
+    background: oklch(0.50 0.15 264);
+  }
+  
+  /* Dark mode scrollbars */
+  .dark ::-webkit-scrollbar-track {
+    background: oklch(0.17 0.01 264);
+  }
+  
+  .dark ::-webkit-scrollbar-thumb {
+    background: oklch(0.35 0.02 264);
+    border-color: oklch(0.17 0.01 264);
+  }
+  
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.45 0.02 264);
+  }
+  
+  .dark ::-webkit-scrollbar-thumb:active {
+    background: oklch(0.60 0.20 264);
+  }
+  
+  /* Firefox scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.70 0.01 264) oklch(0.95 0.002 264);
+  }
+  
+  .dark * {
+    scrollbar-color: oklch(0.35 0.02 264) oklch(0.17 0.01 264);
+  }
 
 }
+
 

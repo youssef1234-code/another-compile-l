@@ -142,18 +142,18 @@ export type GymSessionType =
 
 // Gym session type color mapping for consistent UI across FE & BE
 export const GYM_SESSION_TYPE_COLORS: Record<GymSessionType, { bg: string; text: string; border: string }> = {
-  YOGA: { bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-200" },
-  PILATES: { bg: "bg-pink-100", text: "text-pink-700", border: "border-pink-200" },
-  AEROBICS: { bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-200" },
-  ZUMBA: { bg: "bg-yellow-100", text: "text-yellow-700", border: "border-yellow-200" },
-  CROSS_CIRCUIT: { bg: "bg-red-100", text: "text-red-700", border: "border-red-200" },
-  KICK_BOXING: { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-200" },
-  CROSSFIT: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200" },
-  CARDIO: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-200" },
-  STRENGTH: { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200" },
-  DANCE: { bg: "bg-fuchsia-100", text: "text-fuchsia-700", border: "border-fuchsia-200" },
-  MARTIAL_ARTS: { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-200" },
-  OTHER: { bg: "bg-neutral-100", text: "text-neutral-700", border: "border-neutral-200" },
+  YOGA: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-300", border: "border-purple-200 dark:border-purple-800" },
+  PILATES: { bg: "bg-pink-100 dark:bg-pink-900/30", text: "text-pink-700 dark:text-pink-300", border: "border-pink-200 dark:border-pink-800" },
+  AEROBICS: { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-700 dark:text-orange-300", border: "border-orange-200 dark:border-orange-800" },
+  ZUMBA: { bg: "bg-yellow-100 dark:bg-yellow-900/30", text: "text-yellow-700 dark:text-yellow-300", border: "border-yellow-200 dark:border-yellow-800" },
+  CROSS_CIRCUIT: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-300", border: "border-red-200 dark:border-red-800" },
+  KICK_BOXING: { bg: "bg-rose-100 dark:bg-rose-900/30", text: "text-rose-700 dark:text-rose-300", border: "border-rose-200 dark:border-rose-800" },
+  CROSSFIT: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800" },
+  CARDIO: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-300", border: "border-blue-200 dark:border-blue-800" },
+  STRENGTH: { bg: "bg-slate-100 dark:bg-slate-900/30", text: "text-slate-700 dark:text-slate-300", border: "border-slate-200 dark:border-slate-800" },
+  DANCE: { bg: "bg-fuchsia-100 dark:bg-fuchsia-900/30", text: "text-fuchsia-700 dark:text-fuchsia-300", border: "border-fuchsia-200 dark:border-fuchsia-800" },
+  MARTIAL_ARTS: { bg: "bg-gray-100 dark:bg-gray-900/30", text: "text-gray-700 dark:text-gray-300", border: "border-gray-200 dark:border-gray-800" },
+  OTHER: { bg: "bg-neutral-100 dark:bg-neutral-900/30", text: "text-neutral-700 dark:text-neutral-300", border: "border-neutral-200 dark:border-neutral-800" },
 };
 
 // Gym session type display labels

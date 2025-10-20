@@ -11,6 +11,7 @@ import { AcademicSignupForm } from '../components/AcademicSignupForm';
 import { ROUTES } from '@/lib/constants';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const pageVariants = {
   initial: { opacity: 0, scale: 0.95 },
@@ -41,7 +42,12 @@ export function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-6 px-4 bg-neutral-50">
+    <div className="min-h-screen flex items-center justify-center py-6 px-4 bg-background">
+      {/* Theme Toggle - Positioned at top right */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
       <div className="w-full max-w-4xl">
         <motion.div
           variants={pageVariants}
@@ -84,7 +90,7 @@ export function SignupPage() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-neutral-50 px-2 text-muted-foreground">
+                <span className="bg-background px-2 text-muted-foreground">
                   or
                 </span>
               </div>

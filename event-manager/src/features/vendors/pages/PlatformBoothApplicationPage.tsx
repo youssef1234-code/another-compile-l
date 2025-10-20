@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/select';
 import { ROUTES } from '@/lib/constants';
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { useTheme } from '@/hooks/useTheme';
 
 interface Attendee {
   name: string;
@@ -69,6 +70,7 @@ export function PlatformBoothApplicationPage() {
   const navigate = useNavigate();
   const utils = trpc.useUtils();
   const { setPageMeta } = usePageMeta();
+  const { resolvedTheme } = useTheme();
   const [, startTransition] = useTransition();
   const [platform, setPlatform] = useState<PlatformMap | null>(null);
   const [selectedBoothSize, setSelectedBoothSize] = useState<'2' | '4'>('2');
@@ -77,6 +79,20 @@ export function PlatformBoothApplicationPage() {
   const [duration, setDuration] = useState<string>('1');
   const [startDate, setStartDate] = useState<string>('');
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
+
+  // Theme-aware colors for Konva canvas
+  const isDark = resolvedTheme === 'dark';
+  const colors = {
+    grid: isDark ? '#374151' : '#e5e7eb',        // gray-700 : gray-200
+    occupied: isDark ? '#64748b' : '#94a3b8',    // slate-500 : slate-400
+    booth4x4: isDark ? '#a855f7' : '#c084fc',    // purple-500 : purple-400
+    booth4x4Selected: isDark ? '#9333ea' : '#a855f7',  // purple-600 : purple-500
+    booth4x4Stroke: isDark ? '#7e22ce' : '#9333ea',    // purple-700 : purple-600
+    booth2x2: isDark ? '#60a5fa' : '#93c5fd',    // blue-400 : blue-300
+    booth2x2Selected: isDark ? '#3b82f6' : '#60a5fa',  // blue-500 : blue-400
+    booth2x2Stroke: isDark ? '#2563eb' : '#3b82f6',    // blue-600 : blue-500
+    text: isDark ? '#ffffff' : '#000000',        // white : black
+  };
 
   useEffect(() => {
     setPageMeta({
@@ -368,19 +384,29 @@ export function PlatformBoothApplicationPage() {
             </p>
           </CardHeader>
           <CardContent className="overflow-auto">
-            <div className="border rounded-md overflow-hidden mx-auto" style={{ width: 'fit-content' }}>
+            <div className="border rounded-md overflow-hidden mx-auto bg-gray-50 dark:bg-gray-900" style={{ width: 'fit-content' }}>
               <Stage
                 width={stageSize.width}
                 height={stageSize.height}
                 onClick={handleStageClick}
               >
                 <Layer>
+                  {/* Background Rectangle */}
+                  <Rect
+                    x={0}
+                    y={0}
+                    width={platform.gridWidth * platform.cellSize}
+                    height={platform.gridHeight * platform.cellSize}
+                    fill={isDark ? '#1f2937' : '#ffffff'}
+                    listening={false}
+                  />
+                  
                   {/* Grid lines */}
                   {Array.from({ length: platform.gridWidth + 1 }).map((_, i) => (
                     <Line
                       key={`v-${i}`}
                       points={[i * platform.cellSize, 0, i * platform.cellSize, platform.gridHeight * platform.cellSize]}
-                      stroke="#e5e7eb"
+                      stroke={colors.grid}
                       strokeWidth={1}
                     />
                   ))}
@@ -388,7 +414,7 @@ export function PlatformBoothApplicationPage() {
                     <Line
                       key={`h-${i}`}
                       points={[0, i * platform.cellSize, platform.gridWidth * platform.cellSize, i * platform.cellSize]}
-                      stroke="#e5e7eb"
+                      stroke={colors.grid}
                       strokeWidth={1}
                     />
                   ))}
@@ -399,15 +425,16 @@ export function PlatformBoothApplicationPage() {
                     const isAvailable = !booth.isOccupied && booth.width === sizeNumber && booth.height === sizeNumber;
                     const isSelected = selectedBooth?.id === booth.id;
                     
-                    let fillColor = '#cbd5e1'; // Gray for occupied/unavailable
-                    let strokeColor = '#64748b';
+                    // Available (green), Occupied/Unavailable (gray), Selected (blue)
+                    let fillColor = isDark ? '#475569' : '#cbd5e1'; // slate-600 : slate-300
+                    let strokeColor = isDark ? '#334155' : '#64748b'; // slate-700 : slate-500
                     
                     if (isSelected) {
-                      fillColor = '#3b82f6'; // Blue for selected
-                      strokeColor = '#1d4ed8';
+                      fillColor = isDark ? '#3b82f6' : '#60a5fa'; // blue-500 : blue-400
+                      strokeColor = isDark ? '#2563eb' : '#3b82f6'; // blue-600 : blue-500
                     } else if (isAvailable) {
-                      fillColor = '#86efac'; // Green for available
-                      strokeColor = '#16a34a';
+                      fillColor = isDark ? '#22c55e' : '#86efac'; // green-500 : green-300
+                      strokeColor = isDark ? '#16a34a' : '#22c55e'; // green-600 : green-500
                     }
 
                     return (
@@ -428,7 +455,7 @@ export function PlatformBoothApplicationPage() {
                           height={booth.height * platform.cellSize}
                           text={booth.label || `${booth.width}x${booth.height}`}
                           fontSize={12}
-                          fill="#1e293b"
+                          fill={colors.text}
                           align="center"
                           verticalAlign="middle"
                         />
@@ -439,17 +466,17 @@ export function PlatformBoothApplicationPage() {
               </Stage>
               
               {/* Legend */}
-              <div className="flex items-center justify-center gap-4 p-3 bg-gray-50 border-t">
+              <div className="flex items-center justify-center gap-4 p-3 bg-muted border-t dark:border-border">
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded" style={{ backgroundColor: '#86efac' }} />
+                  <div className="w-5 h-5 rounded bg-green-300 dark:bg-green-500" />
                   <span className="text-xs">Available</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded" style={{ backgroundColor: '#cbd5e1' }} />
+                  <div className="w-5 h-5 rounded bg-slate-300 dark:bg-slate-600" />
                   <span className="text-xs">Occupied</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded" style={{ backgroundColor: '#3b82f6' }} />
+                  <div className="w-5 h-5 rounded bg-blue-400 dark:bg-blue-500" />
                   <span className="text-xs">Selected</span>
                 </div>
               </div>

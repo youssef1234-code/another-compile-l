@@ -97,7 +97,7 @@ export function StatusBadge({
           className={cn(
             'rounded-full',
             dotSizes[size],
-            variant === 'solid' ? 'bg-white/80' : 'bg-current'
+            variant === 'solid' ? 'bg-background/80' : 'bg-current'
           )}
         />
       )}

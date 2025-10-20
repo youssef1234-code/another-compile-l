@@ -14,9 +14,6 @@ export function handleMutationError(error: unknown, fallbackMessage?: string) {
   const errorMessage = formatValidationErrors(error);
   toast.error(errorMessage || fallbackMessage || 'An error occurred', {
     duration: 5000,
-    style: {
-      whiteSpace: 'pre-line', // Allow line breaks for multiple validation errors
-    },
   });
 }
 

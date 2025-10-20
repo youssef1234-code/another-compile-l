@@ -103,7 +103,7 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
     >
       <Card className="h-full flex flex-col overflow-hidden group">
         {/* Image Placeholder */}
-        <div className="relative h-48 bg-neutral-100 overflow-hidden">
+        <div className="relative h-48 bg-muted overflow-hidden">
           {event.imageUrl ? (
             <img
               src={event.imageUrl}

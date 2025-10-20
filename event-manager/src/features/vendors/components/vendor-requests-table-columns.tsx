@@ -71,7 +71,7 @@ const VendorRequestActions = React.memo(({
       <Button
         variant="ghost"
         size="sm"
-        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
         onClick={handleReject}
       >
         <XCircle className="size-4 mr-1" />
@@ -86,9 +86,9 @@ VendorRequestActions.displayName = 'VendorRequestActions';
 // Application Status Badge Component
 function ApplicationStatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    PENDING: "bg-amber-100 text-amber-700 border-amber-200",
-    APPROVED: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    REJECTED: "bg-red-100 text-red-700 border-red-200",
+    PENDING: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+    APPROVED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
+    REJECTED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
   };
 
   const labels: Record<string, string> = {
@@ -114,8 +114,8 @@ function ApplicationStatusBadge({ status }: { status: string }) {
 // Event Type Badge Component
 function EventTypeBadge({ type }: { type: string }) {
   const colors: Record<string, string> = {
-    BAZAAR: "bg-orange-100 text-orange-700 border-orange-200",
-    PLATFORM: "bg-purple-100 text-purple-700 border-purple-200",
+    BAZAAR: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
+    PLATFORM: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800",
   };
 
   const labels: Record<string, string> = {

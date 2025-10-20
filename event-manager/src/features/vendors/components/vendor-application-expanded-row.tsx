@@ -43,14 +43,14 @@ export function VendorApplicationExpandedRow({ application }: VendorApplicationE
     REJECTED: {
       icon: XCircle,
       label: "Rejected",
-      color: "text-red-600",
-      bgColor: "bg-red-50",
+      color: "text-red-600 dark:text-red-400",
+      bgColor: "bg-red-50 dark:bg-red-900/20",
     },
     PENDING: {
       icon: AlertCircle,
       label: "Pending Review",
-      color: "text-amber-600",
-      bgColor: "bg-amber-50",
+      color: "text-amber-600 dark:text-amber-400",
+      bgColor: "bg-amber-50 dark:bg-amber-900/20",
     },
   };
 

@@ -217,11 +217,11 @@ export function getUsersTableColumns({
       cell: ({ row }) => (
         <div className="text-center text-sm">
           {row.getValue("isVerified") ? (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
               Verified
             </Badge>
           ) : (
-            <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+            <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800">
               Unverified
             </Badge>
           )}
@@ -250,11 +250,11 @@ export function getUsersTableColumns({
       cell: ({ row }) => (
         <div className="text-center text-sm">
           {row.original.roleVerifiedByAdmin ? (
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
               Verified
             </Badge>
           ) : (
-            <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+            <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800">
               Pending
             </Badge>
           )}
@@ -291,7 +291,7 @@ export function getUsersTableColumns({
 
         if (!vendorStatus || vendorStatus === 'PENDING') {
           return (
-            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
               Pending
             </Badge>
           );
@@ -299,7 +299,7 @@ export function getUsersTableColumns({
         
         if (vendorStatus === 'APPROVED') {
           return (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
               Approved
             </Badge>
           );
@@ -312,7 +312,7 @@ export function getUsersTableColumns({
                 <TooltipTrigger asChild>
                   <Badge 
                     variant="outline" 
-                    className="bg-red-50 text-red-700 border-red-200 cursor-help"
+                    className="bg-red-50 text-red-700 border-red-200 cursor-help dark:bg-red-900/30 dark:text-red-300 dark:border-red-800"
                   >
                     Rejected
                   </Badge>
@@ -396,14 +396,14 @@ export function getUsersTableColumns({
               {needsVendorApproval && (
                 <>
                   <DropdownMenuItem 
-                    className="text-green-600"
+                    className="text-green-600 dark:text-green-400"
                     onClick={() => onApproveVendor?.(user.id)}
                   >
                     <CheckCircle className="mr-2 size-4" />
                     Approve Vendor
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    className="text-red-600"
+                    className="text-red-600 dark:text-red-400"
                     onClick={() => onRejectVendor?.(user.id)}
                   >
                     <XCircle className="mr-2 size-4" />
@@ -413,7 +413,7 @@ export function getUsersTableColumns({
                 </>
               )}
               <DropdownMenuItem 
-                className="text-yellow-600"
+                className="text-yellow-600 dark:text-yellow-400"
                 onClick={() => {
                   if (user.isBlocked) {
                     onUnblockUser?.(user.id);
