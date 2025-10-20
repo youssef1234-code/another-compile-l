@@ -40,6 +40,7 @@ export function EditConferencePage() {
   const { setPageMeta } = usePageMeta();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const utils = trpc.useUtils();
   const [initialValues, setInitialValues] = useState<Partial<ConferenceFormData> | null>(null);
   const utils = trpc.useUtils();
 
@@ -53,7 +54,13 @@ export function EditConferencePage() {
   // Fetch existing conference data
   const { data: event, isLoading: isFetching} = trpc.events.getEventById.useQuery(
     { id: id! },
-    { enabled: !!id }
+    {
+      enabled: !!id,
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnReconnect: 'always',
+      refetchOnWindowFocus: 'always',
+    }
   );
 
   const updateMutation = trpc.events.update.useMutation({
@@ -65,6 +72,10 @@ export function EditConferencePage() {
       utils.events.search.invalidate();
       
       toast.success('Conference updated successfully!');
+      // Invalidate Manage Events data so redirect shows updated info
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+      if (id) utils.events.getEventById.invalidate({ id });
       navigate(ROUTES.ADMIN_EVENTS);
     },
     onError: (error) => {
@@ -164,6 +175,17 @@ export function EditConferencePage() {
       label: 'Location Details',
       type: 'text',
       placeholder: 'Conference hall, building, or venue name',
+    },
+    {
+      name: 'datesSectionHeader',
+      label: 'Schedule',
+      type: 'custom',
+      colSpan: 2,
+      render: () => (
+        <div className="pt-2 pb-1">
+          <h3 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Dates & Deadlines</h3>
+        </div>
+      ),
     },
     {
       name: 'startDate',

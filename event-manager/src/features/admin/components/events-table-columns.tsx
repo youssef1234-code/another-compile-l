@@ -167,8 +167,8 @@ export function getEventsTableColumns({
       // Professors can only create/see workshops
       return option.value === "WORKSHOP";
     } else if (userRole === UserRole.EVENT_OFFICE || userRole === UserRole.ADMIN) {
-      // Event Office and Admins can create all event types
-      return true;
+      // Manage Events page: hide Gym Sessions for Admin/Event Office
+      return option.value !== 'GYM_SESSION';
     }
     // Default: show all types
     return true;
@@ -541,8 +541,14 @@ export function getEventsTableColumns({
                   View Details
                 </DropdownMenuItem>
               )}
-              {/* Only show edit for non-rejected workshops (professors) and non-workshop events (admin/event office) */}
-              {onEditEvent && !(event.type === 'WORKSHOP' && (userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE)) && !(event.type === 'WORKSHOP' && event.status === 'REJECTED') && (
+              {/* Only show edit for:
+                  - Workshops: professors (not rejected)
+                  - Non-workshops: Event Office (Admins cannot edit Bazaars) */}
+              {onEditEvent 
+                && !(event.type === 'WORKSHOP' && (userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE))
+                && !(event.type === 'WORKSHOP' && event.status === 'REJECTED')
+                && !(event.type === 'BAZAAR' && userRole === UserRole.ADMIN)
+                && (
                 <DropdownMenuItem onClick={() => onEditEvent(event.id)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Event

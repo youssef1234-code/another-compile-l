@@ -109,7 +109,7 @@ export function getGymScheduleTableColumns({
     "CROSSFIT", "CARDIO", "STRENGTH", "DANCE", "MARTIAL_ARTS", "OTHER"
   ];
 
-  return [
+  const columns: ColumnDef<Event>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -278,7 +278,11 @@ export function getGymScheduleTableColumns({
       },
       size: 120,
     },
-    {
+  ];
+
+  // Only include actions column when there are actions available
+  if (onEditSession || onDeleteSession) {
+    columns.push({
       id: "actions",
       cell: ({ row }) => {
         const session = row.original;
@@ -318,6 +322,8 @@ export function getGymScheduleTableColumns({
         );
       },
       size: 60,
-    },
-  ];
+    });
+  }
+
+  return columns;
 }

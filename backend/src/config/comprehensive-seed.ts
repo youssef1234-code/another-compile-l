@@ -458,18 +458,18 @@ export async function seedComprehensiveData(): Promise<void> {
 
       for (const event of eventsToRegister) {
         const existingReg = await Registration.findOne({
-          userId: student._id,
-          eventId: event._id,
+          user: student._id,
+          event: event._id,
         });
 
         if (!existingReg) {
           await Registration.create({
-            userId: student._id,
-            eventId: event._id,
+            user: student._id,
+            event: event._id,
             status: "CONFIRMED",
-            registrationDate: new Date(),
-          });
-          console.log(`  ✓ Registered ${student.firstName} for ${event.title}`);
+            registeredAt: new Date(),
+          } as any);
+          console.log(`  ✓ Registered ${student.firstName} for ${event.name}`);
         }
       }
     }
@@ -496,16 +496,24 @@ export async function seedComprehensiveData(): Promise<void> {
         studentUsers[Math.floor(Math.random() * studentUsers.length)];
       const randomCourt = courts[Math.floor(Math.random() * courts.length)];
       const futureDate = new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000);
+      const durationMinutes = 60;
+      const endDate = new Date(futureDate.getTime() + durationMinutes * 60 * 1000);
+      // Derive studentGucId from available fields since User schema doesn't store `gucId`
+      const derivedStudentGucId =
+        (randomStudent as any).studentId ||
+        (randomStudent as any).staffId ||
+        ((randomStudent as any).email ? (randomStudent as any).email.split('@')[0] : `GUC-${String(randomStudent._id).slice(-6)}`);
 
       await CourtReservation.create({
-        courtId: randomCourt._id,
-        userId: randomStudent._id,
+        court: randomCourt._id,
+        user: randomStudent._id,
         studentName: `${randomStudent.firstName} ${randomStudent.lastName}`,
-        studentGucId: randomStudent.gucId,
+        studentGucId: derivedStudentGucId,
         startDate: futureDate,
-        duration: 60,
-        status: "CONFIRMED",
-      });
+        endDate,
+        duration: durationMinutes,
+        status: "BOOKED",
+      } as any);
       console.log(
         `  ✓ Created reservation for ${randomStudent.firstName} at ${randomCourt.name}`,
       );

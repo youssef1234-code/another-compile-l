@@ -119,6 +119,17 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         message: 'Registration deadline must be before start date'
       });
     }
+
+    // Capacity cannot be set below current number of participants
+    if (updateData.capacity !== undefined) {
+      const currentRegistrations = await registrationRepository.countByEvent(_id);
+      if (updateData.capacity < currentRegistrations) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Capacity cannot be less than current registrations (${currentRegistrations}).`
+        });
+      }
+    }
   }
 
   /**
@@ -682,13 +693,13 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    * Get event statistics (for admin dashboard)
    * @param createdBy - Optional user ID to filter by creator (for professors)
    */
-  async getStatistics(createdBy?: string): Promise<{
+  async getStatistics(createdBy?: string, options?: { excludeTypes?: string[] }): Promise<{
     total: number;
     upcoming: number;
     past: number;
     byType: Record<string, number>;
   }> {
-    return this.repository.getStatistics(createdBy);
+    return this.repository.getStatistics(createdBy, options);
   }
 
   /**
@@ -998,6 +1009,17 @@ async updateGymSession(
     }
   }
 
+  // Enforce capacity lower bound for gym sessions as well
+  if (patch.capacity !== undefined) {
+    const currentRegistrations = await registrationRepository.countByEvent(id);
+    if (patch.capacity < currentRegistrations) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Capacity cannot be less than current registrations (${currentRegistrations}).`
+      });
+    }
+  }
+
   const updated = await this.repository.update(
     id,
     {
@@ -1035,6 +1057,17 @@ async updateWorkshop(input: UpdateWorkshopInput): Promise<IEvent> {
   }
   if (existing.type !== 'WORKSHOP') {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event is not a workshop' });
+  }
+
+  // Capacity cannot be set below current number of participants
+  if ((updateData as Partial<IEvent>).capacity !== undefined) {
+    const currentRegistrations = await registrationRepository.countByEvent(id);
+    if (((updateData as Partial<IEvent>).capacity as number) < currentRegistrations) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Capacity cannot be less than current registrations (${currentRegistrations}).`
+      });
+    }
   }
 
   // Update workshop
