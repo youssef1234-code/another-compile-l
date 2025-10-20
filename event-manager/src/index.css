@@ -3,7 +3,51 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================================
+   TYPOGRAPHY SYSTEM - Inter Variable Font
+   ============================================================================
+   Inter is specifically designed for user interfaces and provides excellent
+   readability at all sizes, perfect for a professional event management app.
+   ========================================================================= */
+
 @theme inline {
+  /* Font Family Definitions */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  
+  /* Font Size Scale - Optimized for UI */
+  --font-size-xs: 0.75rem;      /* 12px */
+  --font-size-sm: 0.875rem;     /* 14px */
+  --font-size-base: 1rem;       /* 16px */
+  --font-size-lg: 1.125rem;     /* 18px */
+  --font-size-xl: 1.25rem;      /* 20px */
+  --font-size-2xl: 1.5rem;      /* 24px */
+  --font-size-3xl: 1.875rem;    /* 30px */
+  --font-size-4xl: 2.25rem;     /* 36px */
+  --font-size-5xl: 3rem;        /* 48px */
+  
+  /* Line Heights - Optimized for readability */
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+  
+  /* Letter Spacing - Subtle adjustments for Inter */
+  --letter-spacing-tighter: -0.05em;
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0em;
+  --letter-spacing-wide: 0.025em;
+  --letter-spacing-wider: 0.05em;
+  
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -181,12 +225,76 @@
   --rim-light: rgba(255, 255, 255, 0.15);
 }
 
+/* ============================================================================
+   BASE STYLES - Typography & Element Defaults
+   ============================================================================ */
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-optical-sizing: auto;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  /* Heading defaults with proper hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-tight);
+    line-height: var(--line-height-tight);
+  }
+  
+  h1 {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+  }
+  
+  h2 {
+    font-size: var(--font-size-3xl);
+  }
+  
+  h3 {
+    font-size: var(--font-size-2xl);
+  }
+  
+  h4 {
+    font-size: var(--font-size-xl);
+  }
+  
+  h5 {
+    font-size: var(--font-size-lg);
+  }
+  
+  h6 {
+    font-size: var(--font-size-base);
+  }
+  
+  /* Body text */
+  p {
+    line-height: var(--line-height-normal);
+  }
+  
+  /* Small text (captions, metadata) */
+  small {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
+  }
+  
+  /* Code and monospace */
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+  }
+  
+  /* Strong emphasis */
+  strong, b {
+    font-weight: var(--font-weight-semibold);
   }
 }
 
@@ -312,65 +420,103 @@
   svg {
     transition: color 0.2s ease;
   }
-
-
-
-
-
-
-  /* Neumorphism (Soft UI) for buttons */
-  .neumorphic {
-    background: linear-gradient(145deg, oklch(0.99 0.001 264), oklch(0.96 0.003 264));
-    box-shadow: 
-      6px 6px 12px rgba(0, 0, 0, 0.08),
-      -6px -6px 12px rgba(255, 255, 255, 0.9),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+  
+  /* ========================================
+     TYPOGRAPHY UTILITIES - Text Styles
+     ======================================== */
+  
+  /* Display text - Large headings and hero sections */
+  .text-display-lg {
+    font-size: var(--font-size-5xl);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tighter);
+  }
+  
+  .text-display-md {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+  
+  .text-display-sm {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+  
+  /* Heading styles - Semantic headings */
+  .text-heading-lg {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+  
+  .text-heading-md {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+  
+  .text-heading-sm {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+  }
+  
+  /* Body text styles */
+  .text-body-lg {
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-relaxed);
+  }
+  
+  .text-body-md {
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+  }
+  
+  .text-body-sm {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
+  }
+  
+  /* Caption and metadata text */
+  .text-caption {
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-normal);
+    color: hsl(var(--muted-foreground));
+  }
+  
+  /* Label text - for form labels, badges, etc */
+  .text-label-lg {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-wide);
+    text-transform: uppercase;
+  }
+  
+  .text-label-sm {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-wider);
+    text-transform: uppercase;
+  }
+  
+  /* Numeric display - for stats, counts, prices */
+  .text-numeric {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--letter-spacing-tight);
+  }
+  
+  /* Monospace - for code, IDs, technical data */
+  .text-mono {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
   }
 
-  .neumorphic:hover {
-    background: linear-gradient(145deg, oklch(0.98 0.002 264), oklch(0.95 0.004 264));
-    box-shadow: 
-      4px 4px 8px rgba(0, 0, 0, 0.06),
-      -4px -4px 8px rgba(255, 255, 255, 0.8),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  }
-
-  .neumorphic:active {
-    background: linear-gradient(145deg, oklch(0.96 0.003 264), oklch(0.98 0.001 264));
-    box-shadow: 
-      inset 3px 3px 6px rgba(0, 0, 0, 0.12),
-      inset -3px -3px 6px rgba(255, 255, 255, 0.6);
-  }
-
-  /* Neumorphic primary button */
-  .neumorphic-primary {
-    background: linear-gradient(145deg, 
-      hsl(var(--primary)), 
-      color-mix(in oklch, hsl(var(--primary)) 85%, black));
-    box-shadow: 
-      6px 6px 12px color-mix(in oklch, hsl(var(--primary)) 30%, black),
-      -4px -4px 10px color-mix(in oklch, hsl(var(--primary)) 70%, white),
-      inset 0 1px 0 color-mix(in oklch, hsl(var(--primary)) 90%, white);
-    border: 1px solid color-mix(in oklch, hsl(var(--primary)) 80%, white);
-  }
-
-  .neumorphic-primary:hover {
-    background: linear-gradient(145deg, 
-      color-mix(in oklch, hsl(var(--primary)) 95%, white),
-      color-mix(in oklch, hsl(var(--primary)) 90%, black));
-    box-shadow: 
-      4px 4px 8px color-mix(in oklch, hsl(var(--primary)) 35%, black),
-      -3px -3px 8px color-mix(in oklch, hsl(var(--primary)) 75%, white),
-      inset 0 1px 0 color-mix(in oklch, hsl(var(--primary)) 95%, white);
-  }
-
-  .neumorphic-primary:active {
-    background: linear-gradient(145deg, 
-      color-mix(in oklch, hsl(var(--primary)) 80%, black),
-      hsl(var(--primary)));
-    box-shadow: 
-      inset 4px 4px 8px color-mix(in oklch, hsl(var(--primary)) 40%, black),
-      inset -2px -2px 6px color-mix(in oklch, hsl(var(--primary)) 60%, white);
-  }
 }
+
