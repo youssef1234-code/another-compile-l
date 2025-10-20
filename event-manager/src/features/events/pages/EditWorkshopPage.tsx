@@ -46,7 +46,6 @@ export function EditWorkshopPage() {
   const { setPageMeta } = usePageMeta();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const utils = trpc.useUtils();
   const [initialValues, setInitialValues] = useState<Partial<WorkshopFormData> | null>(null);
   const utils = trpc.useUtils();
 

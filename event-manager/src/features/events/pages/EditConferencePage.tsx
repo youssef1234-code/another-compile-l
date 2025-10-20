@@ -40,7 +40,6 @@ export function EditConferencePage() {
   const { setPageMeta } = usePageMeta();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const utils = trpc.useUtils();
   const [initialValues, setInitialValues] = useState<Partial<ConferenceFormData> | null>(null);
   const utils = trpc.useUtils();
 

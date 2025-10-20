@@ -11,7 +11,7 @@ import { toast } from "react-hot-toast";
 import { CalendarSearch } from "lucide-react";
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
-import type { CourtAvailabilityRow } from "@event-manager/shared";
+//import type { CourtAvailabilityRow } from "@event-manager/shared";
 
 const SPORTS = ["ALL", "BASKETBALL", "TENNIS", "FOOTBALL"] as const;
 type SportFilter = typeof SPORTS[number];
@@ -91,7 +91,7 @@ const courtsQuery = trpc.courts.list.useQuery(
   const availability = trpc.courts.availability.useQuery(availabilityInput, {
     enabled: !!dateStr,
   });
-  const rows: CourtAvailabilityRow[] = availability.data ?? [];
+  //const rows: CourtAvailabilityRow[] = availability.data ?? [];
 
 
   const utils = trpc.useUtils();
