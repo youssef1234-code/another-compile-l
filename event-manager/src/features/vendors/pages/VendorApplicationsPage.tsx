@@ -11,26 +11,33 @@
  */
 
 import { useMemo, useEffect } from "react";
-import { useQueryState, parseAsInteger, parseAsStringEnum } from "nuqs";
+import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson } from "nuqs";
 import { trpc } from "@/lib/trpc";
-import { CheckCircle2, XCircle, Clock, Package, Filter } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Package } from "lucide-react";
 import { VendorApplicationsTable } from "../components/vendor-applications-table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import type { VendorApplication } from "@event-manager/shared";
 import { usePageMeta } from '@/components/layout/page-meta-context';
 
-type QuickFilter = "all" | "participating" | "pending-rejected";
+type SortState = Array<{ id: string; desc: boolean }>;
+
+type VendorApplicationType = 'BAZAAR' | 'PLATFORM';
+type VendorApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+type VendorBoothSize = 'TWO_BY_TWO' | 'FOUR_BY_FOUR';
+
+type VendorApplicationsQueryInput = {
+  page: number;
+  limit: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  type?: VendorApplicationType;
+  status?: VendorApplicationStatus;
+  boothSize?: VendorBoothSize;
+};
 
 export function VendorApplicationsPage() {
   const { setPageMeta } = usePageMeta();
-  const [page] = useQueryState('page', parseAsInteger.withDefault(1));
-  const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
-  const [quickFilter, setQuickFilter] = useQueryState(
-    'quickFilter',
-    parseAsStringEnum<QuickFilter>(['all', 'participating', 'pending-rejected']).withDefault('all')
-  );
-
+  
   useEffect(() => {
     setPageMeta({
       title: 'My Applications',
@@ -38,53 +45,120 @@ export function VendorApplicationsPage() {
     });
   }, [setPageMeta]);
 
-  // Get applications with pagination and filter
-  const { data } = trpc.vendorApplications.getApplications.useQuery({
-    page,
-    limit: perPage,
-    isApproved: quickFilter === 'participating' ? true : quickFilter === 'pending-rejected' ? false : undefined,
-  });
+  // Pagination
+  const [page] = useQueryState('page', parseAsInteger.withDefault(1));
+  const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
+  
+  // Search
+  const [search] = useQueryState('search', parseAsString.withDefault(''));
+  
+  // Sorting
+  const [sortStateRaw] = useQueryState(
+    'sort',
+    parseAsJson<Array<{ id: string; desc: boolean }>>((value) => {
+      if (Array.isArray(value)) {
+        return value as Array<{ id: string; desc: boolean }>;
+      }
+      return null;
+    }).withDefault([])
+  );
+  const sortState: SortState = useMemo(() => sortStateRaw ?? [], [sortStateRaw]);
+  
+  // Simple filters
+  const [typeFilter] = useQueryState('eventType', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [statusFilter] = useQueryState('status', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [boothSizeFilter] = useQueryState('boothSize', parseAsArrayOf(parseAsString, ',').withDefault([]));
+
+  // Parse sort state
+  const parsedSort = useMemo(() => {
+    try {
+      if (Array.isArray(sortState) && sortState.length > 0) {
+        const firstSort = sortState[0];
+        return {
+          sortBy: firstSort.id,
+          sortOrder: firstSort.desc ? 'desc' as const : 'asc' as const,
+        };
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }, [sortState]);
+
+  // Build simple filters for backend
+  const filters = useMemo<Partial<VendorApplicationsQueryInput>>(() => {
+    const result: Partial<VendorApplicationsQueryInput> = {};
+
+    const typeValue = typeFilter[0];
+    if (typeValue === 'BAZAAR' || typeValue === 'PLATFORM') {
+      result.type = typeValue;
+    }
+
+    const statusValue = statusFilter[0];
+    if (statusValue === 'PENDING' || statusValue === 'APPROVED' || statusValue === 'REJECTED') {
+      result.status = statusValue;
+    }
+
+    const boothSizeValue = boothSizeFilter[0];
+    // Handle the typo in shared types where FOUR_BY_FOUR has trailing ": "
+    if (boothSizeValue === 'TWO_BY_TWO') {
+      result.boothSize = 'TWO_BY_TWO';
+    } else if (boothSizeValue === 'FOUR_BY_FOUR: ' || boothSizeValue === 'FOUR_BY_FOUR') {
+      result.boothSize = 'FOUR_BY_FOUR';
+    }
+
+    return result;
+  }, [typeFilter, statusFilter, boothSizeFilter]);
+
+  // Build query input
+  const queryInput = useMemo<VendorApplicationsQueryInput>(() => {
+    return {
+      page,
+      limit: perPage,
+      ...(search ? { search } : {}),
+      ...(parsedSort ? { sortBy: parsedSort.sortBy, sortOrder: parsedSort.sortOrder } : {}),
+      ...filters,
+    };
+  }, [page, perPage, search, parsedSort, filters]);
+
+  // Get applications with ALL URL parameters
+  const { data, isFetching } = trpc.vendorApplications.getApplications.useQuery(
+    queryInput,
+    {
+      // Keep previous data while fetching new data
+      placeholderData: (previousData) => previousData,
+      // Refetch when URL params change
+      refetchOnMount: true,
+      // Shorter stale time to ensure fresh data
+      staleTime: 2000,
+    }
+  );
 
   // Get aggregated statistics from backend
   const { data: stats } = trpc.vendorApplications.getApplicationStats.useQuery();
 
-  const applications = useMemo(() => (data?.applications || []) as VendorApplication[], [data?.applications]);
+  const applications = (data?.applications || []) as VendorApplication[];
   const total = data?.total || 0;
   const pageCount = Math.ceil(total / perPage);
 
-  // Calculate counts for filters (from current page)
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      PENDING: 0,
-      APPROVED: 0,
-      REJECTED: 0,
-    };
-    
-    applications.forEach((app: VendorApplication) => {
-      if (app.status && counts[app.status] !== undefined) {
-        counts[app.status]++;
-      }
-    });
-    
-    return counts;
-  }, [applications]);
+  // ✅ Memoized count calculations using stats from backend
+  const statusCounts = useMemo(() => ({
+    PENDING: stats?.pending || 0,
+    APPROVED: stats?.approved || 0,
+    REJECTED: stats?.rejected || 0,
+  }), [stats]);
 
-  const eventTypeCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      BAZAAR: 0,
-      PLATFORM: 0,
-    };
-    
-    applications.forEach((app: VendorApplication) => {
-      if (app.type && counts[app.type] !== undefined) {
-        counts[app.type]++;
-      }
-    });
-    
-    return counts;
-  }, [applications]);
+  const eventTypeCounts = useMemo(() => ({
+    BAZAAR: stats?.byType?.BAZAAR || 0,
+    PLATFORM: stats?.byType?.PLATFORM || 0,
+  }), [stats]);
 
-  // Stats for page header (use backend analytics)
+  const boothSizeCounts = useMemo(() => ({
+    TWO_BY_TWO: stats?.byBoothSize?.TWO_BY_TWO || 0,
+    'FOUR_BY_FOUR: ': stats?.byBoothSize?.FOUR_BY_FOUR || 0,
+  }), [stats]);
+
+  // ✅ Memoized stats for page header - only recalculate when stats change
   const headerStats = useMemo(() => [
     { label: 'Total Applications', value: stats?.total || 0, icon: Package, colorRole: 'info' as const },
     { label: 'Approved', value: stats?.approved || 0, icon: CheckCircle2, colorRole: 'success' as const },
@@ -125,67 +199,14 @@ export function VendorApplicationsPage() {
         })}
       </div>
 
-      {/* Quick Filter Buttons - Requirements #68, #69 */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">Quick Filters:</span>
-        </div>
-        
-        <Button
-          variant={quickFilter === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setQuickFilter('all')}
-          className="gap-2"
-        >
-          <Package className="h-4 w-4" />
-          All Applications
-          {stats?.total ? (
-            <Badge variant="secondary" className="ml-1">
-              {stats.total}
-            </Badge>
-          ) : null}
-        </Button>
-
-        {/* #68: View participating (accepted only) */}
-        <Button
-          variant={quickFilter === 'participating' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setQuickFilter('participating')}
-          className="gap-2"
-        >
-          <CheckCircle2 className="h-4 w-4" />
-          Participating
-          {stats?.approved ? (
-            <Badge variant="secondary" className="ml-1">
-              {stats.approved}
-            </Badge>
-          ) : null}
-        </Button>
-
-        {/* #69: View pending or rejected */}
-        <Button
-          variant={quickFilter === 'pending-rejected' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setQuickFilter('pending-rejected')}
-          className="gap-2"
-        >
-          <Clock className="h-4 w-4" />
-          Pending / Rejected
-          {(stats?.pending || 0) + (stats?.rejected || 0) > 0 ? (
-            <Badge variant="secondary" className="ml-1">
-              {(stats?.pending || 0) + (stats?.rejected || 0)}
-            </Badge>
-          ) : null}
-        </Button>
-      </div>
-
       <div className="mt-6">
         <VendorApplicationsTable
           data={applications}
           pageCount={pageCount}
           statusCounts={statusCounts}
           eventTypeCounts={eventTypeCounts}
+          boothSizeCounts={boothSizeCounts}
+          isSearching={isFetching}
         />
       </div>
     </div>

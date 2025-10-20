@@ -7,6 +7,7 @@
 
 import type { VendorApplication } from "@event-manager/shared";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 import { 
   Calendar, 
   Users, 
@@ -17,17 +18,24 @@ import {
 } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 
 interface GetVendorApplicationsTableColumnsProps {
   statusCounts: Record<string, number>;
   eventTypeCounts: Record<string, number>;
+  boothSizeCounts: Record<string, number>;
 }
 
 // Application Status Badge Component
-function ApplicationStatusBadge({ status }: { status: string }) {
+function ApplicationStatusBadge({ status, rejectionReason }: { status: string; rejectionReason?: string }) {
   const colors: Record<string, string> = {
     PENDING: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
     APPROVED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
@@ -46,12 +54,32 @@ function ApplicationStatusBadge({ status }: { status: string }) {
     REJECTED: <XCircle className="size-3" />,
   };
 
-  return (
+  const badge = (
     <Badge variant="outline" className={cn("font-medium gap-1.5", colors[status])}>
       {icons[status]}
       {labels[status] || status}
     </Badge>
   );
+
+  // Show tooltip with rejection reason if status is REJECTED and reason exists
+  if (status === 'REJECTED' && rejectionReason) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="cursor-help">{badge}</div>
+        </TooltipTrigger>
+        <TooltipContent 
+          side="top" 
+          className="max-w-xs bg-popover text-popover-foreground border shadow-md"
+        >
+          <p className="font-semibold mb-1">Rejection Reason:</p>
+          <p className="text-xs">{rejectionReason}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return badge;
 }
 
 // Event Type Badge Component
@@ -77,6 +105,7 @@ function EventTypeBadge({ type }: { type: string }) {
 export function getVendorApplicationsTableColumns({
   statusCounts,
   eventTypeCounts,
+  boothSizeCounts,
 }: GetVendorApplicationsTableColumnsProps): ColumnDef<VendorApplication>[] {
   return [
     {
@@ -196,26 +225,31 @@ export function getVendorApplicationsTableColumns({
     },
     {
       id: "boothSize",
-      accessorKey: "boothSize",
+      accessorFn: (row) => row.boothSize,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Booth Size" />
       ),
       cell: ({ row }) => {
-        const size = row.getValue("boothSize") as string;
+        const size = row.original.boothSize;
+        // Note: There's a typo in shared types where FOUR_BY_FOUR has trailing ": "
+        const sizeLabel = size === 'TWO_BY_TWO' ? '2×2' : (size === 'FOUR_BY_FOUR: ' || size === 'FOUR_BY_FOUR') ? '4×4' : 'N/A';
         return (
           <div className="flex items-center gap-2">
             <Building2 className="size-4 text-muted-foreground" />
-            <span>{size || 'N/A'}</span>
+            <span>{sizeLabel}</span>
           </div>
         );
       },
       enableColumnFilter: true,
+      filterFn: (row, _id, value) => {
+        return Array.isArray(value) && value.includes(row.original.boothSize);
+      },
       meta: {
         label: "Booth Size",
         variant: "multiSelect" as const,
         options: [
-          { label: "2x2", value: "2x2" },
-          { label: "4x4", value: "4x4" },
+          { label: "2×2 Small", value: "TWO_BY_TWO", count: boothSizeCounts.TWO_BY_TWO || 0 },
+          { label: "4×4 Large", value: "FOUR_BY_FOUR: ", count: boothSizeCounts['FOUR_BY_FOUR: '] || boothSizeCounts.FOUR_BY_FOUR || 0 },
         ],
       },
       size: 130,
@@ -228,11 +262,53 @@ export function getVendorApplicationsTableColumns({
       ),
       cell: ({ row }) => {
         const names = row.original.names || [];
+        const emails = row.original.emails || [];
+        const hasDetails = names.length > 0;
+        
+        if (!hasDetails) {
+          return (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Users className="size-4" />
+              <span>0 / 5</span>
+            </div>
+          );
+        }
+        
         return (
-          <div className="flex items-center gap-2">
-            <Users className="size-4 text-muted-foreground" />
-            <span>{names.length} / 5</span>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 hover:bg-transparent cursor-help"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  row.toggleExpanded();
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="size-4 text-muted-foreground" />
+                  <span className="underline decoration-dotted underline-offset-2">{names.length} / 5</span>
+                </div>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent 
+              side="right" 
+              className="max-w-sm bg-popover text-popover-foreground border shadow-md"
+            >
+              <p className="font-semibold mb-2">Attendees:</p>
+              <div className="space-y-1.5">
+                {names.map((name, index) => (
+                  <div key={index} className="text-xs">
+                    <p className="font-medium">{name}</p>
+                    {emails[index] && (
+                      <p className="text-muted-foreground">{emails[index]}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </TooltipContent>
+          </Tooltip>
         );
       },
       enableSorting: false,
@@ -245,7 +321,13 @@ export function getVendorApplicationsTableColumns({
         <DataTableColumnHeader column={column} title="Status" />
       ),
       cell: ({ row }) => {
-        return <ApplicationStatusBadge status={row.getValue("status")} />;
+        const application = row.original;
+        return (
+          <ApplicationStatusBadge 
+            status={application.status} 
+            rejectionReason={application.rejectionReason}
+          />
+        );
       },
       enableColumnFilter: true,
       filterFn: (row, id, value) => {
