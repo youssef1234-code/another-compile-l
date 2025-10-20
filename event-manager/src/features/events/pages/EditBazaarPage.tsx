@@ -120,7 +120,10 @@ export function EditBazaarPage() {
       utils.events.getAllEvents.invalidate();
       utils.events.getEventStats.invalidate();
       utils.events.getEventById.invalidate({ id: id! });
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
       toast.success('Bazaar updated successfully!');
+      // Navigate to the event details page to see the updated event
       navigate(`${ROUTES.EVENTS}/${id}`);
     },
     onError: (error) => {

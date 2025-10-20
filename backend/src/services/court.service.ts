@@ -3,6 +3,9 @@ import { CourtRepository, courtRepository } from "../repositories/court.reposito
 import type { ICourt } from "../models/court.model";
 import { courtReservationRepository } from "../repositories/court-reservation.repository";
 import { DateTime } from "luxon";
+import { CourtAvailabilityRow } from "@event-manager/shared";
+
+
 const CAMPUS_TZ = "Africa/Cairo";
 
 export class CourtService extends BaseService<ICourt, CourtRepository> {
@@ -34,15 +37,11 @@ async getAvailability({
   const dayEndUtc   = nextLocal.toUTC().toJSDate();
 
   // Fetch courts
-  const courts = courtId
-    ? [await this.repository.findById(courtId)].filter(Boolean) as ICourt[]
-    : await this.repository.findAll({ ...(sport ? { sport } : {}), isActive: true });
+const courts = courtId
+  ? [await this.repository.findById(courtId)].filter(Boolean) as ICourt[]
+  : await this.repository.findAll({ ...(sport ? { sport } : {}), isDeleted: false });
 
-  const results: Array<{
-    court: { id: string; name: string; sport: string; location?: string };
-    freeSlots: { hour: number; startUtc: string }[];
-    booked:    { id: string; hour: number; startUtc: string; endUtc: string; status: string; byMe: boolean }[];
-  }> = [];
+const results: CourtAvailabilityRow[] = [];
 
   for (const c of courts) {
     // Get reservations overlapping this *Cairo* day (bounds in UTC)
@@ -89,12 +88,7 @@ async getAvailability({
     }
 
     results.push({
-      court: {
-        id: (c._id as any).toString(),
-        name: c.name,
-        sport: c.sport,
-        location: c.location,
-      },
+      court: { id: (c._id as any).toString(), name: c.name, sport: c.sport, location: c.location },
       freeSlots,
       booked,
     });

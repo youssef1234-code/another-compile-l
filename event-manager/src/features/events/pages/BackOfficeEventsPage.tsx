@@ -341,6 +341,9 @@ export function BackOfficeEventsPage() {
       toast.success('Event deleted successfully');
       utils.events.getAllEvents.invalidate();
       utils.events.getEventStats.invalidate();
+      utils.events.getEvents.invalidate();
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
@@ -352,6 +355,9 @@ export function BackOfficeEventsPage() {
     onSuccess: () => {
       toast.success('Workshop deleted successfully');
       utils.events.getAllEvents.invalidate();
+      utils.events.getEvents.invalidate();
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
       utils.events.getEventStats.invalidate();
     },
     onError: (error) => {
@@ -767,10 +773,13 @@ export function BackOfficeEventsPage() {
         initialType={isProfessor ? 'WORKSHOP' : (createType === 'TRIP' || createType === 'BAZAAR' ? (createType as any) : undefined)}
         skipTypeSelection={isProfessor || createType === 'TRIP' || createType === 'BAZAAR'}
         onSuccess={() => {
+           // Clear the intent once an event is created successfully
+          setCreateType(null);
           utils.events.getAllEvents.invalidate();
           utils.events.getEventStats.invalidate();
-          // Clear the intent once an event is created successfully
-          setCreateType(null);
+          utils.events.getEvents.invalidate();
+          utils.events.getUpcoming.invalidate();
+          utils.events.search.invalidate();
         }}
       />
     </div>

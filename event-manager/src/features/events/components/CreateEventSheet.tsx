@@ -106,7 +106,7 @@ export function CreateEventSheet({
     requiredBudget: '',
     fundingSource: '',
     extraResources: '',
-    conferenceWebsite: '',
+    websiteUrl: '',
     fullAgenda: '',
     requirements: '',
     images: [] as string[],
@@ -134,7 +134,7 @@ export function CreateEventSheet({
       requiredBudget: '',
       fundingSource: '',
       extraResources: '',
-      conferenceWebsite: '',
+      websiteUrl: '',
       fullAgenda: '',
       requirements: '',
       images: [],
@@ -306,7 +306,7 @@ export function CreateEventSheet({
           payload.capacity = 1000;
         } else if (selectedType === 'CONFERENCE') {
           // Req #45: Conference needs website, agenda, budget, funding, resources (NO capacity)
-          payload.conferenceWebsite = formData.conferenceWebsite?.trim();
+          payload.websiteUrl = formData.websiteUrl?.trim();
           payload.fullAgenda = formData.fullAgenda?.trim();
           payload.requiredBudget = formData.requiredBudget ? Number(formData.requiredBudget) : undefined;
           payload.fundingSource = formData.fundingSource || undefined;
@@ -646,8 +646,8 @@ export function CreateEventSheet({
                 <Input
                   type="url"
                   required
-                  value={formData.conferenceWebsite}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, conferenceWebsite: e.target.value }))}
+                  value={formData.websiteUrl}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, websiteUrl: e.target.value }))}
                   placeholder="https://conference.example.com"
                 />
               </FormSheetField>

@@ -360,7 +360,7 @@ export const CreateEventSchema = z.object({
   fundingSource: z.string().optional(),
   extraResources: z.string().optional(),
   // Conference-specific fields
-  conferenceWebsite: z.string().url().optional(),
+  websiteUrl: z.string().url().optional(),
 });
 
 export type CreateEventInput = z.infer<typeof CreateEventSchema>;
@@ -409,7 +409,7 @@ export const CreateConferenceSchema = z.object({
   locationDetails: z.string().min(5).max(200),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
-  conferenceWebsite: z.string().url(),
+  websiteUrl: z.string().url(),
   fullAgenda: z.string().min(20),
   requiredBudget: z.number().nonnegative(),
   fundingSource: z.enum(['UNIVERSITY', 'EXTERNAL_FUNDING']),
@@ -497,6 +497,50 @@ export const CourtSport = {
   FOOTBALL: "FOOTBALL",
 } as const;
 export type CourtSport = (typeof CourtSport)[keyof typeof CourtSport];
+
+export const CourtReservationStatus = z.enum(["BOOKED", "CANCELLED"]);
+export type CourtReservationStatus = z.infer<typeof CourtReservationStatus>;
+
+
+
+/** Summarized court info for availability rows */
+export const CourtSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  sport: z.nativeEnum(CourtSport),
+  location: z.string().optional(),
+});
+export type CourtSummary = z.infer<typeof CourtSummarySchema>;
+
+/** A free, bookable hourly slot (start time in UTC ISO8601) */
+export const CourtFreeSlotSchema = z.object({
+  hour: z.number().int().min(0).max(23),
+  startUtc: z.string().datetime({ offset: true }), // e.g. "2025-10-14T05:00:00.000Z"
+});
+export type CourtFreeSlot = z.infer<typeof CourtFreeSlotSchema>;
+
+/** A booked slot (with ownership flag for the current user) */
+export const CourtBookedSlotSchema = z.object({
+  id: z.string(),
+  hour: z.number().int().min(0).max(23),
+  startUtc: z.string().datetime({ offset: true }),
+  endUtc: z.string().datetime({ offset: true }),
+  status: CourtReservationStatus.or(z.string()), // allow backend to send custom statuses if needed
+  byMe: z.boolean(),
+});
+export type CourtBookedSlot = z.infer<typeof CourtBookedSlotSchema>;
+
+/** One row in the availability response (per court) */
+export const CourtAvailabilityRowSchema = z.object({
+  court: CourtSummarySchema,
+  freeSlots: z.array(CourtFreeSlotSchema),
+  booked: z.array(CourtBookedSlotSchema),
+});
+export type CourtAvailabilityRow = z.infer<typeof CourtAvailabilityRowSchema>;
+
+/** Full availability response (array of rows) */
+export const CourtAvailabilityResponseSchema = z.array(CourtAvailabilityRowSchema);
+export type CourtAvailabilityResponse = z.infer<typeof CourtAvailabilityResponseSchema>;
 
 export const CourtSchema = z.object({
   id: z.string(),
@@ -828,7 +872,7 @@ export interface Event {
   fundingSource?: string;
   extraResources?: string;
   // Conference-specific fields
-  conferenceWebsite?: string;
+  websiteUrl?: string;
   // Gym session-specific fields
   sessionType?: string;
   duration?: number;
