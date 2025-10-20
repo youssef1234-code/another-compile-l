@@ -489,41 +489,88 @@ export async function seedComprehensiveData(): Promise<void> {
     // 5. Seed Court Reservations
     console.log("\n🎾 Seeding court reservations...");
     const courts = await Court.find({ isActive: true });
-    const studentUsers = createdUsers.filter((u) => u.role === "STUDENT");
+    const studentUsers = createdUsers.filter((u) => u.role === "STUDENT" || u.role === "STAFF" || u.role === "TA");
 
-    for (let i = 0; i < 5; i++) {
-      const randomStudent =
-        studentUsers[Math.floor(Math.random() * studentUsers.length)];
-      const randomCourt = courts[Math.floor(Math.random() * courts.length)];
-      const futureDate = new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000);
-      const durationMinutes = 60;
-      const endDate = new Date(futureDate.getTime() + durationMinutes * 60 * 1000);
-      // Derive studentGucId from available fields since User schema doesn't store `gucId`
-      const derivedStudentGucId =
-        (randomStudent as any).studentId ||
-        (randomStudent as any).staffId ||
-        ((randomStudent as any).email ? (randomStudent as any).email.split('@')[0] : `GUC-${String(randomStudent._id).slice(-6)}`);
+    // Create reservations for the next 14 days with varied times
+    const reservationTimeSlots = [
+      { hour: 9, minute: 0 },   // 9:00 AM
+      { hour: 11, minute: 0 },  // 11:00 AM
+      { hour: 13, minute: 0 },  // 1:00 PM
+      { hour: 15, minute: 0 },  // 3:00 PM
+      { hour: 17, minute: 0 },  // 5:00 PM
+      { hour: 19, minute: 0 },  // 7:00 PM
+      { hour: 21, minute: 0 },  // 9:00 PM
+    ];
 
-      await CourtReservation.create({
-        court: randomCourt._id,
-        user: randomStudent._id,
-        studentName: `${randomStudent.firstName} ${randomStudent.lastName}`,
-        studentGucId: derivedStudentGucId,
-        startDate: futureDate,
-        endDate,
-        duration: durationMinutes,
-        status: "BOOKED",
-      } as any);
-      console.log(
-        `  ✓ Created reservation for ${randomStudent.firstName} at ${randomCourt.name}`,
-      );
+    let reservationCount = 0;
+
+    // Create reservations for next 14 days
+    for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
+      // For each court, create 2-4 random reservations per day
+      for (const court of courts) {
+        const reservationsPerDay = Math.floor(Math.random() * 3) + 2; // 2-4 reservations
+        
+        // Shuffle time slots and pick some
+        const shuffledSlots = [...reservationTimeSlots].sort(() => 0.5 - Math.random());
+        const selectedSlots = shuffledSlots.slice(0, reservationsPerDay);
+
+        for (const timeSlot of selectedSlots) {
+          const randomStudent = studentUsers[Math.floor(Math.random() * studentUsers.length)];
+          
+          // Create date for this reservation
+          const reservationDate = new Date();
+          reservationDate.setDate(reservationDate.getDate() + dayOffset);
+          reservationDate.setHours(timeSlot.hour, timeSlot.minute, 0, 0);
+          
+          // Duration: 60 or 90 minutes
+          const durationMinutes = Math.random() > 0.5 ? 60 : 90;
+          const endDate = new Date(reservationDate.getTime() + durationMinutes * 60 * 1000);
+          
+          // Derive studentGucId from available fields
+          const derivedStudentGucId =
+            (randomStudent as any).studentId ||
+            (randomStudent as any).staffId ||
+            (randomStudent as any).gucId ||
+            ((randomStudent as any).email ? (randomStudent as any).email.split('@')[0] : `GUC-${String(randomStudent._id).slice(-6)}`);
+
+          // Check if this time slot is already reserved
+          const existingReservation = await CourtReservation.findOne({
+            court: court._id,
+            startDate: reservationDate,
+          });
+
+          if (!existingReservation) {
+            await CourtReservation.create({
+              court: court._id,
+              user: randomStudent._id,
+              studentName: `${randomStudent.firstName} ${randomStudent.lastName}`,
+              studentGucId: derivedStudentGucId,
+              startDate: reservationDate,
+              endDate,
+              duration: durationMinutes,
+              status: "BOOKED",
+            } as any);
+            
+            reservationCount++;
+            
+            if (reservationCount <= 5) {
+              console.log(
+                `  ✓ Created reservation for ${randomStudent.firstName} at ${court.name} on ${reservationDate.toLocaleDateString()} at ${timeSlot.hour}:00`,
+              );
+            }
+          }
+        }
+      }
     }
+
+    console.log(`  ✓ Created ${reservationCount} total court reservations across ${courts.length} courts`);
 
     console.log("\n✅ Comprehensive database seeding completed successfully!");
     console.log("\n📊 Summary:");
     console.log(`   Users: ${createdUsers.length}`);
     console.log(`   Events: ${createdEvents.length}`);
     console.log(`   Courts: ${courts.length}`);
+    console.log(`   Court Reservations: ${reservationCount}`);
     console.log("\n🔐 Sample Credentials:");
     console.log("   Student: john.doe@student.guc.edu.eg / Password123!");
     console.log("   Professor: prof.brown@prof.guc.edu.eg / Password123!");

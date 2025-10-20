@@ -14,7 +14,7 @@ export const courtsRouter = router({
       }).optional() // ← allow empty {}
     )
     .query(async ({ input }) => {
-      const filter: any = { isDeleted: false };
+      const filter: any = { isActive: true };
       if (input?.sport) filter.sport = input.sport;
       return courtService.findAll(filter);
     }),
