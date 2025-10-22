@@ -11,7 +11,7 @@ import { toast } from "react-hot-toast";
 import { CalendarSearch } from "lucide-react";
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
-import type { CourtAvailabilityRow } from "@event-manager/shared";
+import type { CourtAvailabilityRow, CourtSummary } from "@event-manager/shared";
 
 const SPORTS = ["ALL", "BASKETBALL", "TENNIS", "FOOTBALL"] as const;
 type SportFilter = typeof SPORTS[number];
@@ -117,19 +117,16 @@ const courtsQuery = trpc.courts.list.useQuery(
       toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
-const courtOptions = useMemo(() => {
-  const raw = (courtsQuery.data ?? []) as Array<any>;
-  const cleaned = raw
-    .map(c => {
-      const id = c?.id ?? c?._id;                 
-      if (!id) return null;
-      return { id: String(id), name: c?.name ?? "", sport: c?.sport ?? "" };
-    })
-    .filter(Boolean) as Array<{ id: string; name: string; sport: string }>;
+type CourtOption = CourtSummary | { id: "ALL"; name: "All courts"; sport: "ALL" };
 
-  const unique = Array.from(new Map(cleaned.map(c => [c.id, c])).values());
-  return [{ id: "ALL", name: "All courts", sport: "ALL" as const }, ...unique];
+const courtOptions = useMemo<CourtOption[]>(() => {
+  const raw = (courtsQuery.data ?? []) as CourtSummary[];
+
+  const unique = Array.from(new Map(raw.map(c => [c.id, c])).values());
+
+  return [{ id: "ALL", name: "All courts", sport: "ALL" }, ...unique];
 }, [courtsQuery.data]);
+
 
 
 

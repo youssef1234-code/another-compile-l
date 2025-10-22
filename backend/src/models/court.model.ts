@@ -6,13 +6,13 @@ import { createBaseSchema, type IBaseDocument } from "./base.model";
 export interface ICourt extends IBaseDocument {
   name: string;
   sport: CourtSport;
-  location: string;             // e.g. "Gym Zone A"
+  location: string;             
   createdAt: Date; updatedAt: Date;
 }
 
 const courtSchema = createBaseSchema<ICourt>({
   name: { type: String, required: true, index: true },
-  sport: { type: String, enum: ["BASKETBALL", "TENNIS", "FOOTBALL"], required: true, index: true },
+  sport: { type: String, enum: CourtSport, required: true, index: true },
   location: { type: String, required: true },
 });
 
