@@ -11,9 +11,7 @@ import { toast } from "react-hot-toast";
 import { CalendarSearch, CalendarIcon } from "lucide-react";
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-//import type { CourtAvailabilityRow } from "@event-manager/shared";
+import type { CourtSummary } from "@event-manager/shared";
 
 const SPORTS = ["ALL", "BASKETBALL", "TENNIS", "FOOTBALL"] as const;
 type SportFilter = typeof SPORTS[number];
@@ -71,12 +69,14 @@ export function CourtBookingsPage() {
   }, [setPageMeta]);
 
   // courts list (filterable by sport)
-const courtsQuery = trpc.courts.list.useQuery(
-  sport === "ALL" ? {} : { sport }     // ✅ omit sport when ALL
+const { data: courts = [] }  = trpc.courts.list.useQuery(
+  sport === "ALL" ? {} : { sport }     //  omit sport when ALL
 );
   // availability input (use Date object directly)
  const availabilityInput = useMemo(() => {
-  const sportFilter = sport === "ALL" ? undefined : sport;  // ✅
+  const midnightLocalISO = toISOFromLocal(dateStr, "00:00");
+  const dateObj = new Date(midnightLocalISO);
+  const sportFilter = sport === "ALL" ? undefined : sport;  
 
   return selectedCourtId !== "ALL"
     ? { date: selectedDate, courtId: selectedCourtId, slotMinutes: 60 }
@@ -87,7 +87,6 @@ const courtsQuery = trpc.courts.list.useQuery(
   const availability = trpc.courts.availability.useQuery(availabilityInput, {
     enabled: !!selectedDate,
   });
-  //const rows: CourtAvailabilityRow[] = availability.data ?? [];
 
 
   const utils = trpc.useUtils();
@@ -113,19 +112,12 @@ const courtsQuery = trpc.courts.list.useQuery(
       toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
   });
-const courtOptions = useMemo(() => {
-  const raw = (courtsQuery.data ?? []) as Array<any>;
-  const cleaned = raw
-    .map(c => {
-      const id = c?.id ?? c?._id;                 
-      if (!id) return null;
-      return { id: String(id), name: c?.name ?? "", sport: c?.sport ?? "" };
-    })
-    .filter(Boolean) as Array<{ id: string; name: string; sport: string }>;
+type CourtOption = CourtSummary | { id: "ALL"; name: "All courts"; sport: "ALL" };
 
-  const unique = Array.from(new Map(cleaned.map(c => [c.id, c])).values());
-  return [{ id: "ALL", name: "All courts", sport: "ALL" as const }, ...unique];
-}, [courtsQuery.data]);
+const courtOptions: CourtOption[] = useMemo(() => {
+  return [{ id: "ALL", name: "All courts", sport: "ALL" }, ...courts];
+}, [courts]);
+
 
 
 

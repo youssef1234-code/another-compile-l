@@ -2,22 +2,34 @@ import { router, publicProcedure, protectedProcedure } from "../trpc/trpc";
 import { z } from "zod";
 import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
-import { CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport, CourtAvailabilityResponseSchema } from "@event-manager/shared";
-
+import { CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport, CourtAvailabilityResponseSchema, CourtSummarySchema, CourtSummary } from "@event-manager/shared";
 
 export const courtsRouter = router({
-  // list courts (optionally by sport)
-    list: publicProcedure
-    .input(
-      z.object({
-        sport: z.nativeEnum(CourtSport).optional(), // ← optional
-      }).optional() // ← allow empty {}
-    )
-    .query(async ({ input }) => {
-      const filter: any = { isActive: true };
-      if (input?.sport) filter.sport = input.sport;
-      return courtService.findAll(filter);
-    }),
+   
+  
+ list: publicProcedure
+  .input(z.object({ sport: z.nativeEnum(CourtSport).optional() }).optional())
+  .output(z.array(CourtSummarySchema))
+  .query(async ({ input }) => {
+    const match: any = { isActive: true };
+
+    if (input?.sport) match.sport = input.sport;
+      const rows = await courtService.aggregate<CourtSummary>([
+      { $match: match },
+      {
+        $project: {
+          _id: 0,                       
+          id: { $convert: { input: '$_id', to: 'string' } },
+          name: 1,
+          sport: 1,
+          location: 1,                  
+        },
+      },
+      { $sort: { name: 1 } },
+    ]);
+    return rows;
+  }),
+
 
 availability: publicProcedure
   .input(

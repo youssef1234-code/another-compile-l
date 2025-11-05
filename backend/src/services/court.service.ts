@@ -3,7 +3,7 @@ import { CourtRepository, courtRepository } from "../repositories/court.reposito
 import type { ICourt } from "../models/court.model";
 import { courtReservationRepository } from "../repositories/court-reservation.repository";
 import { DateTime } from "luxon";
-import { type CourtAvailabilityRow } from "@event-manager/shared";
+import { CourtAvailabilityRow } from "@event-manager/shared";
 
 
 const CAMPUS_TZ = "Africa/Cairo";
@@ -96,6 +96,7 @@ const results: CourtAvailabilityRow[] = [];
 
   return results;
 }
+
 
 }
 export const courtService = new CourtService(courtRepository);
