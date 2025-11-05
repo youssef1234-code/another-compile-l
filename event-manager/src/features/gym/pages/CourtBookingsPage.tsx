@@ -11,7 +11,7 @@ import { toast } from "react-hot-toast";
 import { CalendarSearch } from "lucide-react";
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
-import type { CourtAvailabilityRow, CourtSummary } from "@event-manager/shared";
+import type { CourtSummary } from "@event-manager/shared";
 
 const SPORTS = ["ALL", "BASKETBALL", "TENNIS", "FOOTBALL"] as const;
 type SportFilter = typeof SPORTS[number];
@@ -74,13 +74,13 @@ export function CourtBookingsPage() {
 
   // courts list (filterable by sport)
 const { data: courts = [] }  = trpc.courts.list.useQuery(
-  sport === "ALL" ? {} : { sport }     // ✅ omit sport when ALL
+  sport === "ALL" ? {} : { sport }     //  omit sport when ALL
 );
   // availability input (date at local midnight pushed as UTC Date)
  const availabilityInput = useMemo(() => {
   const midnightLocalISO = toISOFromLocal(dateStr, "00:00");
   const dateObj = new Date(midnightLocalISO);
-  const sportFilter = sport === "ALL" ? undefined : sport;  // ✅
+  const sportFilter = sport === "ALL" ? undefined : sport;  
 
   return selectedCourtId !== "ALL"
     ? { date: dateObj, courtId: selectedCourtId, slotMinutes: 60 }
@@ -91,7 +91,6 @@ const { data: courts = [] }  = trpc.courts.list.useQuery(
   const availability = trpc.courts.availability.useQuery(availabilityInput, {
     enabled: !!dateStr,
   });
-  const rows: CourtAvailabilityRow[] = availability.data ?? [];
 
 
   const utils = trpc.useUtils();
