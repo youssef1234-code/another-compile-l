@@ -95,7 +95,7 @@ export function ProfilePage() {
           <div className="flex items-center gap-6">
             <Avatar className="h-24 w-24">
               <AvatarImage src={avatarSrc} />
-              <AvatarFallback className="text-2xl bg-neutral-100 text-neutral-900">
+              <AvatarFallback className="text-2xl bg-muted text-foreground">
                 {getInitials()}
               </AvatarFallback>
             </Avatar>
@@ -189,19 +189,19 @@ export function ProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm text-neutral-500">Status</label>
+              <label className="text-sm text-neutral-500 dark:text-neutral-400">Status</label>
               <div className="flex items-center gap-2">
                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   user.status === 'ACTIVE'
-                    ? 'bg-green-100 text-green-800'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                     : user.status === 'BLOCKED'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-yellow-100 text-yellow-800'
+                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
                 }`}>
                   {user.status}
                 </span>
                 {user.isVerified && (
-                  <span className="text-xs text-neutral-500">• Email verified</span>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">• Email verified</span>
                 )}
               </div>
             </div>

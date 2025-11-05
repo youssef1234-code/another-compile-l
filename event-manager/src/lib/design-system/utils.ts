@@ -22,29 +22,29 @@ export function cn(...inputs: ClassValue[]) {
 export function getColorClasses(role: ColorRole, variant: 'solid' | 'soft' | 'outline' = 'solid') {
   const colorMap = {
     success: {
-      solid: 'bg-green-500 text-white border-green-500 hover:bg-green-600',
-      soft: 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100',
-      outline: 'bg-transparent text-green-600 border-green-300 hover:bg-green-50',
+      solid: 'bg-green-500 text-white border-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700',
+      soft: 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 dark:hover:bg-green-900/40',
+      outline: 'bg-transparent text-green-600 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-700 dark:hover:bg-green-900/20',
     },
     warning: {
-      solid: 'bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600',
-      soft: 'bg-yellow-50 text-yellow-800 border-yellow-200 hover:bg-yellow-100',
-      outline: 'bg-transparent text-yellow-600 border-yellow-300 hover:bg-yellow-50',
+      solid: 'bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-700',
+      soft: 'bg-yellow-50 text-yellow-800 border-yellow-200 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800 dark:hover:bg-yellow-900/40',
+      outline: 'bg-transparent text-yellow-600 border-yellow-300 hover:bg-yellow-50 dark:text-yellow-400 dark:border-yellow-700 dark:hover:bg-yellow-900/20',
     },
     critical: {
-      solid: 'bg-red-500 text-white border-red-500 hover:bg-red-600',
-      soft: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100',
-      outline: 'bg-transparent text-red-600 border-red-300 hover:bg-red-50',
+      solid: 'bg-red-500 text-white border-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700',
+      soft: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800 dark:hover:bg-red-900/40',
+      outline: 'bg-transparent text-red-600 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/20',
     },
     info: {
-      solid: 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600',
-      soft: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
-      outline: 'bg-transparent text-blue-600 border-blue-300 hover:bg-blue-50',
+      solid: 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700',
+      soft: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/40',
+      outline: 'bg-transparent text-blue-600 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/20',
     },
     brand: {
-      solid: 'bg-purple-500 text-white border-purple-500 hover:bg-purple-600',
-      soft: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100',
-      outline: 'bg-transparent text-purple-600 border-purple-300 hover:bg-purple-50',
+      solid: 'bg-purple-500 text-white border-purple-500 hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700',
+      soft: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800 dark:hover:bg-purple-900/40',
+      outline: 'bg-transparent text-purple-600 border-purple-300 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-700 dark:hover:bg-purple-900/20',
     },
   };
 

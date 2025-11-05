@@ -17,7 +17,7 @@ export function PlaceholderPage({ title, description }: PlaceholderPageProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-neutral-100">
+            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-muted">
               <Construction className="h-6 w-6 text-neutral-600" />
             </div>
             <div>

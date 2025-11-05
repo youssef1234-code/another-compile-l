@@ -1,14 +1,14 @@
-
 import { useMemo, useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "react-hot-toast";
-import { CalendarSearch } from "lucide-react";
+import { CalendarSearch, CalendarIcon } from "lucide-react";
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
 import type { CourtSummary } from "@event-manager/shared";
@@ -40,18 +40,14 @@ interface AvailabilityBlock {
   booked?: Booking[];
 }
 
-function toISOFromLocal(dateStr: string, timeStr: string) {
-  const d = new Date(`${dateStr}T${timeStr}:00`);
-  return d.toISOString();
-}
-
 const OPEN_HOUR = 8;
 const CLOSE_HOUR = 22; // last start hour shown is 21:00,
 const HOURS = Array.from({ length: CLOSE_HOUR - OPEN_HOUR }, (_, i) => OPEN_HOUR + i);
 
 // A slot is "past" if its end time <= now + 1 minute
-function slotIsPastEnd(dateStr: string, hour: number) {
-  const end = new Date(`${dateStr}T${String(hour + 1).padStart(2, "0")}:00:00`);
+function slotIsPastEnd(date: Date, hour: number) {
+  const end = new Date(date);
+  end.setHours(hour + 1, 0, 0, 0);
   const now = new Date();
   return end.getTime() <= now.getTime() + 60_000;
 }
@@ -59,10 +55,10 @@ function slotIsPastEnd(dateStr: string, hour: number) {
 export function CourtBookingsPage() {
   const { setPageMeta } = usePageMeta();
   const todayLocal = new Date();
-  const defaultDate = todayLocal.toISOString().slice(0, 10); // YYYY-MM-DD
+  todayLocal.setHours(0, 0, 0, 0); // Start of today
 
   const [sport, setSport] = useState<SportFilter>("ALL");
-  const [dateStr, setDateStr] = useState<string>(defaultDate);
+  const [selectedDate, setSelectedDate] = useState<Date>(todayLocal);
   const [selectedCourtId, setSelectedCourtId] = useState<string | "ALL">("ALL");
 
   useEffect(() => {
@@ -76,20 +72,20 @@ export function CourtBookingsPage() {
 const { data: courts = [] }  = trpc.courts.list.useQuery(
   sport === "ALL" ? {} : { sport }     //  omit sport when ALL
 );
-  // availability input (date at local midnight pushed as UTC Date)
+  // availability input (use Date object directly)
  const availabilityInput = useMemo(() => {
   const midnightLocalISO = toISOFromLocal(dateStr, "00:00");
   const dateObj = new Date(midnightLocalISO);
   const sportFilter = sport === "ALL" ? undefined : sport;  
 
   return selectedCourtId !== "ALL"
-    ? { date: dateObj, courtId: selectedCourtId, slotMinutes: 60 }
-    : { date: dateObj, sport: sportFilter, slotMinutes: 60 };
-}, [dateStr, sport, selectedCourtId]);
+    ? { date: selectedDate, courtId: selectedCourtId, slotMinutes: 60 }
+    : { date: selectedDate, sport: sportFilter, slotMinutes: 60 };
+}, [selectedDate, sport, selectedCourtId]);
 
 
   const availability = trpc.courts.availability.useQuery(availabilityInput, {
-    enabled: !!dateStr,
+    enabled: !!selectedDate,
   });
 
 
@@ -128,7 +124,7 @@ const courtOptions: CourtOption[] = useMemo(() => {
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Controls */}
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-2 flex-wrap">
         <Select
           value={sport}
           onValueChange={(v) => {
@@ -161,8 +157,35 @@ const courtOptions: CourtOption[] = useMemo(() => {
   </SelectContent>
 </Select>
 
-
-        <Input type="date" value={dateStr} onChange={(e) => setDateStr(e.target.value)} />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-[240px] justify-start text-left font-normal",
+                !selectedDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => {
+                if (date) {
+                  setSelectedDate(date);
+                }
+              }}
+              disabled={(date) =>
+                date < new Date(new Date().setHours(0, 0, 0, 0))
+              }
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
 
         <Button variant="outline" onClick={() => availability.refetch()} disabled={availability.isFetching}>
           <CalendarSearch className="h-4 w-4 mr-2" />
@@ -183,7 +206,7 @@ const courtOptions: CourtOption[] = useMemo(() => {
               ))}
             </div>
           ) : availability.error ? (
-            <div className="text-sm text-red-600">{availability.error.message || "Failed to load availability"}</div>
+            <div className="text-sm text-red-600 dark:text-red-400">{availability.error.message || "Failed to load availability"}</div>
           ) : !availability.data || availability.data.length === 0 ? (
             <div className="text-sm text-muted-foreground">No courts or availability found.</div>
           ) : (
@@ -215,7 +238,7 @@ const courtOptions: CourtOption[] = useMemo(() => {
                         </TableCell>
 
                         {HOURS.map((h) => {
-                          const isPast = slotIsPastEnd(dateStr, h);
+                          const isPast = slotIsPastEnd(selectedDate, h);
                           const b = booked.get(h);
                           const f = free.get(h);
 

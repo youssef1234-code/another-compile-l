@@ -119,6 +119,17 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         message: 'Registration deadline must be before start date'
       });
     }
+
+    // Capacity cannot be set below current number of participants
+    if (updateData.capacity !== undefined) {
+      const currentRegistrations = await registrationRepository.countByEvent(_id);
+      if (updateData.capacity < currentRegistrations) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Capacity cannot be less than current registrations (${currentRegistrations}).`
+        });
+      }
+    }
   }
 
   /**
@@ -176,7 +187,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const skip = (page - 1) * limit;
 
     // Build base filter - exclude archived or soft-deleted events by default
-    const filter: any = {
+    let filter: any = {
       isArchived: false,
       status: { $ne: 'ARCHIVED' },
     };
@@ -250,10 +261,20 @@ export class EventService extends BaseService<IEvent, EventRepository> {
             condition[field] = { $not: { $regex: value, $options: 'i' } };
             break;
           case 'eq':
-            condition[field] = value;
+            // Handle numbers for fields like price
+            if (field === 'price' || field === 'capacity') {
+              condition[field] = Number(value);
+            } else {
+              condition[field] = value;
+            }
             break;
           case 'ne':
-            condition[field] = { $ne: value };
+            // Handle numbers for fields like price
+            if (field === 'price' || field === 'capacity') {
+              condition[field] = { $ne: Number(value) };
+            } else {
+              condition[field] = { $ne: value };
+            }
             break;
           case 'isEmpty':
             condition[field] = { $in: [null, '', undefined] };
@@ -272,16 +293,36 @@ export class EventService extends BaseService<IEvent, EventRepository> {
             }
             break;
           case 'lt':
-            condition[field] = { $lt: new Date(value as string) };
+            // Check if it's a date field or numeric field
+            if (field.includes('Date') || field.includes('date')) {
+              condition[field] = { $lt: new Date(value as string) };
+            } else {
+              condition[field] = { $lt: Number(value) };
+            }
             break;
           case 'lte':
-            condition[field] = { $lte: new Date(value as string) };
+            // Check if it's a date field or numeric field
+            if (field.includes('Date') || field.includes('date')) {
+              condition[field] = { $lte: new Date(value as string) };
+            } else {
+              condition[field] = { $lte: Number(value) };
+            }
             break;
           case 'gt':
-            condition[field] = { $gt: new Date(value as string) };
+            // Check if it's a date field or numeric field
+            if (field.includes('Date') || field.includes('date')) {
+              condition[field] = { $gt: new Date(value as string) };
+            } else {
+              condition[field] = { $gt: Number(value) };
+            }
             break;
           case 'gte':
-            condition[field] = { $gte: new Date(value as string) };
+            // Check if it's a date field or numeric field
+            if (field.includes('Date') || field.includes('date')) {
+              condition[field] = { $gte: new Date(value as string) };
+            } else {
+              condition[field] = { $gte: Number(value) };
+            }
             break;
           case 'isBetween':
             if (Array.isArray(value) && value.length === 2) {
@@ -308,13 +349,58 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     }
 
     // Handle global search - search across name, description, professorName
+    // Also search in createdBy user's firstName/lastName for workshops
     if (data.search && data.search.trim()) {
       const searchRegex = { $regex: data.search.trim(), $options: 'i' };
-      filter.$or = [
+      
+      // Find users whose first or last names match the search term
+      const matchingUsers = await userRepository.findAll({
+        $or: [
+          { firstName: searchRegex },
+          { lastName: searchRegex }
+        ]
+      } as any, {});
+      
+      const matchingUserIds = matchingUsers.map((u: any) => u._id);
+      
+      const searchConditions: any[] = [
         { name: searchRegex },
         { description: searchRegex },
         { professorName: searchRegex },
       ];
+      
+      // Add condition for events created by users with matching names
+      if (matchingUserIds.length > 0) {
+        searchConditions.push({ createdBy: { $in: matchingUserIds } });
+      }
+      
+      filter.$or = searchConditions;
+    }
+
+    // CRITICAL: Only show events with open registration (deadline not passed or null)
+    // This must be combined with any existing conditions using AND logic
+    const now = new Date();
+    const registrationDeadlineCondition = {
+      $or: [
+        { registrationDeadline: { $gte: now } },
+        { registrationDeadline: { $exists: false } },
+        { registrationDeadline: null }
+      ]
+    };
+
+    // Combine with existing filter using AND
+    if (Object.keys(filter).length > 0) {
+      // If filter already has conditions, wrap everything in $and
+      const existingConditions = { ...filter };
+      filter = {
+        $and: [
+          existingConditions,
+          registrationDeadlineCondition
+        ]
+      };
+    } else {
+      // No existing conditions, just use the deadline filter
+      filter = registrationDeadlineCondition;
     }
 
     // Build multi-field sort
@@ -607,13 +693,13 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    * Get event statistics (for admin dashboard)
    * @param createdBy - Optional user ID to filter by creator (for professors)
    */
-  async getStatistics(createdBy?: string): Promise<{
+  async getStatistics(createdBy?: string, options?: { excludeTypes?: string[] }): Promise<{
     total: number;
     upcoming: number;
     past: number;
     byType: Record<string, number>;
   }> {
-    return this.repository.getStatistics(createdBy);
+    return this.repository.getStatistics(createdBy, options);
   }
 
   /**
@@ -710,6 +796,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       requiredBudget: event.requiredBudget,
       extraResources: event.extraResources,
       requirements: event.requirements,
+      // Conference-specific fields
+      websiteUrl: event.websiteUrl,
       // Gym session specific fields
       sessionType: event.sessionType,
       duration: event.duration,
@@ -921,6 +1009,17 @@ async updateGymSession(
     }
   }
 
+  // Enforce capacity lower bound for gym sessions as well
+  if (patch.capacity !== undefined) {
+    const currentRegistrations = await registrationRepository.countByEvent(id);
+    if (patch.capacity < currentRegistrations) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Capacity cannot be less than current registrations (${currentRegistrations}).`
+      });
+    }
+  }
+
   const updated = await this.repository.update(
     id,
     {
@@ -958,6 +1057,17 @@ async updateWorkshop(input: UpdateWorkshopInput): Promise<IEvent> {
   }
   if (existing.type !== 'WORKSHOP') {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event is not a workshop' });
+  }
+
+  // Capacity cannot be set below current number of participants
+  if ((updateData as Partial<IEvent>).capacity !== undefined) {
+    const currentRegistrations = await registrationRepository.countByEvent(id);
+    if (((updateData as Partial<IEvent>).capacity as number) < currentRegistrations) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Capacity cannot be less than current registrations (${currentRegistrations}).`
+      });
+    }
   }
 
   // Update workshop

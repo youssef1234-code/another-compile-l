@@ -120,6 +120,11 @@ export function BackOfficeEventsPage() {
       if (!typeFilter.includes('WORKSHOP') || typeFilter.length !== 1) {
         setTypeFilter(['WORKSHOP']);
       }
+    } else if (user?.role === 'ADMIN' || user?.role === 'EVENT_OFFICE') {
+      // Admin/Event Office: default exclude Gym Sessions from Manage Events
+      if (typeFilter.includes('GYM_SESSION')) {
+        setTypeFilter(typeFilter.filter(t => t !== 'GYM_SESSION'));
+      }
     }
   }, [user?.role, typeFilter, setTypeFilter]);
 
@@ -194,9 +199,33 @@ export function BackOfficeEventsPage() {
     }
   );
 
+  // Read dashboard intent: createType=TRIP|BAZAAR, then auto-open create sheet after data loads
+  const [createType, setCreateType] = useQueryState('createType', parseAsString);
+  const handleCreateSheetOpenChange = useCallback((open: boolean) => {
+    setCreateSheetOpen(open);
+    // If user closes the sheet, clear the dashboard intent so it doesn't auto-open again
+    if (!open && (createType === 'TRIP' || createType === 'BAZAAR')) {
+      setCreateType(null);
+    }
+  }, [createType, setCreateType]);
+  useEffect(() => {
+    if (user?.role !== 'EVENT_OFFICE') return;
+    const statsLoaded = typeof statsData !== 'undefined';
+    const eventsLoaded = typeof data !== 'undefined';
+    if (!statsLoaded || !eventsLoaded) return;
+    if (createType === 'TRIP' || createType === 'BAZAAR') {
+      setCreateSheetOpen(true);
+    }
+  }, [user?.role, statsData, data, createType]);
+
   const events = useMemo(() => {
-    return data?.events || [];
-  }, [data?.events]);
+    const list = data?.events || [];
+    // Hide Gym Sessions in Manage Events for Admin/Event Office
+    if (user?.role === 'ADMIN' || user?.role === 'EVENT_OFFICE') {
+      return list.filter(e => e.type !== 'GYM_SESSION');
+    }
+    return list;
+  }, [data?.events, user?.role]);
 
   const pageCount = useMemo(() => {
     return data?.totalPages || 0;
@@ -243,7 +272,7 @@ export function BackOfficeEventsPage() {
     return counts;
   }, [events]);
 
-  // Stats for page header
+  // Stats for page header (API already excludes gym sessions where appropriate)
   const stats = useMemo(() => {
     if (!statsData) {
       return [
@@ -252,7 +281,7 @@ export function BackOfficeEventsPage() {
     }
 
     return [
-      { label: 'Total Events', value: statsData.total, icon: Calendar, colorRole: 'info' as const },
+      { label: 'Total Events', value: statsData.total || 0, icon: Calendar, colorRole: 'info' as const },
       { label: 'Upcoming', value: statsData.upcoming, icon: CheckCircle2, colorRole: 'success' as const },
       { label: 'Past', value: statsData.past, icon: Clock, colorRole: 'warning' as const },
     ];
@@ -312,6 +341,9 @@ export function BackOfficeEventsPage() {
       toast.success('Event deleted successfully');
       utils.events.getAllEvents.invalidate();
       utils.events.getEventStats.invalidate();
+      utils.events.getEvents.invalidate();
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
@@ -323,6 +355,9 @@ export function BackOfficeEventsPage() {
     onSuccess: () => {
       toast.success('Workshop deleted successfully');
       utils.events.getAllEvents.invalidate();
+      utils.events.getEvents.invalidate();
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
       utils.events.getEventStats.invalidate();
     },
     onError: (error) => {
@@ -443,6 +478,11 @@ export function BackOfficeEventsPage() {
         break;
       case 'BAZAAR':
         // Requirement #32: Only if the bazaar hasn't started yet
+        // Additional rule: Admins cannot edit Bazaars (Events Office only)
+        if (user?.role === 'ADMIN') {
+          toast.error('Admins cannot edit bazaars. Please contact the Events Office.');
+          return;
+        }
         if (event.startDate && new Date(event.startDate) < now) {
           toast.error('Cannot edit bazaar - event has already started (Requirement #32)');
           return;
@@ -454,12 +494,13 @@ export function BackOfficeEventsPage() {
         navigate(generateEditConferenceUrl(eventId));
         break;
       case 'GYM_SESSION':
+        // Not shown in this page for Admin/Event Office, but keep safe redirect
         navigate(`/gym/manage?editSession=${eventId}`);
         break;
       default:
         toast.error('Edit not supported for this event type');
     }
-  }, [navigate, events]);
+  }, [navigate, events, user?.role]);
 
   const handleArchiveEvent = useCallback((eventId: string) => {
     setArchiveDialog({ open: true, eventId });
@@ -592,11 +633,11 @@ export function BackOfficeEventsPage() {
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             const colorClasses = {
-              success: 'text-green-600 bg-green-50 border-green-200',
-              warning: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-              critical: 'text-red-600 bg-red-50 border-red-200',
-              info: 'text-blue-600 bg-blue-50 border-blue-200',
-              brand: 'text-purple-600 bg-purple-50 border-purple-200',
+              success: 'text-[var(--stat-icon-success-fg)] bg-[var(--stat-icon-success-bg)] border-[var(--stat-icon-success-border)]',
+              warning: 'text-[var(--stat-icon-warning-fg)] bg-[var(--stat-icon-warning-bg)] border-[var(--stat-icon-warning-border)]',
+              critical: 'text-[var(--stat-icon-critical-fg)] bg-[var(--stat-icon-critical-bg)] border-[var(--stat-icon-critical-border)]',
+              info: 'text-[var(--stat-icon-info-fg)] bg-[var(--stat-icon-info-bg)] border-[var(--stat-icon-info-border)]',
+              brand: 'text-[var(--stat-icon-brand-fg)] bg-[var(--stat-icon-brand-bg)] border-[var(--stat-icon-brand-border)]',
             };
             const colorRole = stat.colorRole || 'info';
             
@@ -634,13 +675,14 @@ export function BackOfficeEventsPage() {
         onArchiveEvent={handleArchiveEvent}
         onDeleteEvent={handleDeleteEvent}
         onPublishEvent={isProfessor ? undefined : handlePublishEvent}
-        // Workshop approval actions for admin/event office only
-        onApproveWorkshop={!isProfessor ? handleApproveWorkshop : undefined}
-        onRejectWorkshop={!isProfessor ? handleRejectWorkshop : undefined}
-        onNeedsEdits={!isProfessor ? handleNeedsEdits : undefined}
+  // Workshop approval actions - Events Office only (Admins excluded)
+  onApproveWorkshop={user?.role === 'EVENT_OFFICE' ? handleApproveWorkshop : undefined}
+  onRejectWorkshop={user?.role === 'EVENT_OFFICE' ? handleRejectWorkshop : undefined}
+  onNeedsEdits={user?.role === 'EVENT_OFFICE' ? handleNeedsEdits : undefined}
         // Action buttons
         onExport={handleExport}
-        onCreate={handleCreateEvent}
+        // Only Event Office and Professors can create events, NOT Admins
+        onCreate={user?.role !== 'ADMIN' ? handleCreateEvent : undefined}
         exportDisabled={isLoading}
         exportLabel={`Export ${search || Object.keys(filters).length > 0 ? 'Filtered' : 'All'}`}
         createLabel={createButtonText}
@@ -728,12 +770,17 @@ export function BackOfficeEventsPage() {
 
       <CreateEventSheet
         open={createSheetOpen}
-        onOpenChange={setCreateSheetOpen}
-        initialType={isProfessor ? 'WORKSHOP' : undefined}
-        skipTypeSelection={isProfessor}
+        onOpenChange={handleCreateSheetOpenChange}
+        initialType={isProfessor ? 'WORKSHOP' : (createType === 'TRIP' || createType === 'BAZAAR' ? (createType as any) : undefined)}
+        skipTypeSelection={isProfessor || createType === 'TRIP' || createType === 'BAZAAR'}
         onSuccess={() => {
+           // Clear the intent once an event is created successfully
+          setCreateType(null);
           utils.events.getAllEvents.invalidate();
           utils.events.getEventStats.invalidate();
+          utils.events.getEvents.invalidate();
+          utils.events.getUpcoming.invalidate();
+          utils.events.search.invalidate();
         }}
       />
     </div>

@@ -143,18 +143,18 @@ function DayEventCard({ event, height, onEventClick }: DayEventCardProps) {
   // Get color based on session type
   const getColorClass = (type: string) => {
     const colors: Record<string, string> = {
-      YOGA: 'bg-purple-100 border-purple-400 text-purple-900',
-      PILATES: 'bg-pink-100 border-pink-400 text-pink-900',
-      AEROBICS: 'bg-orange-100 border-orange-400 text-orange-900',
-      ZUMBA: 'bg-yellow-100 border-yellow-400 text-yellow-900',
-      CROSS_CIRCUIT: 'bg-red-100 border-red-400 text-red-900',
-      KICK_BOXING: 'bg-rose-100 border-rose-400 text-rose-900',
-      CROSSFIT: 'bg-amber-100 border-amber-400 text-amber-900',
-      CARDIO: 'bg-blue-100 border-blue-400 text-blue-900',
-      STRENGTH: 'bg-slate-100 border-slate-400 text-slate-900',
-      DANCE: 'bg-fuchsia-100 border-fuchsia-400 text-fuchsia-900',
-      MARTIAL_ARTS: 'bg-gray-100 border-gray-400 text-gray-900',
-      OTHER: 'bg-neutral-100 border-neutral-400 text-neutral-900',
+      YOGA: 'bg-purple-100 border-purple-400 text-purple-900 dark:bg-purple-900/30 dark:border-purple-600 dark:text-purple-300',
+      PILATES: 'bg-pink-100 border-pink-400 text-pink-900 dark:bg-pink-900/30 dark:border-pink-600 dark:text-pink-300',
+      AEROBICS: 'bg-orange-100 border-orange-400 text-orange-900 dark:bg-orange-900/30 dark:border-orange-600 dark:text-orange-300',
+      ZUMBA: 'bg-yellow-100 border-yellow-400 text-yellow-900 dark:bg-yellow-900/30 dark:border-yellow-600 dark:text-yellow-300',
+      CROSS_CIRCUIT: 'bg-red-100 border-red-400 text-red-900 dark:bg-red-900/30 dark:border-red-600 dark:text-red-300',
+      KICK_BOXING: 'bg-rose-100 border-rose-400 text-rose-900 dark:bg-rose-900/30 dark:border-rose-600 dark:text-rose-300',
+      CROSSFIT: 'bg-amber-100 border-amber-400 text-amber-900 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-300',
+      CARDIO: 'bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-900/30 dark:border-blue-600 dark:text-blue-300',
+      STRENGTH: 'bg-slate-100 border-slate-400 text-slate-900 dark:bg-slate-900/30 dark:border-slate-600 dark:text-slate-300',
+      DANCE: 'bg-fuchsia-100 border-fuchsia-400 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:border-fuchsia-600 dark:text-fuchsia-300',
+      MARTIAL_ARTS: 'bg-gray-100 border-gray-400 text-gray-900 dark:bg-gray-900/30 dark:border-gray-600 dark:text-gray-300',
+      OTHER: 'bg-neutral-100 border-neutral-400 text-neutral-900 dark:bg-neutral-900/30 dark:border-neutral-600 dark:text-neutral-300',
     };
     return colors[type] || colors.OTHER;
   };

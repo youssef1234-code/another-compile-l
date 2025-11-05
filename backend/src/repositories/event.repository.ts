@@ -242,7 +242,7 @@ export class EventRepository extends BaseRepository<IEvent> {
    * Get event statistics
    * @param createdBy - Optional user ID to filter by creator (for professors)
    */
-  async getStatistics(createdBy?: string): Promise<{
+  async getStatistics(createdBy?: string, options?: { excludeTypes?: string[] }): Promise<{
     total: number;
     upcoming: number;
     past: number;
@@ -254,6 +254,9 @@ export class EventRepository extends BaseRepository<IEvent> {
     const baseFilter: FilterQuery<IEvent> = { isArchived: false };
     if (createdBy) {
       baseFilter.createdBy = createdBy;
+    }
+    if (options?.excludeTypes && options.excludeTypes.length > 0) {
+      (baseFilter as any).type = { $nin: options.excludeTypes };
     }
     
     const [total, upcoming, past, byType] = await Promise.all([

@@ -20,6 +20,11 @@ import { DataTableColumnHeader } from "@/components/data-table/data-table-column
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 
@@ -71,7 +76,7 @@ const VendorRequestActions = React.memo(({
       <Button
         variant="ghost"
         size="sm"
-        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
         onClick={handleReject}
       >
         <XCircle className="size-4 mr-1" />
@@ -84,11 +89,11 @@ const VendorRequestActions = React.memo(({
 VendorRequestActions.displayName = 'VendorRequestActions';
 
 // Application Status Badge Component
-function ApplicationStatusBadge({ status }: { status: string }) {
+function ApplicationStatusBadge({ status, rejectionReason }: { status: string; rejectionReason?: string }) {
   const colors: Record<string, string> = {
-    PENDING: "bg-amber-100 text-amber-700 border-amber-200",
-    APPROVED: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    REJECTED: "bg-red-100 text-red-700 border-red-200",
+    PENDING: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+    APPROVED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
+    REJECTED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
   };
 
   const labels: Record<string, string> = {
@@ -103,19 +108,39 @@ function ApplicationStatusBadge({ status }: { status: string }) {
     REJECTED: <XCircle className="size-3" />,
   };
 
-  return (
+  const badge = (
     <Badge variant="outline" className={cn("font-medium gap-1.5", colors[status])}>
       {icons[status]}
       {labels[status] || status}
     </Badge>
   );
+
+  // Show tooltip with rejection reason if status is REJECTED and reason exists
+  if (status === 'REJECTED' && rejectionReason) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="cursor-help">{badge}</div>
+        </TooltipTrigger>
+        <TooltipContent 
+          side="top" 
+          className="max-w-xs bg-popover text-popover-foreground border shadow-md"
+        >
+          <p className="font-semibold mb-1">Rejection Reason:</p>
+          <p className="text-xs">{rejectionReason}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return badge;
 }
 
 // Event Type Badge Component
 function EventTypeBadge({ type }: { type: string }) {
   const colors: Record<string, string> = {
-    BAZAAR: "bg-orange-100 text-orange-700 border-orange-200",
-    PLATFORM: "bg-purple-100 text-purple-700 border-purple-200",
+    BAZAAR: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
+    PLATFORM: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800",
   };
 
   const labels: Record<string, string> = {
@@ -315,11 +340,53 @@ export function getVendorRequestsTableColumns({
       ),
       cell: ({ row }) => {
         const names = row.original.names || [];
+        const emails = row.original.emails || [];
+        const hasDetails = names.length > 0;
+        
+        if (!hasDetails) {
+          return (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Users className="size-4" />
+              <span>0 / 5</span>
+            </div>
+          );
+        }
+        
         return (
-          <div className="flex items-center gap-2">
-            <Users className="size-4 text-muted-foreground" />
-            <span>{names.length} / 5</span>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 hover:bg-transparent cursor-help"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  row.toggleExpanded();
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="size-4 text-muted-foreground" />
+                  <span className="underline decoration-dotted underline-offset-2">{names.length} / 5</span>
+                </div>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent 
+              side="right" 
+              className="max-w-sm bg-popover text-popover-foreground border shadow-md"
+            >
+              <p className="font-semibold mb-2">Attendees:</p>
+              <div className="space-y-1.5">
+                {names.map((name, index) => (
+                  <div key={index} className="text-xs">
+                    <p className="font-medium">{name}</p>
+                    {emails[index] && (
+                      <p className="text-muted-foreground">{emails[index]}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </TooltipContent>
+          </Tooltip>
         );
       },
       enableSorting: false,
@@ -332,7 +399,13 @@ export function getVendorRequestsTableColumns({
         <DataTableColumnHeader column={column} title="Status" />
       ),
       cell: ({ row }) => {
-        return <ApplicationStatusBadge status={row.original.status} />;
+        const application = row.original;
+        return (
+          <ApplicationStatusBadge 
+            status={application.status} 
+            rejectionReason={application.rejectionReason}
+          />
+        );
       },
       enableSorting: true, // ✅ Enable sorting
       enableColumnFilter: true,

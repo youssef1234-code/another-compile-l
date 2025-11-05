@@ -3,7 +3,7 @@ import { CourtRepository, courtRepository } from "../repositories/court.reposito
 import type { ICourt } from "../models/court.model";
 import { courtReservationRepository } from "../repositories/court-reservation.repository";
 import { DateTime } from "luxon";
-import { CourtAvailabilityRow, CourtSport, CourtSummary } from "@event-manager/shared";
+import { CourtAvailabilityRow } from "@event-manager/shared";
 
 
 const CAMPUS_TZ = "Africa/Cairo";
@@ -39,7 +39,7 @@ async getAvailability({
   // Fetch courts
 const courts = courtId
   ? [await this.repository.findById(courtId)].filter(Boolean) as ICourt[]
-  : await this.repository.findAll({ ...(sport ? { sport } : {}) });
+  : await this.repository.findAll({ ...(sport ? { sport } : {}), isActive: true });
 
 const results: CourtAvailabilityRow[] = [];
 

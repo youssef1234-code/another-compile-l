@@ -42,7 +42,6 @@ import { Badge } from '@/components/ui/badge';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import {
   ArrowLeft,
-  Dumbbell,
   GraduationCap,
   Loader2,
   Plane,
@@ -107,7 +106,7 @@ export function CreateEventSheet({
     requiredBudget: '',
     fundingSource: '',
     extraResources: '',
-    conferenceWebsite: '',
+    websiteUrl: '',
     fullAgenda: '',
     requirements: '',
     images: [] as string[],
@@ -135,7 +134,7 @@ export function CreateEventSheet({
       requiredBudget: '',
       fundingSource: '',
       extraResources: '',
-      conferenceWebsite: '',
+      websiteUrl: '',
       fullAgenda: '',
       requirements: '',
       images: [],
@@ -218,20 +217,13 @@ export function CreateEventSheet({
         label: 'Bazaar',
         icon: Store,
         description: 'Campus bazaars and markets for vendors and student communities.',
-        requiredRoles: ['EVENT_OFFICE', 'ADMIN'],
+        requiredRoles: ['EVENT_OFFICE'],
       },
       {
         type: 'CONFERENCE' as const,
         label: 'Conference',
         icon: Users,
         description: 'Professional conferences, symposiums, and keynote events.',
-        requiredRoles: ['EVENT_OFFICE', 'ADMIN'],
-      },
-      {
-        type: 'GYM_SESSION' as const,
-        label: 'Gym Session',
-        icon: Dumbbell,
-        description: 'Fitness sessions and sports trainings managed through the gym office.',
         requiredRoles: ['EVENT_OFFICE', 'ADMIN'],
       },
     ].filter((eventType) => eventType.requiredRoles.includes(user?.role || ''))
@@ -310,11 +302,11 @@ export function CreateEventSheet({
           payload.capacity = formData.capacity;
           payload.price = formData.price;
         } else if (selectedType === 'BAZAAR') {
-          // Req #31: Bazaar is simple - only base fields (no capacity, price, budget)
-          // Base payload is enough
+          // Bazaar defaults: always set capacity to 1000 silently (no user input)
+          payload.capacity = 1000;
         } else if (selectedType === 'CONFERENCE') {
           // Req #45: Conference needs website, agenda, budget, funding, resources (NO capacity)
-          payload.conferenceWebsite = formData.conferenceWebsite?.trim();
+          payload.websiteUrl = formData.websiteUrl?.trim();
           payload.fullAgenda = formData.fullAgenda?.trim();
           payload.requiredBudget = formData.requiredBudget ? Number(formData.requiredBudget) : undefined;
           payload.fundingSource = formData.fundingSource || undefined;
@@ -654,8 +646,8 @@ export function CreateEventSheet({
                 <Input
                   type="url"
                   required
-                  value={formData.conferenceWebsite}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, conferenceWebsite: e.target.value }))}
+                  value={formData.websiteUrl}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, websiteUrl: e.target.value }))}
                   placeholder="https://conference.example.com"
                 />
               </FormSheetField>

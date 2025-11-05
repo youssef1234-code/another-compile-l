@@ -170,7 +170,7 @@ export function AvatarPicker({ value, onChange, disabled }: AvatarPickerProps) {
         <TabsContent value="upload" className="space-y-4">
           {isCropping && uploadedImage ? (
             <div className="space-y-4">
-              <div className="relative h-64 w-full bg-neutral-100 rounded-lg overflow-hidden">
+              <div className="relative h-64 w-full bg-muted rounded-lg overflow-hidden">
                 <Cropper
                   image={uploadedImage}
                   crop={crop}
@@ -193,7 +193,7 @@ export function AvatarPicker({ value, onChange, disabled }: AvatarPickerProps) {
                   min={1}
                   max={3}
                   step={0.1}
-                  className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-2 bg-muted/60 rounded-lg appearance-none cursor-pointer"
                 />
               </div>
 

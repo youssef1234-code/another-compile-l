@@ -26,13 +26,12 @@ const conferenceSchema = z.object({
   startDate: z.date({ required_error: 'Start date is required' }),
   endDate: z.date().optional(),
   registrationDeadline: z.date().optional(),
-  capacity: z.number().min(1, 'Capacity must be at least 1'),
-  price: z.number().min(0, 'Price cannot be negative').default(0),
-  conferenceWebsite: z.string().url().optional().or(z.literal('')),
-  fullAgenda: z.string().optional(),
-  requiredBudget: z.number().min(0).optional(),
-  fundingSource: z.string().optional(),
+  websiteUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  fullAgenda: z.string().min(1, 'Full agenda is required'),
+  requiredBudget: z.number().min(0, 'Budget cannot be negative'),
+  fundingSource: z.string().min(1, 'Funding source is required'),
   extraResources: z.string().optional(),
+  requirements: z.string().optional(),
 });
 
 type ConferenceFormData = z.infer<typeof conferenceSchema>;
@@ -42,6 +41,7 @@ export function EditConferencePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [initialValues, setInitialValues] = useState<Partial<ConferenceFormData> | null>(null);
+  const utils = trpc.useUtils();
 
   useEffect(() => {
     setPageMeta({
@@ -53,12 +53,28 @@ export function EditConferencePage() {
   // Fetch existing conference data
   const { data: event, isLoading: isFetching} = trpc.events.getEventById.useQuery(
     { id: id! },
-    { enabled: !!id }
+    {
+      enabled: !!id,
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnReconnect: 'always',
+      refetchOnWindowFocus: 'always',
+    }
   );
 
   const updateMutation = trpc.events.update.useMutation({
     onSuccess: () => {
+      // Invalidate all events queries to refresh the table
+      utils.events.getEvents.invalidate();
+      utils.events.getEventById.invalidate();
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
+      
       toast.success('Conference updated successfully!');
+      // Invalidate Manage Events data so redirect shows updated info
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+      if (id) utils.events.getEventById.invalidate({ id });
       navigate(ROUTES.ADMIN_EVENTS);
     },
     onError: (error) => {
@@ -70,6 +86,9 @@ export function EditConferencePage() {
   // Pre-populate form when data loads
   useEffect(() => {
     if (event && event.type === 'CONFERENCE') {
+      console.log('📝 Event data received:', event);
+      console.log('🔗 websiteUrl from event:', event.websiteUrl);
+      
       setInitialValues({
         images: event.images || [],
         name: event.name,
@@ -79,14 +98,15 @@ export function EditConferencePage() {
         startDate: event.startDate ? new Date(event.startDate) : undefined,
         endDate: event.endDate ? new Date(event.endDate) : undefined,
         registrationDeadline: event.registrationDeadline ? new Date(event.registrationDeadline) : undefined,
-        capacity: event.capacity || 100,
-        price: event.price || 0,
-        conferenceWebsite: event.conferenceWebsite || '',
+        websiteUrl: event.websiteUrl || '',
         fullAgenda: event.fullAgenda || '',
         requiredBudget: event.requiredBudget || 0,
         fundingSource: event.fundingSource || '',
         extraResources: event.extraResources || '',
+        requirements: event.requirements || '',
       });
+      
+      console.log('✅ Initial values set');
     }
   }, [event]);
 
@@ -120,17 +140,24 @@ export function EditConferencePage() {
     },
     {
       name: 'description',
-      label: 'Short Description',
+      label: 'Description',
       type: 'textarea',
       placeholder: 'Brief overview of the conference theme and objectives',
       colSpan: 2,
     },
     {
-      name: 'conferenceWebsite',
+      name: 'websiteUrl',
       label: 'Conference Website',
       type: 'text',
       placeholder: 'https://conference.example.com',
       description: 'Official landing page with full conference details',
+      colSpan: 2,
+    },
+    {
+      name: 'fullAgenda',
+      label: 'Full Agenda',
+      type: 'textarea',
+      placeholder: 'Include keynote speakers, sessions, and time slots',
       colSpan: 2,
     },
     {
@@ -144,9 +171,20 @@ export function EditConferencePage() {
     },
     {
       name: 'locationDetails',
-      label: 'Venue Details',
+      label: 'Location Details',
       type: 'text',
       placeholder: 'Conference hall, building, or venue name',
+    },
+    {
+      name: 'datesSectionHeader',
+      label: 'Schedule',
+      type: 'custom',
+      colSpan: 2,
+      render: () => (
+        <div className="pt-2 pb-1">
+          <h3 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Dates & Deadlines</h3>
+        </div>
+      ),
     },
     {
       name: 'startDate',
@@ -184,39 +222,15 @@ export function EditConferencePage() {
       name: 'registrationDeadline',
       label: 'Registration Deadline',
       type: 'custom',
-      colSpan: 1,
+      colSpan: 2,
       render: (value, form) => (
         <DateTimePicker
           value={(value as Date | null) ?? null}
           onChange={(date) => form.setValue('registrationDeadline', date ?? undefined)}
-          placeholder="Registration deadline"
+          placeholder="Optional registration deadline"
           minDate={new Date()}
         />
       ),
-    },
-    {
-      name: 'capacity',
-      label: 'Capacity',
-      type: 'number',
-      placeholder: '100',
-      min: 1,
-      colSpan: 1,
-    },
-    {
-      name: 'price',
-      label: 'Registration Fee (EGP)',
-      type: 'number',
-      placeholder: '0',
-      min: 0,
-      step: 0.01,
-      colSpan: 2,
-    },
-    {
-      name: 'fullAgenda',
-      label: 'Full Agenda',
-      type: 'textarea',
-      placeholder: 'Detailed schedule: keynote speakers, sessions, workshops, and time slots',
-      colSpan: 2,
     },
     {
       name: 'requiredBudget',
@@ -224,24 +238,29 @@ export function EditConferencePage() {
       type: 'number',
       placeholder: '0',
       min: 0,
+      step: 0.01,
     },
     {
       name: 'fundingSource',
       label: 'Funding Source',
       type: 'select',
       options: [
-        { value: 'UNIVERSITY', label: 'GUC Internal' },
-        { value: 'SPONSORS', label: 'External Sponsors' },
-        { value: 'STUDENT_UNION', label: 'Student Union' },
-        { value: 'EXTERNAL_FUNDING', label: 'External Funding' },
-        { value: 'SELF_FUNDED', label: 'Self-Funded' },
+        { value: 'GUC', label: 'GUC' },
+        { value: 'EXTERNAL', label: 'External' },
       ],
     },
     {
       name: 'extraResources',
       label: 'Extra Resources',
       type: 'textarea',
-      placeholder: 'List any additional equipment, materials, or special requirements',
+      placeholder: 'List equipment, materials, or special requirements',
+      colSpan: 2,
+    },
+    {
+      name: 'requirements',
+      label: 'Participant Requirements',
+      type: 'textarea',
+      placeholder: 'Prerequisites, required equipment, or eligibility',
       colSpan: 2,
     },
   ];
@@ -261,9 +280,10 @@ export function EditConferencePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="max-w-6xl">
-  <GenericForm<ConferenceFormData>
+    <div className="flex flex-col gap-6 p-6 w-full">
+      <div className="w-full">
+        <GenericForm<ConferenceFormData>
+          key={id} // Force re-mount when event ID changes
           fields={fields}
           schema={conferenceSchema}
           onSubmit={handleSubmit}

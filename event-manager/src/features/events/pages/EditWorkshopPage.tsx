@@ -47,6 +47,7 @@ export function EditWorkshopPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [initialValues, setInitialValues] = useState<Partial<WorkshopFormData> | null>(null);
+  const utils = trpc.useUtils();
 
   useEffect(() => {
     setPageMeta({
@@ -58,12 +59,28 @@ export function EditWorkshopPage() {
   // Fetch existing workshop data
   const { data: event, isLoading: isFetching } = trpc.events.getEventById.useQuery(
     { id: id! },
-    { enabled: !!id }
+    {
+      enabled: !!id,
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnReconnect: 'always',
+      refetchOnWindowFocus: 'always',
+    }
   );
 
   const updateMutation = trpc.events.editWorkshop.useMutation({
     onSuccess: () => {
+      // Invalidate all events queries to refresh the table
+      utils.events.getEvents.invalidate();
+      utils.events.getEventById.invalidate();
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
+      
       toast.success('Workshop updated successfully!');
+      // Ensure Manage Events shows fresh data after redirect
+      utils.events.getAllEvents.invalidate();
+      utils.events.getEventStats.invalidate();
+      if (id) utils.events.getEventById.invalidate({ id });
       navigate(ROUTES.ADMIN_EVENTS); // Redirects to BackOfficeEventsPage (unified event management)
     },
     onError: (error) => {

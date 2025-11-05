@@ -210,7 +210,7 @@ export function getBazaarsTableColumns({ onApply, appliedBazaarIds = [] }: GetBa
 
         if (hasApplied) {
           return (
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
               Already Applied
             </Badge>
           );

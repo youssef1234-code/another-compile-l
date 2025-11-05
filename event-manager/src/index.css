@@ -3,7 +3,51 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================================
+   TYPOGRAPHY SYSTEM - Inter Variable Font
+   ============================================================================
+   Inter is specifically designed for user interfaces and provides excellent
+   readability at all sizes, perfect for a professional event management app.
+   ========================================================================= */
+
 @theme inline {
+  /* Font Family Definitions */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  
+  /* Font Size Scale - Optimized for UI */
+  --font-size-xs: 0.75rem;      /* 12px */
+  --font-size-sm: 0.875rem;     /* 14px */
+  --font-size-base: 1rem;       /* 16px */
+  --font-size-lg: 1.125rem;     /* 18px */
+  --font-size-xl: 1.25rem;      /* 20px */
+  --font-size-2xl: 1.5rem;      /* 24px */
+  --font-size-3xl: 1.875rem;    /* 30px */
+  --font-size-4xl: 2.25rem;     /* 36px */
+  --font-size-5xl: 3rem;        /* 48px */
+  
+  /* Line Heights - Optimized for readability */
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+  
+  /* Letter Spacing - Subtle adjustments for Inter */
+  --letter-spacing-tighter: -0.05em;
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0em;
+  --letter-spacing-wide: 0.025em;
+  --letter-spacing-wider: 0.05em;
+  
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -121,6 +165,45 @@
 
   /* Rim lighting - stronger top highlight for 3D effect */
   --rim-light: rgba(255, 255, 255, 0.9);
+  
+  /* Platform Grid Colors - Light Mode */
+  --platform-grid-line: oklch(0.90 0.003 264); /* #e5e7eb equivalent */
+  --platform-booth-available: oklch(0.88 0.14 145); /* #86efac equivalent - green for available */
+  --platform-booth-available-stroke: oklch(0.55 0.16 150); /* #16a34a - darker green */
+  --platform-booth-selected: oklch(0.60 0.19 264); /* #3b82f6 - blue for selected */
+  --platform-booth-selected-stroke: oklch(0.45 0.20 264); /* #1d4ed8 - darker blue */
+  --platform-booth-occupied: oklch(0.66 0.02 264); /* #94a3b8 - gray for occupied */
+  --platform-booth-occupied-stroke: oklch(0.50 0.02 264); /* #64748b - darker gray */
+  --platform-booth-unavailable: oklch(0.79 0.01 264); /* #cbd5e1 - light gray */
+  --platform-booth-unavailable-stroke: oklch(0.48 0.02 264); /* #64748b */
+  --platform-booth-text: oklch(0.22 0.02 264); /* #1e293b - dark text */
+  --platform-booth-4x4: oklch(0.61 0.24 295); /* #9333ea - purple for 4x4 */
+  --platform-booth-4x4-light: oklch(0.70 0.22 295); /* #a855f7 - lighter purple */
+  --platform-booth-4x4-stroke: oklch(0.52 0.25 295); /* #7e22ce - darker purple */
+  --platform-booth-2x2: oklch(0.60 0.19 264); /* #3b82f6 - blue for 2x2 */
+  --platform-booth-2x2-light: oklch(0.69 0.17 264); /* #60a5fa - lighter blue */
+  --platform-booth-2x2-stroke: oklch(0.43 0.20 264); /* #2563eb - darker blue */
+  
+  /* Stat Card Icon Backgrounds - Light Mode */
+  --stat-icon-success-bg: oklch(0.95 0.10 145); /* #f0fdf4 - green-50 */
+  --stat-icon-success-fg: oklch(0.45 0.16 150); /* #16a34a - green-600 */
+  --stat-icon-success-border: oklch(0.85 0.12 145); /* #bbf7d0 - green-200 */
+  
+  --stat-icon-warning-bg: oklch(0.97 0.08 90); /* #fefce8 - yellow-50 */
+  --stat-icon-warning-fg: oklch(0.55 0.15 85); /* #ca8a04 - yellow-600 */
+  --stat-icon-warning-border: oklch(0.90 0.12 90); /* #fef08a - yellow-200 */
+  
+  --stat-icon-critical-bg: oklch(0.97 0.08 25); /* #fef2f2 - red-50 */
+  --stat-icon-critical-fg: oklch(0.55 0.22 25); /* #dc2626 - red-600 */
+  --stat-icon-critical-border: oklch(0.90 0.12 25); /* #fecaca - red-200 */
+  
+  --stat-icon-info-bg: oklch(0.96 0.08 245); /* #eff6ff - blue-50 */
+  --stat-icon-info-fg: oklch(0.52 0.18 260); /* #2563eb - blue-600 */
+  --stat-icon-info-border: oklch(0.87 0.10 245); /* #bfdbfe - blue-200 */
+  
+  --stat-icon-brand-bg: oklch(0.97 0.08 295); /* #faf5ff - purple-50 */
+  --stat-icon-brand-fg: oklch(0.52 0.24 295); /* #9333ea - purple-600 */
+  --stat-icon-brand-border: oklch(0.88 0.12 295); /* #e9d5ff - purple-200 */
 }
 
 .dark {
@@ -179,14 +262,117 @@
     0 40px 80px rgba(0, 0, 0, 0.8);
 
   --rim-light: rgba(255, 255, 255, 0.15);
+  
+  /* Platform Grid Colors - Dark Mode */
+  --platform-grid-line: oklch(0.30 0.02 264); /* Darker grid lines for dark mode */
+  --platform-booth-available: oklch(0.55 0.14 145); /* Darker green for dark mode */
+  --platform-booth-available-stroke: oklch(0.45 0.16 150);
+  --platform-booth-selected: oklch(0.55 0.19 264); /* Darker blue for dark mode */
+  --platform-booth-selected-stroke: oklch(0.40 0.20 264);
+  --platform-booth-occupied: oklch(0.45 0.02 264); /* Darker gray for dark mode */
+  --platform-booth-occupied-stroke: oklch(0.35 0.02 264);
+  --platform-booth-unavailable: oklch(0.35 0.01 264); /* Darker unavailable */
+  --platform-booth-unavailable-stroke: oklch(0.30 0.02 264);
+  --platform-booth-text: oklch(0.96 0.005 264); /* Light text for dark mode */
+  --platform-booth-4x4: oklch(0.56 0.24 295); /* Darker purple for 4x4 */
+  --platform-booth-4x4-light: oklch(0.61 0.22 295);
+  --platform-booth-4x4-stroke: oklch(0.47 0.25 295);
+  --platform-booth-2x2: oklch(0.55 0.19 264); /* Darker blue for 2x2 */
+  --platform-booth-2x2-light: oklch(0.60 0.17 264);
+  --platform-booth-2x2-stroke: oklch(0.38 0.20 264);
+  
+  /* Stat Card Icon Backgrounds - Dark Mode */
+  --stat-icon-success-bg: oklch(0.25 0.08 145); /* Darker green background */
+  --stat-icon-success-fg: oklch(0.70 0.16 150); /* Lighter green text */
+  --stat-icon-success-border: oklch(0.35 0.10 145); /* Darker green border */
+  
+  --stat-icon-warning-bg: oklch(0.25 0.06 90); /* Darker yellow background */
+  --stat-icon-warning-fg: oklch(0.75 0.15 85); /* Lighter yellow text */
+  --stat-icon-warning-border: oklch(0.35 0.08 90); /* Darker yellow border */
+  
+  --stat-icon-critical-bg: oklch(0.25 0.06 25); /* Darker red background */
+  --stat-icon-critical-fg: oklch(0.70 0.22 25); /* Lighter red text */
+  --stat-icon-critical-border: oklch(0.35 0.08 25); /* Darker red border */
+  
+  --stat-icon-info-bg: oklch(0.25 0.06 245); /* Darker blue background */
+  --stat-icon-info-fg: oklch(0.68 0.18 260); /* Lighter blue text */
+  --stat-icon-info-border: oklch(0.35 0.08 245); /* Darker blue border */
+  
+  --stat-icon-brand-bg: oklch(0.25 0.06 295); /* Darker purple background */
+  --stat-icon-brand-fg: oklch(0.70 0.24 295); /* Lighter purple text */
+  --stat-icon-brand-border: oklch(0.35 0.08 295); /* Darker purple border */
 }
+
+/* ============================================================================
+   BASE STYLES - Typography & Element Defaults
+   ============================================================================ */
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-optical-sizing: auto;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  /* Heading defaults with proper hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-tight);
+    line-height: var(--line-height-tight);
+  }
+  
+  h1 {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+  }
+  
+  h2 {
+    font-size: var(--font-size-3xl);
+  }
+  
+  h3 {
+    font-size: var(--font-size-2xl);
+  }
+  
+  h4 {
+    font-size: var(--font-size-xl);
+  }
+  
+  h5 {
+    font-size: var(--font-size-lg);
+  }
+  
+  h6 {
+    font-size: var(--font-size-base);
+  }
+  
+  /* Body text */
+  p {
+    line-height: var(--line-height-normal);
+  }
+  
+  /* Small text (captions, metadata) */
+  small {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
+  }
+  
+  /* Code and monospace */
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+  }
+  
+  /* Strong emphasis */
+  strong, b {
+    font-weight: var(--font-weight-semibold);
   }
 }
 
@@ -312,65 +498,161 @@
   svg {
     transition: color 0.2s ease;
   }
-
-
-
-
-
-
-  /* Neumorphism (Soft UI) for buttons */
-  .neumorphic {
-    background: linear-gradient(145deg, oklch(0.99 0.001 264), oklch(0.96 0.003 264));
-    box-shadow: 
-      6px 6px 12px rgba(0, 0, 0, 0.08),
-      -6px -6px 12px rgba(255, 255, 255, 0.9),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+  
+  /* ========================================
+     TYPOGRAPHY UTILITIES - Text Styles
+     ======================================== */
+  
+  /* Display text - Large headings and hero sections */
+  .text-display-lg {
+    font-size: var(--font-size-5xl);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tighter);
+  }
+  
+  .text-display-md {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+  
+  .text-display-sm {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+  
+  /* Heading styles - Semantic headings */
+  .text-heading-lg {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+  
+  .text-heading-md {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+  
+  .text-heading-sm {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+  }
+  
+  /* Body text styles */
+  .text-body-lg {
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-relaxed);
+  }
+  
+  .text-body-md {
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+  }
+  
+  .text-body-sm {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
+  }
+  
+  /* Caption and metadata text */
+  .text-caption {
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-normal);
+    color: hsl(var(--muted-foreground));
+  }
+  
+  /* Label text - for form labels, badges, etc */
+  .text-label-lg {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-wide);
+    text-transform: uppercase;
+  }
+  
+  .text-label-sm {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-wider);
+    text-transform: uppercase;
+  }
+  
+  /* Numeric display - for stats, counts, prices */
+  .text-numeric {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--letter-spacing-tight);
+  }
+  
+  /* Monospace - for code, IDs, technical data */
+  .text-mono {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+  
+  /* ========================================
+     SCROLLBAR STYLES - Theme-aware scrollbars
+     ======================================== */
+  
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: oklch(0.95 0.002 264);
+    border-radius: 6px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.70 0.01 264);
+    border-radius: 6px;
+    border: 2px solid oklch(0.95 0.002 264);
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.60 0.02 264);
+  }
+  
+  ::-webkit-scrollbar-thumb:active {
+    background: oklch(0.50 0.15 264);
+  }
+  
+  /* Dark mode scrollbars */
+  .dark ::-webkit-scrollbar-track {
+    background: oklch(0.17 0.01 264);
+  }
+  
+  .dark ::-webkit-scrollbar-thumb {
+    background: oklch(0.35 0.02 264);
+    border-color: oklch(0.17 0.01 264);
+  }
+  
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.45 0.02 264);
+  }
+  
+  .dark ::-webkit-scrollbar-thumb:active {
+    background: oklch(0.60 0.20 264);
+  }
+  
+  /* Firefox scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.70 0.01 264) oklch(0.95 0.002 264);
+  }
+  
+  .dark * {
+    scrollbar-color: oklch(0.35 0.02 264) oklch(0.17 0.01 264);
   }
 
-  .neumorphic:hover {
-    background: linear-gradient(145deg, oklch(0.98 0.002 264), oklch(0.95 0.004 264));
-    box-shadow: 
-      4px 4px 8px rgba(0, 0, 0, 0.06),
-      -4px -4px 8px rgba(255, 255, 255, 0.8),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  }
-
-  .neumorphic:active {
-    background: linear-gradient(145deg, oklch(0.96 0.003 264), oklch(0.98 0.001 264));
-    box-shadow: 
-      inset 3px 3px 6px rgba(0, 0, 0, 0.12),
-      inset -3px -3px 6px rgba(255, 255, 255, 0.6);
-  }
-
-  /* Neumorphic primary button */
-  .neumorphic-primary {
-    background: linear-gradient(145deg, 
-      hsl(var(--primary)), 
-      color-mix(in oklch, hsl(var(--primary)) 85%, black));
-    box-shadow: 
-      6px 6px 12px color-mix(in oklch, hsl(var(--primary)) 30%, black),
-      -4px -4px 10px color-mix(in oklch, hsl(var(--primary)) 70%, white),
-      inset 0 1px 0 color-mix(in oklch, hsl(var(--primary)) 90%, white);
-    border: 1px solid color-mix(in oklch, hsl(var(--primary)) 80%, white);
-  }
-
-  .neumorphic-primary:hover {
-    background: linear-gradient(145deg, 
-      color-mix(in oklch, hsl(var(--primary)) 95%, white),
-      color-mix(in oklch, hsl(var(--primary)) 90%, black));
-    box-shadow: 
-      4px 4px 8px color-mix(in oklch, hsl(var(--primary)) 35%, black),
-      -3px -3px 8px color-mix(in oklch, hsl(var(--primary)) 75%, white),
-      inset 0 1px 0 color-mix(in oklch, hsl(var(--primary)) 95%, white);
-  }
-
-  .neumorphic-primary:active {
-    background: linear-gradient(145deg, 
-      color-mix(in oklch, hsl(var(--primary)) 80%, black),
-      hsl(var(--primary)));
-    box-shadow: 
-      inset 4px 4px 8px color-mix(in oklch, hsl(var(--primary)) 40%, black),
-      inset -2px -2px 6px color-mix(in oklch, hsl(var(--primary)) 60%, white);
-  }
 }
+
+

@@ -40,7 +40,7 @@ export function CreateConferencePage() {
     endDate: '',
     description: '',
     fullAgenda: '',
-    conferenceWebsite: '',
+    websiteUrl: '',
     requiredBudget: '',
     fundingSource: '',
     extraResources: '',
@@ -120,12 +120,12 @@ export function CreateConferencePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="conferenceWebsite">Conference Website</Label>
+                  <Label htmlFor="websiteUrl">Conference Website</Label>
                   <Input
-                    id="conferenceWebsite"
+                    id="websiteUrl"
                     type="url"
-                    value={formData.conferenceWebsite}
-                    onChange={(e) => handleInputChange('conferenceWebsite', e.target.value)}
+                    value={formData.websiteUrl}
+                    onChange={(e) => handleInputChange('websiteUrl', e.target.value)}
                     placeholder="https://conference.example.com"
                   />
                   <p className="text-sm text-muted-foreground">

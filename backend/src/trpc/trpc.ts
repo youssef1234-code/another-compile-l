@@ -75,6 +75,20 @@ export const eventsOfficeProcedure = protectedProcedure.use(async (opts: any) =>
   return opts.next({ ctx });
 });
 
+/**
+ * Events Office only procedure (excludes ADMIN)
+ */
+export const eventsOfficeOnlyProcedure = protectedProcedure.use(async (opts: any) => {
+  const { ctx } = opts;
+  if (ctx.user.role !== 'EVENT_OFFICE') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Only Event Office staff can access this resource',
+    });
+  }
+  return opts.next({ ctx });
+});
+
 
 export const eventsOfficeProfessorProcedure = protectedProcedure.use(async (opts: any) => {
   const { ctx } = opts;

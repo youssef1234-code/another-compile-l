@@ -21,17 +21,19 @@ import { VendorApplicationExpandedRow } from "./vendor-application-expanded-row"
 
 interface VendorApplicationsTableProps {
   data: VendorApplication[];
-  pageCount: number;
+  pageCount?: number;
   statusCounts: Record<string, number>;
   eventTypeCounts: Record<string, number>;
+  boothSizeCounts: Record<string, number>;
   isSearching?: boolean;
 }
 
 export function VendorApplicationsTable({
   data,
-  pageCount,
+  pageCount = 1,
   statusCounts,
   eventTypeCounts,
+  boothSizeCounts,
   isSearching = false,
 }: VendorApplicationsTableProps) {
   // Toggle between advanced and simple filters
@@ -57,8 +59,9 @@ export function VendorApplicationsTable({
       getVendorApplicationsTableColumns({
         statusCounts,
         eventTypeCounts,
+        boothSizeCounts,
       }),
-    [statusCounts, eventTypeCounts]
+    [statusCounts, eventTypeCounts, boothSizeCounts]
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({

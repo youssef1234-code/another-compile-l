@@ -40,18 +40,18 @@ interface GetGymScheduleTableColumnsProps {
 // Gym Type Badge Component
 function GymTypeBadge({ type }: { type: string }) {
   const colors: Record<string, string> = {
-    YOGA: "bg-purple-100 text-purple-700 border-purple-200",
-    PILATES: "bg-pink-100 text-pink-700 border-pink-200",
-    AEROBICS: "bg-orange-100 text-orange-700 border-orange-200",
-    ZUMBA: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    CROSS_CIRCUIT: "bg-red-100 text-red-700 border-red-200",
-    KICK_BOXING: "bg-rose-100 text-rose-700 border-rose-200",
-    CROSSFIT: "bg-amber-100 text-amber-700 border-amber-200",
-    CARDIO: "bg-blue-100 text-blue-700 border-blue-200",
-    STRENGTH: "bg-slate-100 text-slate-700 border-slate-200",
-    DANCE: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
-    MARTIAL_ARTS: "bg-gray-100 text-gray-700 border-gray-200",
-    OTHER: "bg-neutral-100 text-neutral-700 border-neutral-200",
+    YOGA: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800",
+    PILATES: "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800",
+    AEROBICS: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
+    ZUMBA: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800",
+    CROSS_CIRCUIT: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
+    KICK_BOXING: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800",
+    CROSSFIT: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+    CARDIO: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800",
+    STRENGTH: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-800",
+    DANCE: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-900/30 dark:text-fuchsia-300 dark:border-fuchsia-800",
+    MARTIAL_ARTS: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800",
+    OTHER: "bg-neutral-100 text-neutral-700 border-neutral-200 dark:bg-neutral-900/30 dark:text-neutral-300 dark:border-neutral-800",
   };
 
   const labels: Record<string, string> = {
@@ -79,9 +79,9 @@ function GymTypeBadge({ type }: { type: string }) {
 // Status Badge Component
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    PUBLISHED: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    CANCELLED: "bg-red-100 text-red-700 border-red-200",
-    ACTIVE: "bg-green-100 text-green-700 border-green-200",
+    PUBLISHED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
+    CANCELLED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
+    ACTIVE: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
   };
 
   const labels: Record<string, string> = {
@@ -109,7 +109,7 @@ export function getGymScheduleTableColumns({
     "CROSSFIT", "CARDIO", "STRENGTH", "DANCE", "MARTIAL_ARTS", "OTHER"
   ];
 
-  return [
+  const columns: ColumnDef<Event>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -278,7 +278,11 @@ export function getGymScheduleTableColumns({
       },
       size: 120,
     },
-    {
+  ];
+
+  // Only include actions column when there are actions available
+  if (onEditSession || onDeleteSession) {
+    columns.push({
       id: "actions",
       cell: ({ row }) => {
         const session = row.original;
@@ -318,6 +322,8 @@ export function getGymScheduleTableColumns({
         );
       },
       size: 60,
-    },
-  ];
+    });
+  }
+
+  return columns;
 }

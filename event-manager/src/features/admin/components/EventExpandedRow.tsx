@@ -75,14 +75,34 @@ export function EventExpandedRow({
 
   // Check if current user is admin/event office
   const isAdminOrEventOffice = user?.role === UserRole.ADMIN || user?.role === UserRole.EVENT_OFFICE;
+  const isAdmin = user?.role === UserRole.ADMIN;
   const isWorkshop = event.type === 'WORKSHOP';
   const isRejected = event.status === 'REJECTED';
   
   // Hide edit/delete/archive for workshops when admin/event office
   // Also hide edit for rejected workshops (professors cannot edit rejected workshops)
-  const canEdit = onEdit && !(isWorkshop && isAdminOrEventOffice) && !(isWorkshop && isRejected);
+  // Admins cannot edit ANY event type
+  const canEdit = onEdit 
+    && !isAdmin
+    && !(isWorkshop && isAdminOrEventOffice)
+    && !(isWorkshop && isRejected);
   const canArchive = onArchive && !(isWorkshop && isAdminOrEventOffice);
   const canDelete = onDelete && !(isWorkshop && isAdminOrEventOffice);
+
+  // Determine if any quick actions are available to render
+  const hasWorkshopApprovalActions =
+    event.type === 'WORKSHOP' && (
+      (onApproveWorkshop && (event.status === 'PENDING_APPROVAL' || event.status === 'NEEDS_EDITS')) ||
+      (onNeedsEdits && event.status === 'PENDING_APPROVAL') ||
+      (onRejectWorkshop && (event.status === 'PENDING_APPROVAL' || event.status === 'NEEDS_EDITS'))
+    );
+
+  const hasAnyQuickActions = Boolean(
+    canEdit ||
+    canArchive ||
+    canDelete ||
+    hasWorkshopApprovalActions
+  );
 
   return (
     <div className="p-6 bg-muted/30">
@@ -99,6 +119,7 @@ export function EventExpandedRow({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
+                {/* Common Fields */}
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Event Name</p>
                   <p className="font-semibold">{event.name}</p>
@@ -142,7 +163,9 @@ export function EventExpandedRow({
                   <p className="text-sm font-medium text-muted-foreground">End Date</p>
                   <p className="text-sm">{event.endDate ? formatDate(new Date(event.endDate)) : 'N/A'}</p>
                 </div>
-                {event.registrationDeadline && (
+                
+                {/* Registration Deadline - Show for most event types */}
+                {event.registrationDeadline && event.type !== 'GYM_SESSION' && (
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
                       Registration Deadline
@@ -152,6 +175,8 @@ export function EventExpandedRow({
                     </p>
                   </div>
                 )}
+
+                {/* Capacity - Show for all event types */}
                 {event.capacity && (
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Capacity</p>
@@ -161,6 +186,8 @@ export function EventExpandedRow({
                     </p>
                   </div>
                 )}
+
+                {/* Price - Show for all event types */}
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Price</p>
                   <p className="flex items-center gap-1">
@@ -168,35 +195,125 @@ export function EventExpandedRow({
                     {event.price ? `${event.price} EGP` : 'Free'}
                   </p>
                 </div>
-                {event.professorName && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Professor</p>
-                    <p>{event.professorName}</p>
+
+                {/* Workshop-specific Fields */}
+                {event.type === 'WORKSHOP' && (
+                  <>
+                    {event.professors && event.professors.length > 0 && (
+                      <div className="col-span-2">
+                        <p className="text-sm font-medium text-muted-foreground">Professors</p>
+                        <p className="text-sm">{event.professors.join(', ')}</p>
+                      </div>
+                    )}
+                    {event.professorName && !event.professors?.length && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Professor</p>
+                        <p>{event.professorName}</p>
+                      </div>
+                    )}
+                    {event.faculty && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Faculty</p>
+                        <p className="flex items-center gap-1">
+                          <Building2 className="h-3 w-3" />
+                          {event.faculty}
+                        </p>
+                      </div>
+                    )}
+                    {event.fundingSource && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Funding Source</p>
+                        <p>{event.fundingSource}</p>
+                      </div>
+                    )}
+                    {event.requiredBudget !== undefined && event.requiredBudget !== null && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Required Budget</p>
+                        <p className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          {event.requiredBudget} EGP
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Conference-specific Fields */}
+                {event.type === 'CONFERENCE' && event.websiteUrl && (
+                  <div className="col-span-2">
+                    <p className="text-sm font-medium text-muted-foreground">Website</p>
+                    <a 
+                      href={event.websiteUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {event.websiteUrl}
+                    </a>
                   </div>
                 )}
-                {event.faculty && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Faculty</p>
-                    <p className="flex items-center gap-1">
-                      <Building2 className="h-3 w-3" />
-                      {event.faculty}
-                    </p>
-                  </div>
-                )}
-                {event.fundingSource && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Funding Source</p>
-                    <p>{event.fundingSource}</p>
-                  </div>
+
+                {/* Gym Session-specific Fields */}
+                {event.type === 'GYM_SESSION' && (
+                  <>
+                    {event.sessionType && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Session Type</p>
+                        <p className="text-sm">{event.sessionType}</p>
+                      </div>
+                    )}
+                    {event.duration && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Duration</p>
+                        <p className="text-sm">{event.duration} minutes</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
               <Separator />
 
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
-                <p className="text-sm whitespace-pre-line">{event.description}</p>
-              </div>
+              {/* Description - Show for all event types (optional for GYM_SESSION) */}
+              {event.description && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
+                  <p className="text-sm whitespace-pre-line">{event.description}</p>
+                </div>
+              )}
+
+              {/* Workshop-specific detailed fields */}
+              {event.type === 'WORKSHOP' && (
+                <>
+                  {event.fullAgenda && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Full Agenda</p>
+                        <p className="text-sm whitespace-pre-line">{event.fullAgenda}</p>
+                      </div>
+                    </>
+                  )}
+                  {event.requirements && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Requirements / Prerequisites</p>
+                        <p className="text-sm whitespace-pre-line">{event.requirements}</p>
+                      </div>
+                    </>
+                  )}
+                  {event.extraResources && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Extra Resources</p>
+                        <p className="text-sm whitespace-pre-line">{event.extraResources}</p>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
 
               {event.status === 'REJECTED' && event.rejectionReason && (
                 <>
@@ -335,12 +452,13 @@ export function EventExpandedRow({
 
         {/* Right Column - Actions */}
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-3">
+          {hasAnyQuickActions && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-3">
                 {canEdit && (
                   <Button
                     variant="outline"
@@ -401,9 +519,10 @@ export function EventExpandedRow({
                     Reject Workshop
                   </Button>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Event Statistics */}
           <Card>

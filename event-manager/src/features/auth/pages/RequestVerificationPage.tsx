@@ -82,7 +82,7 @@ export function RequestVerificationPage() {
 
   if (!email) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4 py-12">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
         <Card className="w-full max-w-md border-neutral-200">
           <CardHeader>
             <CardTitle className="text-2xl">Email Required</CardTitle>
@@ -102,23 +102,23 @@ export function RequestVerificationPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className="w-full max-w-2xl"
       >
-        <Card className="w-full border-neutral-200">
+        <Card className="w-full">
           <CardHeader className="space-y-4">
             <div className="flex justify-center">
               {emailSent ? (
-                <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-                  <CheckCircle2 className="h-8 w-8 text-green-600" />
+                <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
                 </div>
               ) : (
-                <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Mail className="h-8 w-8 text-blue-600" />
+                <div className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <Mail className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
               )}
             </div>
@@ -126,7 +126,7 @@ export function RequestVerificationPage() {
               <CardTitle className="text-2xl font-semibold tracking-tight">
                 {emailSent ? 'Email Sent!' : 'Verify Your Email'}
               </CardTitle>
-              <CardDescription className="text-neutral-500">
+              <CardDescription>
                 {emailSent
                   ? 'We sent a verification link to your email'
                   : 'Click the button below to receive a verification email'}
@@ -135,9 +135,9 @@ export function RequestVerificationPage() {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
-              <p className="text-sm text-neutral-600 text-center break-all">
-                <span className="font-medium text-neutral-900">{email}</span>
+            <div className="bg-muted/30 rounded-lg p-4 border">
+              <p className="text-sm text-muted-foreground text-center break-all">
+                <span className="font-medium text-foreground">{email}</span>
               </p>
             </div>
 

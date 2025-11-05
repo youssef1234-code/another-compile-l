@@ -17,6 +17,7 @@ import { useDataTable } from "@/hooks/use-data-table";
 import { Button } from "@/components/ui/button";
 import { ListFilter, Search } from "lucide-react";
 import { getVendorRequestsTableColumns } from "./vendor-requests-table-columns";
+import { VendorApplicationExpandedRow } from "./vendor-application-expanded-row";
 
 interface VendorRequestsTableProps {
   data: VendorApplication[];
@@ -79,12 +80,18 @@ export function VendorRequestsTable({
       columnPinning: { right: ["actions"] },
     },
     getRowId: (originalRow) => originalRow.id,
+    getRowCanExpand: () => true,
     shallow: false,
     clearOnDefault: true,
   });
 
   return (
-    <DataTable table={table}>
+    <DataTable 
+      table={table}
+      renderSubComponent={(row) => (
+        <VendorApplicationExpandedRow application={row.original} />
+      )}
+    >
       {/* Toggle Buttons */}
       <div className="flex items-center gap-2 p-1">
         <Button

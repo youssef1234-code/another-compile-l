@@ -463,11 +463,11 @@ export function AdminUsersPage() {
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           const colorClasses = {
-            success: 'text-green-600 bg-green-50 border-green-200',
-            warning: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-            critical: 'text-red-600 bg-red-50 border-red-200',
-            info: 'text-blue-600 bg-blue-50 border-blue-200',
-            brand: 'text-purple-600 bg-purple-50 border-purple-200',
+            success: 'text-[var(--stat-icon-success-fg)] bg-[var(--stat-icon-success-bg)] border-[var(--stat-icon-success-border)]',
+            warning: 'text-[var(--stat-icon-warning-fg)] bg-[var(--stat-icon-warning-bg)] border-[var(--stat-icon-warning-border)]',
+            critical: 'text-[var(--stat-icon-critical-fg)] bg-[var(--stat-icon-critical-bg)] border-[var(--stat-icon-critical-border)]',
+            info: 'text-[var(--stat-icon-info-fg)] bg-[var(--stat-icon-info-bg)] border-[var(--stat-icon-info-border)]',
+            brand: 'text-[var(--stat-icon-brand-fg)] bg-[var(--stat-icon-brand-bg)] border-[var(--stat-icon-brand-border)]',
           };
           const colorRole = stat.colorRole || 'info';
           

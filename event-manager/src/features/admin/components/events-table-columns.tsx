@@ -63,12 +63,12 @@ interface GetEventsTableColumnsProps {
 // Event Type Badge Component
 function EventTypeBadge({ type }: { type: string }) {
   const colors: Record<string, string> = {
-    WORKSHOP: "bg-blue-100 text-blue-700 border-blue-200",
-    TRIP: "bg-green-100 text-green-700 border-green-200",
-    BAZAAR: "bg-orange-100 text-orange-700 border-orange-200",
-    CONFERENCE: "bg-purple-100 text-purple-700 border-purple-200",
-    BOOTH: "bg-amber-100 text-amber-700 border-amber-200",
-    GYM_SESSION: "bg-red-100 text-red-700 border-red-200",
+    WORKSHOP: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800",
+    TRIP: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
+    BAZAAR: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
+    CONFERENCE: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800",
+    BOOTH: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+    GYM_SESSION: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
   };
 
   const labels: Record<string, string> = {
@@ -90,14 +90,14 @@ function EventTypeBadge({ type }: { type: string }) {
 // Event Status Badge Component
 function EventStatusBadge({ status, rejectionReason }: { status: string; rejectionReason?: string }) {
   const colors: Record<string, string> = {
-    PUBLISHED: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    DRAFT: "bg-slate-100 text-slate-700 border-slate-200",
-    PENDING: "bg-amber-100 text-amber-700 border-amber-200",
-    PENDING_APPROVAL: "bg-amber-100 text-amber-700 border-amber-200",
-    APPROVED: "bg-green-100 text-green-700 border-green-200",
-    REJECTED: "bg-red-100 text-red-700 border-red-200",
-    NEEDS_EDITS: "bg-orange-100 text-orange-700 border-orange-200",
-    CANCELLED: "bg-red-100 text-red-700 border-red-200",
+    PUBLISHED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
+    DRAFT: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-800",
+    PENDING: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+    PENDING_APPROVAL: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+    APPROVED: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
+    REJECTED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
+    NEEDS_EDITS: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
+    CANCELLED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
   };
 
   const labels: Record<string, string> = {
@@ -167,8 +167,8 @@ export function getEventsTableColumns({
       // Professors can only create/see workshops
       return option.value === "WORKSHOP";
     } else if (userRole === UserRole.EVENT_OFFICE || userRole === UserRole.ADMIN) {
-      // Event Office and Admins can create all event types
-      return true;
+      // Manage Events page: hide Gym Sessions for Admin/Event Office
+      return option.value !== 'GYM_SESSION';
     }
     // Default: show all types
     return true;
@@ -232,7 +232,11 @@ export function getEventsTableColumns({
         const isWorkshop = event.type === 'WORKSHOP';
         const isAdminOrEventOffice = userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE;
         const isRejected = event.status === 'REJECTED';
-        const canInlineEdit = onUpdateEvent && !(isWorkshop && isAdminOrEventOffice) && !(isWorkshop && isRejected);
+        // Admins cannot inline edit ANY event, Event Office cannot edit workshops
+        const canInlineEdit = onUpdateEvent 
+          && userRole !== UserRole.ADMIN
+          && !(isWorkshop && isAdminOrEventOffice) 
+          && !(isWorkshop && isRejected);
         
         return canInlineEdit ? (
           <InlineEditCell
@@ -245,7 +249,6 @@ export function getEventsTableColumns({
           />
         ) : (
           <div className="flex items-center gap-2">
-            <Calendar className="size-4 text-muted-foreground" />
             <span className="font-medium">{event.name}</span>
           </div>
         );
@@ -541,8 +544,14 @@ export function getEventsTableColumns({
                   View Details
                 </DropdownMenuItem>
               )}
-              {/* Only show edit for non-rejected workshops (professors) and non-workshop events (admin/event office) */}
-              {onEditEvent && !(event.type === 'WORKSHOP' && (userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE)) && !(event.type === 'WORKSHOP' && event.status === 'REJECTED') && (
+              {/* Only show edit for:
+                  - Workshops: professors only (not admins, not event office, not rejected)
+                  - Non-workshops: Event Office only (Admins cannot edit ANY events) */}
+              {onEditEvent 
+                && userRole !== UserRole.ADMIN
+                && !(event.type === 'WORKSHOP' && (userRole === UserRole.EVENT_OFFICE))
+                && !(event.type === 'WORKSHOP' && event.status === 'REJECTED')
+                && (
                 <DropdownMenuItem onClick={() => onEditEvent(event.id)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Event

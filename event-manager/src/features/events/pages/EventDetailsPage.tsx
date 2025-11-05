@@ -225,13 +225,13 @@ export function EventDetailsPage() {
   };
 
   const typeConfigMap: Record<string, { label: string; color: string; icon: typeof GraduationCap }> = {
-    WORKSHOP: { label: 'Workshop', color: 'bg-blue-500', icon: GraduationCap },
-    TRIP: { label: 'Trip', color: 'bg-green-500', icon: Plane },
-    CONFERENCE: { label: 'Conference', color: 'bg-purple-500', icon: Users },
-    BAZAAR: { label: 'Bazaar', color: 'bg-orange-500', icon: Store },
-    GYM_SESSION: { label: 'Gym Session', color: 'bg-red-500', icon: Dumbbell },
+    WORKSHOP: { label: 'Workshop', color: 'bg-blue-500 dark:bg-blue-600', icon: GraduationCap },
+    TRIP: { label: 'Trip', color: 'bg-green-500 dark:bg-green-600', icon: Plane },
+    CONFERENCE: { label: 'Conference', color: 'bg-purple-500 dark:bg-purple-600', icon: Users },
+    BAZAAR: { label: 'Bazaar', color: 'bg-orange-500 dark:bg-orange-600', icon: Store },
+    GYM_SESSION: { label: 'Gym Session', color: 'bg-red-500 dark:bg-red-600', icon: Dumbbell },
   };
-  const typeConfig = typeConfigMap[event.type] || { label: event.type, color: 'bg-gray-500', icon: Calendar };
+  const typeConfig = typeConfigMap[event.type] || { label: event.type, color: 'bg-gray-500 dark:bg-gray-600', icon: Calendar };
 
   const TypeIcon = typeConfig.icon;
 
@@ -257,7 +257,7 @@ export function EventDetailsPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
           </div>
         ) : (
-          <div className="absolute inset-0 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+          <div className="absolute inset-0 bg-muted flex items-center justify-center">
             <div className="text-[120px] opacity-20">
               {event.type === 'WORKSHOP' && '📚'}
               {event.type === 'TRIP' && '✈️'}
@@ -282,7 +282,7 @@ export function EventDetailsPage() {
                 {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
               </Badge>
               {isProfessorOwned && (
-                <Badge className="bg-purple-600 text-white shadow-lg backdrop-blur-md border border-purple-400/30">
+                <Badge className="bg-purple-600 dark:bg-purple-500 text-white shadow-lg backdrop-blur-md border border-purple-400/30 dark:border-purple-500/30">
                   <GraduationCap className="h-3 w-3 mr-1" />
                   Your Workshop
                 </Badge>
@@ -454,13 +454,13 @@ export function EventDetailsPage() {
           <div className="space-y-6">
             {/* Registration CTA */}
             {isRegistered ? (
-              <Card className="border-green-500 shadow-lg bg-green-50/50">
+              <Card className="border-green-500 dark:border-green-600 shadow-lg bg-green-50/50 dark:bg-green-900/20">
                 <CardContent className="pt-6">
                   <div className="space-y-4">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-2">
-                        <CheckSquare className="h-6 w-6 text-green-600" />
-                        <p className="text-2xl font-bold text-green-600">
+                        <CheckSquare className="h-6 w-6 text-green-600 dark:text-green-400" />
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                           Already Registered
                         </p>
                       </div>
@@ -528,12 +528,12 @@ export function EventDetailsPage() {
                     value={capacityPercentage} 
                     className={cn(
                       "h-2",
-                      capacityPercentage >= 100 && "bg-red-100",
-                      capacityPercentage >= 80 && capacityPercentage < 100 && "bg-orange-100"
+                      capacityPercentage >= 100 && "bg-red-100 dark:bg-red-900/30",
+                      capacityPercentage >= 80 && capacityPercentage < 100 && "bg-orange-100 dark:bg-orange-900/30"
                     )}
                   />
                   {isFull && (
-                    <div className="flex items-center gap-2 text-sm text-red-600">
+                    <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
                       <AlertCircle className="h-4 w-4" />
                       Event is full
                     </div>
