@@ -73,7 +73,7 @@ export function CourtBookingsPage() {
   }, [setPageMeta]);
 
   // courts list (filterable by sport)
-const courtsQuery = trpc.courts.list.useQuery(
+const { data: courts = [] }  = trpc.courts.list.useQuery(
   sport === "ALL" ? {} : { sport }     // ✅ omit sport when ALL
 );
   // availability input (date at local midnight pushed as UTC Date)
@@ -119,13 +119,9 @@ const courtsQuery = trpc.courts.list.useQuery(
   });
 type CourtOption = CourtSummary | { id: "ALL"; name: "All courts"; sport: "ALL" };
 
-const courtOptions = useMemo<CourtOption[]>(() => {
-  const raw = (courtsQuery.data ?? []) as CourtSummary[];
-
-  const unique = Array.from(new Map(raw.map(c => [c.id, c])).values());
-
-  return [{ id: "ALL", name: "All courts", sport: "ALL" }, ...unique];
-}, [courtsQuery.data]);
+const courtOptions: CourtOption[] = useMemo(() => {
+  return [{ id: "ALL", name: "All courts", sport: "ALL" }, ...courts];
+}, [courts]);
 
 
 
