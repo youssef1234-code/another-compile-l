@@ -74,15 +74,6 @@ export const RegistrationStatus = {
 export type RegistrationStatus =
   (typeof RegistrationStatus)[keyof typeof RegistrationStatus];
 
-export const PaymentStatus = {
-  PENDING: "PENDING",
-  COMPLETED: "COMPLETED",
-  FAILED: "FAILED",
-  REFUNDED: "REFUNDED",
-} as const;
-
-export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
-
 export const EventStatus = {
   DRAFT: "DRAFT",
   PENDING_APPROVAL: "PENDING_APPROVAL",
@@ -781,6 +772,141 @@ export const DeleteAdminSchema = z.object({
 
 export type DeleteAdminInput = z.infer<typeof DeleteAdminSchema>;
 
+
+// ============================================================================
+// Payment schemas
+// ============================================================================
+
+
+/** Minor currency always (e.g., EGP piasters, USD cents) */
+export const MoneyMinorSchema = z.number().int().nonnegative();
+
+export const CurrencySchema = z.enum(["EGP", "USD"]); // extend if needed
+export type Currency = z.infer<typeof CurrencySchema>;
+
+
+export const PaymentMethod = {
+  STRIPE_CARD: "STRIPE_CARD",
+  WALLET: "WALLET",
+} as const;
+export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
+
+
+export const PaymentStatus = {
+  PENDING: "PENDING",
+  REQUIRES_ACTION: "REQUIRES_ACTION", // this is to conform with Stripe's statuses
+  SUCCEEDED: "SUCCEEDED",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
+} as const;
+export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+
+
+
+
+// this is to track wallet transaction types without introducing negatives so can decide on the sign based on this type:
+
+export const WalletTxnType = {
+  CREDIT_REFUND: "CREDIT_REFUND",
+  CREDIT_TOPUP: "CREDIT_TOPUP",
+  DEBIT_PAYMENT: "DEBIT_PAYMENT",
+  CREDIT_ADJUSTMENT: "CREDIT_ADJUSTMENT",
+  DEBIT_ADJUSTMENT: "DEBIT_ADJUSTMENT",
+} as const;
+export type WalletTxnType = typeof WalletTxnType[keyof typeof WalletTxnType];
+
+
+
+// ID param schema (reusable)
+export const IdSchema = z.string().min(1);
+
+
+
+/** Create a card payment (event registration) – init step */
+export const CardPaymentInitInput = z.object({
+  registrationId: IdSchema,
+  eventId: IdSchema,
+  amountMinor: MoneyMinorSchema,
+  currency: CurrencySchema,
+});
+export type CardPaymentInitInput = z.infer<typeof CardPaymentInitInput>;
+
+
+/** Pay with wallet for an event registration */
+export const WalletPaymentInput = z.object({
+  registrationId: IdSchema,
+  eventId: IdSchema,
+  amountMinor: MoneyMinorSchema,
+  currency: CurrencySchema,
+});
+export type WalletPaymentInput = z.infer<typeof WalletPaymentInput>;
+
+
+/** Top-up the wallet by card */
+export const WalletTopUpInitInput = z.object({
+  amountMinor: MoneyMinorSchema.min(100), // e.g., >= 1.00 in minor units
+  currency: CurrencySchema,
+});
+export type WalletTopUpInitInput = z.infer<typeof WalletTopUpInitInput>;
+
+
+/** Refund a registration (if allowed by policy) */
+export const RefundToWalletInput = z.object({
+  registrationId: IdSchema,
+  paymentId: IdSchema,
+});
+export type RefundToWalletInput = z.infer<typeof RefundToWalletInput>;
+
+
+
+
+/** API shapes */
+export const PaymentSummarySchema = z.object({
+  id: IdSchema,
+  userId: IdSchema,
+  registrationId: IdSchema.optional(),
+  eventId: IdSchema.optional(),
+  method: z.nativeEnum(PaymentMethod as any),
+  status: z.nativeEnum(PaymentStatus as any),
+  amountMinor: MoneyMinorSchema,
+  currency: CurrencySchema,
+  stripePaymentIntentId: z.string().optional(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type PaymentSummary = z.infer<typeof PaymentSummarySchema>;
+
+
+
+export const WalletTxnSchema = z.object({
+  id: IdSchema,
+  userId: IdSchema,
+  type: z.nativeEnum(WalletTxnType as any),
+  amountMinor: MoneyMinorSchema, // positive number; sign implied by type
+  currency: CurrencySchema,
+  reference: z
+    .object({
+      registrationId: IdSchema.optional(),
+      eventId: IdSchema.optional(),
+      paymentId: IdSchema.optional(),
+      note: z.string().optional(),
+    })
+    .partial()
+    .optional(),
+  createdAt: z.coerce.date(),
+});
+export type WalletTxn = z.infer<typeof WalletTxnSchema>;
+
+
+
+export const WalletBalanceSchema = z.object({
+  userId: IdSchema,
+  balanceMinor: MoneyMinorSchema, // computed
+  currency: CurrencySchema,
+});
+export type WalletBalance = z.infer<typeof WalletBalanceSchema>;
+
+
 // ============================================================================
 // FEEDBACK SCHEMAS
 // ============================================================================
@@ -1021,10 +1147,7 @@ export const SearchSchema = z.object({
   search: z.string().trim().optional(),
 });
 
-// ID param schema (reusable)
-export const IdSchema = z.object({
-  id: z.string().min(1, "ID is required"),
-});
+
 
 // Bulk IDs schema (reusable)
 export const BulkIdsSchema = z.object({

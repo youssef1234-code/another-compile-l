@@ -13,6 +13,7 @@ import { fileRouter } from "./file.router.js";
 import { vendorApplicationRouter } from "./vendor-application.router.js";
 import { courtsRouter } from './courts.router.js';
 import { platformMapRouter } from './platform-map.router.js';
+import { paymentRouter } from "./payment.router.js";
 
 export const appRouter = router({
   auth: authRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   vendorApplications: vendorApplicationRouter,
   courts: courtsRouter,
   platformMaps: platformMapRouter,
+  payments: paymentRouter,
 
   // Additional routers will be added here as development progresses
   // registrations: registrationsRouter,
