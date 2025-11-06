@@ -1,3 +1,4 @@
+import { ClientSession } from "mongoose";
 import { WalletTxn, IWalletTxn } from "../models/wallet-transaction.model";
 import { BaseRepository } from "./base.repository";
 
@@ -41,6 +42,12 @@ export class WalletRepository extends BaseRepository<IWalletTxn> {
     // this returns the currency of the first transaction in the aggregation or EGP if no transactions exist
     return { currency: first?._id ?? "EGP", balanceMinor: first?.balanceMinor ?? 0 };
     
+}
+
+
+async createWithSession(data: Partial<IWalletTxn>, session: ClientSession) {
+  const docs = await this.model.create([data], { session });
+  return docs[0];
 }
 }
 export const walletRepository = new WalletRepository();

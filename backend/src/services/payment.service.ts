@@ -12,6 +12,10 @@ import { TRPCError } from "@trpc/server";
 import { BaseService } from "./base.service";
 import { IPayment, Payment } from "../models/payment.model";
 import { PaginatedResponse } from "@event-manager/shared";
+import { userRepository } from "../repositories/user.repository";
+import { mailService } from "./mail.service";
+import { eventRepository } from "../repositories/event.repository";
+import { registrationRepository } from "../repositories/registration.repository";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
 const DEFAULT_CURRENCY = (process.env.CURRENCY ?? "EGP") as "EGP" | "USD";
@@ -64,52 +68,77 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     };
   }
 
-  /** 2) Pay via Wallet: atomically check balance, debit wallet, write Payment=SUCCEEDED */
-  async payWithWallet(userId: string, input: WalletPaymentInput) {
-    const { amountMinor, currency, eventId, registrationId } = input;
+  /** 2) Pay via Wallet: atomically check balance, debit wallet, write Payment=SUCCEEDED */async payWithWallet(userId: string, input: WalletPaymentInput) {
+  const { amountMinor, currency, eventId, registrationId } = input;
 
-    // Check balance
-    const bal = await walletRepository.balance(userId);
-    if (bal.currency !== currency || bal.balanceMinor < amountMinor) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "Insufficient wallet balance" });
-    }
-
-    const session = await startSession();
-    try {
-      session.startTransaction();
-
-      const payDoc = await paymentRepository.create({
-        user: userId,
-        registration: registrationId,
-        event: eventId,
-        method: PaymentMethod.WALLET,
-        status: PaymentStatus.SUCCEEDED,
-        amountMinor,
-        currency,
-        purpose: "EVENT_PAYMENT",
-      });
-
-      await walletRepository.create({
-        user: userId,
-        type: WalletTxnType.DEBIT_PAYMENT,
-        amountMinor,
-        currency,
-        reference: {
-          registrationId: registrationId,
-          eventId: eventId,
-          paymentId: (payDoc._id as any),
-        },
-      });
-
-      await session.commitTransaction();
-      session.endSession();
-      return { paymentId: (payDoc._id as any).toString(), status: payDoc.status };
-    } catch (e) {
-      await session.abortTransaction();
-      session.endSession();
-      throw e;
-    }
+  // 0) Load & validate entities
+  const [user, event, reg] = await Promise.all([
+    userRepository.findById(userId),
+    eventRepository.findById(eventId),
+    registrationRepository.findById(registrationId),
+  ]);
+  if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+  if (!event) throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+  if (!reg) throw new TRPCError({ code: "NOT_FOUND", message: "Registration not found" });
+  if ((reg.user as any).toString() !== userId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Registration does not belong to you" });
   }
+  // optional: ensure not already paid, ensure event price matches amountMinor/currency, etc.
+
+  // 1) Check balance first (non-atomic read)
+  const bal = await walletRepository.balance(userId);
+  if (bal.currency !== currency || bal.balanceMinor < amountMinor) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Insufficient wallet balance" });
+  }
+
+  // 2) Do the debit and payment write in ONE transaction
+  const session = await startSession();
+  try {
+    session.startTransaction();
+
+    const payDoc = await paymentRepository.createWithSession({
+      user: userId,
+      registration: registrationId,
+      event: eventId,
+      method: PaymentMethod.WALLET,
+      status: PaymentStatus.SUCCEEDED,
+      amountMinor,
+      currency,
+      purpose: "EVENT_PAYMENT",
+    }, session);
+
+    await walletRepository.createWithSession({
+      user: userId,
+      type: WalletTxnType.DEBIT_PAYMENT,
+      amountMinor,
+      currency,
+      reference: {
+        registrationId,
+        eventId,
+        paymentId: payDoc._id as any,
+      },
+    }, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // 3) Email after commit
+    await mailService.sendPaymentReceiptEmail(user.email, {
+      name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+      eventName: event.name,
+      amount: amountMinor,   // convert to major
+      currency,
+      receiptId: (payDoc._id as any).toString(),
+      paymentDate: new Date(),
+    });
+
+    return { paymentId: (payDoc._id as any).toString(), status: payDoc.status };
+  } catch (e) {
+    try { await session.abortTransaction(); } finally { session.endSession(); }
+    throw e;
+  }
+}
+
 
   /** 3) Top-up wallet by card (init PI) */
   async initWalletTopUp(userId: string, input: WalletTopUpInitInput) {
@@ -170,34 +199,92 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     }
   }
 
-  /** 5) Stripe webhooks: finalize PI -> mark SUCCEEDED + (if WALLET_TOPUP) credit ledger */
-  async handleStripeWebhook(evt: Stripe.Event) {
-    console.log("Stripe webhook received:", evt);
+  /** 5) Stripe webhooks: finalize PI -> mark SUCCEEDED + (if WALLET_TOPUP) credit ledger */// inside payment.service.ts
+async handleStripeWebhook(evt: Stripe.Event) {
+  try {
     if (evt.type !== "payment_intent.succeeded") return { ignored: true };
 
     const pi = evt.data.object as Stripe.PaymentIntent;
-    const { userId, purpose, eventId, registrationId } = (pi.metadata || {}) as any;
+    const meta = (pi.metadata || {}) as Record<string, string | undefined>;
+    const purpose = meta.purpose as ("EVENT_PAYMENT" | "WALLET_TOPUP" | undefined);
+    const userId = meta.userId;
+    const eventId = meta.eventId;
+    const registrationId = meta.registrationId;
 
-    // Idempotency: payment row was created during init; update it here
-    const payment = await paymentRepository.update(
-      // by PI id
-      await(await (await import("../models/payment.model")).Payment).findOne({ stripePaymentIntentId: pi.id }).then(d => (d?._id as any)?.toString()),
-      { status: PaymentStatus.SUCCEEDED }
-    );
-
-    // For wallet top-up, credit wallet
-    if (purpose === "WALLET_TOPUP" && userId) {
-      await walletRepository.create({
-        user: userId,
-        type: WalletTxnType.CREDIT_TOPUP,
-        amountMinor: pi.amount_received ?? pi.amount ?? 0,
-        currency: (pi.currency?.toUpperCase() as "EGP" | "USD") ?? DEFAULT_CURRENCY,
-        reference: { paymentId: payment?._id as any, note: "Stripe top-up" },
-      });
+    if (!userId) {
+      console.warn("PI missing userId metadata:", pi.id);
+      return { ignored: true }; // don’t 500 Stripe
     }
 
-    return { ok: true };
+    const session = await startSession();
+    try {
+      session.startTransaction();
+
+      // 1) Find the payment created during init
+      const payment = await paymentRepository.findByStripePI(pi.id, { session });
+      if (!payment) {
+        console.warn("No local payment row for PI:", pi.id);
+        await session.abortTransaction(); session.endSession();
+        return { ignored: true };
+      }
+
+      // 2) Idempotency: if already succeeded, bail out
+      if (payment.status === PaymentStatus.SUCCEEDED) {
+        await session.commitTransaction(); session.endSession();
+        return { ok: true, idempotent: true };
+      }
+
+      // 3) If event-payment, sanity checks (optional: skip for topup)
+      if (purpose === "EVENT_PAYMENT") {
+        if (!eventId || !registrationId) {
+          console.warn("EVENT_PAYMENT missing eventId/registrationId for PI:", pi.id);
+          // choose: mark FAILED or ignore; but don’t 500
+        }
+      }
+
+      // 4) Mark payment succeeded
+      await paymentRepository.update((payment._id as any).toString(), { status: PaymentStatus.SUCCEEDED }, session);
+
+      // 5) Credit wallet if top-up
+      if (purpose === "WALLET_TOPUP") {
+        await walletRepository.createWithSession({
+          user: userId,
+          type: WalletTxnType.CREDIT_TOPUP,
+          amountMinor: pi.amount_received ?? pi.amount ?? 0,
+          currency: (pi.currency?.toUpperCase() as any) ?? DEFAULT_CURRENCY,
+          reference: { paymentId: payment._id as any, note: "Stripe top-up" },
+        }, session);
+      }
+
+      await session.commitTransaction();
+      session.endSession();
+
+      // 6) Send email outside the tx
+      const user = await userRepository.findById(userId);
+      const event = payment.event ? await eventRepository.findById((payment.event as any).toString()) : null;
+
+      await mailService.sendPaymentReceiptEmail(user!.email, {
+        name: `${user!.firstName} ${user!.lastName}`.trim() || user!.email,
+        eventName: event?.name ?? (purpose === "WALLET_TOPUP" ? "Wallet Top-up" : "Event"),
+        amount: payment.amountMinor ,        // convert to major
+        currency: payment.currency,
+        receiptId: (payment._id as any).toString(),
+        paymentDate: new Date(),
+      });
+
+      return { ok: true };
+    } catch (e) {
+      try { await session.abortTransaction(); } finally { session.endSession(); }
+      console.error("Webhook tx failed", e);
+      // still return 200 to Stripe to avoid infinite retries if this is non-recoverable
+      return { ok: false };
+    }
+  } catch (e) {
+    console.error("Webhook outer error", e);
+    return { ok: false };
   }
+}
+
 
   // Queries
 async getMyPayments(userId: string, page: number, limit: number) {

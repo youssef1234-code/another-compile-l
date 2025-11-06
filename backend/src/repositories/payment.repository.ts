@@ -1,4 +1,4 @@
-import { FilterQuery, Types } from "mongoose";
+import { ClientSession, FilterQuery, Types } from "mongoose";
 import { Payment, IPayment } from "../models/payment.model";
 
 import { BaseRepository } from "./base.repository";
@@ -35,6 +35,16 @@ async findMinePaginated(
     Payment.countDocuments({ user: userId, ...filter }),
   ]);
   return { rows, total };
+}
+
+async findByStripePI(piId: string, opts?: { session?: ClientSession }) {
+  return this.model.findOne({ stripePaymentIntentId: piId }).session(opts?.session ?? null);
+}
+
+
+async createWithSession(data: Partial<IPayment>, session: ClientSession) {
+  const docs = await this.model.create([data], { session });
+  return docs[0];
 }
 
 }

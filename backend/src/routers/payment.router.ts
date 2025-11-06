@@ -7,7 +7,7 @@ import { paymentService } from "../services/payment.service";
 import { TRPCError } from "@trpc/server";
 import { DateTime } from "luxon";
 import { eventRepository } from "../repositories/event.repository"; 
-import { PaymentRepository } from "../repositories/payment.repository";
+import { paymentRepository } from "../repositories/payment.repository";
 
 // Policy: refunds allowed only if >= 14 days before event start
 async function assertRefundWindow(eventId: string) {
@@ -44,7 +44,7 @@ export const paymentRouter = router({
     .input(RefundToWalletInput)
     .mutation(async ({ input, ctx }) => {
       // Look up payment for amount & currency + event to enforce window
-      const payment = await PaymentRepository.prototype.findById(input.paymentId);
+      const payment = await paymentRepository.findById(input.paymentId);
       if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "Payment not found" });
       if ((payment.user as any)?.toString?.() !== (ctx.user!._id as any).toString()) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Not your payment" });
