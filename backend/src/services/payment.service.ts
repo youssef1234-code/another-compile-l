@@ -192,7 +192,9 @@ async payWithWallet(userId: string, input: WalletPaymentInput) {
 
       // Mark original payment as CANCELLED (optional; or create a separate refund record)
       await paymentRepository.update(paymentId, { status: PaymentStatus.REFUNDED });
-      
+
+      await registrationRepository.update(registrationId, { status: RegistrationStatus.CANCELLED, paymentStatus: PaymentStatus.REFUNDED });
+
 
       // Credit wallet
       await walletRepository.create({
