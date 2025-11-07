@@ -135,6 +135,7 @@ async payWithWallet(userId: string, input: WalletPaymentInput) {
       await registrationRepository.update(registrationId, {
         status: RegistrationStatus.CONFIRMED,
         paymentStatus: PaymentStatus.SUCCEEDED,
+        paymentAmount: amountMinor,
         holdUntil: null,
       }, session);
     });
@@ -146,7 +147,7 @@ async payWithWallet(userId: string, input: WalletPaymentInput) {
   await mailService.sendPaymentReceiptEmail(user.email, {
     name: `${user.firstName} ${user.lastName}`.trim() || user.email,
     eventName: event.name,
-    amount: amountMinor,
+    amount: amountMinor/100,
     currency,
     receiptId: (payDoc._id as any).toString(),
     paymentDate: new Date(),
@@ -319,6 +320,7 @@ async payWithWallet(userId: string, input: WalletPaymentInput) {
           await registrationRepository.update(registrationId, {
             status: RegistrationStatus.CONFIRMED,
             paymentStatus: PaymentStatus.SUCCEEDED,
+            paymentAmount: pi.amount_received ?? pi.amount ?? 0,
             holdUntil: null,
           }, session);
         }
@@ -350,7 +352,7 @@ async payWithWallet(userId: string, input: WalletPaymentInput) {
     await mailService.sendPaymentReceiptEmail(user.email, {
       name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email,
       eventName: purpose === "WALLET_TOPUP" ? "Wallet Top-up" : (event?.name ?? "Event"),
-      amount: paymentDoc.amountMinor,
+      amount: paymentDoc.amountMinor/100,
       currency: paymentDoc.currency,
       receiptId: (paymentDoc._id as any)?.toString() ?? 'unknown',
       paymentDate: new Date(),
