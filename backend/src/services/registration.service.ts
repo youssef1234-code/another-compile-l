@@ -10,7 +10,7 @@ import { eventService } from './event.service';
 import { TRPCError } from '@trpc/server';
 import type { IEventRegistration } from '../models/registration.model';
 import mongoose, { startSession } from 'mongoose';
-import { PaymentStatus, RegistrationStatus } from '@event-manager/shared';
+import { PaymentStatus, RegistrationForEventResponse, RegistrationStatus } from '@event-manager/shared';
 import { paymentRepository } from '../repositories/payment.repository';
 import { paymentService } from './payment.service';
 
@@ -508,6 +508,29 @@ async registerForEvent(userId: string, eventId: string) {
       certificateIssued: true,
     } as any);
   }
+
+   async getMineForEvent(userId: string, eventId: string): Promise<RegistrationForEventResponse | null> {
+    const doc = await registrationRepository.findMineForEvent(userId, eventId);
+    if (!doc) return null;
+
+    // ensure hold expiry semantics only affect frontend label; we still return the stored status/holdUntil
+    // frontend can decide to show "EXPIRED" if status=PENDING && holdUntil < now
+    const payload: RegistrationForEventResponse = {
+      id: String((doc as any)._id),
+      eventId: String((doc as any).event),
+      userId: String((doc as any).user),
+      status: (doc as any).status, // "PENDING" | "CONFIRMED" | "WAITLISTED" | "CANCELLED"
+      paymentAmount: (doc as any).paymentAmount ?? 0,
+      currency: (doc as any).currency ?? null,
+      holdUntil: (doc as any).holdUntil ?? null,
+      createdAt: (doc as any).createdAt,
+      updatedAt: (doc as any).updatedAt,
+    };
+
+    return payload;
+  }
+
+
 }
 
 export const registrationService = new RegistrationService();

@@ -38,6 +38,9 @@ import {
   EditConferencePage,
 } from "@/features/events/pages";
 
+import { PaymentChoicePage } from "@/features/payments/pages/paymentChoicepage";
+import PaymentMethodsPage from "@/features/payments/pages/PaymentMethodsPage";
+import PaymentResultPage from "@/features/payments/pages/PaymentsResultPage";
 // Vendors
 import {
   BazaarsListPage,
@@ -90,6 +93,7 @@ import {
   EventOfficeRoute,
   EventManagementRoute
 } from "@/components/auth/ProtectedRoute";
+import CardCheckoutPage from "@/features/payments/pages/CardCheckoutPage";
 
 
 export const router = createBrowserRouter([
@@ -200,6 +204,35 @@ export const router = createBrowserRouter([
         path: ROUTES.EDIT_BAZAAR,
         element: <EditBazaarPage />,
       },
+
+      {
+        path: ROUTES.EVENT_PAY,
+        element: <PaymentChoicePage />,
+      },
+      {
+        path: "/events/:eventId/registrations/:registrationId/pay",
+        element: <PaymentMethodsPage />,
+      },
+      {
+        path: "/checkout/:paymentId", // << you’re using this shape
+        element: <CardCheckoutPage />,
+      },
+      {
+        path: "/payments/result/:paymentId",
+        element: <PaymentResultPage />,
+      },
+
+    // Stripe Elements checkout (needs clientSecret)
+    {
+      path: "/payments/card/:paymentId",
+      element: <CardCheckoutPage />,
+    },
+
+    // Return URL landing after Stripe redirect
+    {
+      path: "/payments/result/:paymentId",
+      element: <PaymentResultPage />,
+    },
 
       // Vendor Routes
       {

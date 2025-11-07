@@ -661,6 +661,21 @@ export const UpdateRegistrationStatusSchema = z.object({
 export type UpdateRegistrationStatusInput = z.infer<
   typeof UpdateRegistrationStatusSchema
 >;
+
+export const RegistrationForEventResponseSchema = z.object({
+  id: z.string(),
+  eventId: z.string(),
+  userId: z.string(),
+  status: z.nativeEnum(RegistrationStatus),
+  paymentAmount: z.number().int().nonnegative().nullable(), // null for free events
+  currency: z.enum(["EGP", "USD"]).nullable(),                   // align with your DEFAULT_CURRENCY set
+  holdUntil: z.date().nullable(),                                 // present only when PENDING
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type RegistrationForEventResponse = z.infer<typeof RegistrationForEventResponseSchema>;
+
 // ============================================================================
 // VENDOR APPLICATION SCHEMAS
 // ============================================================================

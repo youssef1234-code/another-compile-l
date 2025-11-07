@@ -246,6 +246,31 @@ async countActiveForCapacity(eventId: string, now = new Date()) {
       event,
     };
   }
+
+   async findMineForEvent(userId: string, eventId: string) {
+    return this.model
+      .findOne({
+        user: new Types.ObjectId(userId),
+        event: new Types.ObjectId(eventId),
+        isActive: true,
+      })
+      .select({
+        _id: 1,
+        user: 1,
+        event: 1,
+        status: 1,
+        paymentAmount: 1,     // if your model uses paymentAmount not amountMinor
+        paymentAmountMinor: 1, // prefer minor units if present
+        currency: 1,
+        holdUntil: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      })
+      .lean<IEventRegistration & { _id: Types.ObjectId }>()
+      .exec();
+  }
+
+
 }
 
 

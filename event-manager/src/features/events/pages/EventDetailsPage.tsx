@@ -52,6 +52,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import { EventImageCarousel } from "@/components/ui/event-image-carousel";
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { RegistrationCTA } from "@/components/RegistrationCTA";
 
 function EventDetailsPageSkeleton() {
   return (
@@ -472,33 +473,36 @@ export function EventDetailsPage() {
                 </CardContent>
               </Card>
             ) : canRegister ? (
-              <Card className="border-primary shadow-lg">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-primary mb-1">
-                        {event.price ? `${event.price} EGP` : 'FREE'}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {event.capacity ? `${event.capacity - event.registeredCount} spots left` : 'Open registration'}
-                      </p>
-                    </div>
-                    <Button 
-                      className="w-full" 
-                      size="lg"
-                      onClick={handleRegister}
-                      disabled={isRegistering}
-                    >
-                      {isRegistering ? "Registering..." : "Register Now"}
-                    </Button>
-                    {event.registrationDeadline && (
-                      <p className="text-xs text-center text-muted-foreground">
-                        Register by {formatDate(new Date(event.registrationDeadline))}
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              // <Card className="border-primary shadow-lg">
+              //   <CardContent className="pt-6">
+              //     <div className="space-y-4">
+              //       <div className="text-center">
+              //         <p className="text-3xl font-bold text-primary mb-1">
+              //           {event.price ? `${event.price} EGP` : 'FREE'}
+              //         </p>
+              //         <p className="text-sm text-muted-foreground">
+              //           {event.capacity ? `${event.capacity - event.registeredCount} spots left` : 'Open registration'}
+              //         </p>
+              //       </div>
+              //       {/* <Button 
+              //         className="w-full" 
+              //         size="lg"
+              //         onClick={handleRegister}
+              //         disabled={isRegistering}
+              //       >
+              //         {isRegistering ? "Registering..." : "Register Now"}
+              //       </Button> */}
+              //       <RegistrationCTA event={event} />
+
+              //       {event.registrationDeadline && (
+              //         <p className="text-xs text-center text-muted-foreground">
+              //           Register by {formatDate(new Date(event.registrationDeadline))}
+              //         </p>
+              //       )}
+              //     </div>
+              //   </CardContent>
+              // </Card>
+              <RegistrationCTA event={event} />
             ) : user && !hasStarted && (
               <Card className="border-muted shadow-lg">
                 <CardContent className="pt-6">
