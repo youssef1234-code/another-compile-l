@@ -10,7 +10,7 @@ import { eventService } from './event.service';
 import { TRPCError } from '@trpc/server';
 import type { IEventRegistration } from '../models/registration.model';
 import mongoose, { startSession } from 'mongoose';
-import { PaymentStatus } from '@event-manager/shared';
+import { PaymentStatus, RegistrationStatus } from '@event-manager/shared';
 import { paymentRepository } from '../repositories/payment.repository';
 import { paymentService } from './payment.service';
 
@@ -362,8 +362,8 @@ async registerForEvent(userId: string, eventId: string) {
     }
 
     const revived = await registrationRepository.update(existing._id as any, {
-      status: 'PENDING',
-      paymentStatus: 'UNPAID',
+      status: RegistrationStatus.PENDING,
+      paymentStatus: PaymentStatus.PENDING,
       holdUntil,
       isActive: true,
       registeredAt: now,

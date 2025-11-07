@@ -1,7 +1,8 @@
 import { protectedProcedure, router } from "../trpc/trpc";
 import {
   CardPaymentInitInput, WalletPaymentInput, WalletTopUpInitInput,
-  RefundToWalletInput, PaginationSchema
+  RefundToWalletInput, PaginationSchema,
+  PaymentStatus
 } from "@event-manager/shared";
 import { paymentService } from "../services/payment.service";
 import { TRPCError } from "@trpc/server";
@@ -14,6 +15,9 @@ async function assertRefundWindow(eventId: string) {
   const ev = await eventRepository.findById(eventId);
   if (!ev) throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
   const diff = DateTime.fromJSDate(ev.startDate).diffNow("days").days;
+  console.log("Refund window check, days until event:", diff);
+  console.log("Event start date:", ev.startDate);
+  console.log("Current date:", new Date());
   if (diff < 14) throw new TRPCError({ code: "BAD_REQUEST", message: "Cancellation/refund window closed" });
 }
 
@@ -46,6 +50,9 @@ export const paymentRouter = router({
       // Look up payment for amount & currency + event to enforce window
       const payment = await paymentRepository.findById(input.paymentId);
       if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "Payment not found" });
+      if (payment.status === PaymentStatus.REFUNDED) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Payment already refunded" });
+      }
       if ((payment.user as any)?.toString?.() !== (ctx.user!._id as any).toString()) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Not your payment" });
       }

@@ -35,6 +35,8 @@ to confirm a PaymentIntent from CLI (for testing):
 
 ./stripe payment_intents confirm pi_3SQU70B4TNXUp3hU0TTIQUgr --payment-method pm_card_visa   --return-url http://localhost:5173/payments/complete
 
+./stripe payment_intents confirm pi_3SQsRtB4TNXUp3hU1XYGafML --payment-method pm_card_chargeDeclined   --return-url http://localhost:5173/payments/complete
+
 the pi_... is obtained from the client secret (the part before _secret_...)
 
 
