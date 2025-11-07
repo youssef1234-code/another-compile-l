@@ -5,10 +5,11 @@
  * @module repositories/registration.repository
  */
 
+import { IEvent } from '../models/event.model';
 import { EventRegistration } from '../models/registration.model';
 import type { IEventRegistration } from '../models/registration.model';
 import { BaseRepository } from './base.repository';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 
 export class RegistrationRepository extends BaseRepository<IEventRegistration> {
   constructor() {
@@ -185,6 +186,68 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
       totalPages: Math.ceil(total / limit),
     };
   }
+
+
+  // Get most recent registration for (user,event)
+async findLatestByUserAndEvent(userId: string, eventId: string) {
+  return this.model
+    .findOne({ user: userId, event: eventId })
+    .sort({ updatedAt: -1, createdAt: -1 })
+    .lean();
 }
+
+// Capacity = confirmed + pending with valid hold
+async countActiveForCapacity(eventId: string, now = new Date()) {
+  return this.model.countDocuments({
+    event: eventId,
+    isActive: true,
+    $or: [
+      { status: 'CONFIRMED' },
+      { status: 'PENDING', holdUntil: { $gt: now } },
+    ],
+  });
+}
+
+
+  /**
+   * Find a registration by id and populate its event.
+   * Returns a lean object so service code can safely read fields
+   * like reg.event.startDate, reg.event.price, etc.
+   */
+  async findByIdPopulated(id: string) {
+    if (!Types.ObjectId.isValid(id)) return null;
+
+    const doc = await this.model
+      .findById(id)
+      .populate({
+        path: "event",
+        select: "_id name startDate endDate price capacity isActive status type location", // adjust as needed
+      })
+      .lean< (Omit<IEventRegistration, "event"> & { event: (Pick<IEvent,
+        "_id" | "name" | "startDate" | "endDate" | "price" | "capacity" | "isActive" | "status" | "type" | "location">) | null }) | null >();
+
+    if (!doc) return null;
+
+    // Normalize _id/ObjectId to string (handy for consistent usage upstream)
+    const normalizeId = (v: any) =>
+      (v?._id as any)?.toString?.() ?? (typeof v === "string" ? v : undefined);
+
+    const event = doc.event
+      ? {
+          ...doc.event,
+          _id: normalizeId(doc.event),
+        }
+      : null;
+
+    return {
+      ...doc,
+      _id: normalizeId(doc),
+      user: normalizeId(doc.user),
+      event,
+    };
+  }
+}
+
+
 
 export const registrationRepository = new RegistrationRepository();

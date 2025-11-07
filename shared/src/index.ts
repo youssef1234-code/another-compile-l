@@ -68,6 +68,7 @@ export const RegistrationStatus = {
   PENDING: "PENDING",
   CONFIRMED: "CONFIRMED",
   CANCELLED: "CANCELLED",
+  EXPIRED: "EXPIRED",
   ATTENDED: "ATTENDED",
 } as const;
 
@@ -797,7 +798,7 @@ export const PaymentStatus = {
   REQUIRES_ACTION: "REQUIRES_ACTION", // this is to conform with Stripe's statuses
   SUCCEEDED: "SUCCEEDED",
   FAILED: "FAILED",
-  CANCELLED: "CANCELLED",
+  REFUNDED: "REFUNDED",
 } as const;
 export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
 

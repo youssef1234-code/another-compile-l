@@ -37,15 +37,44 @@ async findMinePaginated(
   return { rows, total };
 }
 
-async findByStripePI(piId: string, opts?: { session?: ClientSession }) {
-  return this.model.findOne({ stripePaymentIntentId: piId }).session(opts?.session ?? null);
-}
 
 
 async createWithSession(data: Partial<IPayment>, session: ClientSession) {
   const docs = await this.model.create([data], { session });
   return docs[0];
 }
+
+async findSucceededByRegistration(registrationId: string) {
+  return this.model.findOne({
+    registration: registrationId,
+    paymentStatus: 'SUCCEEDED',
+  });
+}
+
+findByStripePI(piId: string, opts?: { session?: ClientSession }) {
+  return this.model
+    .findOne({ stripePaymentIntentId: piId })
+    .select({ _id: 1, amountMinor: 1, currency: 1, event: 1, user: 1, status: 1 }) // <-- crucial
+    .session(opts?.session ?? null);
+}
+
+findById2(id: string, opts?: { session?: ClientSession; lean?: boolean }) {
+  const q = this.model.findById(id)
+    .select({ _id: 1, amountMinor: 1, currency: 1, event: 1, user: 1, status: 1 });
+  if (opts?.session) q.session(opts.session);
+  if (opts?.lean) return q.lean();
+  return q;
+}
+
+update(id: string, patch: any, session?: ClientSession) {
+  // Return the updated doc with the fields we need:
+  return this.model.findByIdAndUpdate(
+    id,
+    { $set: patch },
+    { new: true, session }
+  ).select({ _id: 1, amountMinor: 1, currency: 1, event: 1, user: 1, status: 1 });
+}
+
 
 }
 export const paymentRepository = new PaymentRepository();
