@@ -1,5 +1,8 @@
 /**
- * Rating and Comment Models
+ * Feedback Model (Unified Comments & Ratings)
+ * 
+ * Mongoose schema for event feedback - supports ratings, comments, or both
+ * Each user can have ONE feedback entry per event
  * 
  * @module models/feedback.model
  */
@@ -7,65 +10,49 @@
 import mongoose, { Schema } from 'mongoose';
 import { IBaseDocument, createBaseSchema } from './base.model';
 
-export interface IRating extends IBaseDocument {
+export interface IFeedback extends IBaseDocument {
   event: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
-  rating: number;
+  type: 'rating' | 'comment' | 'both';
+  rating?: number; // 1-5, required if type is 'rating' or 'both'
+  comment?: string; // required if type is 'comment' or 'both'
+  isEdited?: boolean; // Flag to show if feedback was edited after creation
 }
 
-export interface IComment extends IBaseDocument {
-  event: mongoose.Types.ObjectId;
-  user: mongoose.Types.ObjectId;
-  content: string;
-}
-
-const ratingSchema = createBaseSchema<IRating>(
+const feedbackSchema = createBaseSchema<IFeedback>(
   {
     event: {
       type: Schema.Types.ObjectId,
       ref: 'Event',
       required: true,
+      index: true,
     },
     user: {
       type: Schema.Types.ObjectId,
       ref: 'User',
+      required: true,
+      index: true,
+    },
+    type: {
+      type: String,
+      enum: ['rating', 'comment', 'both'],
       required: true,
     },
     rating: {
       type: Number,
-      required: true,
       min: 1,
       max: 5,
+      required: false,
     },
-  },
-  {
-    toJSON: {
-      transform: (_doc: any, ret: any) => {
-        ret.id = ret._id.toString();
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
-  }
-);
-
-const commentSchema = createBaseSchema<IComment>(
-  {
-    event: {
-      type: Schema.Types.ObjectId,
-      ref: 'Event',
-      required: true,
-    },
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    content: {
+    comment: {
       type: String,
-      required: true,
-      maxlength: 1000,
+      required: false,
+      trim: true,
+      maxlength: 2000,
+    },
+    isEdited: {
+      type: Boolean,
+      default: false,
     },
   },
   {
@@ -80,10 +67,11 @@ const commentSchema = createBaseSchema<IComment>(
   }
 );
 
-// Unique constraint: user can only rate once per event
-ratingSchema.index({ event: 1, user: 1 }, { unique: true });
-commentSchema.index({ event: 1 });
+// Compound unique index: one feedback per user per event
+feedbackSchema.index({ event: 1, user: 1 }, { unique: true });
 
-export const Rating = mongoose.model<IRating>('Rating', ratingSchema);
-export const Comment = mongoose.model<IComment>('Comment', commentSchema);
+// Index for querying feedback by event (with sort by date)
+feedbackSchema.index({ event: 1, createdAt: -1 });
+
+export const Feedback = mongoose.model<IFeedback>('Feedback', feedbackSchema);
 

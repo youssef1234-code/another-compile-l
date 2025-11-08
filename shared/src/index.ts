@@ -785,14 +785,64 @@ export type DeleteAdminInput = z.infer<typeof DeleteAdminSchema>;
 // FEEDBACK SCHEMAS
 // ============================================================================
 
-export const CreateFeedbackSchema = z.object({
-  eventId: z.string(),
-  rating: z.number().int().min(1).max(5),
-  comment: z.string().max(1000).optional(),
-  isAnonymous: z.boolean().default(false),
+export const FeedbackType = {
+  RATING: "rating",
+  COMMENT: "comment",
+  BOTH: "both",
+} as const;
+
+export type FeedbackType = (typeof FeedbackType)[keyof typeof FeedbackType];
+
+/**
+ * Base feedback schema object
+ * Note: Type field is NOT sent by frontend - backend determines it automatically based on provided fields
+ */
+const BaseFeedbackSchema = z.object({
+  eventId: z.string().min(1, "Event ID is required"),
+  rating: z.number().int().min(1).max(5).optional(),
+  comment: z.string().min(1).max(2000).optional(),
 });
 
+/**
+ * Create feedback schema
+ * Frontend provides rating and/or comment (at least one required)
+ * Backend automatically determines and sets the type field before saving
+ */
+export const CreateFeedbackSchema = BaseFeedbackSchema.refine(
+  (data) => data.rating != null || data.comment != null,
+  {
+    message: "Please provide either a rating, a comment, or both",
+    path: ["rating"],
+  }
+);
+
 export type CreateFeedbackInput = z.infer<typeof CreateFeedbackSchema>;
+
+/**
+ * Update feedback schema
+ * Allows partial updates of rating and/or comment
+ * - Send null or empty string to remove a field
+ * - Omit a field to keep existing value
+ * Backend recalculates and updates the type field based on final values
+ */
+export const UpdateFeedbackSchema = z.object({
+  eventId: z.string().min(1, "Event ID is required"),
+  rating: z.number().int().min(1).max(5).nullable().optional(),
+  comment: z.string().max(2000).nullable().optional(),
+});
+
+export type UpdateFeedbackInput = z.infer<typeof UpdateFeedbackSchema>;
+
+/**
+ * Get feedback by event schema
+ */
+export const GetFeedbackByEventSchema = z.object({
+  eventId: z.string().min(1, "Event ID is required"),
+  page: z.number().int().min(1).optional().default(1),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+});
+
+export type GetFeedbackByEventInput = z.infer<typeof GetFeedbackByEventSchema>;
 
 // ============================================================================
 // NOTIFICATION SCHEMAS
@@ -930,10 +980,19 @@ export interface Feedback {
   id: string;
   eventId: string;
   userId: string;
-  rating: number;
+  type: "rating" | "comment" | "both";
+  rating?: number;
   comment?: string;
-  isAnonymous: boolean;
+  isEdited?: boolean; // Flag to show if feedback was edited after creation
   createdAt: Date;
+  updatedAt: Date;
+  // Populated fields
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+  };
 }
 
 // ============================================================================
