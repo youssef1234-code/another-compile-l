@@ -1,4 +1,3 @@
-// src/features/payments/pages/CardCheckoutPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Elements, useElements, useStripe, PaymentElement } from "@stripe/react-stripe-js";
@@ -12,20 +11,15 @@ import { Loader2 } from "lucide-react";
 type Appearance = NonNullable<Parameters<typeof Elements>[0]["options"]>["appearance"];
 
 function useClientSecret() {
-  const location = useLocation();
   const [sp] = useSearchParams();
 
-  // We accept any of these sources:
-  // - ?cs=... (your current URL)
-  // - ?client_secret=...
-  // - location.state.clientSecret (if navigated programmatically)
-  const fromQuery =
-    sp.get("cs") ||
-    sp.get("client_secret");
+  const fromQuery = sp.get("cs");
 
-  const fromState = (location.state as any)?.clientSecret as string | undefined;
+  // could have passed the client secret via location state but instead after searching found it can passed in the url normally
+  //  onst location = useLocation();
+  // const fromState = (location.state as any)?.clientSecret as string | undefined;
 
-  return fromQuery || fromState || "";
+  return fromQuery || "";
 }
 
 export default function CardCheckoutPage() {

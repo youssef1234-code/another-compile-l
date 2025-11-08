@@ -42,8 +42,8 @@ export const ROUTES = {
   
 
   // Stripe return URLs (success/failure)
-  PAYMENT_COMPLETE: "/payments/complete",
-  PAYMENT_FAILED: "/payments/failed",
+  PAY_SUCCESS: "/payments/success",
+  PAY_INSUFFICIENT: "/payments/insufficient",
 
   CHECKOUT_PAGE: "/checkout/:registrationId",
 

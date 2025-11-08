@@ -38,8 +38,6 @@ import {
   EditConferencePage,
 } from "@/features/events/pages";
 
-import { PaymentChoicePage } from "@/features/payments/pages/paymentChoicepage";
-import PaymentMethodsPage from "@/features/payments/pages/PaymentMethodsPage";
 import PaymentResultPage from "@/features/payments/pages/PaymentsResultPage";
 // Vendors
 import {
@@ -94,6 +92,9 @@ import {
   EventManagementRoute
 } from "@/components/auth/ProtectedRoute";
 import CardCheckoutPage from "@/features/payments/pages/CardCheckoutPage";
+import InsufficientFundsPage from "@/features/payments/pages/InsufficientFundsPage";
+import PaymentSuccessPage from "@/features/payments/pages/PaymentSuccessPage";
+import PaymentPage from "@/features/payments/pages/PaymentPage";
 
 
 export const router = createBrowserRouter([
@@ -205,22 +206,35 @@ export const router = createBrowserRouter([
         element: <EditBazaarPage />,
       },
 
-      {
-        path: ROUTES.EVENT_PAY,
-        element: <PaymentChoicePage />,
-      },
-      {
-        path: "/events/:eventId/registrations/:registrationId/pay",
-        element: <PaymentMethodsPage />,
-      },
-      {
-        path: "/checkout/:paymentId", // << you’re using this shape
-        element: <CardCheckoutPage />,
-      },
-      {
-        path: "/payments/result/:paymentId",
-        element: <PaymentResultPage />,
-      },
+      // {
+      //   path: ROUTES.EVENT_PAY,
+      //   element: <PaymentChoicePage />,
+      // },
+      // {
+      //   path: "/events/:eventId/registrations/:registrationId/pay",
+      //   element: <PaymentMethodsPage />,
+      // },
+      // {
+      //   path: "/checkout/:paymentId", // << you’re using this shape
+      //   element: <CardCheckoutPage />,
+      // },
+      // {
+      //   path: "/payments/result/:paymentId",
+      //   element: <PaymentResultPage />,
+      // },
+      // payments
+{
+  path: "/checkout/:registrationId",
+  element: <PaymentPage />, // requires auth wrapper if all app is protected
+},
+{
+  path: ROUTES.PAY_SUCCESS,
+  element: <PaymentSuccessPage />,
+},
+{
+  path: ROUTES.PAY_INSUFFICIENT,
+  element: <InsufficientFundsPage />,
+},
 
     // Stripe Elements checkout (needs clientSecret)
     {

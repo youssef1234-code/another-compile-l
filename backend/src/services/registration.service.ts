@@ -411,7 +411,7 @@ async registerForEvent(userId: string, eventId: string) {
    * Get registration count for an event
    */
   async getRegistrationCount(eventId: string): Promise<number> {
-    return registrationRepository.countByEvent(eventId);
+    return registrationRepository.countActiveForCapacity(eventId);
   }
 
   /**

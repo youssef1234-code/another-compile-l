@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { RegistrationStatus } from "@event-manager/shared";
 import { toast } from 'react-hot-toast';
 import { ROUTES } from "@/lib/constants";
+import { Registration } from "../../../backend/src/models/registration.model";
 
 
 function useMyRegistration(eventId: string) {
@@ -46,14 +47,19 @@ export function RegistrationCTA({
   const { state, reg, refetch, isFetching } = useMyRegistration(event.id);
 
   const registerM = trpc.events.registerForEvent.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (newReg) => {
       console.log("Registration successful");
       toast.success("Seat held. Complete payment to confirm.");
       await refetch();
-      navigate(ROUTES.EVENT_PAY.replace(":eventId", event.id));
+      const params = new URLSearchParams({
+        eventId: event.id,
+        amountMinor: String(event.price ? event.price * 100 : 0),
+        currency: "EGP" 
+      });
+      navigate(`/checkout/${(newReg.registration as any).id}?${params.toString()}`);
+
     },
     onError: (e) => {
-      console.log("Registration failed", e);
       toast.error(e.message ?? "Registration failed");
     },
   });
@@ -75,17 +81,24 @@ export function RegistrationCTA({
     }
   }, [state, reg?.holdUntil]);
 
-  const onClick = () => {
+    const onClick = () => {
     console.log("RegistrationCTA onClick", { state, eventId: event.id });
     console.log("onclick state:", state);
     if (state === "CONFIRMED") return;
-    if (state === "PENDING") {
-      navigate(ROUTES.EVENT_PAY.replace(":eventId", event.id));
+    if (state === "PENDING" && reg) {
+      const params = new URLSearchParams({
+        eventId: event.id,
+        amountMinor: String(event.price ? event.price * 100 : 0),
+        currency: "EGP" // You might want to make this dynamic based on your app's configuration
+      });
+      console.log("reg id:", reg.id);
+      
+      navigate(`/checkout/${reg.id}?${params.toString()}`);
       return;
     }
     // NONE or EXPIRED → (re)register to (re)hold
     registerM.mutate({ eventId: event.id });
-  };  
+  }; 
 
   return (
     <Card className="border-primary shadow-lg">

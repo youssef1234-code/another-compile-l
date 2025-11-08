@@ -786,7 +786,7 @@ function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOw
             <div className="flex items-center justify-between text-sm mb-1">
               <span className="text-muted-foreground">Capacity</span>
               <span className="font-medium">
-                {event.capacity} spots available
+                {event.capacity - event.registeredCount} spots available
               </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">

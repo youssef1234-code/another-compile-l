@@ -47,47 +47,35 @@ async initCardPayment(userId: string, input: CardPaymentInitInput) {
       throw new TRPCError({ code: "FORBIDDEN", message: "Registration does not belong to you" });
     }
 
+    const latest = await paymentRepository.findLatestForRegistration(registrationId);
     // 1) If already paid by wallet or card -> stop
-    const succeeded = await paymentRepository.findOne({
-      registration: registrationId,
-      status: PaymentStatus.SUCCEEDED,
-    });
-    if (succeeded) {
-      throw new TRPCError({ code: "CONFLICT", message: "Already paid for this registration" });
-    }
+    
+    console.log("latest payment found:" ,latest)
 
-    // If there is an existing PENDING payment for this registration we treat it specially.
-    // FAILED / REFUNDED rows do not block new attempts.
-    const pending = await paymentRepository.findOne({
-      registration: registrationId,
-      status: PaymentStatus.PENDING,
-    });
+    if (latest) {
+      if (latest.status === PaymentStatus.SUCCEEDED) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid for this registration" });
+      }
 
-    // 2) Ensure we have a valid hold; re-hold if expired (capacity-gated)
-    const now = new Date();
-    const holdValid = reg.status === "PENDING" && reg.holdUntil && reg.holdUntil > now;
+      const reg = await registrationRepository.findById(input.registrationId);
+      const holdValid = reg?.holdUntil && reg.holdUntil > new Date();
 
-    console.log(`Init card payment: hold valid = ${holdValid}`);
-    let holdExtended = false;
-    if (pending) {
-      if (!holdValid) {
-        // capacity check before re-hold
-        if (event.capacity) {
-          const used = await registrationRepository.countActiveForCapacity(eventId, now);
-          if (used >= event.capacity) {
-            throw new TRPCError({ code: "CONFLICT", message: "Event is full" });
-          }
-        }
-        await registrationRepository.update(registrationId, {
-          status: "PENDING",
-          holdUntil: new Date(now.getTime() + HOLD_MINUTES * 60_000), // HOLD_MINUTES minutes
-        });
-        holdExtended = true;
-      } else {
-        throw new TRPCError({ code: "CONFLICT", message: "Registration is already on hold and waiting for payment" });
+      console.log("hold valid: ", holdValid);
+      if (latest.status === PaymentStatus.PENDING && holdValid) {
+        // Reuse current clientSecret (same attempt still in progress).
+        return {
+          paymentId: (latest._id as any).toString(),
+          clientSecret: latest.stripeClientSecret,
+          stripePaymentIntentId: latest.stripePaymentIntentId,
+          status: latest.status,
+        };
+      }
+
+      // mark pending as CANCELLED if the hold expired
+      if (latest.status === PaymentStatus.PENDING && !holdValid) {
+        await paymentRepository.update((latest._id as any).toString(), { status: PaymentStatus.FAILED });
       }
     }
-
     // Create PaymentIntent
     const pi = await stripe.paymentIntents.create({
       amount: amountMinor,
@@ -202,14 +190,14 @@ async payWithWallet(userId: string, input: WalletPaymentInput) {
   }
 
   // Email AFTER commit
-  await mailService.sendPaymentReceiptEmail(user.email, {
-    name: `${user.firstName} ${user.lastName}`.trim() || user.email,
-    eventName: event.name,
-    amount: amountMinor/100,
-    currency,
-    receiptId: (payDoc._id as any).toString(),
-    paymentDate: new Date(),
-  });
+  // await mailService.sendPaymentReceiptEmail(user.email, {
+  //   name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+  //   eventName: event.name,
+  //   amount: amountMinor/100,
+  //   currency,
+  //   receiptId: (payDoc._id as any).toString(),
+  //   paymentDate: new Date(),
+  // });
 
   return { paymentId: (payDoc._id as any).toString(), status: payDoc.status };
 }
@@ -285,35 +273,36 @@ async handleStripeWebhook(evt: Stripe.Event) {
       const piObj = evt.data.object as Stripe.PaymentIntent;
       const piId = piObj?.id;
 
-      // Non-successful terminal PI events -> mark local payment FAILED
-      if (evt.type !== "payment_intent.succeeded") {
-        // interested failure/cancel events
-        const failEvents = [
-          "payment_intent.payment_failed",
-          "payment_intent.canceled",
-          "payment_intent.requires_payment_method",
-          "payment_intent.processing_failed"
-        ];
+      const terminalFailureEvents = new Set([
+        "payment_intent.payment_failed",
+        "payment_intent.canceled",
+        "payment_intent.processing_failed",
+        "payment_intent.requires_payment_method", // treat as failure for our flow if desired
+      ]);
 
-        if (failEvents.includes(evt.type)) {
-          const p = await paymentRepository.findByStripePI(piId);
-          if (p) {
-            await paymentRepository.update(
-              (p._id as any).toString(),
-              { status: PaymentStatus.FAILED },
-            );
-            console.log("Marked local payment as FAILED for PI:", piId);
-          } else {
-            console.warn("No local payment found to mark FAILED for PI:", piId);
-          }
+      if (terminalFailureEvents.has(evt.type)) {
+        if (!piId) {
+          console.warn("Terminal failure event without PI id", evt.type);
           return { ok: true };
         }
-
-        // ignore other non-terminal events
-        console.log("Ignoring non-terminal stripe event:", evt.type);
+        const p = await paymentRepository.findByStripePI(piId);
+        if (p) {
+          await paymentRepository.update(
+            (p._id as any).toString(),
+            { status: PaymentStatus.FAILED },
+          );
+          console.log("Marked local payment as FAILED for PI:", piId, "event:", evt.type);
+        } else {
+          console.warn("No local payment found to mark FAILED for PI:", piId);
+        }
         return { ok: true };
       }
 
+      // Proceed only for succeeded intents; ignore other non-terminal events
+      if (evt.type !== "payment_intent.succeeded") {
+        console.log("Ignoring non-terminal stripe event:", evt.type);
+        return { ok: true };
+      }
       // Proceed only for succeeded intents
       const pi = piObj;
       const meta = (pi.metadata || {}) as Record<string, string | undefined>;
@@ -377,6 +366,7 @@ async handleStripeWebhook(evt: Stripe.Event) {
               currency: (pi.currency?.toUpperCase() as any) ?? DEFAULT_CURRENCY,
               reference: { paymentId: p._id as any, note: "Stripe top-up" },
             }, session);
+
           }
           console.log("Wallet top-up txn created or skipped");
 
@@ -441,14 +431,14 @@ async handleStripeWebhook(evt: Stripe.Event) {
       }
 
       // send email (kept commented out in your original)
-      await mailService.sendPaymentReceiptEmail(user.email, {
-        name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email,
-        eventName: purpose === "WALLET_TOPUP" ? "Wallet Top-up" : (event?.name ?? "Event"),
-        amount: paymentDoc.amountMinor/100,
-        currency: paymentDoc.currency,
-        receiptId: (paymentDoc._id as any)?.toString() ?? 'unknown',
-        paymentDate: new Date(),
-      });
+      // await mailService.sendPaymentReceiptEmail(user.email, {
+      //   name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email,
+      //   eventName: purpose === "WALLET_TOPUP" ? "Wallet Top-up" : (event?.name ?? "Event"),
+      //   amount: paymentDoc.amountMinor/100,
+      //   currency: paymentDoc.currency,
+      //   receiptId: (paymentDoc._id as any)?.toString() ?? 'unknown',
+      //   paymentDate: new Date(),
+      // });
       }
 
       return { ok: true };

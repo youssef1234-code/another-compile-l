@@ -75,6 +75,12 @@ update(id: string, patch: any, session?: ClientSession) {
   ).select({ _id: 1, amountMinor: 1, currency: 1, event: 1, user: 1, status: 1 });
 }
 
+findLatestForRegistration(registrationId: string) {
+  return this.model
+    .findOne({ registration: registrationId })
+    .sort({ createdAt: -1 })
+    .lean();
+}
 
 }
 export const paymentRepository = new PaymentRepository();
