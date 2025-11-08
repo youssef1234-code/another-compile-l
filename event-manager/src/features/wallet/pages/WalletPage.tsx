@@ -8,7 +8,6 @@ import {
 } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import { DataTableAdvancedToolbar } from "@/components/data-table/data-table-advanced-toolbar";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +38,7 @@ type Transaction = {
   };
 };
 
+
 export function WalletPage() {
   const { data: walletData, isLoading, refetch, isFetching } = trpc.payments.myWallet.useQuery({
     page: 1,
@@ -50,7 +50,7 @@ export function WalletPage() {
   const currency = walletData?.balance?.currency ?? "EGP";
 
   const columns = useMemo<ColumnDef<Transaction>[]>(() => [
-    {
+  {
       accessorKey: "type",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
       cell: ({ row }) => {
@@ -103,7 +103,7 @@ export function WalletPage() {
         return <div className="text-muted-foreground">{String(label)}</div>;
       },
     },
-  ], [currency]);
+   ], [currency]);
 
   const table = useReactTable({
     data: rows,
@@ -111,14 +111,16 @@ export function WalletPage() {
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    initialState: { pagination: { pageSize: 10 } },
+    initialState: { 
+      pagination: { pageSize: 10 },
+      sorting: [{ id: "createdAt", desc: true }], // Sort by date desc by default
+    },
   });
 
   return (
     <div className="container py-6 space-y-6">
-
-      {/* Balance Card */}
-      <Card className="relative overflow-hidden border-primary/20">
+      {/* Balance Card - keep existing implementation */}
+  <Card className="relative overflow-hidden border-primary/20">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent" />
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-2">
@@ -148,8 +150,8 @@ export function WalletPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Transactions */}
+    
+      {/* Transactions Card - updated implementation */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -157,7 +159,7 @@ export function WalletPage() {
           </div>
         </CardHeader>
         <Separator />
-        <CardContent className="pt-6">
+        <CardContent>
           {isLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-8 w-1/3" />
@@ -173,9 +175,10 @@ export function WalletPage() {
               </div>
             </div>
           ) : (
-            <DataTable table={table}>
-              <DataTableAdvancedToolbar table={table} />
-            </DataTable>
+            <DataTable 
+              table={table}
+              className="pt-4"
+            />
           )}
         </CardContent>
       </Card>

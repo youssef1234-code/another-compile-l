@@ -38,7 +38,6 @@ import {
   EditConferencePage,
 } from "@/features/events/pages";
 
-import PaymentResultPage from "@/features/payments/pages/PaymentsResultPage";
 // Vendors
 import {
   BazaarsListPage,
@@ -91,7 +90,6 @@ import {
   EventOfficeRoute,
   EventManagementRoute
 } from "@/components/auth/ProtectedRoute";
-import CardCheckoutPage from "@/features/payments/pages/CardCheckoutPage";
 import InsufficientFundsPage from "@/features/payments/pages/InsufficientFundsPage";
 import PaymentSuccessPage from "@/features/payments/pages/PaymentSuccessPage";
 import PaymentPage from "@/features/payments/pages/PaymentPage";
@@ -235,18 +233,6 @@ export const router = createBrowserRouter([
   path: ROUTES.PAY_INSUFFICIENT,
   element: <InsufficientFundsPage />,
 },
-
-    // Stripe Elements checkout (needs clientSecret)
-    {
-      path: "/payments/card/:paymentId",
-      element: <CardCheckoutPage />,
-    },
-
-    // Return URL landing after Stripe redirect
-    {
-      path: "/payments/result/:paymentId",
-      element: <PaymentResultPage />,
-    },
 
       // Vendor Routes
       {

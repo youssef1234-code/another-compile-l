@@ -55,6 +55,7 @@ export function CardCheckoutForm({
       <Button className="w-full" onClick={onSubmit} disabled={submitting || !stripe || !elements}>
         {submitting ? "Processing…" : "Pay now"}
       </Button>
+      
     </div>
   );
 }

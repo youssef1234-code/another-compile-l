@@ -11,9 +11,36 @@ import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { CardCheckoutForm } from "../components/CardCheckoutForm";
 import { ROUTES } from "@/lib/constants";
+import { useTheme } from "@/hooks/useTheme";
+
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!);
-
+function getStripeAppearance(theme: string | undefined) {
+  // Use Stripe’s built-in themes and lightly customize to match shadcn
+  const isDark = theme === "dark";
+  return {
+    theme: isDark ? "night" : "stripe",
+    variables: {
+      borderRadius: "0.75rem",        // matches rounded-xl vibe
+      fontFamily: "inherit",
+      colorPrimary: "hsla(222, 37%, 89%, 1.00)",    // tweak if you have a brand color
+      colorBackground: isDark ? "#0B0F14" : "#ffffff",
+      colorText: isDark ? "#ffffffff" : "#0B0F14",
+      colorDanger: "#ef4444",
+      colorSuccess: "#10b981",
+    },
+    rules: {
+      ".Label": { fontWeight: "500" },
+      ".Input": {
+        boxShadow: "none",
+        border: "1px solid var(--border-color, #e5e7eb)",
+      },
+      ".Tab, .Block": {
+        borderRadius: "0.75rem",
+      },
+    },
+  } as const;
+}
 export default function PaymentPage() {
   const { registrationId } = useParams(); // route: /checkout/:registrationId
   const navigate = useNavigate();
@@ -98,9 +125,10 @@ export default function PaymentPage() {
   };
 
   return (
-    <div className="container max-w-3xl py-6 space-y-6">
-      <Card>
-        <CardHeader>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="container max-w-3xl py-6 space-y-6">
+        <Card>
+         <CardHeader>
           <CardTitle>Complete your payment</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -120,7 +148,7 @@ export default function PaymentPage() {
           <Separator />
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
-            <TabsList className="grid grid-cols-2">
+            <TabsList className="grid grid-cols-2   justify-self-center w-full">
               <TabsTrigger value="card">Pay by Card</TabsTrigger>
               <TabsTrigger value="wallet">Pay from Wallet</TabsTrigger>
             </TabsList>
@@ -149,7 +177,7 @@ export default function PaymentPage() {
                     .
                   </div>
                   {elementsOptions && (
-                    <Elements stripe={stripePromise} options={elementsOptions}>
+                    <Elements stripe={stripePromise} options={{ ...elementsOptions, appearance: getStripeAppearance(useTheme().resolvedTheme) }}>
                       <CardCheckoutForm
                         afterSuccess={(pid) => navigate(`${ROUTES.PAY_SUCCESS}?pid=${pid}`)}
                         afterFailure={(msg) => {
@@ -180,6 +208,7 @@ export default function PaymentPage() {
           </Tabs>
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }
