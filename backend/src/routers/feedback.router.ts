@@ -39,6 +39,13 @@ const feedbackRoutes = {
   create: protectedProcedure
     .input(CreateFeedbackSchema)
     .mutation(async ({ ctx, input }) => {
+      const user = ctx.user!; // protectedProcedure guarantees auth
+      if (user.role === 'ADMIN' || user.role === 'EVENT_OFFICE') {
+        throw new (await import('@trpc/server')).TRPCError({
+          code: 'FORBIDDEN',
+          message: 'This role cannot submit feedback',
+        });
+      }
       return feedbackService.createFeedback(ctx.user!.id, input);
     }),
 
@@ -49,6 +56,13 @@ const feedbackRoutes = {
   update: protectedProcedure
     .input(UpdateFeedbackSchema)
     .mutation(async ({ ctx, input }) => {
+      const user = ctx.user!;
+      if (user.role === 'ADMIN' || user.role === 'EVENT_OFFICE') {
+        throw new (await import('@trpc/server')).TRPCError({
+          code: 'FORBIDDEN',
+          message: 'This role cannot edit feedback',
+        });
+      }
       return feedbackService.updateFeedback(ctx.user!.id, input.eventId, input);
     }),
 
@@ -74,6 +88,15 @@ const feedbackRoutes = {
     .input(z.object({ eventId: z.string() }))
     .query(async ({ ctx, input }) => {
       return feedbackService.getUserFeedbackForEvent(ctx.user!.id, input.eventId);
+    }),
+
+  /**
+   * Get rating statistics for an event
+   */
+  getRatingStats: protectedProcedure
+    .input(z.object({ eventId: z.string() }))
+    .query(async ({ input }) => {
+      return feedbackService.getEventRatingStats(input.eventId);
     }),
 
   /**

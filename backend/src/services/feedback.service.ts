@@ -43,6 +43,9 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
     userId: string,
     input: CreateFeedbackInput
   ): Promise<IFeedback> {
+    // Disallow ADMIN and EVENT_OFFICE from creating feedback (view only roles)
+    // ctx.user.role isn't directly here; we enforce higher layer, but double-guard via repository fetch of user not needed.
+    // Caller (router) sends userId; we will trust router to have user in context and add a runtime check by requiring role param if needed later.
     // Validate event exists
     const event = await eventRepository.findById(input.eventId);
     if (!event) {
@@ -52,12 +55,13 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       });
     }
 
-    // Check if event has already started (Story #15: only after event starts)
+    // Check if event has ended (feedback only after event ends)
     const now = new Date();
-    if (event.startDate > now) {
+    const eventEndDate = event.endDate || event.startDate; // Fallback to startDate if no endDate
+    if (eventEndDate > now) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'Cannot add feedback for events that have not started yet. Please wait until after the event begins.',
+        message: 'Cannot add feedback for events that have not ended yet. Please wait until after the event concludes.',
       });
     }
 
@@ -128,7 +132,6 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
     }
 
     // Track if fields exist in original feedback
-    const hadRating = existingFeedback.rating != null;
     const hadComment = !!existingFeedback.comment;
 
     // Determine final values:
@@ -144,7 +147,15 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
 
     // If both fields are removed, delete the feedback entirely
     if (newRating == null && !newComment) {
-      await this.repository.permanentlyDelete((existingFeedback._id as any).toString());
+      // Use id if available (transformed), otherwise fall back to _id (untransformed edge case)
+      const feedbackId = existingFeedback.id || (existingFeedback as any)._id?.toString();
+      if (!feedbackId) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Could not determine feedback ID for deletion',
+        });
+      }
+      await this.repository.permanentlyDelete(feedbackId);
       return null; // Indicate feedback was deleted
     }
 
@@ -199,11 +210,16 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       updateQuery.$unset = $unset;
     }
 
-    // Update feedback using repository
-    const updated = await this.repository.update(
-      (existingFeedback._id as any).toString(),
-      updateQuery
-    );
+    // Update feedback using repository (use id instead of _id since it's been transformed)
+    const feedbackId = existingFeedback.id || (existingFeedback as any)._id?.toString();
+    if (!feedbackId) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Could not determine feedback ID for update',
+      });
+    }
+    
+    const updated = await this.repository.update(feedbackId, updateQuery);
 
     if (!updated) {
       throw new TRPCError({
@@ -249,7 +265,7 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
    * Calculates average rating and distribution
    */
   async getEventRatingStats(eventId: string): Promise<{
-    averageRating: number;
+    averageRating: number | null;
     totalRatings: number;
     ratingDistribution: { rating: number; count: number }[];
   }> {

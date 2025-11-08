@@ -59,6 +59,8 @@ const feedbackSchema = createBaseSchema<IFeedback>(
     toJSON: {
       transform: (_doc: any, ret: any) => {
         ret.id = ret._id.toString();
+        ret.eventId = ret.event?.toString() || ret.event;
+        ret.userId = ret.user?._id?.toString() || ret.user?.toString() || ret.user;
         delete ret._id;
         delete ret.__v;
         return ret;
