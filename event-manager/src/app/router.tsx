@@ -60,10 +60,7 @@ import {
 
 // Admin
 import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
-import {
-  CommentsPage,
-  ReportsPage,
-} from "@/features/admin/pages";
+import { CommentsPage, ReportsPage } from "@/features/admin/pages";
 
 // Events - Back Office
 import { BackOfficeEventsPage } from "@/features/events/pages";
@@ -76,6 +73,9 @@ import {
   EventOfficeReportsPage,
   QRCodesPage,
 } from "@/features/events-office/pages";
+// Reports pages (admin & events-office)
+import { EventsReportPage } from "@/features/reports/pages/EventsReportPage";
+import { SalesReportsPage } from "@/features/reports/pages/SalesReportsPage";
 
 // Wallet
 import { WalletPage } from "@/features/wallet/pages";
@@ -88,9 +88,8 @@ import {
   ProtectedRoute,
   AdminRoute,
   EventOfficeRoute,
-  EventManagementRoute
+  EventManagementRoute,
 } from "@/components/auth/ProtectedRoute";
-
 
 export const router = createBrowserRouter([
   {
@@ -296,6 +295,23 @@ export const router = createBrowserRouter([
           <AdminRoute>
             <ReportsPage />
           </AdminRoute>
+        ),
+      },
+      // Specific report pages accessible to Admin and Event Office
+      {
+        path: ROUTES.EVENTS_REPORTS,
+        element: (
+          <EventOfficeRoute>
+            <EventsReportPage />
+          </EventOfficeRoute>
+        ),
+      },
+      {
+        path: ROUTES.SALES_REPORTS,
+        element: (
+          <EventOfficeRoute>
+            <SalesReportsPage />
+          </EventOfficeRoute>
         ),
       },
 

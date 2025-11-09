@@ -60,6 +60,9 @@ export const ROUTES = {
   WORKSHOP_APPROVALS: "/events-office/workshops",
   VENDOR_POLLS: "/events-office/polls",
   EVENT_OFFICE_REPORTS: "/events-office/reports",
+  // Specific report pages (accessible to Admin and Event Office)
+  EVENTS_REPORTS: "/reports/events",
+  SALES_REPORTS: "/reports/sales",
   QR_CODES: "/events-office/qr-codes",
   BAZAAR_MANAGEMENT: "/events-office/bazaars",
   PLATFORM_SETUP: "/events-office/platform-setup",
