@@ -65,6 +65,7 @@ export function FeedbackSection({ eventId, userId, userRole, eventStartDate, eve
       setShowForm(false);
       utils.feedback.getByEvent.invalidate();
       utils.feedback.getMyFeedback.invalidate();
+      utils.feedback.getRatingStats.invalidate();
     },
     onError: (error: any) => {
       const errorMessage = formatValidationErrors(error);
@@ -80,6 +81,7 @@ export function FeedbackSection({ eventId, userId, userRole, eventStartDate, eve
       setShowForm(false);
       utils.feedback.getByEvent.invalidate();
       utils.feedback.getMyFeedback.invalidate();
+      utils.feedback.getRatingStats.invalidate();
     },
     onError: (error: any) => {
       const errorMessage = formatValidationErrors(error);
@@ -93,6 +95,7 @@ export function FeedbackSection({ eventId, userId, userRole, eventStartDate, eve
       toast.success('Feedback deleted successfully');
       utils.feedback.getByEvent.invalidate();
       utils.feedback.getMyFeedback.invalidate();
+      utils.feedback.getRatingStats.invalidate();
     },
     onError: (error: any) => {
       const errorMessage = formatValidationErrors(error);
