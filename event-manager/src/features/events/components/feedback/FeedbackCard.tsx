@@ -67,10 +67,10 @@ export function FeedbackCard({
         isHighlighted && 'border-blue-500 bg-blue-50 dark:bg-blue-950/20',
         className
       )}>
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
+  <CardContent className="py-0.4 px-2">
+          <div className="flex items-start gap-2.5">
             {/* User Avatar */}
-            <Avatar className="h-10 w-10 flex-shrink-0">
+            <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarImage src={feedback.user?.avatar} alt={userName} />
               <AvatarFallback>{userInitials}</AvatarFallback>
             </Avatar>
@@ -78,35 +78,35 @@ export function FeedbackCard({
             {/* Content */}
             <div className="flex-1 min-w-0">
               {/* Header: Name, Rating, Badges */}
-              <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="font-semibold text-sm">
                       {userName}
                     </p>
                     {feedback.isEdited && (
-                      <Badge variant="outline" className="text-xs flex items-center gap-1">
-                        <PencilLine className="h-3 w-3" />
+                      <Badge variant="outline" className="text-[10px] flex items-center gap-0.5 py-0 h-4 px-1.5">
+                        <PencilLine className="h-2.5 w-2.5" />
                         Edited
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground leading-tight">
                     {formatDate(new Date(feedback.createdAt))}
                   </p>
                 </div>
 
                 {/* Action Buttons */}
                 {(canEdit || canDelete) && (
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
                     {canEdit && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => onEdit(feedback)}
-                        className="h-8 w-8 p-0"
+                        className="h-6 w-6 p-0"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-3 w-3" />
                       </Button>
                     )}
                     {canDelete && (
@@ -114,9 +114,9 @@ export function FeedbackCard({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowDeleteDialog(true)}
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     )}
                   </div>
@@ -125,14 +125,14 @@ export function FeedbackCard({
 
               {/* Rating */}
               {feedback.rating && (
-                <div className="mb-2">
+                <div className="mb-1">
                   <RatingStars rating={feedback.rating} size="sm" readonly />
                 </div>
               )}
 
               {/* Comment */}
               {feedback.comment && (
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                <p className="text-sm text-muted-foreground leading-snug whitespace-pre-wrap">
                   {feedback.comment}
                 </p>
               )}
