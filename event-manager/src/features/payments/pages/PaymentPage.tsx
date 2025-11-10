@@ -54,9 +54,10 @@ export default function PaymentPage() {
     { enabled: !!search.get("eventId") }
   );
 
-  const eventId = search.get("eventId") ?? regQ.data?.eventId ?? "";
-  const amountMinor = Number(search.get("amountMinor") ?? regQ.data?.paymentAmount ?? 0);
-  const currency = (search.get("currency") ?? regQ.data?.currency ?? "EGP") as "EGP" | "USD";
+  const eventId = search.get("eventId") ;
+  const amountMinor = Number(search.get("amountMinor") );
+  const currency = (search.get("currency")?? "EGP") as "EGP" | "USD";
+  console.log(`this is the front end codes vars "${eventId}, ${amountMinor}, ${currency}"`);
 
   // Store latest PI client secret in URL + state
   const [clientSecret, setClientSecret] = useState<string | null>(search.get("cs"));

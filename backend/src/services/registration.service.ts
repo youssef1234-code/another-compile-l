@@ -14,7 +14,7 @@ import { PaymentStatus, RegistrationForEventResponse, RegistrationStatus } from 
 import { paymentRepository } from '../repositories/payment.repository';
 import { paymentService } from './payment.service';
 
-const HOLD_MINUTES = 15;
+const HOLD_MINUTES = process.env.HOLD_MINUTES ? parseInt(process.env.HOLD_MINUTES) : 15;
 
 export class RegistrationService {
 

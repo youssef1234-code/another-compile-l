@@ -17,11 +17,9 @@ import { userRepository } from "../repositories/user.repository";
 import { mailService } from "./mail.service";
 import { eventRepository } from "../repositories/event.repository";
 import { registrationRepository } from "../repositories/registration.repository";
-import { env } from "process";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
 const DEFAULT_CURRENCY = (process.env.CURRENCY ?? "EGP") as "EGP" | "USD";
-const HOLD_MINUTES = process.env.HOLD_MINUTES ? parseInt(process.env.HOLD_MINUTES) : 15;
 export class PaymentService extends BaseService<IPayment, typeof paymentRepository> {
 
  constructor(repository: PaymentRepository) {
@@ -50,8 +48,6 @@ async initCardPayment(userId: string, input: CardPaymentInitInput) {
     const latest = await paymentRepository.findLatestForRegistration(registrationId);
     // 1) If already paid by wallet or card -> stop
     
-    console.log("latest payment found:" ,latest)
-
     if (latest) {
       if (latest.status === PaymentStatus.SUCCEEDED) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid for this registration" });
@@ -60,7 +56,6 @@ async initCardPayment(userId: string, input: CardPaymentInitInput) {
       const reg = await registrationRepository.findById(input.registrationId);
       const holdValid = reg?.holdUntil && reg.holdUntil > new Date();
 
-      console.log("hold valid: ", holdValid);
       if (latest.status === PaymentStatus.PENDING && holdValid) {
         // Reuse current clientSecret (same attempt still in progress).
         return {
@@ -190,14 +185,14 @@ async payWithWallet(userId: string, input: WalletPaymentInput) {
   }
 
   // Email AFTER commit
-  // await mailService.sendPaymentReceiptEmail(user.email, {
-  //   name: `${user.firstName} ${user.lastName}`.trim() || user.email,
-  //   eventName: event.name,
-  //   amount: amountMinor/100,
-  //   currency,
-  //   receiptId: (payDoc._id as any).toString(),
-  //   paymentDate: new Date(),
-  // });
+  await mailService.sendPaymentReceiptEmail(user.email, {
+    name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+    eventName: event.name,
+    amount: amountMinor/100,
+    currency,
+    receiptId: (payDoc._id as any).toString(),
+    paymentDate: new Date(),
+  });
 
   return { paymentId: (payDoc._id as any).toString(), status: payDoc.status };
 }
@@ -431,14 +426,14 @@ async handleStripeWebhook(evt: Stripe.Event) {
       }
 
       // send email (kept commented out in your original)
-      // await mailService.sendPaymentReceiptEmail(user.email, {
-      //   name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email,
-      //   eventName: purpose === "WALLET_TOPUP" ? "Wallet Top-up" : (event?.name ?? "Event"),
-      //   amount: paymentDoc.amountMinor/100,
-      //   currency: paymentDoc.currency,
-      //   receiptId: (paymentDoc._id as any)?.toString() ?? 'unknown',
-      //   paymentDate: new Date(),
-      // });
+      await mailService.sendPaymentReceiptEmail(user.email, {
+        name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email,
+        eventName: purpose === "WALLET_TOPUP" ? "Wallet Top-up" : (event?.name ?? "Event"),
+        amount: paymentDoc.amountMinor/100,
+        currency: paymentDoc.currency,
+        receiptId: (paymentDoc._id as any)?.toString() ?? 'unknown',
+        paymentDate: new Date(),
+      });
       }
 
       return { ok: true };
