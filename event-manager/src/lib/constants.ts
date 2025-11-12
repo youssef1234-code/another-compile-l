@@ -39,6 +39,7 @@ export const ROUTES = {
   BROWSE_BAZAARS: "/vendors/bazaars",
   VENDOR_APPLICATIONS: "/vendors/applications",
   APPLY_PLATFORM_BOOTH: "/vendors/apply/platform",
+  VENDOR_LOYALTY: "/vendors/my-loyalty",
   LOYALTY_PROGRAM: "/vendors/loyalty",
   VENDOR_REQUESTS: "/vendors/requests",
   ALL_APPLICATIONS: "/vendors/all",
@@ -55,6 +56,7 @@ export const ROUTES = {
   ADMIN_EVENTS: '/admin/events',
   ADMIN_COMMENTS: '/admin/comments',
   ADMIN_REPORTS: '/admin/reports',
+  ADMIN_LOYALTY: '/admin/loyalty',
   
   // Events Office
   WORKSHOP_APPROVALS: "/events-office/workshops",
