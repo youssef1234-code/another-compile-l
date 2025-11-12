@@ -1,0 +1,876 @@
+{
+	"info": {
+		"_postman_id": "7d3d8d58-dd04-46c6-a0a5-4bfd87b1c17c",
+		"name": "Loyalty Program Module",
+		"description": "Test collection for GUC Loyalty Program Module - Stories #70, #71, #72",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "47446214",
+		"_collection_link": "https://mada1421995-6641013.postman.co/workspace/8a935075-2a11-4072-8f3a-f003a45ea100/collection/47446214-7d3d8d58-dd04-46c6-a0a5-4bfd87b1c17c?action=share&source=collection_link&creator=47446214"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Vendor Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.result && response.result.data && response.result.data.accessToken) {",
+									"        pm.environment.set(\"vendor_token\", response.result.data.accessToken);",
+									"        pm.environment.set(\"vendor_id\", response.result.data.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"vendor@example.com\",\n  \"password\": \"Password123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth.login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth.login"
+							]
+						},
+						"description": "Login as vendor to test loyalty program endpoints"
+					},
+					"response": []
+				},
+				{
+					"name": "Student Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.result && response.result.data && response.result.data.accessToken) {",
+									"        pm.environment.set(\"student_token\", response.result.data.accessToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe@student.guc.edu.eg\",\n  \"password\": \"Password123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth.login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth.login"
+							]
+						},
+						"description": "Login as student to test viewing loyalty partners"
+					},
+					"response": []
+				},
+				{
+					"name": "Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.result && response.result.data && response.result.data.accessToken) {",
+									"        pm.environment.set(\"admin_token\", response.result.data.accessToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@email.com\",\n  \"password\": \"admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth.login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth.login"
+							]
+						},
+						"description": "Login as admin to test reviewing loyalty applications"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for testing"
+		},
+		{
+			"name": "Story #70 - Apply to Loyalty Program",
+			"item": [
+				{
+					"name": "Apply to Loyalty Program (Success)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{vendor_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"discountRate\": 15,\n  \"promoCode\": \"GUCVENDOR15\",\n  \"terms\": \"Valid for all GUC students and staff. Present valid GUC ID at checkout. Cannot be combined with other offers. Valid until end of semester.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.applyToProgram",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.applyToProgram"
+							]
+						},
+						"description": "Vendor applies to join the GUC loyalty program with valid data"
+					},
+					"response": []
+				},
+				{
+					"name": "Apply Again (Should Fail - Duplicate)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{vendor_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"discountRate\": 20,\n  \"promoCode\": \"NEWPROMO20\",\n  \"terms\": \"Different terms and conditions for testing duplicate prevention.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.applyToProgram",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.applyToProgram"
+							]
+						},
+						"description": "Should fail - vendor already has a pending application"
+					},
+					"response": []
+				},
+				{
+					"name": "Apply with Invalid Data (Missing Fields)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{vendor_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"discountRate\": 15\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.applyToProgram",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.applyToProgram"
+							]
+						},
+						"description": "Should fail validation - missing promoCode and terms"
+					},
+					"response": []
+				},
+				{
+					"name": "Apply with Invalid Discount Rate",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{vendor_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"discountRate\": 150,\n  \"promoCode\": \"INVALID\",\n  \"terms\": \"Testing invalid discount rate over 100%\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.applyToProgram",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.applyToProgram"
+							]
+						},
+						"description": "Should fail validation - discount rate exceeds 100%"
+					},
+					"response": []
+				},
+				{
+					"name": "Apply as Non-Vendor (Should Fail)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{student_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"discountRate\": 10,\n  \"promoCode\": \"STUDENT10\",\n  \"terms\": \"This should fail because students cannot apply\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.applyToProgram",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.applyToProgram"
+							]
+						},
+						"description": "Should fail - only vendors can apply to loyalty program"
+					},
+					"response": []
+				}
+			],
+			"description": "Test Story #70 - Vendor applies to loyalty program"
+		},
+		{
+			"name": "Story #71 - Cancel Participation",
+			"item": [
+				{
+					"name": "Get Vendor Requests",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{vendor_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/loyalty.getVendorRequests",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.getVendorRequests"
+							]
+						},
+						"description": "Check vendor's current loyalty status before cancellation"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Participation (Success)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{vendor_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.cancelParticipation",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.cancelParticipation"
+							]
+						},
+						"description": "Vendor cancels their loyalty program participation"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Again (Should Fail - No Active)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{vendor_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.cancelParticipation",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.cancelParticipation"
+							]
+						},
+						"description": "Should fail - no active participation to cancel"
+					},
+					"response": []
+				}
+			],
+			"description": "Test Story #71 - Vendor cancels loyalty participation"
+		},
+		{
+			"name": "Story #72 - View All Partners",
+			"item": [
+				{
+					"name": "Get All Partners (As Student)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{student_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/loyalty.getAllPartners",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.getAllPartners"
+							]
+						},
+						"description": "Student views all current loyalty partners"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Partners (As Vendor)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{vendor_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/loyalty.getAllPartners",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.getAllPartners"
+							]
+						},
+						"description": "Vendor views all current loyalty partners"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Partners (Unauthenticated - Should Fail)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/loyalty.getAllPartners",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.getAllPartners"
+							]
+						},
+						"description": "Should fail - authentication required"
+					},
+					"response": []
+				}
+			],
+			"description": "Test Story #72 - All users view loyalty partners"
+		},
+		{
+			"name": "Admin - Review Applications",
+			"item": [
+				{
+					"name": "Get Pending Requests",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/loyalty.getPendingRequests?input={\"page\":1,\"limit\":20}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.getPendingRequests"
+							],
+							"query": [
+								{
+									"key": "input",
+									"value": "{\"page\":1,\"limit\":20}"
+								}
+							]
+						},
+						"description": "Admin views all pending loyalty applications"
+					},
+					"response": []
+				},
+				{
+					"name": "Accept Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Save request ID for further testing if needed",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.result && response.result.data && response.result.data.id) {",
+									"        pm.environment.set(\"accepted_request_id\", response.result.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"requestId\": \"PUT_REQUEST_ID_HERE\",\n  \"action\": \"accept\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.reviewRequest",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.reviewRequest"
+							]
+						},
+						"description": "Admin accepts a pending loyalty application - vendor gets added to partners"
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Request",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"requestId\": \"PUT_REQUEST_ID_HERE\",\n  \"action\": \"reject\",\n  \"rejectionReason\": \"The discount rate is too low. We require at least 15% discount for GUC loyalty partners.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.reviewRequest",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.reviewRequest"
+							]
+						},
+						"description": "Admin rejects a pending loyalty application with reason"
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Without Reason (Should Fail)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"requestId\": \"PUT_REQUEST_ID_HERE\",\n  \"action\": \"reject\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.reviewRequest",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.reviewRequest"
+							]
+						},
+						"description": "Should fail - rejection reason required when rejecting"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Requests (All Statuses)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/loyalty.getAllRequests?input={\"page\":1,\"limit\":20}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.getAllRequests"
+							],
+							"query": [
+								{
+									"key": "input",
+									"value": "{\"page\":1,\"limit\":20}"
+								}
+							]
+						},
+						"description": "Admin views all loyalty requests (all statuses)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Accepted Requests Only",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/loyalty.getAllRequests?input={\"status\":\"accepted\",\"page\":1,\"limit\":20}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.getAllRequests"
+							],
+							"query": [
+								{
+									"key": "input",
+									"value": "{\"status\":\"accepted\",\"page\":1,\"limit\":20}"
+								}
+							]
+						},
+						"description": "Admin views only accepted requests"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Rejected Requests Only",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/loyalty.getAllRequests?input={\"status\":\"rejected\",\"page\":1,\"limit\":20}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.getAllRequests"
+							],
+							"query": [
+								{
+									"key": "input",
+									"value": "{\"status\":\"rejected\",\"page\":1,\"limit\":20}"
+								}
+							]
+						},
+						"description": "Admin views only rejected requests with reasons"
+					},
+					"response": []
+				},
+				{
+					"name": "Review as Non-Admin (Should Fail)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{vendor_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"requestId\": \"PUT_REQUEST_ID_HERE\",\n  \"action\": \"accept\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/loyalty.reviewRequest",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"loyalty.reviewRequest"
+							]
+						},
+						"description": "Should fail - only admins can review requests"
+					},
+					"response": []
+				}
+			],
+			"description": "Admin endpoints for reviewing loyalty applications"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000/trpc"
+		},
+		{
+			"key": "vendor_token",
+			"value": ""
+		},
+		{
+			"key": "student_token",
+			"value": ""
+		},
+		{
+			"key": "admin_token",
+			"value": ""
+		}
+	]
+}

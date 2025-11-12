@@ -845,6 +845,91 @@ export const GetFeedbackByEventSchema = z.object({
 export type GetFeedbackByEventInput = z.infer<typeof GetFeedbackByEventSchema>;
 
 // ============================================================================
+// LOYALTY PROGRAM SCHEMAS
+// ============================================================================
+
+export const LoyaltyRequestStatus = {
+  PENDING: "pending",
+  CANCELLED: "cancelled",
+  ACCEPTED: "accepted",
+  REJECTED: "rejected",
+} as const;
+
+export type LoyaltyRequestStatus = (typeof LoyaltyRequestStatus)[keyof typeof LoyaltyRequestStatus];
+
+/**
+ * Apply to loyalty program schema (Story #70)
+ * Vendor submits application to join the GUC loyalty program
+ */
+export const ApplyToLoyaltySchema = z.object({
+  discountRate: z
+    .number()
+    .min(0, "Discount rate cannot be negative")
+    .max(100, "Discount rate cannot exceed 100%"),
+  promoCode: z
+    .string()
+    .min(1, "Promo code is required")
+    .max(50, "Promo code cannot exceed 50 characters")
+    .trim()
+    .transform(val => val.toUpperCase()),
+  terms: z
+    .string()
+    .min(10, "Terms and conditions must be at least 10 characters")
+    .max(2000, "Terms and conditions cannot exceed 2000 characters")
+    .trim(),
+});
+
+export type ApplyToLoyaltyInput = z.infer<typeof ApplyToLoyaltySchema>;
+
+/**
+ * Cancel loyalty participation schema (Story #71)
+ * Vendor cancels their participation in the loyalty program
+ */
+export const CancelLoyaltySchema = z.object({
+  // No additional fields needed - vendor ID comes from auth context
+});
+
+export type CancelLoyaltyInput = z.infer<typeof CancelLoyaltySchema>;
+
+/**
+ * Admin review loyalty request schema
+ * Admin can accept or reject a pending loyalty application
+ */
+export const ReviewLoyaltyRequestSchema = z.object({
+  requestId: z.string().min(1, "Request ID is required"),
+  action: z.enum(["accept", "reject"], {
+    errorMap: () => ({ message: "Action must be either 'accept' or 'reject'" }),
+  }),
+  rejectionReason: z
+    .string()
+    .min(10, "Rejection reason must be at least 10 characters")
+    .max(500, "Rejection reason cannot exceed 500 characters")
+    .trim()
+    .optional(),
+}).superRefine((data, ctx) => {
+  // If action is reject, rejectionReason is required
+  if (data.action === "reject" && !data.rejectionReason) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Rejection reason is required when rejecting an application",
+      path: ["rejectionReason"],
+    });
+  }
+});
+
+export type ReviewLoyaltyRequestInput = z.infer<typeof ReviewLoyaltyRequestSchema>;
+
+/**
+ * Get all pending loyalty requests schema (Admin only)
+ */
+export const GetPendingLoyaltyRequestsSchema = z.object({
+  page: z.number().int().min(1).optional().default(1),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+});
+
+export type GetPendingLoyaltyRequestsInput = z.infer<typeof GetPendingLoyaltyRequestsSchema>;
+
+// ============================================================================
 // NOTIFICATION SCHEMAS
 // ============================================================================
 
