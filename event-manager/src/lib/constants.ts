@@ -62,6 +62,7 @@ export const ROUTES = {
   EVENT_OFFICE_REPORTS: "/events-office/reports",
   QR_CODES: "/events-office/qr-codes",
   BAZAAR_MANAGEMENT: "/events-office/bazaars",
+  COURTS_SETUP: "/events-office/courts-setup",
   PLATFORM_SETUP: "/events-office/platform-setup",
 
   // Other

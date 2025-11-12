@@ -28,5 +28,14 @@ async hasOverlap(courtId: string, start: Date, end: Date) {
   return count > 0;
 }
 
+async countOverlaps(courtId: string, start: Date, end: Date) {
+  return this.model.countDocuments({
+    court: new Types.ObjectId(courtId),
+    status: { $ne: "CANCELLED" },
+    startDate: { $lt: end },
+    endDate:   { $gt: start },
+  });
+}
+
 }
 export const courtReservationRepository = new CourtReservationRepository();

@@ -567,6 +567,55 @@ export const CourtReservationCancelSchema = z.object({
   id: z.string(),
 });
 
+/**
+ * Court open hours and blackout schemas (admin)
+ */
+export const DayTimeRangeSchema = z.object({
+  start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM 24h format"),
+  end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM 24h format"),
+});
+
+export const OpenHoursSchema = z.object({
+  mon: z.array(DayTimeRangeSchema).default([]),
+  tue: z.array(DayTimeRangeSchema).default([]),
+  wed: z.array(DayTimeRangeSchema).default([]),
+  thu: z.array(DayTimeRangeSchema).default([]),
+  fri: z.array(DayTimeRangeSchema).default([]),
+  sat: z.array(DayTimeRangeSchema).default([]),
+  sun: z.array(DayTimeRangeSchema).default([]),
+});
+
+export const CourtCreateSchema = z.object({
+  name: z.string().min(2),
+  sport: z.nativeEnum(CourtSport),
+  location: z.string().min(2),
+  tz: z.string().default("Africa/Cairo"),
+  slotMinutes: z.number().int().positive().default(60),
+  maxConcurrent: z.number().int().positive().default(1),
+  openHours: OpenHoursSchema,
+});
+export type CourtCreateInput = z.infer<typeof CourtCreateSchema>;
+
+export const CourtUpdateSchema = CourtCreateSchema.partial().extend({ id: z.string() });
+export type CourtUpdateInput = z.infer<typeof CourtUpdateSchema>;
+
+export const CreateCourtBlackoutSchema = z.object({
+  courtId: z.string(),
+  start: z.coerce.date(),
+  end: z.coerce.date(),
+  reason: z.string().max(200).optional(),
+});
+export type CreateCourtBlackoutInput = z.infer<typeof CreateCourtBlackoutSchema>;
+
+export const CourtBlackoutSchema = z.object({
+  id: z.string(),
+  courtId: z.string(),
+  start: z.coerce.date(),
+  end: z.coerce.date(),
+  reason: z.string().optional(),
+});
+export type CourtBlackout = z.infer<typeof CourtBlackoutSchema>;
+
 // ============================================================================
 // WORKSHOP SCHEMAS
 // ============================================================================

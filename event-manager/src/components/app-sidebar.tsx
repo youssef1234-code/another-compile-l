@@ -184,6 +184,7 @@ const navigationConfig: NavItem[] = [
     roles: ["EVENT_OFFICE", "ADMIN"],
     items: [
       { title: "Platform Setup", url: ROUTES.PLATFORM_SETUP, icon: LayoutGrid },
+      { title: "Courts Setup", url: ROUTES.COURTS_SETUP, icon: LayoutGrid },
       { title: "Vendor Polls", url: ROUTES.VENDOR_POLLS, icon: Vote },
       { title: "Reports", url: ROUTES.EVENT_OFFICE_REPORTS, icon: BarChart3 },
       { title: "QR Codes", url: ROUTES.QR_CODES, icon: Package },

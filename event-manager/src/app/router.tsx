@@ -49,6 +49,7 @@ import {
 
 // Platform
 import { PlatformSetupPage } from "@/features/platform/pages/PlatformSetupPage";
+import { CourtsSetupPage } from "@/features/gym/pages/CourtsSetupPage";
 
 // Gym & Sports
 import {
@@ -235,6 +236,14 @@ export const router = createBrowserRouter([
         element: (
           <EventManagementRoute>
             <PlatformSetupPage />
+          </EventManagementRoute>
+        ),
+      },
+      {
+        path: ROUTES.COURTS_SETUP,
+        element: (
+          <EventManagementRoute>
+            <CourtsSetupPage />
           </EventManagementRoute>
         ),
       },
