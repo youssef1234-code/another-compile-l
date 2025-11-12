@@ -19,6 +19,7 @@ import { TRPCError } from '@trpc/server';
 import type { IFeedback } from '../models/feedback.model';
 import type { CreateFeedbackInput, UpdateFeedbackInput } from '@event-manager/shared';
 import { Types } from 'mongoose';
+import { mailService } from './mail.service';
 
 export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> {
   constructor(repository: FeedbackRepository) {
@@ -320,10 +321,45 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
   }
 
   /**
-   * Delete feedback (Story #18)
+   * Delete feedback (Story #18 & #21)
    * Admin can delete any inappropriate comments
+   * Sends warning email to the user who posted the comment
    */
   async deleteFeedback(feedbackId: string): Promise<void> {
+    // Fetch the feedback with populated user and event data before deleting
+    const feedback = await this.repository.findById(feedbackId);
+    
+    if (!feedback) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Feedback not found',
+      });
+    }
+
+    // Populate user and event details
+    await feedback.populate('user');
+    await feedback.populate('event');
+
+    const user = feedback.user as any;
+    const event = feedback.event as any;
+
+    // Send warning email to the user (Story #21)
+    if (user && user.email && feedback.comment) {
+      try {
+        await mailService.sendCommentDeletedWarningEmail(user.email, {
+          name: user.firstName || 'User',
+          comment: feedback.comment,
+          eventName: event?.name || 'an event',
+          deletedAt: new Date().toLocaleString(),
+        });
+        console.log(`📧 Sent comment deletion warning email to: ${user.email}`);
+      } catch (emailError: any) {
+        // Log the error but don't fail the deletion
+        console.error('⚠️  Failed to send comment deletion warning email:', emailError.message);
+      }
+    }
+
+    // Proceed with deletion
     const deleted = await this.repository.permanentlyDelete(feedbackId);
     if (!deleted) {
       throw new TRPCError({
