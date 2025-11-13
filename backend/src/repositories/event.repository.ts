@@ -1,7 +1,8 @@
-import { Event, type IEvent } from '../models/event.model';
-import { BaseRepository } from './base.repository';
-import type {FilterQuery } from 'mongoose';
-import { Types } from 'mongoose';
+import type { FilterQuery } from "mongoose";
+import { Types } from "mongoose";
+import { Event, type IEvent } from "../models/event.model";
+import { BaseRepository } from "./base.repository";
+
 /**
  * Repository Pattern for Event entity
  * Extends BaseRepository for common CRUD operations
@@ -16,7 +17,7 @@ export class EventRepository extends BaseRepository<IEvent> {
    * Find event by ID with population
    */
   async findById(id: string): Promise<IEvent | null> {
-    return super.findById(id, ['createdBy', 'vendors']);
+    return super.findById(id, ["createdBy", "vendors"]);
   }
 
   /**
@@ -32,22 +33,24 @@ export class EventRepository extends BaseRepository<IEvent> {
   ): Promise<IEvent[]> {
     return this.findAll(filter, {
       ...options,
-      populate: ['createdBy', 'vendors'],
+      populate: ["createdBy", "vendors"],
     });
   }
 
   /**
    * Find upcoming events (not archived, not past)
    */
-  async findUpcoming(options: {
-    skip?: number;
-    limit?: number;
-    sort?: Record<string, 1 | -1>;
-  } = {}): Promise<IEvent[]> {
+  async findUpcoming(
+    options: {
+      skip?: number;
+      limit?: number;
+      sort?: Record<string, 1 | -1>;
+    } = {}
+  ): Promise<IEvent[]> {
     return this.findAllWithPopulate(
       {
         isArchived: false,
-        startDate: { $gte: new Date() }
+        startDate: { $gte: new Date() },
       } as FilterQuery<IEvent>,
       options
     );
@@ -56,19 +59,22 @@ export class EventRepository extends BaseRepository<IEvent> {
   /**
    * Search events by name or description
    */
-  async search(query: string, options: {
-    skip?: number;
-    limit?: number;
-  } = {}): Promise<IEvent[]> {
-    const searchRegex = new RegExp(query, 'i');
+  async search(
+    query: string,
+    options: {
+      skip?: number;
+      limit?: number;
+    } = {}
+  ): Promise<IEvent[]> {
+    const searchRegex = new RegExp(query, "i");
     return this.findAllWithPopulate(
       {
         isArchived: false,
         $or: [
           { name: searchRegex },
           { description: searchRegex },
-          { professorName: searchRegex }
-        ]
+          { professorName: searchRegex },
+        ],
       } as FilterQuery<IEvent>,
       { ...options, sort: { startDate: 1 } }
     );
@@ -77,14 +83,17 @@ export class EventRepository extends BaseRepository<IEvent> {
   /**
    * Filter events by type
    */
-  async findByType(type: string, options: {
-    skip?: number;
-    limit?: number;
-  } = {}): Promise<IEvent[]> {
+  async findByType(
+    type: string,
+    options: {
+      skip?: number;
+      limit?: number;
+    } = {}
+  ): Promise<IEvent[]> {
     return this.findAllWithPopulate(
       {
         type,
-        isArchived: false
+        isArchived: false,
       } as FilterQuery<IEvent>,
       { ...options, sort: { startDate: 1 } }
     );
@@ -93,14 +102,17 @@ export class EventRepository extends BaseRepository<IEvent> {
   /**
    * Filter events by location
    */
-  async findByLocation(location: string, options: {
-    skip?: number;
-    limit?: number;
-  } = {}): Promise<IEvent[]> {
+  async findByLocation(
+    location: string,
+    options: {
+      skip?: number;
+      limit?: number;
+    } = {}
+  ): Promise<IEvent[]> {
     return this.findAllWithPopulate(
       {
         location,
-        isArchived: false
+        isArchived: false,
       } as FilterQuery<IEvent>,
       { ...options, sort: { startDate: 1 } }
     );
@@ -109,14 +121,18 @@ export class EventRepository extends BaseRepository<IEvent> {
   /**
    * Filter events by date range
    */
-  async findByDateRange(startDate: Date, endDate: Date, options: {
-    skip?: number;
-    limit?: number;
-  } = {}): Promise<IEvent[]> {
+  async findByDateRange(
+    startDate: Date,
+    endDate: Date,
+    options: {
+      skip?: number;
+      limit?: number;
+    } = {}
+  ): Promise<IEvent[]> {
     return this.findAllWithPopulate(
       {
         isArchived: false,
-        startDate: { $gte: startDate, $lte: endDate }
+        startDate: { $gte: startDate, $lte: endDate },
       } as FilterQuery<IEvent>,
       { ...options, sort: { startDate: 1 } }
     );
@@ -125,10 +141,13 @@ export class EventRepository extends BaseRepository<IEvent> {
   /**
    * Find events created by a specific user
    */
-  async findByCreator(userId: string, options: {
-    skip?: number;
-    limit?: number;
-  } = {}): Promise<IEvent[]> {
+  async findByCreator(
+    userId: string,
+    options: {
+      skip?: number;
+      limit?: number;
+    } = {}
+  ): Promise<IEvent[]> {
     return this.findAllWithPopulate(
       { createdBy: userId } as FilterQuery<IEvent>,
       { ...options, sort: { createdAt: -1 } }
@@ -138,14 +157,17 @@ export class EventRepository extends BaseRepository<IEvent> {
   /**
    * Find events by status (pending, approved, rejected)
    */
-  async findByStatus(status: string, options: {
-    skip?: number;
-    limit?: number;
-  } = {}): Promise<IEvent[]> {
-    return this.findAllWithPopulate(
-      { status } as FilterQuery<IEvent>,
-      { ...options, sort: { createdAt: -1 } }
-    );
+  async findByStatus(
+    status: string,
+    options: {
+      skip?: number;
+      limit?: number;
+    } = {}
+  ): Promise<IEvent[]> {
+    return this.findAllWithPopulate({ status } as FilterQuery<IEvent>, {
+      ...options,
+      sort: { createdAt: -1 },
+    });
   }
 
   /**
@@ -169,20 +191,20 @@ export class EventRepository extends BaseRepository<IEvent> {
     skip?: number;
     limit?: number;
     sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
+    sortOrder?: "asc" | "desc";
   }): Promise<{ events: IEvent[]; total: number }> {
-    const filter: FilterQuery<IEvent> = { 
+    const filter: FilterQuery<IEvent> = {
       isArchived: false,
-      status: 'PUBLISHED' // Only show published events to frontend
+      status: "PUBLISHED", // Only show published events to frontend
     } as FilterQuery<IEvent>;
 
     // Text search
     if (params.query) {
-      const searchRegex = new RegExp(params.query, 'i');
+      const searchRegex = new RegExp(params.query, "i");
       filter.$or = [
         { name: searchRegex },
         { description: searchRegex },
-        { professorName: searchRegex }
+        { professorName: searchRegex },
       ] as any;
     }
 
@@ -220,7 +242,7 @@ export class EventRepository extends BaseRepository<IEvent> {
     // Sorting
     const sort: Record<string, 1 | -1> = {};
     if (params.sortBy) {
-      sort[params.sortBy] = params.sortOrder === 'desc' ? -1 : 1;
+      sort[params.sortBy] = params.sortOrder === "desc" ? -1 : 1;
     } else {
       sort.startDate = 1; // Default sort by start date ascending
     }
@@ -232,7 +254,7 @@ export class EventRepository extends BaseRepository<IEvent> {
         limit: params.limit || 10,
         sort,
       }),
-      this.count(filter)
+      this.count(filter),
     ]);
 
     return { events, total };
@@ -242,14 +264,17 @@ export class EventRepository extends BaseRepository<IEvent> {
    * Get event statistics
    * @param createdBy - Optional user ID to filter by creator (for professors)
    */
-  async getStatistics(createdBy?: string, options?: { excludeTypes?: string[] }): Promise<{
+  async getStatistics(
+    createdBy?: string,
+    options?: { excludeTypes?: string[] }
+  ): Promise<{
     total: number;
     upcoming: number;
     past: number;
     byType: Record<string, number>;
   }> {
     const now = new Date();
-    
+
     // Base filter - exclude archived events and optionally filter by creator
     const baseFilter: FilterQuery<IEvent> = { isArchived: false };
     if (createdBy) {
@@ -258,15 +283,21 @@ export class EventRepository extends BaseRepository<IEvent> {
     if (options?.excludeTypes && options.excludeTypes.length > 0) {
       (baseFilter as any).type = { $nin: options.excludeTypes };
     }
-    
+
     const [total, upcoming, past, byType] = await Promise.all([
       this.count(baseFilter),
-      this.count({ ...baseFilter, startDate: { $gte: now } } as FilterQuery<IEvent>),
-      this.count({ ...baseFilter, startDate: { $lt: now } } as FilterQuery<IEvent>),
+      this.count({
+        ...baseFilter,
+        startDate: { $gte: now },
+      } as FilterQuery<IEvent>),
+      this.count({
+        ...baseFilter,
+        startDate: { $lt: now },
+      } as FilterQuery<IEvent>),
       this.aggregate([
         { $match: baseFilter },
-        { $group: { _id: '$type', count: { $sum: 1 } } }
-      ])
+        { $group: { _id: "$type", count: { $sum: 1 } } },
+      ]),
     ]);
 
     const byTypeMap: Record<string, number> = {};
@@ -277,30 +308,27 @@ export class EventRepository extends BaseRepository<IEvent> {
     return { total, upcoming, past, byType: byTypeMap };
   }
 
-
-/**
- * Returns true if ANY other GYM_SESSION overlaps [start,end).
- * Excludes CANCELLED / deleted / archived, and can exclude a specific _id.
- */
-async hasGymOverlap(start: Date, end: Date, excludeId?: string) {
-  const q: any = {
-    type: 'GYM_SESSION',
-    isActive: true,
-    isArchived: { $ne: true },
-    status: { $ne: 'CANCELLED' },
-    // proper interval overlap: [a,b) overlaps [c,d) if a < d && b > c
-    startDate: { $lt: end },
-    endDate:   { $gt: start },
-  };
-  if (excludeId) {
-    q._id = { $ne: new Types.ObjectId(excludeId) };
+  /**
+   * Returns true if ANY other GYM_SESSION overlaps [start,end).
+   * Excludes CANCELLED / deleted / archived, and can exclude a specific _id.
+   */
+  async hasGymOverlap(start: Date, end: Date, excludeId?: string) {
+    const q: any = {
+      type: "GYM_SESSION",
+      isActive: true,
+      isArchived: { $ne: true },
+      status: { $ne: "CANCELLED" },
+      // proper interval overlap: [a,b) overlaps [c,d) if a < d && b > c
+      startDate: { $lt: end },
+      endDate: { $gt: start },
+    };
+    if (excludeId) {
+      q._id = { $ne: new Types.ObjectId(excludeId) };
+    }
+    // exists() is cheap & returns null / doc
+    const hit = await this.model.exists(q);
+    return !!hit;
   }
-  // exists() is cheap & returns null / doc
-  const hit = await this.model.exists(q);
-  return !!hit;
 }
-
-}
-
 // Singleton instance
 export const eventRepository = new EventRepository();

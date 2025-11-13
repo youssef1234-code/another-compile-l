@@ -1,13 +1,21 @@
-import { EventRepository, eventRepository } from '../repositories/event.repository';
-import { registrationRepository } from '../repositories/registration.repository';
-import { vendorApplicationRepository } from '../repositories/vendor-application.repository';
-import { userRepository } from '../repositories/user.repository';
-import { BaseService, type ServiceOptions } from './base.service';
-import { TRPCError } from '@trpc/server';
-import type { IEvent } from '../models/event.model';
-import type { FilterQuery } from 'mongoose';
-import { EventStatus, GymSessionType, UpdateWorkshopSchema, type UpdateWorkshopInput } from '@event-manager/shared';
-import { ServiceError } from '../errors/errors';
+import {
+  EventRepository,
+  eventRepository,
+} from "../repositories/event.repository";
+import { registrationRepository } from "../repositories/registration.repository";
+import { vendorApplicationRepository } from "../repositories/vendor-application.repository";
+import { userRepository } from "../repositories/user.repository";
+import { BaseService, type ServiceOptions } from "./base.service";
+import { TRPCError } from "@trpc/server";
+import type { IEvent } from "../models/event.model";
+import type { FilterQuery } from "mongoose";
+import {
+  EventStatus,
+  GymSessionType,
+  UpdateWorkshopSchema,
+  type UpdateWorkshopInput,
+} from "@event-manager/shared";
+import { ServiceError } from "../errors/errors";
 
 /**
  * Service Layer for Events
@@ -24,7 +32,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    * Get entity name for error messages
    */
   protected getEntityName(): string {
-    return 'Event';
+    return "Event";
   }
 
   /**
@@ -34,8 +42,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const event = await super.findById(id, populate);
     if (!event) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Event not found'
+        code: "NOT_FOUND",
+        message: "Event not found",
       });
     }
     return event;
@@ -48,14 +56,14 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Set default status based on event type
     if (!data.status) {
       // Workshops need approval, start as DRAFT (unless created by EVENT_OFFICE)
-      if (data.type === 'WORKSHOP' && options?.role === 'PROFESSOR') {
-        data.status = 'DRAFT';
+      if (data.type === "WORKSHOP" && options?.role === "PROFESSOR") {
+        data.status = "DRAFT";
       } else {
         // All other events (TRIP, BAZAAR, CONFERENCE, GYM_SESSION) default to PUBLISHED
-        data.status = 'PUBLISHED';
+        data.status = "PUBLISHED";
       }
     }
-    
+
     return super.create(data, options);
   }
 
@@ -63,35 +71,41 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    * Validate before create
    * Business Rule: Check event date validations
    */
-  protected async validateCreate(data: Partial<IEvent>, options?: ServiceOptions): Promise<void> {
+  protected async validateCreate(
+    data: Partial<IEvent>,
+    options?: ServiceOptions
+  ): Promise<void> {
     if (data.startDate && data.endDate && data.startDate > data.endDate) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Start date must be before end date'
+        code: "BAD_REQUEST",
+        message: "Start date must be before end date",
       });
     }
 
-    if (data.registrationDeadline && data.startDate && data.registrationDeadline > data.startDate) {
+    if (
+      data.registrationDeadline &&
+      data.startDate &&
+      data.registrationDeadline > data.startDate
+    ) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Registration deadline must be before start date'
+        code: "BAD_REQUEST",
+        message: "Registration deadline must be before start date",
       });
     }
 
     if (data.capacity && data.capacity < 0) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Capacity must be a positive number'
+        code: "BAD_REQUEST",
+        message: "Capacity must be a positive number",
       });
     }
 
-    if ( options?.role !== 'PROFESSOR' && data.type === 'WORKSHOP') {
+    if (options?.role !== "PROFESSOR" && data.type === "WORKSHOP") {
       throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'Only professors can create workshops'
+        code: "FORBIDDEN",
+        message: "Only professors can create workshops",
       });
     }
-
   }
 
   /**
@@ -104,29 +118,32 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   ): Promise<void> {
     const startDate = updateData.startDate || existing.startDate;
     const endDate = updateData.endDate || existing.endDate;
-    const registrationDeadline = updateData.registrationDeadline || existing.registrationDeadline;
+    const registrationDeadline =
+      updateData.registrationDeadline || existing.registrationDeadline;
 
     if (startDate && endDate && startDate > endDate) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Start date must be before end date'
+        code: "BAD_REQUEST",
+        message: "Start date must be before end date",
       });
     }
 
     if (registrationDeadline && startDate && registrationDeadline > startDate) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Registration deadline must be before start date'
+        code: "BAD_REQUEST",
+        message: "Registration deadline must be before start date",
       });
     }
 
     // Capacity cannot be set below current number of participants
     if (updateData.capacity !== undefined) {
-      const currentRegistrations = await registrationRepository.countByEvent(_id);
+      const currentRegistrations = await registrationRepository.countByEvent(
+        _id
+      );
       if (updateData.capacity < currentRegistrations) {
         throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: `Capacity cannot be less than current registrations (${currentRegistrations}).`
+          code: "BAD_REQUEST",
+          message: `Capacity cannot be less than current registrations (${currentRegistrations}).`,
         });
       }
     }
@@ -139,8 +156,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Check if event has started
     if (existing.startDate < new Date()) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Cannot delete an event that has already started'
+        code: "BAD_REQUEST",
+        message: "Cannot delete an event that has already started",
       });
     }
 
@@ -148,8 +165,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const registrationCount = await registrationRepository.countByEvent(_id);
     if (registrationCount > 0) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Cannot delete event with active registrations. There are ${registrationCount} registered participant(s).`
+        code: "BAD_REQUEST",
+        message: `Cannot delete event with active registrations. There are ${registrationCount} registered participant(s).`,
       });
     }
   }
@@ -175,7 +192,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       variant: string;
       filterId: string;
     }>;
-    joinOperator?: 'and' | 'or';
+    joinOperator?: "and" | "or";
   }): Promise<{
     events: any[];
     total: number;
@@ -189,7 +206,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Build base filter - exclude archived or soft-deleted events by default
     let filter: any = {
       isArchived: false,
-      status: { $ne: 'ARCHIVED' },
+      status: { $ne: "ARCHIVED" },
     };
 
     // Handle simple faceted filters from tablecn (advanced mode)
@@ -201,7 +218,9 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
       // Status filter (exclude ARCHIVED even if requested)
       if (data.filters.status && data.filters.status.length > 0) {
-        const allowedStatuses = data.filters.status.filter((status) => status !== 'ARCHIVED');
+        const allowedStatuses = data.filters.status.filter(
+          (status) => status !== "ARCHIVED"
+        );
         if (allowedStatuses.length > 0) {
           filter.status = { $in: allowedStatuses };
         }
@@ -228,17 +247,20 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         let value = extFilter.value;
 
         // Prevent consumers from reintroducing archived or soft-deleted records via filters
-        if (field === 'isArchived') {
+        if (field === "isArchived") {
           continue;
         }
 
-        if (field === 'status') {
-          if (operator === 'eq' && value === 'ARCHIVED') {
+        if (field === "status") {
+          if (operator === "eq" && value === "ARCHIVED") {
             continue;
           }
 
-          if ((operator === 'inArray' || operator === 'notInArray') && Array.isArray(value)) {
-            value = value.filter((status) => status !== 'ARCHIVED');
+          if (
+            (operator === "inArray" || operator === "notInArray") &&
+            Array.isArray(value)
+          ) {
+            value = value.filter((status) => status !== "ARCHIVED");
             if (value.length === 0) {
               continue;
             }
@@ -246,87 +268,90 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         }
 
         // Skip empty/invalid values
-        if (operator !== 'isEmpty' && operator !== 'isNotEmpty') {
+        if (operator !== "isEmpty" && operator !== "isNotEmpty") {
           if (Array.isArray(value) && value.length === 0) continue;
-          if (typeof value === 'string' && !value.trim()) continue;
+          if (typeof value === "string" && !value.trim()) continue;
         }
 
         const condition: any = {};
 
         switch (operator) {
-          case 'iLike':
-            condition[field] = { $regex: value, $options: 'i' };
+          case "iLike":
+            condition[field] = { $regex: value, $options: "i" };
             break;
-          case 'notILike':
-            condition[field] = { $not: { $regex: value, $options: 'i' } };
+          case "notILike":
+            condition[field] = { $not: { $regex: value, $options: "i" } };
             break;
-          case 'eq':
+          case "eq":
             // Handle numbers for fields like price
-            if (field === 'price' || field === 'capacity') {
+            if (field === "price" || field === "capacity") {
               condition[field] = Number(value);
             } else {
               condition[field] = value;
             }
             break;
-          case 'ne':
+          case "ne":
             // Handle numbers for fields like price
-            if (field === 'price' || field === 'capacity') {
+            if (field === "price" || field === "capacity") {
               condition[field] = { $ne: Number(value) };
             } else {
               condition[field] = { $ne: value };
             }
             break;
-          case 'isEmpty':
-            condition[field] = { $in: [null, '', undefined] };
+          case "isEmpty":
+            condition[field] = { $in: [null, "", undefined] };
             break;
-          case 'isNotEmpty':
-            condition[field] = { $nin: [null, '', undefined], $exists: true };
+          case "isNotEmpty":
+            condition[field] = { $nin: [null, "", undefined], $exists: true };
             break;
-          case 'inArray':
+          case "inArray":
             if (Array.isArray(value)) {
               condition[field] = { $in: value };
             }
             break;
-          case 'notInArray':
+          case "notInArray":
             if (Array.isArray(value)) {
               condition[field] = { $nin: value };
             }
             break;
-          case 'lt':
+          case "lt":
             // Check if it's a date field or numeric field
-            if (field.includes('Date') || field.includes('date')) {
+            if (field.includes("Date") || field.includes("date")) {
               condition[field] = { $lt: new Date(value as string) };
             } else {
               condition[field] = { $lt: Number(value) };
             }
             break;
-          case 'lte':
+          case "lte":
             // Check if it's a date field or numeric field
-            if (field.includes('Date') || field.includes('date')) {
+            if (field.includes("Date") || field.includes("date")) {
               condition[field] = { $lte: new Date(value as string) };
             } else {
               condition[field] = { $lte: Number(value) };
             }
             break;
-          case 'gt':
+          case "gt":
             // Check if it's a date field or numeric field
-            if (field.includes('Date') || field.includes('date')) {
+            if (field.includes("Date") || field.includes("date")) {
               condition[field] = { $gt: new Date(value as string) };
             } else {
               condition[field] = { $gt: Number(value) };
             }
             break;
-          case 'gte':
+          case "gte":
             // Check if it's a date field or numeric field
-            if (field.includes('Date') || field.includes('date')) {
+            if (field.includes("Date") || field.includes("date")) {
               condition[field] = { $gte: new Date(value as string) };
             } else {
               condition[field] = { $gte: Number(value) };
             }
             break;
-          case 'isBetween':
+          case "isBetween":
             if (Array.isArray(value) && value.length === 2) {
-              condition[field] = { $gte: new Date(value[0]), $lte: new Date(value[1]) };
+              condition[field] = {
+                $gte: new Date(value[0]),
+                $lte: new Date(value[1]),
+              };
             }
             break;
         }
@@ -338,8 +363,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
       // Combine extended filters with AND or OR logic
       if (extendedConditions.length > 0) {
-        const joinOp = data.joinOperator === 'or' ? '$or' : '$and';
-        
+        const joinOp = data.joinOperator === "or" ? "$or" : "$and";
+
         if (filter[joinOp]) {
           filter[joinOp].push(...extendedConditions);
         } else {
@@ -351,29 +376,29 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Handle global search - search across name, description, professorName
     // Also search in createdBy user's firstName/lastName for workshops
     if (data.search && data.search.trim()) {
-      const searchRegex = { $regex: data.search.trim(), $options: 'i' };
-      
+      const searchRegex = { $regex: data.search.trim(), $options: "i" };
+
       // Find users whose first or last names match the search term
-      const matchingUsers = await userRepository.findAll({
-        $or: [
-          { firstName: searchRegex },
-          { lastName: searchRegex }
-        ]
-      } as any, {});
-      
+      const matchingUsers = await userRepository.findAll(
+        {
+          $or: [{ firstName: searchRegex }, { lastName: searchRegex }],
+        } as any,
+        {}
+      );
+
       const matchingUserIds = matchingUsers.map((u: any) => u._id);
-      
+
       const searchConditions: any[] = [
         { name: searchRegex },
         { description: searchRegex },
         { professorName: searchRegex },
       ];
-      
+
       // Add condition for events created by users with matching names
       if (matchingUserIds.length > 0) {
         searchConditions.push({ createdBy: { $in: matchingUserIds } });
       }
-      
+
       filter.$or = searchConditions;
     }
 
@@ -384,8 +409,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       $or: [
         { registrationDeadline: { $gte: now } },
         { registrationDeadline: { $exists: false } },
-        { registrationDeadline: null }
-      ]
+        { registrationDeadline: null },
+      ],
     };
 
     // Combine with existing filter using AND
@@ -393,10 +418,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       // If filter already has conditions, wrap everything in $and
       const existingConditions = { ...filter };
       filter = {
-        $and: [
-          existingConditions,
-          registrationDeadlineCondition
-        ]
+        $and: [existingConditions, registrationDeadlineCondition],
       };
     } else {
       // No existing conditions, just use the deadline filter
@@ -406,7 +428,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Build multi-field sort
     const sort: any = {};
     if (data.sort && data.sort.length > 0) {
-      data.sort.forEach(sortField => {
+      data.sort.forEach((sortField) => {
         sort[sortField.id] = sortField.desc ? -1 : 1;
       });
     } else {
@@ -419,7 +441,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       skip,
       limit,
       sort,
-      populate: ['createdBy']
+      populate: ["createdBy"],
     });
 
     const total = await this.repository.count(filter);
@@ -427,22 +449,29 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
-        
+        const registeredCount = await registrationRepository.countByEvent(
+          (event._id as any).toString()
+        );
+
         // For BAZAAR events, populate vendors with their application details
         let vendorDetails = null;
-        if (event.type === 'BAZAAR') {
+        if (event.type === "BAZAAR") {
           // Get approved vendor applications for this event (regardless of vendors array)
-          const vendorApplications = await vendorApplicationRepository.findAll({
-            bazaarId: (event._id as any).toString(),
-            status: 'APPROVED'
-          } as any, {});
-          
+          const vendorApplications = await vendorApplicationRepository.findAll(
+            {
+              bazaarId: (event._id as any).toString(),
+              status: "APPROVED",
+            } as any,
+            {}
+          );
+
           // Populate with user details
           if (vendorApplications.length > 0) {
             vendorDetails = await Promise.all(
               vendorApplications.map(async (app: any) => {
-                const user = await userRepository.findById(app.createdBy.toString());
+                const user = await userRepository.findById(
+                  app.createdBy.toString()
+                );
                 return {
                   id: app._id.toString(),
                   companyName: app.companyName,
@@ -457,7 +486,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
             );
           }
         }
-        
+
         return {
           ...this.formatEvent(event),
           registeredCount,
@@ -470,7 +499,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       events: formattedEvents,
       total,
       page,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -488,7 +517,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     endDate?: Date;
     maxPrice?: number;
     sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
+    sortOrder?: "asc" | "desc";
   }): Promise<{
     events: any[];
     total: number;
@@ -510,22 +539,24 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       sortBy: params.sortBy,
       sortOrder: params.sortOrder,
       skip,
-      limit
+      limit,
     });
 
     // Populate registeredCount and vendors (for bazaars) for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
-        
+        const registeredCount = await registrationRepository.countByEvent(
+          (event._id as any).toString()
+        );
+
         // For BAZAAR events, include approved vendor applications
         let vendors = [];
-        if (event.type === 'BAZAAR') {
+        if (event.type === "BAZAAR") {
           const applications = await vendorApplicationRepository.findAll({
             bazaarId: (event._id as any).toString(),
-            status: 'APPROVED',
+            status: "APPROVED",
           } as any);
-          
+
           // Populate vendor details for each application
           if (applications && applications.length > 0) {
             for (const app of applications) {
@@ -535,7 +566,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
               if (vendor) {
                 vendors.push({
                   id: vendor._id.toString(),
-                  companyName: vendor.companyName || 'N/A',
+                  companyName: vendor.companyName || "N/A",
                   email: vendor.email,
                   boothSize: app.boothSize,
                 });
@@ -543,7 +574,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
             }
           }
         }
-        
+
         return {
           ...this.formatEvent(event),
           registeredCount,
@@ -556,7 +587,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       events: formattedEvents,
       total,
       page,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -564,10 +595,13 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    * Search events by name or description
    * Business Rule: Case-insensitive search
    */
-  async searchEvents(query: string, options: {
-    page?: number;
-    limit?: number;
-  } = {}): Promise<{
+  async searchEvents(
+    query: string,
+    options: {
+      page?: number;
+      limit?: number;
+    } = {}
+  ): Promise<{
     events: any[];
     total: number;
   }> {
@@ -581,7 +615,9 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        const registeredCount = await registrationRepository.countByEvent(
+          (event._id as any).toString()
+        );
         return {
           ...this.formatEvent(event),
           registeredCount,
@@ -591,7 +627,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     return {
       events: formattedEvents,
-      total
+      total,
     };
   }
 
@@ -601,21 +637,26 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   async getEventById(id: string): Promise<any> {
     const event = await this.findById(id);
     const registeredCount = await registrationRepository.countByEvent(id);
-    
+
     // For BAZAAR events, populate vendors with their application details
     let vendorDetails = null;
-    if (event.type === 'BAZAAR') {
+    if (event.type === "BAZAAR") {
       // Get approved vendor applications for this event (regardless of vendors array)
-      const vendorApplications = await vendorApplicationRepository.findAll({
-        bazaarId: id,
-        status: 'APPROVED'
-      } as any, {});
-            
+      const vendorApplications = await vendorApplicationRepository.findAll(
+        {
+          bazaarId: id,
+          status: "APPROVED",
+        } as any,
+        {}
+      );
+
       // Populate with user details
       if (vendorApplications.length > 0) {
         vendorDetails = await Promise.all(
           vendorApplications.map(async (app: any) => {
-            const user = await userRepository.findById(app.createdBy.toString());
+            const user = await userRepository.findById(
+              app.createdBy.toString()
+            );
             return {
               id: app._id.toString(),
               companyName: app.companyName,
@@ -630,7 +671,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         );
       }
     }
-    
+
     return {
       ...this.formatEvent(event),
       registeredCount,
@@ -641,10 +682,12 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   /**
    * Get upcoming events
    */
-  async getUpcomingEvents(options: {
-    page?: number;
-    limit?: number;
-  } = {}): Promise<{
+  async getUpcomingEvents(
+    options: {
+      page?: number;
+      limit?: number;
+    } = {}
+  ): Promise<{
     events: any[];
     total: number;
   }> {
@@ -655,13 +698,15 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const events = await this.repository.findUpcoming({ skip, limit });
     const total = await this.repository.count({
       isArchived: false,
-      startDate: { $gte: new Date() }
+      startDate: { $gte: new Date() },
     } as FilterQuery<IEvent>);
 
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        const registeredCount = await registrationRepository.countByEvent(
+          (event._id as any).toString()
+        );
         return {
           ...this.formatEvent(event),
           registeredCount,
@@ -671,7 +716,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     return {
       events: formattedEvents,
-      total
+      total,
     };
   }
 
@@ -682,8 +727,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const event = await this.repository.archive(id);
     if (!event) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Event not found'
+        code: "NOT_FOUND",
+        message: "Event not found",
       });
     }
     return event;
@@ -693,7 +738,10 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    * Get event statistics (for admin dashboard)
    * @param createdBy - Optional user ID to filter by creator (for professors)
    */
-  async getStatistics(createdBy?: string, options?: { excludeTypes?: string[] }): Promise<{
+  async getStatistics(
+    createdBy?: string,
+    options?: { excludeTypes?: string[] }
+  ): Promise<{
     total: number;
     upcoming: number;
     past: number;
@@ -705,21 +753,29 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   /**
    * Get events by type
    */
-  async getEventsByType(type: string, options: {
-    page?: number;
-    limit?: number;
-  } = {}): Promise<{ events: any[]; total: number }> {
+  async getEventsByType(
+    type: string,
+    options: {
+      page?: number;
+      limit?: number;
+    } = {}
+  ): Promise<{ events: any[]; total: number }> {
     const page = options.page || 1;
     const limit = options.limit || 10;
     const skip = (page - 1) * limit;
 
     const events = await this.repository.findByType(type, { skip, limit });
-    const total = await this.repository.count({ type, isArchived: false } as FilterQuery<IEvent>);
+    const total = await this.repository.count({
+      type,
+      isArchived: false,
+    } as FilterQuery<IEvent>);
 
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        const registeredCount = await registrationRepository.countByEvent(
+          (event._id as any).toString()
+        );
         return {
           ...this.formatEvent(event),
           registeredCount,
@@ -729,28 +785,39 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     return {
       events: formattedEvents,
-      total
+      total,
     };
   }
 
   /**
    * Get events by location
    */
-  async getEventsByLocation(location: string, options: {
-    page?: number;
-    limit?: number;
-  } = {}): Promise<{ events: any[]; total: number }> {
+  async getEventsByLocation(
+    location: string,
+    options: {
+      page?: number;
+      limit?: number;
+    } = {}
+  ): Promise<{ events: any[]; total: number }> {
     const page = options.page || 1;
     const limit = options.limit || 10;
     const skip = (page - 1) * limit;
 
-    const events = await this.repository.findByLocation(location, { skip, limit });
-    const total = await this.repository.count({ location, isArchived: false } as FilterQuery<IEvent>);
+    const events = await this.repository.findByLocation(location, {
+      skip,
+      limit,
+    });
+    const total = await this.repository.count({
+      location,
+      isArchived: false,
+    } as FilterQuery<IEvent>);
 
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent((event._id as any).toString());
+        const registeredCount = await registrationRepository.countByEvent(
+          (event._id as any).toString()
+        );
         return {
           ...this.formatEvent(event),
           registeredCount,
@@ -760,7 +827,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     return {
       events: formattedEvents,
-      total
+      total,
     };
   }
 
@@ -801,20 +868,26 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       // Gym session specific fields
       sessionType: event.sessionType,
       duration: event.duration,
-      createdBy: event.createdBy ? {
-        id: (event.createdBy as any)._id?.toString() || (event.createdBy as any).toString(),
-        firstName: (event.createdBy as any).firstName,
-        lastName: (event.createdBy as any).lastName,
-        email: (event.createdBy as any).email,
-        role: (event.createdBy as any).role
-      } : null,
-      vendors: event.vendors ? (event.vendors as any[]).map((vendor: any) => ({
-        id: vendor._id?.toString() || vendor.toString(),
-        companyName: vendor.companyName,
-        email: vendor.email
-      })) : [],
+      createdBy: event.createdBy
+        ? {
+            id:
+              (event.createdBy as any)._id?.toString() ||
+              (event.createdBy as any).toString(),
+            firstName: (event.createdBy as any).firstName,
+            lastName: (event.createdBy as any).lastName,
+            email: (event.createdBy as any).email,
+            role: (event.createdBy as any).role,
+          }
+        : null,
+      vendors: event.vendors
+        ? (event.vendors as any[]).map((vendor: any) => ({
+            id: vendor._id?.toString() || vendor.toString(),
+            companyName: vendor.companyName,
+            email: vendor.email,
+          }))
+        : [],
       createdAt: event.createdAt,
-      updatedAt: event.updatedAt
+      updatedAt: event.updatedAt,
     };
   }
 
@@ -822,263 +895,352 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    * APPROVAL WORKSHOP METHOD
    */
   async approveWorkshop(workshopId: string) {
-      // Logic to approve the workshop - sets status to PUBLISHED
-      const workshop = await eventRepository.findById(workshopId);
-      if (!workshop) {
-        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
-      }
-      if (workshop.type !== "WORKSHOP") {
-        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
-      }
-      if (workshop.status !== "PENDING_APPROVAL" && workshop.status !== "NEEDS_EDITS") {
-        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval or needs edits", 400);
-      }
-      // Approve = Publish the workshop so it's visible to students
-      const newWorkshop = await eventRepository.update(workshopId, { status: "PUBLISHED" });
-      return newWorkshop;
+    // Logic to approve the workshop - sets status to PUBLISHED
+    const workshop = await eventRepository.findById(workshopId);
+    if (!workshop) {
+      throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+    }
+    if (workshop.type !== "WORKSHOP") {
+      throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+    }
+    if (
+      workshop.status !== "PENDING_APPROVAL" &&
+      workshop.status !== "NEEDS_EDITS"
+    ) {
+      throw new ServiceError(
+        "BAD_REQUEST",
+        "Workshop is not pending approval or needs edits",
+        400
+      );
+    }
+    // Approve = Publish the workshop so it's visible to students
+    const newWorkshop = await eventRepository.update(workshopId, {
+      status: "PUBLISHED",
+    });
+    return newWorkshop;
+  }
+
+  async rejectWorkshop(workshopId: string, reason: string) {
+    // Logic to reject the workshop
+    const workshop = await eventRepository.findById(workshopId);
+    if (!workshop) {
+      throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+    }
+    if (!reason || reason.trim() === "") {
+      throw new ServiceError(
+        "BAD_REQUEST",
+        "Rejection reason must be provided",
+        400
+      );
+    }
+    if (workshop.type !== "WORKSHOP") {
+      throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+    }
+    if (
+      workshop.status !== "PENDING_APPROVAL" &&
+      workshop.status !== "NEEDS_EDITS"
+    ) {
+      throw new ServiceError(
+        "BAD_REQUEST",
+        "Workshop is not pending approval or needs edits",
+        400
+      );
+    }
+    const newWorkshop = await eventRepository.update(workshopId, {
+      status: "REJECTED",
+      rejectionReason: reason,
+    });
+    return newWorkshop;
+  }
+
+  async editsNeededWorkshop(workshopId: string) {
+    // Logic to request edits for the workshop
+    const workshop = await eventRepository.findById(workshopId);
+    if (!workshop) {
+      throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+    }
+    if (workshop.type !== "WORKSHOP") {
+      throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+    }
+    if (workshop.status !== "PENDING_APPROVAL") {
+      throw new ServiceError(
+        "BAD_REQUEST",
+        "Workshop is not pending approval",
+        400
+      );
+    }
+    const newWorkshop = await eventRepository.update(workshopId, {
+      status: "NEEDS_EDITS",
+    });
+    return newWorkshop;
+  }
+
+  async publishWorkshop(workshopId: string) {
+    // Logic to publish the workshop
+    const workshop = await eventRepository.findById(workshopId);
+    if (!workshop) {
+      throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
+    }
+    if (workshop.type !== "WORKSHOP") {
+      throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
+    }
+    if (workshop.status !== "APPROVED") {
+      throw new ServiceError(
+        "BAD_REQUEST",
+        "Workshop must be approved before publishing",
+        400
+      );
+    }
+    const newWorkshop = await eventRepository.update(workshopId, {
+      status: "PUBLISHED",
+    });
+    return newWorkshop;
+  }
+
+  /**
+   * Publish any event (generic method)
+   */
+  async publishEvent(eventId: string) {
+    const event = await eventRepository.findById(eventId);
+    if (!event) {
+      throw new ServiceError("NOT_FOUND", "Event not found", 404);
     }
 
-    async rejectWorkshop(workshopId: string, reason: string) {
-      // Logic to reject the workshop
-      const workshop = await eventRepository.findById(workshopId);
-      if (!workshop) {
-        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
-      }
-      if(!reason || reason.trim() === "") {
-        throw new ServiceError("BAD_REQUEST", "Rejection reason must be provided", 400);
-      }
-      if (workshop.type !== "WORKSHOP") {
-        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
-      }
-      if (workshop.status !== "PENDING_APPROVAL" && workshop.status !== "NEEDS_EDITS") {
-        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval or needs edits", 400);
-      }
-      const newWorkshop = await eventRepository.update(workshopId, { status: "REJECTED", rejectionReason: reason });
-      return newWorkshop;
+    // Only workshops need approval before publishing
+    if (event.type === "WORKSHOP" && event.status !== "APPROVED") {
+      throw new ServiceError(
+        "BAD_REQUEST",
+        "Workshop must be approved before publishing",
+        400
+      );
     }
 
-    async editsNeededWorkshop(workshopId: string) {
-      // Logic to request edits for the workshop
-      const workshop = await eventRepository.findById(workshopId);
-      if (!workshop) {
-        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
-      }
-      if (workshop.type !== "WORKSHOP") {
-        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
-      }
-      if (workshop.status !== "PENDING_APPROVAL") {
-        throw new ServiceError("BAD_REQUEST", "Workshop is not pending approval", 400);
-      }
-      const newWorkshop = await eventRepository.update(workshopId, { status: "NEEDS_EDITS" });
-      return newWorkshop;
-    }
-
-    async publishWorkshop(workshopId: string) {
-      // Logic to publish the workshop
-      const workshop = await eventRepository.findById(workshopId);
-      if (!workshop) {
-        throw new ServiceError("NOT_FOUND", "Workshop not found", 404);
-      }
-      if (workshop.type !== "WORKSHOP") {
-        throw new ServiceError("BAD_REQUEST", "Event is not a workshop", 400);
-      }
-      if (workshop.status !== "APPROVED") {
-        throw new ServiceError("BAD_REQUEST", "Workshop must be approved before publishing", 400);
-      }
-      const newWorkshop = await eventRepository.update(workshopId, { status: "PUBLISHED" });
-      return newWorkshop;
-    }
-
-    /**
-     * Publish any event (generic method)
-     */
-    async publishEvent(eventId: string) {
-      const event = await eventRepository.findById(eventId);
-      if (!event) {
-        throw new ServiceError("NOT_FOUND", "Event not found", 404);
-      }
-      
-      // Only workshops need approval before publishing
-      if (event.type === "WORKSHOP" && event.status !== "APPROVED") {
-        throw new ServiceError("BAD_REQUEST", "Workshop must be approved before publishing", 400);
-      }
-      
-      // Update status to published
-      const updatedEvent = await eventRepository.update(eventId, { status: "PUBLISHED" });
-      return updatedEvent;
-    }
-
-
+    // Update status to published
+    const updatedEvent = await eventRepository.update(eventId, {
+      status: "PUBLISHED",
+    });
+    return updatedEvent;
+  }
 
   /**
    * Create a new gym session with overlap validation
    */
-  
-async createGymSession(
-  data: Partial<IEvent>,
-  options?: { userId?: string }
-): Promise<IEvent> {
-  if (data.type !== 'GYM_SESSION') {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event type must be GYM_SESSION' });
-  }
-  if (!data.sessionType || !data.startDate || !data.capacity || !data.duration) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'sessionType, startDate, capacity, and duration are required',
-    });
-  }
 
-  const start = new Date(data.startDate);
-  const duration = data.duration!;
-  if (duration <= 0) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Duration must be positive' });
-  }
-  const end = new Date(start.getTime() + duration * 60_000);
+  async createGymSession(
+    data: Partial<IEvent>,
+    options?: { userId?: string }
+  ): Promise<IEvent> {
+    if (data.type !== "GYM_SESSION") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Event type must be GYM_SESSION",
+      });
+    }
+    if (
+      !data.sessionType ||
+      !data.startDate ||
+      !data.capacity ||
+      !data.duration
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "sessionType, startDate, capacity, and duration are required",
+      });
+    }
 
-  // overlap guard (no excludeId on create)
-  const clash = await this.repository.hasGymOverlap(start, end);
-  if (clash) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
-  }
+    const start = new Date(data.startDate);
+    const duration = data.duration!;
+    if (duration <= 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Duration must be positive",
+      });
+    }
+    const end = new Date(start.getTime() + duration * 60_000);
 
-  return this.create(
-    {
-      ...data, // Includes: name, description, sessionType, capacity, duration, status
-      type: 'GYM_SESSION',
-      startDate: start,
-      status: data.status || 'PUBLISHED',
-      endDate: end,
-      location: data.location ?? 'ON_CAMPUS',
-      locationDetails: data.locationDetails ?? 'Gym',
-    } as any,
-    options
-  );
-}
-
-
-  
-/**
- * Update a gym session (allowed fields: startDate, duration)
- */
-// backend/src/services/event.service.ts
-async updateGymSession(
-  id: string,
-  patch: {
-    startDate?: Date;
-    duration?: number;
-    capacity?: number;
-    status?: EventStatus;
-    sessionType?: GymSessionType;
-  },
-  options?: { userId?: string }
-): Promise<IEvent> {
-
-  if (!patch.capacity && !patch.sessionType && !patch.startDate && !patch.duration && !patch.status) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'You need to update something' });
-  }
-
-  const existing = await this.repository.findById(id);
-  if (!existing) {
-    throw new TRPCError({ code: 'NOT_FOUND', message: 'Event not found' });
-  }
-  if (existing.type !== 'GYM_SESSION') {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Not a gym session' });
-  }
-
-  // Compute next schedule
-  const nextStart = patch.startDate ?? existing.startDate;
-  const nextDuration = patch.duration ?? (existing as any).duration ?? 60;
-  if (nextDuration <= 0) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Duration must be positive' });
-  }
-  const nextEnd = new Date(nextStart.getTime() + nextDuration * 60_000);
-
-  // Only run overlap check if time window changes OR status becomes published (your rule)
-  const timeWindowChanged =
-    (patch.startDate && +patch.startDate !== +existing.startDate) ||
-    (patch.duration && patch.duration !== (existing as any).duration);
-
-  const willBePublished =
-    (patch.status ?? existing.status) === 'PUBLISHED';
-
-  if (timeWindowChanged || willBePublished) {
-    // exclude current _id to avoid "overlaps with itself"
-    const clash = await this.repository.hasGymOverlap(nextStart, nextEnd, id);
+    // overlap guard (no excludeId on create)
+    const clash = await this.repository.hasGymOverlap(start, end);
     if (clash) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Session overlaps an existing one' });
-    }
-  }
-
-  // Enforce capacity lower bound for gym sessions as well
-  if (patch.capacity !== undefined) {
-    const currentRegistrations = await registrationRepository.countByEvent(id);
-    if (patch.capacity < currentRegistrations) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Capacity cannot be less than current registrations (${currentRegistrations}).`
+        code: "BAD_REQUEST",
+        message: "Session overlaps an existing one",
       });
     }
+
+    return this.create(
+      {
+        ...data, // Includes: name, description, sessionType, capacity, duration, status
+        type: "GYM_SESSION",
+        startDate: start,
+        status: data.status || "PUBLISHED",
+        endDate: end,
+        location: data.location ?? "ON_CAMPUS",
+        locationDetails: data.locationDetails ?? "Gym",
+      } as any,
+      options
+    );
   }
 
-  const updated = await this.repository.update(
-    id,
-    {
-      startDate: nextStart,
-      endDate: nextEnd,
-      ...(patch.duration !== undefined ? { duration: nextDuration } : {}),
-      ...(patch.capacity !== undefined ? { capacity: patch.capacity } : {}),
-      ...(patch.status   !== undefined ? { status: patch.status } : {}),
-      ...(patch.sessionType !== undefined ? { sessionType: patch.sessionType } : {}),
+  /**
+   * Update a gym session (allowed fields: startDate, duration)
+   */
+  // backend/src/services/event.service.ts
+  async updateGymSession(
+    id: string,
+    patch: {
+      startDate?: Date;
+      duration?: number;
+      capacity?: number;
+      status?: EventStatus;
+      sessionType?: GymSessionType;
     },
-    options
-  );
-
-  return updated as IEvent;
-}
-/**
- * Update a workshop event
- */
-async updateWorkshop(input: UpdateWorkshopInput): Promise<IEvent> {
-  // Validate input
-  const validation = UpdateWorkshopSchema.safeParse(input);
-  if (!validation.success) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'Invalid workshop update data',
-      cause: validation.error
-    });
-  }
-  const { id, ...updateData } = validation.data;
-
-  // Find existing event
-  const existing = await this.repository.findById(id);
-  if (!existing) {
-    throw new TRPCError({ code: 'NOT_FOUND', message: 'Workshop not found' });
-  }
-  if (existing.type !== 'WORKSHOP') {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event is not a workshop' });
-  }
-
-  // Capacity cannot be set below current number of participants
-  if ((updateData as Partial<IEvent>).capacity !== undefined) {
-    const currentRegistrations = await registrationRepository.countByEvent(id);
-    if (((updateData as Partial<IEvent>).capacity as number) < currentRegistrations) {
+    options?: { userId?: string }
+  ): Promise<IEvent> {
+    if (
+      !patch.capacity &&
+      !patch.sessionType &&
+      !patch.startDate &&
+      !patch.duration &&
+      !patch.status
+    ) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Capacity cannot be less than current registrations (${currentRegistrations}).`
+        code: "BAD_REQUEST",
+        message: "You need to update something",
       });
     }
+
+    const existing = await this.repository.findById(id);
+    if (!existing) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    if (existing.type !== "GYM_SESSION") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Not a gym session",
+      });
+    }
+
+    // Compute next schedule
+    const nextStart = patch.startDate ?? existing.startDate;
+    const nextDuration = patch.duration ?? (existing as any).duration ?? 60;
+    if (nextDuration <= 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Duration must be positive",
+      });
+    }
+    const nextEnd = new Date(nextStart.getTime() + nextDuration * 60_000);
+
+    // Only run overlap check if time window changes OR status becomes published (your rule)
+    const timeWindowChanged =
+      (patch.startDate && +patch.startDate !== +existing.startDate) ||
+      (patch.duration && patch.duration !== (existing as any).duration);
+
+    const willBePublished = (patch.status ?? existing.status) === "PUBLISHED";
+
+    if (timeWindowChanged || willBePublished) {
+      // exclude current _id to avoid "overlaps with itself"
+      const clash = await this.repository.hasGymOverlap(nextStart, nextEnd, id);
+      if (clash) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Session overlaps an existing one",
+        });
+      }
+    }
+
+    // Enforce capacity lower bound for gym sessions as well
+    if (patch.capacity !== undefined) {
+      const currentRegistrations = await registrationRepository.countByEvent(
+        id
+      );
+      if (patch.capacity < currentRegistrations) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Capacity cannot be less than current registrations (${currentRegistrations}).`,
+        });
+      }
+    }
+
+    const updated = await this.repository.update(
+      id,
+      {
+        startDate: nextStart,
+        endDate: nextEnd,
+        ...(patch.duration !== undefined ? { duration: nextDuration } : {}),
+        ...(patch.capacity !== undefined ? { capacity: patch.capacity } : {}),
+        ...(patch.status !== undefined ? { status: patch.status } : {}),
+        ...(patch.sessionType !== undefined
+          ? { sessionType: patch.sessionType }
+          : {}),
+      },
+      options
+    );
+
+    return updated as IEvent;
+  }
+  /**
+   * Update a workshop event
+   */
+  async updateWorkshop(input: UpdateWorkshopInput): Promise<IEvent> {
+    // Validate input
+    const validation = UpdateWorkshopSchema.safeParse(input);
+    if (!validation.success) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Invalid workshop update data",
+        cause: validation.error,
+      });
+    }
+    const { id, ...updateData } = validation.data;
+
+    // Find existing event
+    const existing = await this.repository.findById(id);
+    if (!existing) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Workshop not found" });
+    }
+    if (existing.type !== "WORKSHOP") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Event is not a workshop",
+      });
+    }
+
+    // Capacity cannot be set below current number of participants
+    if ((updateData as Partial<IEvent>).capacity !== undefined) {
+      const currentRegistrations = await registrationRepository.countByEvent(
+        id
+      );
+      if (
+        ((updateData as Partial<IEvent>).capacity as number) <
+        currentRegistrations
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Capacity cannot be less than current registrations (${currentRegistrations}).`,
+        });
+      }
+    }
+
+    // Update workshop
+    const updated = await this.repository.update(id, updateData);
+    return updated as IEvent;
   }
 
-  // Update workshop
-  const updated = await this.repository.update(id, updateData);
-  return updated as IEvent;
+  async getFavoriteEvents(
+    userId: string,
+    options?: {
+      page?: number;
+      limit?: number;
+    }
+  ) {
+    return userRepository.getFavoriteEvents(userId, options);
+  }
+
+  async isFavorit(userId: string, eventId: string) {
+    return userRepository.isFavorit(userId, eventId);
+  }
 }
-
-
-}
-
-
 
 // Singleton instance
 export const eventService = new EventService(eventRepository);
