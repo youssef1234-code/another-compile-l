@@ -13,7 +13,7 @@ async findForCourtOnDay(courtId: string, dayStartUtc: Date, dayEndUtc: Date) {
       startDate: { $lt: dayEndUtc },       // overlap: start < dayEnd
       endDate:   { $gt: dayStartUtc },     // and end > dayStart
     })
-    .select({ startDate: 1, endDate: 1, status: 1, user: 1 })
+    .select({ startDate: 1, endDate: 1, status: 1, user: 1, studentName: 1, studentGucId: 1 })
     .sort({ startDate: 1 })
     .lean();
 }

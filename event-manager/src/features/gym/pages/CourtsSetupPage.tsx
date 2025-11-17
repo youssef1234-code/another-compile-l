@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
+import { Plus, Trash2 } from "lucide-react";
 
 const SPORTS = ["BASKETBALL","TENNIS","FOOTBALL"] as const;
 
@@ -19,7 +20,15 @@ export function CourtsSetupPage() {
     tz: "Africa/Cairo",
     slotMinutes: 60,
     maxConcurrent: 1,
-    openHoursJson: '{"mon":[{"start":"08:00","end":"22:00"}],"tue":[],"wed":[],"thu":[],"fri":[],"sat":[],"sun":[]}',
+    openHours: {
+      mon: [{ start: "08:00", end: "22:00" }],
+      tue: [],
+      wed: [],
+      thu: [],
+      fri: [],
+      sat: [],
+      sun: [],
+    } as Record<string, Array<{ start: string; end: string }>>,
   });
 
   const courts = trpc.courts.list.useQuery({});
@@ -50,20 +59,32 @@ export function CourtsSetupPage() {
   });
 
   const onSubmit = () => {
-    try {
-      const openHours = JSON.parse(form.openHoursJson || "{}");
-      const payload = { name: form.name, sport: form.sport, location: form.location, tz: form.tz, slotMinutes: Number(form.slotMinutes), maxConcurrent: Number(form.maxConcurrent), openHours } as any;
-      if (editingId) {
-        updateCourt.mutate({ id: editingId, ...payload });
-      } else {
-        createCourt.mutate(payload);
-      }
-    } catch {
-      toast.error("Invalid open hours JSON");
+    const payload = { name: form.name, sport: form.sport, location: form.location, tz: form.tz, slotMinutes: Number(form.slotMinutes), maxConcurrent: Number(form.maxConcurrent), openHours: form.openHours } as any;
+    if (editingId) {
+      updateCourt.mutate({ id: editingId, ...payload });
+    } else {
+      createCourt.mutate(payload);
     }
   };
 
   const courtOptions = useMemo(() => (courts.data ?? []).map((c: any) => ({ id: c.id, name: c.name })), [courts.data]);
+
+  const dayOrder = ["mon","tue","wed","thu","fri","sat","sun"] as const;
+  const dayLabel: Record<(typeof dayOrder)[number], string> = { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" };
+  const addRange = (day: (typeof dayOrder)[number]) => {
+    setForm(f => ({ ...f, openHours: { ...f.openHours, [day]: [...(f.openHours[day]||[]), { start: "08:00", end: "22:00" }] } }));
+  };
+  const removeRange = (day: (typeof dayOrder)[number], idx: number) => {
+    setForm(f => ({ ...f, openHours: { ...f.openHours, [day]: (f.openHours[day]||[]).filter((_, i) => i !== idx) } }));
+  };
+  const updateRange = (day: (typeof dayOrder)[number], idx: number, field: "start" | "end", value: string) => {
+    setForm(f => {
+      const arr = [...(f.openHours[day]||[])];
+      const row = { ...arr[idx], [field]: value } as { start: string; end: string };
+      arr[idx] = row;
+      return { ...f, openHours: { ...f.openHours, [day]: arr } };
+    });
+  };
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -96,8 +117,41 @@ export function CourtsSetupPage() {
                 <Input type="number" value={form.maxConcurrent} onChange={(e) => setForm(f => ({ ...f, maxConcurrent: Number(e.target.value||0) }))} />
               </div>
             </div>
-            <Label>Open Hours JSON</Label>
-            <textarea className="w-full h-40 border rounded p-2 text-sm" value={form.openHoursJson} onChange={(e) => setForm(f => ({ ...f, openHoursJson: e.target.value }))} />
+            <div className="space-y-3">
+              {dayOrder.map((d) => (
+                <div key={d} className="border rounded p-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-medium">{dayLabel[d]}</div>
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => addRange(d)}>
+                      <Plus className="h-4 w-4" /> Add Range
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {(form.openHours[d] || []).length === 0 ? (
+                      <div className="text-xs text-muted-foreground">No ranges</div>
+                    ) : (
+                      (form.openHours[d] || []).map((r, idx) => (
+                        <div key={`${d}-${idx}`} className="grid grid-cols-12 gap-2 items-center">
+                          <div className="col-span-5">
+                            <Label className="text-xs">Start</Label>
+                            <Input type="time" value={r.start} onChange={(e) => updateRange(d, idx, "start", e.target.value)} />
+                          </div>
+                          <div className="col-span-5">
+                            <Label className="text-xs">End</Label>
+                            <Input type="time" value={r.end} onChange={(e) => updateRange(d, idx, "end", e.target.value)} />
+                          </div>
+                          <div className="col-span-2 flex justify-end">
+                            <Button size="icon" variant="ghost" onClick={() => removeRange(d, idx)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
             <div className="flex gap-2">
               <Button onClick={onSubmit} disabled={createCourt.isPending || updateCourt.isPending}>{editingId ? "Update" : "Create"}</Button>
               {editingId && (
@@ -125,7 +179,7 @@ export function CourtsSetupPage() {
                       tz: c.tz ?? "Africa/Cairo",
                       slotMinutes: c.slotMinutes ?? 60,
                       maxConcurrent: c.maxConcurrent ?? 1,
-                      openHoursJson: JSON.stringify(c.openHours ?? {}, null, 0),
+                      openHours: c.openHours ?? { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] },
                     }));
                   }}>Edit</Button>
                 </div>

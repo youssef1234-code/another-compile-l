@@ -4,6 +4,7 @@ import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
 import { CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport, CourtAvailabilityResponseSchema, CourtSummarySchema, CourtSummary, CourtCreateSchema, CourtUpdateSchema, CreateCourtBlackoutSchema, CourtBlackoutSchema } from "@event-manager/shared";
 import { courtBlackoutRepository } from "../repositories/court-blackout.repository.js";
+import { Types } from "mongoose";
 
 export const courtsRouter = router({
    
@@ -79,6 +80,61 @@ availability: publicProcedure
       const userId = (ctx.user!._id as any).toString();
       const updated = await courtReservationService.cancelReservation(input.id, userId);
       return { id: (updated._id as any).toString(), status: updated.status };
+    }),
+
+  // list reservations across a date range (for calendar view)
+  reservationsRange: publicProcedure
+    .input(
+      z.object({
+        from: z.coerce.date(),
+        to: z.coerce.date(),
+        sport: z.nativeEnum(CourtSport).optional(),
+        courtId: z.string().optional(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      const match: any = {
+        isActive: { $ne: false },
+        status: { $ne: "CANCELLED" },
+        startDate: { $lt: input.to },
+        endDate: { $gt: input.from },
+      };
+      if (input.courtId) {
+        match.court = new Types.ObjectId(input.courtId);
+      }
+
+      const userObjectId = ctx.user?._id ? new Types.ObjectId(ctx.user._id as any) : null;
+
+      const pipeline: any[] = [
+        { $match: match },
+        { $lookup: { from: 'courts', localField: 'court', foreignField: '_id', as: 'court' } },
+        { $unwind: { path: '$court', preserveNullAndEmptyArrays: true } },
+      ];
+
+      if (input.sport) {
+        pipeline.push({ $match: { 'court.sport': input.sport } });
+      }
+
+      pipeline.push(
+        { $sort: { startDate: 1 } },
+        {
+          $project: {
+            _id: 0,
+            id: { $toString: '$_id' },
+            courtId: { $toString: '$court._id' },
+            courtName: '$court.name',
+            sport: '$court.sport',
+            startDate: 1,
+            endDate: 1,
+            studentName: 1,
+            studentGucId: 1,
+            byMe: userObjectId ? { $eq: ['$user', userObjectId] } : false,
+          }
+        }
+      );
+
+      const rows = await courtReservationService.aggregate<any>(pipeline);
+      return rows;
     }),
 
   // list my reservations (basic list for "My Reservations" panel)

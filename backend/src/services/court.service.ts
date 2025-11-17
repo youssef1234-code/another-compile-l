@@ -69,6 +69,8 @@ const results: CourtAvailabilityRow[] = [];
         endUtc:   DateTime.fromJSDate(b.endDate).toUTC().toISO()!,
         status: b.status,
         byMe: userId === me,
+        studentName: (b as any).studentName,
+        studentGucId: (b as any).studentGucId,
       };
     });
 

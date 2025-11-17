@@ -109,7 +109,7 @@ function DayCell({ cell, onEventClick, onCreateSession }: DayCellProps) {
           </div>
           
           {/* Add Session Button - Shows on hover */}
-          {!readOnly && onCreateSession && cell.currentMonth && isHovered && (
+          {onCreateSession && cell.currentMonth && isHovered && (
             <button
               onClick={(e) => {
                 e.stopPropagation();

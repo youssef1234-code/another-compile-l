@@ -527,6 +527,8 @@ export const CourtBookedSlotSchema = z.object({
   endUtc: z.string().datetime({ offset: true }),
   status: CourtReservationStatus.or(z.string()), // allow backend to send custom statuses if needed
   byMe: z.boolean(),
+  studentName: z.string().optional(),
+  studentGucId: z.string().optional(),
 });
 export type CourtBookedSlot = z.infer<typeof CourtBookedSlotSchema>;
 
