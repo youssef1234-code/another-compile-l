@@ -154,12 +154,17 @@ export function FeedbackSection({ eventId, userId, userRole, eventStartDate, eve
   const totalPages = feedbackData?.totalPages || 1;
   const hasMyFeedback = !!myFeedback;
   
-  // Check if event has ended (use endDate or fallback to startDate)
+  // Check if today > event end day (feedback only starting from the day after event ends)
   const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today at 00:00:00
   const eventEndDateToCheck = eventEndDate || eventStartDate;
-  const hasEventEnded = eventEndDateToCheck ? new Date(eventEndDateToCheck) <= now : true;
+  const eventEndDay = eventEndDateToCheck ? (() => {
+    const date = new Date(eventEndDateToCheck);
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  })() : null;
+  const hasEventEnded = eventEndDay ? today > eventEndDay : false;
   
-  // Only allow student/staff/ta/professor to add feedback after event ends
+  // Only allow student/staff/ta/professor to add feedback starting from the day after event ends
   const allowedFeedbackRoles = ['STUDENT','STAFF','TA','PROFESSOR'];
   const canAddFeedback = userId && !hasMyFeedback && !showForm && allowedFeedbackRoles.includes(userRole || '') && hasEventEnded;
 
@@ -169,6 +174,11 @@ export function FeedbackSection({ eventId, userId, userRole, eventStartDate, eve
   const distribution = ratingStats?.ratingDistribution || [];
   const totalRatings = ratingStats?.totalRatings || 0;
   const maxCount = Math.max(...distribution.map(d => d.count), 1);
+
+  // Don't show feedback section at all until the day after event ends
+  if (!hasEventEnded) {
+    return null;
+  }
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -192,16 +202,31 @@ export function FeedbackSection({ eventId, userId, userRole, eventStartDate, eve
             </div>
           ) : totalRatings === 0 ? (
             <div className="flex items-center gap-8 flex-wrap">
-              <div className="flex flex-col items-center">
+              {/* Average on the left */}
+              <div className="flex flex-col items-center min-w-[120px]">
                 <div className="text-4xl font-bold">–</div>
                 <RatingStars rating={0} size="md" readonly />
                 <p className="text-sm text-muted-foreground mt-1">
                   No ratings yet. Be the first!
                 </p>
               </div>
+              {/* Distribution stacked to the right (all zeros) */}
+              <div className="flex flex-col gap-2 flex-1 min-w-[220px]">
+                {[5,4,3,2,1].map(r => {
+                  return (
+                    <div key={r} className="flex items-center gap-3">
+                      <span className="text-sm w-10 text-right">{r} star</span>
+                      <div className="flex-1 h-3 bg-muted rounded overflow-hidden">
+                        {/* Empty bar */}
+                      </div>
+                      <span className="text-sm w-8 text-right tabular-nums text-muted-foreground">0</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : (
-            <div className="flex items-start gap-8 flex-wrap">
+            <div className="flex items-center gap-8 flex-wrap">
               {/* Average on the left */}
               <div className="flex flex-col items-center min-w-[120px]">
                 <div className="text-4xl font-bold">{average?.toFixed(1)}</div>

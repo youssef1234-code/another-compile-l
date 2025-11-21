@@ -56,13 +56,17 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       });
     }
 
-    // Check if event has ended (feedback only after event ends)
+    // Check if event has ended (feedback only starting from the day after event ends)
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today at 00:00:00
     const eventEndDate = event.endDate || event.startDate; // Fallback to startDate if no endDate
-    if (eventEndDate > now) {
+    const eventEndDay = new Date(eventEndDate.getFullYear(), eventEndDate.getMonth(), eventEndDate.getDate()); // Event end day at 00:00:00
+    
+    // Only allow feedback starting from the day after the event ends
+    if (today <= eventEndDay) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'Cannot add feedback for events that have not ended yet. Please wait until after the event concludes.',
+        message: 'Cannot add feedback until the day after the event ends. Please wait until tomorrow.',
       });
     }
 

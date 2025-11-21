@@ -277,8 +277,11 @@ export function EventDetailsPage() {
                 {typeConfig.label}
               </Badge>
               <Badge 
-                variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"} 
-                className="shadow-lg backdrop-blur-md bg-background/90 border border-white/20"
+                variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"}
+                className={cn(
+                  "shadow-lg backdrop-blur-md border border-white/20",
+                  hasStarted && !hasEnded && "text-white dark:text-white"
+                )}
               >
                 {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
               </Badge>
