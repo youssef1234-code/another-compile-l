@@ -849,10 +849,8 @@ export type GetFeedbackByEventInput = z.infer<typeof GetFeedbackByEventSchema>;
 // ============================================================================
 
 export const LoyaltyRequestStatus = {
-  PENDING: "pending",
   CANCELLED: "cancelled",
-  ACCEPTED: "accepted",
-  REJECTED: "rejected",
+  ACTIVE: "active",
 } as const;
 
 export type LoyaltyRequestStatus = (typeof LoyaltyRequestStatus)[keyof typeof LoyaltyRequestStatus];
@@ -892,42 +890,9 @@ export const CancelLoyaltySchema = z.object({
 export type CancelLoyaltyInput = z.infer<typeof CancelLoyaltySchema>;
 
 /**
- * Admin review loyalty request schema
- * Admin can accept or reject a pending loyalty application
+ * Note: Admin review schemas removed - loyalty applications are now auto-accepted
+ * ReviewLoyaltyRequestSchema and GetPendingLoyaltyRequestsSchema no longer needed
  */
-export const ReviewLoyaltyRequestSchema = z.object({
-  requestId: z.string().min(1, "Request ID is required"),
-  action: z.enum(["accept", "reject"], {
-    errorMap: () => ({ message: "Action must be either 'accept' or 'reject'" }),
-  }),
-  rejectionReason: z
-    .string()
-    .min(10, "Rejection reason must be at least 10 characters")
-    .max(500, "Rejection reason cannot exceed 500 characters")
-    .trim()
-    .optional(),
-}).superRefine((data, ctx) => {
-  // If action is reject, rejectionReason is required
-  if (data.action === "reject" && !data.rejectionReason) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Rejection reason is required when rejecting an application",
-      path: ["rejectionReason"],
-    });
-  }
-});
-
-export type ReviewLoyaltyRequestInput = z.infer<typeof ReviewLoyaltyRequestSchema>;
-
-/**
- * Get all pending loyalty requests schema (Admin only)
- */
-export const GetPendingLoyaltyRequestsSchema = z.object({
-  page: z.number().int().min(1).optional().default(1),
-  limit: z.number().int().min(1).max(100).optional().default(20),
-});
-
-export type GetPendingLoyaltyRequestsInput = z.infer<typeof GetPendingLoyaltyRequestsSchema>;
 
 // ============================================================================
 // NOTIFICATION SCHEMAS

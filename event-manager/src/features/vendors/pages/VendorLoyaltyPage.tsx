@@ -24,7 +24,7 @@ import type { ApplyToLoyaltyInput } from '@event-manager/shared';
 interface LoyaltyRequest {
   id: string;
   vendorId: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+  status: 'active' | 'cancelled';
   discountRate: number;
   promoCode: string;
   terms: string;
@@ -54,14 +54,13 @@ export function VendorLoyaltyPage() {
   }) as { data: LoyaltyRequest[] | undefined; isLoading: boolean; refetch: () => void };
 
   // Check vendor status
-  const hasPendingRequest = vendorRequests?.some((r: any) => r.status === 'pending') || false;
-  const hasAcceptedRequest = vendorRequests?.some((r: any) => r.status === 'accepted') || false;
-  const canApply = !hasPendingRequest && !hasAcceptedRequest;
+  const hasActiveRequest = vendorRequests?.some((r: any) => r.status === 'active') || false;
+  const canApply = !hasActiveRequest;
 
   // Mutations
   const applyMutation = trpc.loyalty.applyToProgram.useMutation({
     onSuccess: () => {
-      toast.success('Application submitted successfully! Waiting for admin review.');
+      toast.success('Application submitted and activated successfully!');
       refetchRequests();
     },
     onError: (error) => {
@@ -114,31 +113,8 @@ export function VendorLoyaltyPage() {
           </div>
         ) : (
           <>
-            {/* Show rejection alert only if most recent is rejected */}
-            {vendorRequests && vendorRequests.length > 0 && vendorRequests[0].status === 'rejected' && (
-              <Alert variant="destructive" className="mb-6">
-                <XCircle className="h-4 w-4" />
-                <AlertTitle>Previous Application Rejected</AlertTitle>
-                <AlertDescription>
-                  <div className="space-y-2 mt-2">
-                    <div>
-                      Your last application (submitted {new Date(vendorRequests[0].createdAt).toLocaleDateString()}) was rejected.
-                    </div>
-                    {vendorRequests[0].rejectionReason && (
-                      <div className="p-2 rounded bg-destructive/10 text-sm">
-                        <span className="font-medium">Reason:</span> {vendorRequests[0].rejectionReason}
-                      </div>
-                    )}
-                    <div className="text-sm">
-                      You can submit a new application with updated information below.
-                    </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-
             {/* Current Status */}
-            {vendorRequests && vendorRequests.length > 0 && (hasPendingRequest || hasAcceptedRequest) && (
+            {vendorRequests && vendorRequests.length > 0 && hasActiveRequest && (
               <VendorLoyaltyStatus
                 requests={vendorRequests as any}
                 onCancel={handleCancel}
@@ -173,31 +149,36 @@ export function VendorLoyaltyPage() {
                   {(vendorRequests as any[]).map((request: any, index: number) => {
                     const getStatusIcon = () => {
                       switch (request.status) {
-                        case 'rejected':
-                          return <XCircle className="h-5 w-5 text-destructive" />;
                         case 'cancelled':
                           return <Ban className="h-5 w-5 text-muted-foreground" />;
-                        case 'pending':
-                          return <Clock className="h-5 w-5 text-amber-500" />;
-                        case 'accepted':
+                        case 'active':
                           return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
                       }
                     };
 
                     const getStatusLabel = () => {
                       switch (request.status) {
-                        case 'rejected':
-                          return 'Rejected';
                         case 'cancelled':
                           return 'Cancelled';
-                        case 'pending':
-                          return 'Pending';
-                        case 'accepted':
-                          return 'Accepted';
+                        case 'active':
+                          return 'Active';
                       }
                     };
 
-                    const isCurrent = index === 0 && (request.status === 'pending' || request.status === 'accepted');
+                    const getStatusBadge = () => {
+                      switch (request.status) {
+                        case 'cancelled':
+                          return null;
+                        case 'active':
+                          return (
+                            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
+                              Active
+                            </Badge>
+                          );
+                      }
+                    };
+
+                    const isCurrent = index === 0 && request.status === 'active';
 
                     return (
                       <div
@@ -212,12 +193,12 @@ export function VendorLoyaltyPage() {
                           <div className="flex items-center gap-2">
                             {getStatusIcon()}
                             <div className="font-medium">{getStatusLabel()}</div>
-                            {isCurrent && (
-                              <Badge variant="secondary" className="text-xs">Current</Badge>
-                            )}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {new Date(request.createdAt).toLocaleDateString()}
+                          <div className="flex items-center gap-3">
+                            {getStatusBadge()}
+                            <div className="text-sm text-muted-foreground">
+                              {new Date(request.createdAt).toLocaleDateString()}
+                            </div>
                           </div>
                         </div>
 
@@ -238,18 +219,6 @@ export function VendorLoyaltyPage() {
                             {request.terms}
                           </div>
                         </div>
-
-                        {request.rejectionReason && (
-                          <div className="text-sm p-2 rounded bg-destructive/10 text-destructive">
-                            <span className="font-medium">Rejection Reason:</span> {request.rejectionReason}
-                          </div>
-                        )}
-
-                        {request.reviewedAt && (
-                          <div className="text-xs text-muted-foreground">
-                            Reviewed: {new Date(request.reviewedAt).toLocaleString()}
-                          </div>
-                        )}
                       </div>
                     );
                   })}

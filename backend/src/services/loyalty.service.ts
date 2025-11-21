@@ -17,7 +17,7 @@ import { BaseService } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { ILoyaltyRequest } from '../models/loyalty-request.model';
 import type { ILoyaltyPartner } from '../models/loyalty-partner.model';
-import type { ApplyToLoyaltyInput, ReviewLoyaltyRequestInput } from '@event-manager/shared';
+import type { ApplyToLoyaltyInput } from '@event-manager/shared';
 import { Types } from 'mongoose';
 
 export class LoyaltyService extends BaseService<ILoyaltyRequest, LoyaltyRequestRepository> {
@@ -43,8 +43,8 @@ export class LoyaltyService extends BaseService<ILoyaltyRequest, LoyaltyRequestR
    * 
    * Business Rules:
    * - Vendor cannot apply if they are currently a loyalty partner
-   * - Vendor cannot apply if they have a pending request
-   * - Can re-apply after being rejected or after cancelling
+   * - Applications are auto-activated (no admin review needed)
+   * - Can re-apply after cancelling
    * - Promo code is automatically converted to uppercase
    * 
    * @param vendorId - The vendor's user ID
@@ -64,22 +64,30 @@ export class LoyaltyService extends BaseService<ILoyaltyRequest, LoyaltyRequestR
       });
     }
 
-    // Check if vendor has a pending request
-    const pendingRequest = await this.repository.findByVendorAndStatus(vendorId, 'pending');
-    if (pendingRequest) {
+    // Check if vendor has an active request
+    const activeRequest = await this.repository.findByVendorAndStatus(vendorId, 'active');
+    if (activeRequest) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'You already have a pending application. Please wait for it to be reviewed or cancel it before submitting a new one.',
+        message: 'You already have an active loyalty program participation. Please cancel it before applying again.',
       });
     }
 
-    // Create new loyalty request
+    // Create new loyalty request with auto-active status
     const loyaltyRequest = await this.repository.create({
       vendor: new Types.ObjectId(vendorId),
       discountRate: input.discountRate,
       promoCode: input.promoCode.toUpperCase(), // Ensure uppercase
       terms: input.terms,
-      status: 'pending',
+      status: 'active', // Auto-activate
+    });
+
+    // Automatically create partner record
+    await this.partnerRepository.create({
+      vendor: new Types.ObjectId(vendorId),
+      discountRate: input.discountRate,
+      promoCode: input.promoCode.toUpperCase(),
+      terms: input.terms,
     });
 
     return loyaltyRequest;
@@ -89,11 +97,9 @@ export class LoyaltyService extends BaseService<ILoyaltyRequest, LoyaltyRequestR
    * Cancel participation in the loyalty program (Story #71)
    * 
    * Business Rules:
-   * - If vendor has accepted request:
+   * - If vendor has active request:
    *   - Remove from loyalty_partners collection
    *   - Mark request as cancelled in loyalty_requests
-   * - If vendor has pending request:
-   *   - Mark request as cancelled
    * - If vendor has no active participation:
    *   - Throw error
    * 
@@ -111,8 +117,8 @@ export class LoyaltyService extends BaseService<ILoyaltyRequest, LoyaltyRequestR
       });
     }
 
-    // If accepted, remove from partners collection
-    if (activeRequest.status === 'accepted') {
+    // If active, remove from partners collection
+    if (activeRequest.status === 'active') {
       const isPartner = await this.partnerRepository.isPartner(vendorId);
       
       if (isPartner) {
@@ -168,144 +174,9 @@ export class LoyaltyService extends BaseService<ILoyaltyRequest, LoyaltyRequestR
   }
 
   /**
-   * Admin: Review loyalty request (Accept or Reject)
-   * 
-   * Business Rules:
-   * - Only pending requests can be reviewed
-   * - If accepted: create partner record and mark request as accepted
-   * - If rejected: mark request as rejected with reason
-   * - Track who reviewed and when
-   * 
-   * @param adminId - The admin's user ID
-   * @param input - Review decision (accept/reject) and optional rejection reason
-   * @returns Updated loyalty request
+   * Note: Admin approval workflow removed - applications are now auto-activated
+   * Vendors are automatically activated in the loyalty program when they apply
    */
-  async reviewLoyaltyRequest(
-    adminId: string,
-    input: ReviewLoyaltyRequestInput
-  ): Promise<ILoyaltyRequest> {
-    // Find the request
-    const request = await this.repository.findById(input.requestId);
-
-    if (!request) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Loyalty request not found.',
-      });
-    }
-
-    // Only pending requests can be reviewed
-    if (request.status !== 'pending') {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `This request has already been ${request.status}. Only pending requests can be reviewed.`,
-      });
-    }
-
-    const now = new Date();
-
-    if (input.action === 'accept') {
-      // Check if vendor is already a partner (shouldn't happen, but safety check)
-      const vendorId = (request as any).vendorId || request.vendor?.toString();
-      const existingPartner = await this.partnerRepository.findByVendor(vendorId);
-      
-      if (existingPartner) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'This vendor is already a loyalty partner.',
-        });
-      }
-
-      // Create partner record
-      await this.partnerRepository.create({
-        vendor: new Types.ObjectId(vendorId),
-        discountRate: request.discountRate,
-        promoCode: request.promoCode,
-        terms: request.terms,
-        joinedAt: now,
-      });
-
-      // Update request status to accepted
-      const updatedRequest = await this.repository.update(request.id, {
-        status: 'accepted',
-        reviewedBy: new Types.ObjectId(adminId),
-        reviewedAt: now,
-      });
-
-      if (!updatedRequest) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to update loyalty request.',
-        });
-      }
-
-      return updatedRequest;
-    } else {
-      // Reject the request
-      const updatedRequest = await this.repository.update(request.id, {
-        status: 'rejected',
-        rejectionReason: input.rejectionReason,
-        reviewedBy: new Types.ObjectId(adminId),
-        reviewedAt: now,
-      });
-
-      if (!updatedRequest) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to update loyalty request.',
-        });
-      }
-
-      return updatedRequest;
-    }
-  }
-
-  /**
-   * Admin: Get all pending loyalty requests
-   * 
-   * @param page - Page number for pagination
-   * @param limit - Number of items per page
-   * @returns Paginated list of pending requests
-   */
-  async getPendingRequests(
-    page: number = 1,
-    limit: number = 20
-  ): Promise<{ requests: ILoyaltyRequest[]; total: number; page: number; totalPages: number }> {
-    const { requests, total } = await this.repository.findPendingPaginated(page, limit);
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      requests,
-      total,
-      page,
-      totalPages,
-    };
-  }
-
-  /**
-   * Admin: Get all loyalty requests (all statuses)
-   * 
-   * @param options - Filter and pagination options
-   * @returns Paginated list of all requests
-   */
-  async getAllRequests(options?: {
-    status?: 'pending' | 'cancelled' | 'accepted' | 'rejected';
-    page?: number;
-    limit?: number;
-  }): Promise<{ requests: ILoyaltyRequest[]; total: number; page: number; totalPages: number }> {
-    const page = options?.page || 1;
-    const limit = options?.limit || 20;
-
-    const { requests, total } = await this.repository.findAllRequests(options);
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      requests,
-      total,
-      page,
-      totalPages,
-    };
-  }
 }
 
 export const loyaltyService = new LoyaltyService(

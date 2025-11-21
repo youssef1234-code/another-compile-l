@@ -121,7 +121,7 @@ const navigationConfig: NavItem[] = [
     title: "Loyalty Program",
     url: ROUTES.LOYALTY_PROGRAM,
     icon: Trophy,
-    roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
+    roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "ADMIN", "EVENT_OFFICE"],
   },
   {
     title: "Vendors",
@@ -140,12 +140,6 @@ const navigationConfig: NavItem[] = [
         title: "Manage Requests",
         url: ROUTES.VENDOR_REQUESTS,
         icon: Clipboard,
-        roles: ["ADMIN", "EVENT_OFFICE"],
-      },      
-      { 
-        title: "Loyalty Program", 
-        url: ROUTES.ADMIN_LOYALTY, 
-        icon: Trophy,
         roles: ["ADMIN", "EVENT_OFFICE"],
       },
     ],

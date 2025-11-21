@@ -8,17 +8,15 @@
  */
 
 import mongoose, { Schema } from 'mongoose';
-import { IBaseDocument, createBaseSchema } from './base.model';
+import type { IBaseDocument } from './base.model';
+import { createBaseSchema } from './base.model';
 
 export interface ILoyaltyRequest extends IBaseDocument {
   vendor: mongoose.Types.ObjectId;
   discountRate: number; // Percentage (e.g., 10 for 10%)
   promoCode: string;
   terms: string; // Terms and conditions
-  status: 'pending' | 'cancelled' | 'accepted' | 'rejected';
-  rejectionReason?: string; // Admin can provide reason for rejection
-  reviewedBy?: mongoose.Types.ObjectId; // Admin who reviewed the request
-  reviewedAt?: Date; // When the request was reviewed
+  status: 'active' | 'cancelled';
 }
 
 const loyaltyRequestSchema = createBaseSchema<ILoyaltyRequest>(
@@ -49,23 +47,10 @@ const loyaltyRequestSchema = createBaseSchema<ILoyaltyRequest>(
     },
     status: {
       type: String,
-      enum: ['pending', 'cancelled', 'accepted', 'rejected'],
-      default: 'pending',
+      enum: ['active', 'cancelled'],
+      default: 'active',
+      required: true,
       index: true,
-    },
-    rejectionReason: {
-      type: String,
-      required: false,
-      trim: true,
-    },
-    reviewedBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: false,
-    },
-    reviewedAt: {
-      type: Date,
-      required: false,
     },
   },
   {

@@ -64,7 +64,6 @@ import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
 import {
   CommentsPage,
   ReportsPage,
-  AdminLoyaltyManagementPage,
 } from "@/features/admin/pages";
 
 // Events - Back Office
@@ -307,11 +306,7 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.ADMIN_LOYALTY,
-        element: (
-          <AdminRoute>
-            <AdminLoyaltyManagementPage />
-          </AdminRoute>
-        ),
+        element: <LoyaltyProgramPage />,
       },
 
       // Events Office Routes

@@ -95,13 +95,12 @@ export class LoyaltyRequestRepository extends BaseRepository<ILoyaltyRequest> {
 
   /**
    * Find active request by vendor ID
-   * Active means status is 'pending' or 'accepted'
    */
   async findActiveByVendor(vendorId: string): Promise<ILoyaltyRequest | null> {
     const doc = await this.model
       .findOne({
         vendor: new Types.ObjectId(vendorId),
-        status: { $in: ['pending', 'accepted'] },
+        status: 'active',
       })
       .lean()
       .exec();
@@ -127,7 +126,7 @@ export class LoyaltyRequestRepository extends BaseRepository<ILoyaltyRequest> {
    */
   async findByVendorAndStatus(
     vendorId: string,
-    status: 'pending' | 'cancelled' | 'accepted'
+    status: 'active' | 'cancelled'
   ): Promise<ILoyaltyRequest | null> {
     const doc = await this.model
       .findOne({
@@ -141,79 +140,8 @@ export class LoyaltyRequestRepository extends BaseRepository<ILoyaltyRequest> {
   }
 
   /**
-   * Get all pending requests (for admin review)
+   * Note: Admin review methods removed - applications are now auto-activated
    */
-  async findPending(): Promise<ILoyaltyRequest[]> {
-    const docs = await this.model
-      .find({ status: 'pending' })
-      .populate('vendor', 'firstName lastName email companyName')
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
-    
-    return docs.map(doc => transformLoyaltyRequest(doc) as ILoyaltyRequest | null).filter((doc): doc is ILoyaltyRequest => doc !== null);
-  }
-
-  /**
-   * Get paginated pending requests (for admin review)
-   */
-  async findPendingPaginated(
-    page: number = 1,
-    limit: number = 20
-  ): Promise<{ requests: ILoyaltyRequest[]; total: number }> {
-    const skip = (page - 1) * limit;
-
-    const [docs, total] = await Promise.all([
-      this.model
-        .find({ status: 'pending' })
-        .populate('vendor', 'firstName lastName email companyName')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean()
-        .exec(),
-      this.model.countDocuments({ status: 'pending' }),
-    ]);
-    
-    const requests = docs
-      .map(doc => transformLoyaltyRequest(doc) as ILoyaltyRequest | null)
-      .filter((doc): doc is ILoyaltyRequest => doc !== null);
-
-    return { requests, total };
-  }
-
-  /**
-   * Get all requests (for admin - all statuses)
-   */
-  async findAllRequests(options?: {
-    status?: 'pending' | 'cancelled' | 'accepted' | 'rejected';
-    page?: number;
-    limit?: number;
-  }): Promise<{ requests: ILoyaltyRequest[]; total: number }> {
-    const { status, page = 1, limit = 20 } = options || {};
-    const skip = (page - 1) * limit;
-
-    const filter = status ? { status } : {};
-
-    const [docs, total] = await Promise.all([
-      this.model
-        .find(filter)
-        .populate('vendor', 'firstName lastName email companyName')
-        .populate('reviewedBy', 'firstName lastName email')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean()
-        .exec(),
-      this.model.countDocuments(filter),
-    ]);
-    
-    const requests = docs
-      .map(doc => transformLoyaltyRequest(doc) as ILoyaltyRequest | null)
-      .filter((doc): doc is ILoyaltyRequest => doc !== null);
-
-    return { requests, total };
-  }
 }
 
 export const loyaltyRequestRepository = new LoyaltyRequestRepository();

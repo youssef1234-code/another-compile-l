@@ -17,18 +17,14 @@
 
 import {
   protectedProcedure,
-  adminProcedure,
   router,
 } from '../trpc/trpc';
 import { loyaltyService } from '../services/loyalty.service';
 import {
   ApplyToLoyaltySchema,
   CancelLoyaltySchema,
-  ReviewLoyaltyRequestSchema,
-  GetPendingLoyaltyRequestsSchema,
 } from '@event-manager/shared';
 import { TRPCError } from '@trpc/server';
-import { z } from 'zod';
 
 /**
  * Ensure user is a vendor
@@ -96,48 +92,5 @@ export const loyaltyRouter = router({
   getVendorRequests: vendorProcedure
     .query(async ({ ctx }) => {
       return loyaltyService.getMyLoyaltyStatus(ctx.user!.id);
-    }),
-
-  /**
-   * Admin: Review loyalty request (Accept or Reject)
-   * 
-   * Allows admins to approve or reject pending vendor applications
-   * - Accept: Creates partner record, marks request as accepted
-   * - Reject: Marks request as rejected with reason
-   */
-  reviewRequest: adminProcedure
-    .input(ReviewLoyaltyRequestSchema)
-    .mutation(async ({ ctx, input }) => {
-      return loyaltyService.reviewLoyaltyRequest(ctx.user!.id, input);
-    }),
-
-  /**
-   * Admin: Get pending loyalty requests
-   * 
-   * Returns paginated list of all pending vendor applications
-   * awaiting admin review
-   */
-  getPendingRequests: adminProcedure
-    .input(GetPendingLoyaltyRequestsSchema)
-    .query(async ({ input }) => {
-      return loyaltyService.getPendingRequests(input.page, input.limit);
-    }),
-
-  /**
-   * Admin: Get all loyalty requests
-   * 
-   * Returns paginated list of all loyalty requests
-   * Can filter by status
-   */
-  getAllRequests: adminProcedure
-    .input(
-      z.object({
-        status: z.enum(['pending', 'cancelled', 'accepted', 'rejected']).optional(),
-        page: z.number().int().min(1).optional().default(1),
-        limit: z.number().int().min(1).max(100).optional().default(20),
-      })
-    )
-    .query(async ({ input }) => {
-      return loyaltyService.getAllRequests(input);
     }),
 });
