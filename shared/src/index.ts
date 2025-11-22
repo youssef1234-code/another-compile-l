@@ -845,6 +845,56 @@ export const GetFeedbackByEventSchema = z.object({
 export type GetFeedbackByEventInput = z.infer<typeof GetFeedbackByEventSchema>;
 
 // ============================================================================
+// LOYALTY PROGRAM SCHEMAS
+// ============================================================================
+
+export const LoyaltyRequestStatus = {
+  CANCELLED: "cancelled",
+  ACTIVE: "active",
+} as const;
+
+export type LoyaltyRequestStatus = (typeof LoyaltyRequestStatus)[keyof typeof LoyaltyRequestStatus];
+
+/**
+ * Apply to loyalty program schema (Story #70)
+ * Vendor submits application to join the GUC loyalty program
+ */
+export const ApplyToLoyaltySchema = z.object({
+  discountRate: z
+    .number()
+    .min(0, "Discount rate cannot be negative")
+    .max(100, "Discount rate cannot exceed 100%"),
+  promoCode: z
+    .string()
+    .min(1, "Promo code is required")
+    .max(50, "Promo code cannot exceed 50 characters")
+    .trim()
+    .transform(val => val.toUpperCase()),
+  terms: z
+    .string()
+    .min(10, "Terms and conditions must be at least 10 characters")
+    .max(2000, "Terms and conditions cannot exceed 2000 characters")
+    .trim(),
+});
+
+export type ApplyToLoyaltyInput = z.infer<typeof ApplyToLoyaltySchema>;
+
+/**
+ * Cancel loyalty participation schema (Story #71)
+ * Vendor cancels their participation in the loyalty program
+ */
+export const CancelLoyaltySchema = z.object({
+  // No additional fields needed - vendor ID comes from auth context
+});
+
+export type CancelLoyaltyInput = z.infer<typeof CancelLoyaltySchema>;
+
+/**
+ * Note: Admin review schemas removed - loyalty applications are now auto-accepted
+ * ReviewLoyaltyRequestSchema and GetPendingLoyaltyRequestsSchema no longer needed
+ */
+
+// ============================================================================
 // NOTIFICATION SCHEMAS
 // ============================================================================
 

@@ -14,6 +14,7 @@ import { vendorApplicationRouter } from "./vendor-application.router.js";
 import { courtsRouter } from './courts.router.js';
 import { platformMapRouter } from './platform-map.router.js';
 import { feedbackRouter } from './feedback.router.js';
+import { loyaltyRouter } from './loyalty.router.js';
 
 export const appRouter = router({
   auth: authRouter,
@@ -23,6 +24,7 @@ export const appRouter = router({
   courts: courtsRouter,
   platformMaps: platformMapRouter,
   feedback: feedbackRouter,
+  loyalty: loyaltyRouter,
 
   // Additional routers will be added here as development progresses
   // registrations: registrationsRouter,
