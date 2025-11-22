@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { VendorCard } from "@/features/events/components/VendorCard";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { FeedbackSection } from "@/features/events/components/feedback";
 import { formatValidationErrors } from '@/lib/format-errors';
 import { 
   Edit, 
@@ -277,8 +278,11 @@ export function EventDetailsPage() {
                 {typeConfig.label}
               </Badge>
               <Badge 
-                variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"} 
-                className="shadow-lg backdrop-blur-md bg-background/90 border border-white/20"
+                variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"}
+                className={cn(
+                  "shadow-lg backdrop-blur-md border border-white/20",
+                  hasStarted && !hasEnded && "text-white dark:text-white"
+                )}
               >
                 {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
               </Badge>
@@ -370,6 +374,15 @@ export function EventDetailsPage() {
                 </p>
               </CardContent>
             </Card>
+
+            {/* Feedback Section - Comments & Ratings */}
+            <FeedbackSection 
+              eventId={event.id}
+              userId={user?.id}
+              userRole={user?.role}
+              eventStartDate={event.startDate}
+              eventEndDate={event.endDate}
+            />
 
             {/* Registered Students (EVENT_OFFICE/ADMIN only) */}
             {registrationsData && registrationsData.registrations.length > 0 && (

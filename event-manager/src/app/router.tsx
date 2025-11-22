@@ -43,6 +43,7 @@ import {
   BazaarsListPage,
   VendorApplicationsPage,
   LoyaltyProgramPage,
+  VendorLoyaltyPage,
   VendorRequestsPage,
   PlatformBoothApplicationPage,
 } from "@/features/vendors/pages";
@@ -87,6 +88,7 @@ import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 import {
   ProtectedRoute,
   AdminRoute,
+  VendorRoute,
   EventOfficeRoute,
   EventManagementRoute
 } from "@/components/auth/ProtectedRoute";
@@ -168,6 +170,10 @@ export const router = createBrowserRouter([
         element: <FavoritesPage />,
       },
       {
+        path: ROUTES.LOYALTY_PROGRAM,
+        element: <LoyaltyProgramPage />,
+      },
+      {
         path: ROUTES.CREATE_WORKSHOP,
         element: <Navigate to={ROUTES.ADMIN_EVENTS} replace />, // Redirects to BackOfficeEventsPage - use Create button
       },
@@ -244,16 +250,16 @@ export const router = createBrowserRouter([
         element: <VendorApplicationsPage />,
       },
       {
-        path: ROUTES.LOYALTY_PROGRAM,
-        element: <LoyaltyProgramPage />,
-      },
-      {
-        path: ROUTES.VENDOR_APPLICATIONS,
-        element: <VendorApplicationsPage />,
-      },
-      {
         path: ROUTES.APPLY_PLATFORM_BOOTH,
         element: <PlatformBoothApplicationPage />,
+      },
+      {
+        path: ROUTES.VENDOR_LOYALTY,
+        element: (
+          <VendorRoute>
+            <VendorLoyaltyPage />
+          </VendorRoute>
+        ),
       },
       {
         path: ROUTES.VENDOR_REQUESTS,
@@ -330,6 +336,10 @@ export const router = createBrowserRouter([
             <ReportsPage />
           </AdminRoute>
         ),
+      },
+      {
+        path: ROUTES.ADMIN_LOYALTY,
+        element: <LoyaltyProgramPage />,
       },
 
       // Events Office Routes

@@ -927,14 +927,114 @@ export type WalletBalance = z.infer<typeof WalletBalanceSchema>;
 // FEEDBACK SCHEMAS
 // ============================================================================
 
-export const CreateFeedbackSchema = z.object({
-  eventId: z.string(),
-  rating: z.number().int().min(1).max(5),
-  comment: z.string().max(1000).optional(),
-  isAnonymous: z.boolean().default(false),
+export const FeedbackType = {
+  RATING: "rating",
+  COMMENT: "comment",
+  BOTH: "both",
+} as const;
+
+export type FeedbackType = (typeof FeedbackType)[keyof typeof FeedbackType];
+
+/**
+ * Base feedback schema object
+ * Note: Type field is NOT sent by frontend - backend determines it automatically based on provided fields
+ */
+const BaseFeedbackSchema = z.object({
+  eventId: z.string().min(1, "Event ID is required"),
+  rating: z.number().int().min(1).max(5).optional(),
+  comment: z.string().min(1).max(2000).optional(),
 });
 
+/**
+ * Create feedback schema
+ * Frontend provides rating and/or comment (at least one required)
+ * Backend automatically determines and sets the type field before saving
+ */
+export const CreateFeedbackSchema = BaseFeedbackSchema.refine(
+  (data) => data.rating != null || data.comment != null,
+  {
+    message: "Please provide either a rating, a comment, or both",
+    path: ["rating"],
+  }
+);
+
 export type CreateFeedbackInput = z.infer<typeof CreateFeedbackSchema>;
+
+/**
+ * Update feedback schema
+ * Allows partial updates of rating and/or comment
+ * - Send null or empty string to remove a field
+ * - Omit a field to keep existing value
+ * Backend recalculates and updates the type field based on final values
+ */
+export const UpdateFeedbackSchema = z.object({
+  eventId: z.string().min(1, "Event ID is required"),
+  rating: z.number().int().min(1).max(5).nullable().optional(),
+  comment: z.string().max(2000).nullable().optional(),
+});
+
+export type UpdateFeedbackInput = z.infer<typeof UpdateFeedbackSchema>;
+
+/**
+ * Get feedback by event schema
+ */
+export const GetFeedbackByEventSchema = z.object({
+  eventId: z.string().min(1, "Event ID is required"),
+  page: z.number().int().min(1).optional().default(1),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+});
+
+export type GetFeedbackByEventInput = z.infer<typeof GetFeedbackByEventSchema>;
+
+// ============================================================================
+// LOYALTY PROGRAM SCHEMAS
+// ============================================================================
+
+export const LoyaltyRequestStatus = {
+  CANCELLED: "cancelled",
+  ACTIVE: "active",
+} as const;
+
+export type LoyaltyRequestStatus = (typeof LoyaltyRequestStatus)[keyof typeof LoyaltyRequestStatus];
+
+/**
+ * Apply to loyalty program schema (Story #70)
+ * Vendor submits application to join the GUC loyalty program
+ */
+export const ApplyToLoyaltySchema = z.object({
+  discountRate: z
+    .number()
+    .min(0, "Discount rate cannot be negative")
+    .max(100, "Discount rate cannot exceed 100%"),
+  promoCode: z
+    .string()
+    .min(1, "Promo code is required")
+    .max(50, "Promo code cannot exceed 50 characters")
+    .trim()
+    .transform(val => val.toUpperCase()),
+  terms: z
+    .string()
+    .min(10, "Terms and conditions must be at least 10 characters")
+    .max(2000, "Terms and conditions cannot exceed 2000 characters")
+    .trim(),
+});
+
+export type ApplyToLoyaltyInput = z.infer<typeof ApplyToLoyaltySchema>;
+
+/**
+ * Cancel loyalty participation schema (Story #71)
+ * Vendor cancels their participation in the loyalty program
+ */
+export const CancelLoyaltySchema = z.object({
+  // No additional fields needed - vendor ID comes from auth context
+});
+
+export type CancelLoyaltyInput = z.infer<typeof CancelLoyaltySchema>;
+
+/**
+ * Note: Admin review schemas removed - loyalty applications are now auto-accepted
+ * ReviewLoyaltyRequestSchema and GetPendingLoyaltyRequestsSchema no longer needed
+ */
 
 // ============================================================================
 // NOTIFICATION SCHEMAS
@@ -1072,10 +1172,19 @@ export interface Feedback {
   id: string;
   eventId: string;
   userId: string;
-  rating: number;
+  type: "rating" | "comment" | "both";
+  rating?: number;
   comment?: string;
-  isAnonymous: boolean;
+  isEdited?: boolean; // Flag to show if feedback was edited after creation
   createdAt: Date;
+  updatedAt: Date;
+  // Populated fields
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+  };
 }
 
 // ============================================================================
