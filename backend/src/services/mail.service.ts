@@ -76,6 +76,13 @@ export interface PaymentReceiptEmailData {
   paymentDate: Date;
 }
 
+export interface CommentDeletedWarningEmailData {
+  name: string;
+  comment: string;
+  eventName: string;
+  deletedAt: string;
+}
+
 /**
  * Abstract Mail Service Class
  */
@@ -289,6 +296,27 @@ export abstract class BaseMailService {
     console.log(`📧 Sending custom email to: ${email}`);
     
     this.saveEmailToLogs('custom', email, subject, html);
+    
+    await this.sendMail({
+      to: email,
+      subject,
+      html,
+    });
+  }
+
+  /**
+   * Send comment deleted warning email (Story #21)
+   * Notifies user when their comment was deleted by admin for being inappropriate
+   */
+  async sendCommentDeletedWarningEmail(
+    email: string,
+    data: CommentDeletedWarningEmailData
+  ): Promise<void> {
+    console.log(`📧 Sending comment deletion warning email to: ${email}`);
+    const html = this.generateCommentDeletedWarningEmailHTML(data);
+    const subject = 'Comment Removed - Another Compile L';
+    
+    this.saveEmailToLogs('comment-deleted-warning', email, subject, html);
     
     await this.sendMail({
       to: email,
@@ -549,7 +577,7 @@ export abstract class BaseMailService {
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background-color: #2456d3; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0;">💳 Payment Receipt</h1>
+            <h1 style="color: white; margin: 0;"> Payment Receipt</h1>
           </div>
           
           <div style="background-color: #f9fafb; padding: 40px; border-radius: 0 0 10px 10px;">
@@ -595,6 +623,92 @@ export abstract class BaseMailService {
             <p>Keep this email for your records.</p>
             <p style="margin-top: 10px;">&copy; ${new Date().getFullYear()} Another Compile L. All rights reserved.</p>
           </div>
+        </body>
+      </html>
+    `;
+  }
+
+  protected generateCommentDeletedWarningEmailHTML(data: CommentDeletedWarningEmailData): string {
+    const { name, comment, eventName, deletedAt } = data;
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5; background-color: #fef2f2;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #991b1b;">⚠️ Comment Removed</h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252;">Hi ${name},</p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252;">
+                        Your comment on "<strong>${eventName}</strong>" has been removed by our moderation team for violating our community guidelines.
+                      </p>
+                      
+                      <!-- Deleted Comment Box -->
+                      <div style="margin: 24px 0; padding: 16px; background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 4px;">
+                        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 600; color: #991b1b; text-transform: uppercase;">Deleted Comment:</p>
+                        <p style="margin: 0; font-size: 14px; line-height: 20px; color: #525252; font-style: italic;">"${comment}"</p>
+                      </div>
+                      
+                      <!-- Warning Notice -->
+                      <div style="margin: 24px 0; padding: 16px; background-color: #fffbeb; border: 1px solid #fbbf24; border-radius: 6px;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #92400e;">⚠️ Why was my comment removed?</p>
+                        <p style="margin: 0; font-size: 14px; line-height: 20px; color: #78350f;">
+                          Comments are removed when they contain inappropriate content, including but not limited to:
+                        </p>
+                        <ul style="margin: 12px 0 0; padding-left: 20px; font-size: 14px; line-height: 20px; color: #78350f;">
+                          <li>Offensive or abusive language</li>
+                          <li>Personal attacks or harassment</li>
+                          <li>Spam or promotional content</li>
+                          <li>Discriminatory or hateful speech</li>
+                        </ul>
+                      </div>
+                      
+                      <!-- Deletion Details -->
+                      <div style="margin: 24px 0; padding: 12px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px;">
+                        <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                          <strong>Event:</strong> ${eventName}<br>
+                          <strong>Deleted At:</strong> ${deletedAt}
+                        </p>
+                      </div>
+                      
+                      <!-- Community Guidelines -->
+                      <p style="margin: 24px 0 0; font-size: 14px; line-height: 20px; color: #525252;">
+                        Please review our community guidelines to ensure your future comments comply with our standards. 
+                        We appreciate your cooperation in maintaining a respectful and positive environment for all users.
+                      </p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5; background-color: #f9fafb;">
+                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        If you believe this was a mistake, please contact our support team.
+                      </p>
+                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
+                        &copy; ${new Date().getFullYear()} Another Compile L
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         </body>
       </html>
     `;

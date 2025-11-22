@@ -43,6 +43,7 @@ import {
   BazaarsListPage,
   VendorApplicationsPage,
   LoyaltyProgramPage,
+  VendorLoyaltyPage,
   VendorRequestsPage,
   PlatformBoothApplicationPage,
 } from "@/features/vendors/pages";
@@ -87,9 +88,13 @@ import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 import {
   ProtectedRoute,
   AdminRoute,
+  VendorRoute,
   EventOfficeRoute,
   EventManagementRoute
 } from "@/components/auth/ProtectedRoute";
+import InsufficientFundsPage from "@/features/payments/pages/InsufficientFundsPage";
+import PaymentSuccessPage from "@/features/payments/pages/PaymentSuccessPage";
+import PaymentPage from "@/features/payments/pages/PaymentPage";
 
 
 export const router = createBrowserRouter([
@@ -165,6 +170,10 @@ export const router = createBrowserRouter([
         element: <FavoritesPage />,
       },
       {
+        path: ROUTES.LOYALTY_PROGRAM,
+        element: <LoyaltyProgramPage />,
+      },
+      {
         path: ROUTES.CREATE_WORKSHOP,
         element: <Navigate to={ROUTES.ADMIN_EVENTS} replace />, // Redirects to BackOfficeEventsPage - use Create button
       },
@@ -201,6 +210,36 @@ export const router = createBrowserRouter([
         element: <EditBazaarPage />,
       },
 
+      // {
+      //   path: ROUTES.EVENT_PAY,
+      //   element: <PaymentChoicePage />,
+      // },
+      // {
+      //   path: "/events/:eventId/registrations/:registrationId/pay",
+      //   element: <PaymentMethodsPage />,
+      // },
+      // {
+      //   path: "/checkout/:paymentId", // << you’re using this shape
+      //   element: <CardCheckoutPage />,
+      // },
+      // {
+      //   path: "/payments/result/:paymentId",
+      //   element: <PaymentResultPage />,
+      // },
+      // payments
+{
+  path: "/checkout/:registrationId",
+  element: <PaymentPage />, // requires auth wrapper if all app is protected
+},
+{
+  path: ROUTES.PAY_SUCCESS,
+  element: <PaymentSuccessPage />,
+},
+{
+  path: ROUTES.PAY_INSUFFICIENT,
+  element: <InsufficientFundsPage />,
+},
+
       // Vendor Routes
       {
         path: ROUTES.BROWSE_BAZAARS,
@@ -211,16 +250,16 @@ export const router = createBrowserRouter([
         element: <VendorApplicationsPage />,
       },
       {
-        path: ROUTES.LOYALTY_PROGRAM,
-        element: <LoyaltyProgramPage />,
-      },
-      {
-        path: ROUTES.VENDOR_APPLICATIONS,
-        element: <VendorApplicationsPage />,
-      },
-      {
         path: ROUTES.APPLY_PLATFORM_BOOTH,
         element: <PlatformBoothApplicationPage />,
+      },
+      {
+        path: ROUTES.VENDOR_LOYALTY,
+        element: (
+          <VendorRoute>
+            <VendorLoyaltyPage />
+          </VendorRoute>
+        ),
       },
       {
         path: ROUTES.VENDOR_REQUESTS,
@@ -297,6 +336,10 @@ export const router = createBrowserRouter([
             <ReportsPage />
           </AdminRoute>
         ),
+      },
+      {
+        path: ROUTES.ADMIN_LOYALTY,
+        element: <LoyaltyProgramPage />,
       },
 
       // Events Office Routes

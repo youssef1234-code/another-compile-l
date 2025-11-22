@@ -13,45 +13,53 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import type { User as EventUser, Registration } from "@event-manager/shared";
+
+import type { Registration, User as EventUser } from "@event-manager/shared";
+
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/store/authStore";
 import { ROUTES } from "@/lib/constants";
+import { formatValidationErrors } from "@/lib/format-errors";
+import { formatDate } from "@/lib/design-system";
+import { cn } from "@/lib/utils";
+
+import { toast } from "react-hot-toast";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { VendorCard } from "@/features/events/components/VendorCard";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { formatValidationErrors } from "@/lib/format-errors";
-import {
-  Edit,
-  Calendar,
-  MapPin,
-  Users,
-  DollarSign,
-  Clock,
-  User,
-  Building2,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Mail,
-  CheckSquare,
-  GraduationCap,
-  Store,
-  Plane,
-  Dumbbell,
-  Heart,
-} from "lucide-react";
-import { formatDate } from "@/lib/design-system";
-import { cn } from "@/lib/utils";
-import { toast } from "react-hot-toast";
 import { EventImageCarousel } from "@/components/ui/event-image-carousel";
+
+import { VendorCard } from "@/features/events/components/VendorCard";
+import { FeedbackSection } from "@/features/events/components/feedback";
+import { RegistrationCTA } from "@/components/RegistrationCTA";
 import { usePageMeta } from "@/components/layout/page-meta-context";
+
+import {
+  AlertCircle,
+  Building2,
+  Calendar,
+  CheckCircle,
+  CheckSquare,
+  Clock,
+  DollarSign,
+  Dumbbell,
+  Edit,
+  GraduationCap,
+  Heart,
+  Mail,
+  MapPin,
+  Plane,
+  Store,
+  User,
+  Users,
+  XCircle,
+} from "lucide-react";
 
 function EventDetailsPageSkeleton() {
   return (
@@ -341,11 +349,12 @@ export function EventDetailsPage() {
                 <TypeIcon className="h-3 w-3 mr-1" />
                 {typeConfig.label}
               </Badge>
-              <Badge
-                variant={
-                  hasEnded ? "secondary" : hasStarted ? "default" : "outline"
-                }
-                className="shadow-lg backdrop-blur-md bg-background/90 border border-white/20"
+              <Badge 
+                variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"}
+                className={cn(
+                  "shadow-lg backdrop-blur-md border border-white/20",
+                  hasStarted && !hasEnded && "text-white dark:text-white"
+                )}
               >
                 {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
               </Badge>
@@ -463,6 +472,15 @@ export function EventDetailsPage() {
                 </p>
               </CardContent>
             </Card>
+
+            {/* Feedback Section - Comments & Ratings */}
+            <FeedbackSection 
+              eventId={event.id}
+              userId={user?.id}
+              userRole={user?.role}
+              eventStartDate={event.startDate}
+              eventEndDate={event.endDate}
+            />
 
             {/* Registered Students (EVENT_OFFICE/ADMIN only) */}
             {registrationsData &&
@@ -595,55 +613,17 @@ export function EventDetailsPage() {
                 </CardContent>
               </Card>
             ) : canRegister ? (
-              <Card className="border-primary shadow-lg">
+              <RegistrationCTA event={event} />
+            ) : user && !hasStarted && (
+              <Card className="border-muted shadow-lg">
                 <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-primary mb-1">
-                        {event.price ? `${event.price} EGP` : "FREE"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {event.capacity
-                          ? `${
-                              event.capacity - event.registeredCount
-                            } spots left`
-                          : "Open registration"}
-                      </p>
-                    </div>
-                    <Button
-                      className="w-full"
-                      size="lg"
-                      onClick={handleRegister}
-                      disabled={isRegistering}
-                    >
-                      {isRegistering ? "Registering..." : "Register Now"}
-                    </Button>
-                    {event.registrationDeadline && (
-                      <p className="text-xs text-center text-muted-foreground">
-                        Register by{" "}
-                        {formatDate(new Date(event.registrationDeadline))}
-                      </p>
-                    )}
+                  <div className="space-y-2 text-center">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {isFull ? "Event is full" : registrationClosed ? "Registration closed" : "Registration not available"}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              user &&
-              !hasStarted && (
-                <Card className="border-muted shadow-lg">
-                  <CardContent className="pt-6">
-                    <div className="space-y-2 text-center">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        {isFull
-                          ? "Event is full"
-                          : registrationClosed
-                          ? "Registration closed"
-                          : "Registration not available"}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
             )}
 
             {/* Capacity Progress */}

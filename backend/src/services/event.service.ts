@@ -137,9 +137,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     // Capacity cannot be set below current number of participants
     if (updateData.capacity !== undefined) {
-      const currentRegistrations = await registrationRepository.countByEvent(
-        _id
-      );
+      const currentRegistrations = await registrationRepository.countActiveForCapacity(_id);
       if (updateData.capacity < currentRegistrations) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -162,7 +160,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     }
 
     // Check if there are any active registrations
-    const registrationCount = await registrationRepository.countByEvent(_id);
+    const registrationCount = await registrationRepository.countActiveForCapacity(_id);
     if (registrationCount > 0) {
       throw new TRPCError({
         code: "BAD_REQUEST",
@@ -449,10 +447,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent(
-          (event._id as any).toString()
-        );
-
+        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        
         // For BAZAAR events, populate vendors with their application details
         let vendorDetails = null;
         if (event.type === "BAZAAR") {
@@ -545,10 +541,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Populate registeredCount and vendors (for bazaars) for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent(
-          (event._id as any).toString()
-        );
-
+        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
         // For BAZAAR events, include approved vendor applications
         let vendors = [];
         if (event.type === "BAZAAR") {
@@ -615,9 +608,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent(
-          (event._id as any).toString()
-        );
+        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
         return {
           ...this.formatEvent(event),
           registeredCount,
@@ -636,8 +627,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    */
   async getEventById(id: string): Promise<any> {
     const event = await this.findById(id);
-    const registeredCount = await registrationRepository.countByEvent(id);
-
+    const registeredCount = await registrationRepository.countActiveForCapacity(id);
+    
     // For BAZAAR events, populate vendors with their application details
     let vendorDetails = null;
     if (event.type === "BAZAAR") {
@@ -704,9 +695,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent(
-          (event._id as any).toString()
-        );
+        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
         return {
           ...this.formatEvent(event),
           registeredCount,
@@ -773,9 +762,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent(
-          (event._id as any).toString()
-        );
+        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
         return {
           ...this.formatEvent(event),
           registeredCount,
@@ -815,9 +802,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
-        const registeredCount = await registrationRepository.countByEvent(
-          (event._id as any).toString()
-        );
+        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
         return {
           ...this.formatEvent(event),
           registeredCount,
@@ -1081,28 +1066,10 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     );
   }
 
-  /**
-   * Update a gym session (allowed fields: startDate, duration)
-   */
-  // backend/src/services/event.service.ts
-  async updateGymSession(
-    id: string,
-    patch: {
-      startDate?: Date;
-      duration?: number;
-      capacity?: number;
-      status?: EventStatus;
-      sessionType?: GymSessionType;
-    },
-    options?: { userId?: string }
-  ): Promise<IEvent> {
-    if (
-      !patch.capacity &&
-      !patch.sessionType &&
-      !patch.startDate &&
-      !patch.duration &&
-      !patch.status
-    ) {
+  // Enforce capacity lower bound for gym sessions as well
+  if (patch.capacity !== undefined) {
+    const currentRegistrations = await registrationRepository.countActiveForCapacity(id);
+    if (patch.capacity < currentRegistrations) {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "You need to update something",
@@ -1177,15 +1144,10 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       options
     );
 
-    return updated as IEvent;
-  }
-  /**
-   * Update a workshop event
-   */
-  async updateWorkshop(input: UpdateWorkshopInput): Promise<IEvent> {
-    // Validate input
-    const validation = UpdateWorkshopSchema.safeParse(input);
-    if (!validation.success) {
+  // Capacity cannot be set below current number of participants
+  if ((updateData as Partial<IEvent>).capacity !== undefined) {
+    const currentRegistrations = await registrationRepository.countActiveForCapacity(id);
+    if (((updateData as Partial<IEvent>).capacity as number) < currentRegistrations) {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "Invalid workshop update data",

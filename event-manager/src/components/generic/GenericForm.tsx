@@ -449,6 +449,7 @@ export function GenericForm<TFieldValues extends GenericFormValues = GenericForm
             type="submit" 
             className={cn(
               submitButtonFullWidth && 'w-full',
+              'cursor-pointer hover:opacity-90 transition-opacity',
               submitButtonClassName
             )}
             size={submitButtonSize}
@@ -472,7 +473,7 @@ export function GenericForm<TFieldValues extends GenericFormValues = GenericForm
               variant="outline"
               onClick={onCancel}
               disabled={isLoading}
-              className="ml-2"
+              className="ml-2 cursor-pointer hover:bg-accent transition-colors"
             >
               {cancelButtonText}
             </Button>

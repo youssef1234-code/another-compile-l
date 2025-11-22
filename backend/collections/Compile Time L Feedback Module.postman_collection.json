@@ -1,0 +1,336 @@
+{
+	"info": {
+		"_postman_id": "e0417384-3228-4489-a422-d4bd51079b75",
+		"name": "Compile Time L",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "47446214",
+		"_collection_link": "https://mada1421995-6641013.postman.co/workspace/Masry's-Workspace~8a935075-2a11-4072-8f3a-f003a45ea100/collection/47446214-e0417384-3228-4489-a422-d4bd51079b75?action=share&source=collection_link&creator=47446214"
+	},
+	"item": [
+		{
+			"name": "Student Login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"email\": \"john.doe@student.guc.edu.eg\",\r\n  \"password\": \"Password123!\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base}}/auth.login",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"auth.login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin Login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"email\": \"admin@email.com\",\r\n  \"password\": \"admin\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base}}/auth.login",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"auth.login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Rating",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"eventId\": \"68f511c7fd3192f39da25496\",\r\n  \"rating\": 5\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base}}/feedback.create",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"feedback.create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Comment",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGY1MTFjNmZkMzE5MmYzOWRhMjU0NmYiLCJyb2xlIjoiU1RVREVOVCIsImlhdCI6MTc2MjYzMjM5MCwiZXhwIjoxNzYyNjMzMjkwfQ.tpAuMCwadgt29ucn3XCEVhaOIRt-BNrIuFs3qtHjdMk",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"eventId\": \"68f511c7fd3192f39da2549c\",\r\n  \"comment\": \"This workshop was incredibly informative! Learned so much about data science.\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base}}/feedback.create",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"feedback.create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Rating and Comment",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"eventId\": \"68f511c7fd3192f39da254a2\",\r\n  \"rating\": 4,\r\n  \"comment\": \"Great trip to Alexandria! Well organized but could use better timing.\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base}}/feedback.create",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"feedback.create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Feedback",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"eventId\": \"68f511c7fd3192f39da25496\",\r\n  \"rating\": 4\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base}}/feedback.update",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"feedback.update"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "All Feedbacks for an Event",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base}}/feedback.getByEvent?input={\"eventId\":\"68f511c7fd3192f39da25496\",\"page\":1,\"limit\":20}",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"feedback.getByEvent"
+					],
+					"query": [
+						{
+							"key": "input",
+							"value": "{\"eventId\":\"68f511c7fd3192f39da25496\",\"page\":1,\"limit\":20}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "My Feedback for an Event",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base}}/feedback.getMyFeedback?input={\"eventId\":\"68f511c7fd3192f39da25499\"}",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"feedback.getMyFeedback"
+					],
+					"query": [
+						{
+							"key": "input",
+							"value": "{\"eventId\":\"68f511c7fd3192f39da25499\"}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Feedback",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"id\": \"690f4e991fd5e9f031260203\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base}}/feedback.delete",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"feedback.delete"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Rating Stats",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base}}/feedback.getRatingStats?input={\"eventId\":\"68f511c7fd3192f39da2549c\"}",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"feedback.getRatingStats"
+					],
+					"query": [
+						{
+							"key": "input",
+							"value": "{\"eventId\":\"68f511c7fd3192f39da2549c\"}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base",
+			"value": "",
+			"type": "default"
+		}
+	]
+}

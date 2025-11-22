@@ -33,6 +33,7 @@ import {
   updateGymSessionSchema,
   CreateWorkshopSchema,
   UpdateWorkshopSchema,
+  RegistrationForEventResponseSchema
 } from "@event-manager/shared";
 import { z } from "zod";
 import { userService } from "../services/user.service";
@@ -365,6 +366,7 @@ const eventRoutes = {
       })
     )
     .mutation(async ({ input, ctx }) => {
+      console.log("Registering for event", { userId: ctx.user!._id, eventId: input.eventId });
       const userId = (ctx.user!._id as any).toString();
       const registration = await registrationService.registerForEvent(
         userId,

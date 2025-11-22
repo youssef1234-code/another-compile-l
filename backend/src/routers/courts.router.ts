@@ -2,7 +2,8 @@ import { router, publicProcedure, protectedProcedure } from "../trpc/trpc";
 import { z } from "zod";
 import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
-import { CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport, CourtAvailabilityResponseSchema, CourtSummarySchema, CourtSummary } from "@event-manager/shared";
+import type { CourtSummary } from "@event-manager/shared";
+import { CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport, CourtAvailabilityResponseSchema, CourtSummarySchema } from "@event-manager/shared";
 
 export const courtsRouter = router({
    

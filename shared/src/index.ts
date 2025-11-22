@@ -68,20 +68,12 @@ export const RegistrationStatus = {
   PENDING: "PENDING",
   CONFIRMED: "CONFIRMED",
   CANCELLED: "CANCELLED",
+  EXPIRED: "EXPIRED",
   ATTENDED: "ATTENDED",
 } as const;
 
 export type RegistrationStatus =
   (typeof RegistrationStatus)[keyof typeof RegistrationStatus];
-
-export const PaymentStatus = {
-  PENDING: "PENDING",
-  COMPLETED: "COMPLETED",
-  FAILED: "FAILED",
-  REFUNDED: "REFUNDED",
-} as const;
-
-export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const EventStatus = {
   DRAFT: "DRAFT",
@@ -669,6 +661,21 @@ export const UpdateRegistrationStatusSchema = z.object({
 export type UpdateRegistrationStatusInput = z.infer<
   typeof UpdateRegistrationStatusSchema
 >;
+
+export const RegistrationForEventResponseSchema = z.object({
+  id: z.string(),
+  eventId: z.string(),
+  userId: z.string(),
+  status: z.nativeEnum(RegistrationStatus),
+  paymentAmount: z.number().int().nonnegative().nullable(), // null for free events
+  currency: z.enum(["EGP", "USD"]).nullable(),                   // align with your DEFAULT_CURRENCY set
+  holdUntil: z.date().nullable(),                                 // present only when PENDING
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type RegistrationForEventResponse = z.infer<typeof RegistrationForEventResponseSchema>;
+
 // ============================================================================
 // VENDOR APPLICATION SCHEMAS
 // ============================================================================
@@ -781,18 +788,253 @@ export const DeleteAdminSchema = z.object({
 
 export type DeleteAdminInput = z.infer<typeof DeleteAdminSchema>;
 
+
+// ============================================================================
+// Payment schemas
+// ============================================================================
+
+
+/** Minor currency always (e.g., EGP piasters, USD cents) */
+export const MoneyMinorSchema = z.number().int().nonnegative();
+
+export const CurrencySchema = z.enum(["EGP", "USD"]); // extend if needed
+export type Currency = z.infer<typeof CurrencySchema>;
+
+
+export const PaymentMethod = {
+  STRIPE_CARD: "STRIPE_CARD",
+  WALLET: "WALLET",
+} as const;
+export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
+
+
+export const PaymentStatus = {
+  PENDING: "PENDING",
+  REQUIRES_ACTION: "REQUIRES_ACTION", // this is to conform with Stripe's statuses
+  SUCCEEDED: "SUCCEEDED",
+  FAILED: "FAILED",
+  REFUNDED: "REFUNDED",
+} as const;
+export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+
+
+
+
+// this is to track wallet transaction types without introducing negatives so can decide on the sign based on this type:
+
+export const WalletTxnType = {
+  CREDIT_REFUND: "CREDIT_REFUND",
+  CREDIT_TOPUP: "CREDIT_TOPUP",
+  DEBIT_PAYMENT: "DEBIT_PAYMENT",
+  CREDIT_ADJUSTMENT: "CREDIT_ADJUSTMENT",
+  DEBIT_ADJUSTMENT: "DEBIT_ADJUSTMENT",
+} as const;
+export type WalletTxnType = typeof WalletTxnType[keyof typeof WalletTxnType];
+
+
+
+// ID param schema (reusable)
+export const IdSchema = z.string().min(1);
+
+
+
+/** Create a card payment (event registration) – init step */
+export const CardPaymentInitInput = z.object({
+  registrationId: IdSchema,
+  eventId: IdSchema,
+  amountMinor: MoneyMinorSchema,
+  currency: CurrencySchema,
+});
+export type CardPaymentInitInput = z.infer<typeof CardPaymentInitInput>;
+
+
+/** Pay with wallet for an event registration */
+export const WalletPaymentInput = z.object({
+  registrationId: IdSchema,
+  eventId: IdSchema,
+  amountMinor: MoneyMinorSchema,
+  currency: CurrencySchema,
+});
+export type WalletPaymentInput = z.infer<typeof WalletPaymentInput>;
+
+
+/** Top-up the wallet by card */
+export const WalletTopUpInitInput = z.object({
+  amountMinor: MoneyMinorSchema.min(100), // e.g., >= 1.00 in minor units
+  currency: CurrencySchema,
+});
+export type WalletTopUpInitInput = z.infer<typeof WalletTopUpInitInput>;
+
+
+/** Refund a registration (if allowed by policy) */
+export const RefundToWalletInput = z.object({
+  registrationId: IdSchema,
+  paymentId: IdSchema,
+});
+export type RefundToWalletInput = z.infer<typeof RefundToWalletInput>;
+
+
+
+
+/** API shapes */
+export const PaymentSummarySchema = z.object({
+  id: IdSchema,
+  userId: IdSchema,
+  registrationId: IdSchema.optional(),
+  eventId: IdSchema.optional(),
+  method: z.nativeEnum(PaymentMethod as any),
+  status: z.nativeEnum(PaymentStatus as any),
+  amountMinor: MoneyMinorSchema,
+  currency: CurrencySchema,
+  stripePaymentIntentId: z.string().optional(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type PaymentSummary = z.infer<typeof PaymentSummarySchema>;
+
+
+
+export const WalletTxnSchema = z.object({
+  id: IdSchema,
+  userId: IdSchema,
+  type: z.nativeEnum(WalletTxnType as any),
+  amountMinor: MoneyMinorSchema, // positive number; sign implied by type
+  currency: CurrencySchema,
+  reference: z
+    .object({
+      registrationId: IdSchema.optional(),
+      eventId: IdSchema.optional(),
+      paymentId: IdSchema.optional(),
+      note: z.string().optional(),
+    })
+    .partial()
+    .optional(),
+  createdAt: z.coerce.date(),
+});
+export type WalletTxn = z.infer<typeof WalletTxnSchema>;
+
+
+
+export const WalletBalanceSchema = z.object({
+  userId: IdSchema,
+  balanceMinor: MoneyMinorSchema, // computed
+  currency: CurrencySchema,
+});
+export type WalletBalance = z.infer<typeof WalletBalanceSchema>;
+
+
 // ============================================================================
 // FEEDBACK SCHEMAS
 // ============================================================================
 
-export const CreateFeedbackSchema = z.object({
-  eventId: z.string(),
-  rating: z.number().int().min(1).max(5),
-  comment: z.string().max(1000).optional(),
-  isAnonymous: z.boolean().default(false),
+export const FeedbackType = {
+  RATING: "rating",
+  COMMENT: "comment",
+  BOTH: "both",
+} as const;
+
+export type FeedbackType = (typeof FeedbackType)[keyof typeof FeedbackType];
+
+/**
+ * Base feedback schema object
+ * Note: Type field is NOT sent by frontend - backend determines it automatically based on provided fields
+ */
+const BaseFeedbackSchema = z.object({
+  eventId: z.string().min(1, "Event ID is required"),
+  rating: z.number().int().min(1).max(5).optional(),
+  comment: z.string().min(1).max(2000).optional(),
 });
 
+/**
+ * Create feedback schema
+ * Frontend provides rating and/or comment (at least one required)
+ * Backend automatically determines and sets the type field before saving
+ */
+export const CreateFeedbackSchema = BaseFeedbackSchema.refine(
+  (data) => data.rating != null || data.comment != null,
+  {
+    message: "Please provide either a rating, a comment, or both",
+    path: ["rating"],
+  }
+);
+
 export type CreateFeedbackInput = z.infer<typeof CreateFeedbackSchema>;
+
+/**
+ * Update feedback schema
+ * Allows partial updates of rating and/or comment
+ * - Send null or empty string to remove a field
+ * - Omit a field to keep existing value
+ * Backend recalculates and updates the type field based on final values
+ */
+export const UpdateFeedbackSchema = z.object({
+  eventId: z.string().min(1, "Event ID is required"),
+  rating: z.number().int().min(1).max(5).nullable().optional(),
+  comment: z.string().max(2000).nullable().optional(),
+});
+
+export type UpdateFeedbackInput = z.infer<typeof UpdateFeedbackSchema>;
+
+/**
+ * Get feedback by event schema
+ */
+export const GetFeedbackByEventSchema = z.object({
+  eventId: z.string().min(1, "Event ID is required"),
+  page: z.number().int().min(1).optional().default(1),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+});
+
+export type GetFeedbackByEventInput = z.infer<typeof GetFeedbackByEventSchema>;
+
+// ============================================================================
+// LOYALTY PROGRAM SCHEMAS
+// ============================================================================
+
+export const LoyaltyRequestStatus = {
+  CANCELLED: "cancelled",
+  ACTIVE: "active",
+} as const;
+
+export type LoyaltyRequestStatus = (typeof LoyaltyRequestStatus)[keyof typeof LoyaltyRequestStatus];
+
+/**
+ * Apply to loyalty program schema (Story #70)
+ * Vendor submits application to join the GUC loyalty program
+ */
+export const ApplyToLoyaltySchema = z.object({
+  discountRate: z
+    .number()
+    .min(0, "Discount rate cannot be negative")
+    .max(100, "Discount rate cannot exceed 100%"),
+  promoCode: z
+    .string()
+    .min(1, "Promo code is required")
+    .max(50, "Promo code cannot exceed 50 characters")
+    .trim()
+    .transform(val => val.toUpperCase()),
+  terms: z
+    .string()
+    .min(10, "Terms and conditions must be at least 10 characters")
+    .max(2000, "Terms and conditions cannot exceed 2000 characters")
+    .trim(),
+});
+
+export type ApplyToLoyaltyInput = z.infer<typeof ApplyToLoyaltySchema>;
+
+/**
+ * Cancel loyalty participation schema (Story #71)
+ * Vendor cancels their participation in the loyalty program
+ */
+export const CancelLoyaltySchema = z.object({
+  // No additional fields needed - vendor ID comes from auth context
+});
+
+export type CancelLoyaltyInput = z.infer<typeof CancelLoyaltySchema>;
+
+/**
+ * Note: Admin review schemas removed - loyalty applications are now auto-accepted
+ * ReviewLoyaltyRequestSchema and GetPendingLoyaltyRequestsSchema no longer needed
+ */
 
 // ============================================================================
 // NOTIFICATION SCHEMAS
@@ -930,10 +1172,19 @@ export interface Feedback {
   id: string;
   eventId: string;
   userId: string;
-  rating: number;
+  type: "rating" | "comment" | "both";
+  rating?: number;
   comment?: string;
-  isAnonymous: boolean;
+  isEdited?: boolean; // Flag to show if feedback was edited after creation
   createdAt: Date;
+  updatedAt: Date;
+  // Populated fields
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+  };
 }
 
 // ============================================================================
@@ -1021,10 +1272,7 @@ export const SearchSchema = z.object({
   search: z.string().trim().optional(),
 });
 
-// ID param schema (reusable)
-export const IdSchema = z.object({
-  id: z.string().min(1, "ID is required"),
-});
+
 
 // Bulk IDs schema (reusable)
 export const BulkIdsSchema = z.object({

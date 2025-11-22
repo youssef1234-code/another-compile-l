@@ -9,17 +9,26 @@
 import express from 'express';
 import cors from 'cors';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
-import { config } from './config/env.js';
-import { connectDatabase } from './config/database.js';
-import { runSeeders } from './config/seed.js';
-import { createContext } from './trpc/context.js';
-import { appRouter } from './routers/app.router.js';
+import { config } from './config/env';
+import { connectDatabase } from './config/database';
+import { runSeeders } from './config/seed';
+import { createContext } from './trpc/context';
+import { appRouter } from './routers/app.router';
+import { stripeWebhookExpressHandler } from './http/stripe-webhook';
 
 const app = express();
+
+app.post(
+  "/webhooks/stripe",
+  express.raw({ type: "application/json" }),
+  stripeWebhookExpressHandler
+);
 
 // ============================================================================
 // MIDDLEWARE
 // ============================================================================
+
+
 
 // HTTPS enforcement in production
 if (config.nodeEnv === 'production') {
@@ -41,6 +50,7 @@ app.use(
   })
 );
 
+  
 // Body parsing with increased limit for file uploads
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
