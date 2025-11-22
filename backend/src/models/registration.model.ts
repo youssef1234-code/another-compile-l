@@ -7,14 +7,16 @@
 import mongoose, { Schema } from 'mongoose';
 import type { IBaseDocument } from './base.model';
 import { createBaseSchema } from './base.model';
+import { PaymentStatus, RegistrationStatus } from '@event-manager/shared';
 
 export interface IEventRegistration extends IBaseDocument {
   event: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
-  status: 'CONFIRMED' | 'CANCELLED' | 'WAITLISTED';
-  paymentStatus: 'PENDING' | 'COMPLETED' | 'REFUNDED' | 'FAILED';
+  status: RegistrationStatus;
+  paymentStatus: PaymentStatus;
   paymentAmount: number;
   paymentMethod?: 'CREDIT_CARD' | 'DEBIT_CARD' | 'WALLET';
+  holdUntil?: Date;
   stripePaymentIntentId?: string;
   registeredAt: Date;
   certificateIssued: boolean;
@@ -35,13 +37,13 @@ const registrationSchema = createBaseSchema<IEventRegistration>(
     },
     status: {
       type: String,
-      enum: ['CONFIRMED', 'CANCELLED', 'WAITLISTED'],
-      default: 'CONFIRMED',
+      enum: Object.values(RegistrationStatus),
+      default: 'PENDING',
       index: true,
     },
     paymentStatus: {
       type: String,
-      enum: ['PENDING', 'COMPLETED', 'REFUNDED', 'FAILED'],
+      enum: Object.values(PaymentStatus),
       default: 'PENDING',
     },
     paymentAmount: {
@@ -56,6 +58,10 @@ const registrationSchema = createBaseSchema<IEventRegistration>(
     registeredAt: {
       type: Date,
       default: Date.now,
+    },
+    holdUntil: {
+      type: Date,
+      default: () => new Date(Date.now() + 15 * 60 * 1000),
     },
     certificateIssued: {
       type: Boolean,

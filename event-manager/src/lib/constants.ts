@@ -4,6 +4,8 @@
  * @module lib/constants
  */
 
+import { CheckSquareIcon } from "lucide-react";
+
 export const APP_NAME = "Another Compile L";
 export const APP_DESCRIPTION = "Another Compile L Event Management System";
 
@@ -34,6 +36,16 @@ export const ROUTES = {
   EDIT_TRIP: "/trips/edit/:id",
   EDIT_CONFERENCE: "/conferences/edit/:id",
   EDIT_BAZAAR: "/events/edit/bazaar/:id",
+  EVENT_PAY: "/events/:eventId/pay",          
+  EVENT_PAY_CARD: "/events/:eventId/pay/card",
+  EVENT_PAY_WALLET: "/events/:eventId/pay/wallet",
+  
+
+  // Stripe return URLs (success/failure)
+  PAY_SUCCESS: "/payments/success",
+  PAY_INSUFFICIENT: "/payments/insufficient",
+
+  CHECKOUT_PAGE: "/checkout/:registrationId",
 
   // Vendors
   BROWSE_BAZAARS: "/vendors/bazaars",

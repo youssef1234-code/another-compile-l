@@ -25,6 +25,7 @@ import {
   updateGymSessionSchema,
   CreateWorkshopSchema,
   UpdateWorkshopSchema,
+  RegistrationForEventResponseSchema,
 } from '@event-manager/shared';
 import { z } from 'zod';
 
@@ -303,6 +304,7 @@ const eventRoutes = {
       eventId: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
+      console.log("Registering for event", { userId: ctx.user!._id, eventId: input.eventId });
       const userId = (ctx.user!._id as any).toString();
       const registration = await registrationService.registerForEvent(userId, input.eventId);
       return {
@@ -582,6 +584,15 @@ const eventRoutes = {
       });
       return workshops;
     }),
+
+
+    getMineForEvent: protectedProcedure
+    .input(z.object({ eventId: z.string().min(1) }))
+    .output(RegistrationForEventResponseSchema.nullable())
+    .query(async ({ input, ctx }) => {
+      const userId = String(ctx.user!._id);
+      return registrationService.getMineForEvent(userId, input.eventId);
+  }),
     
 
 };
