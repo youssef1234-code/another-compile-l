@@ -119,7 +119,10 @@ function RegistrationCard({ registration, onCancel, isCancelling }: Registration
                   <Badge className={cn(typeConfig.color, "text-white")}>
                     {typeConfig.label}
                   </Badge>
-                  <Badge variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"}>
+                  <Badge 
+                    variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"}
+                    className={cn(hasStarted && !hasEnded && "text-white dark:text-white")}
+                  >
                     {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
                   </Badge>
                   <Badge variant={registration.status === 'CONFIRMED' ? 'default' : registration.status === 'CANCELLED' ? 'destructive' : 'secondary'}>
