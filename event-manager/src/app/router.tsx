@@ -60,6 +60,9 @@ import {
 } from "@/features/gym/pages";
 import { CourtManagementPage } from "@/features/gym/pages/CourtManagementPage";
 
+// Landing
+import { LandingPage } from "@/features/landing/LandingPage";
+
 // Admin
 import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
 import {
@@ -101,7 +104,7 @@ import PaymentPage from "@/features/payments/pages/PaymentPage";
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to={ROUTES.DASHBOARD} replace />,
+    element: <LandingPage />,
   },
   // Auth Routes (no layout wrapper - each page handles its own layout)
   {
