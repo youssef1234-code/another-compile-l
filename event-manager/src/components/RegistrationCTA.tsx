@@ -5,13 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { RegistrationStatus } from "@event-manager/shared";
 import { toast } from 'react-hot-toast';
-import { ROUTES } from "@/lib/constants";
-import { Registration } from "../../../backend/src/models/registration.model";
 
 
 function useMyRegistration(eventId: string) {
   // Backend should return: { id, status, holdUntil, paymentAmountMinor, currency } or null
-  const q = trpc.events.getMineForEvent.useQuery({ eventId }, { staleTime: 15_000 });
+  const q = trpc.registrations.getMyRegistrationForEvent.useQuery({ eventId }, { staleTime: 15_000 });
   const reg = q.data ?? null;
 
   const state: RegistrationStatus | "NONE" = useMemo(() => {

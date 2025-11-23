@@ -1,5 +1,7 @@
-import { ClientSession, FilterQuery, Types } from "mongoose";
-import { Payment, IPayment } from "../models/payment.model";
+import { Types } from "mongoose";
+import type { ClientSession, FilterQuery } from "mongoose";
+import { Payment } from "../models/payment.model";
+import type { IPayment } from "../models/payment.model";
 
 import { BaseRepository } from "./base.repository";
 

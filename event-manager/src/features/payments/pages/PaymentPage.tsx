@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
@@ -48,8 +48,8 @@ export default function PaymentPage() {
   const [tab, setTab] = useState<"card" | "wallet">("card");
 
   // We expect eventId & currency/amount to be derivable. If you already have a
-  // “getMineForEvent” or registration details endpoint, use it here:
-  const regQ = trpc.events.getMineForEvent.useQuery(
+  // "getMyRegistrationForEvent" or registration details endpoint, use it here:
+  const regQ = trpc.registrations.getMyRegistrationForEvent.useQuery(
     { eventId: search.get("eventId") ?? "" },
     { enabled: !!search.get("eventId") }
   );

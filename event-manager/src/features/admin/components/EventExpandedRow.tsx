@@ -239,18 +239,37 @@ export function EventExpandedRow({
                 )}
 
                 {/* Conference-specific Fields */}
-                {event.type === 'CONFERENCE' && event.websiteUrl && (
-                  <div className="col-span-2">
-                    <p className="text-sm font-medium text-muted-foreground">Website</p>
-                    <a 
-                      href={event.websiteUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline"
-                    >
-                      {event.websiteUrl}
-                    </a>
-                  </div>
+                {event.type === 'CONFERENCE' && (
+                  <>
+                    {event.websiteUrl && (
+                      <div className="col-span-2">
+                        <p className="text-sm font-medium text-muted-foreground">Website</p>
+                        <a 
+                          href={event.websiteUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          {event.websiteUrl}
+                        </a>
+                      </div>
+                    )}
+                    {event.fundingSource && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Funding Source</p>
+                        <p>{event.fundingSource}</p>
+                      </div>
+                    )}
+                    {event.requiredBudget !== undefined && event.requiredBudget !== null && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Required Budget</p>
+                        <p className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          {event.requiredBudget} EGP
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Gym Session-specific Fields */}
@@ -284,6 +303,39 @@ export function EventExpandedRow({
 
               {/* Workshop-specific detailed fields */}
               {event.type === 'WORKSHOP' && (
+                <>
+                  {event.fullAgenda && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Full Agenda</p>
+                        <p className="text-sm whitespace-pre-line">{event.fullAgenda}</p>
+                      </div>
+                    </>
+                  )}
+                  {event.requirements && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Requirements / Prerequisites</p>
+                        <p className="text-sm whitespace-pre-line">{event.requirements}</p>
+                      </div>
+                    </>
+                  )}
+                  {event.extraResources && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Extra Resources</p>
+                        <p className="text-sm whitespace-pre-line">{event.extraResources}</p>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Conference-specific detailed fields */}
+              {event.type === 'CONFERENCE' && (
                 <>
                   {event.fullAgenda && (
                     <>

@@ -92,6 +92,14 @@ export class VendorApplicationService extends BaseService<
     }
 
     const doc = await this.repository.create(enrichedData);
+    
+    // Requirement #74: Notify Events Office/Admin about pending vendor request
+    const { notificationService } = await import('./notification.service.js');
+    await notificationService.notifyPendingVendorRequest(
+      String(doc._id),
+      vendor?.companyName || 'Unknown Vendor',
+      data.type === 'BAZAAR' ? 'bazaar participation' : 'booth setup'
+    );
 
     return doc;
   }
@@ -285,6 +293,15 @@ export class VendorApplicationService extends BaseService<
     if (!updated) {
       throw new ServiceError("INTERNAL_ERROR", "Failed to approve application", 500);
     }
+    
+    // Requirement #63: Notify vendor about application approval
+    const { notificationService } = await import('./notification.service.js');
+    await notificationService.notifyVendorRequestStatus(
+      String(application.createdBy),
+      applicationId,
+      application.type === 'BAZAAR' ? 'bazaar participation' : 'booth setup',
+      'ACCEPTED'
+    );
 
     // Add vendor to event's vendors array if this is a BAZAAR event
     if (application.type === "BAZAAR" && application.bazaarId) {
@@ -352,8 +369,60 @@ export class VendorApplicationService extends BaseService<
     if (!updated) {
       throw new ServiceError("INTERNAL_ERROR", "Failed to reject application", 500);
     }
+    
+    // Requirement #63: Notify vendor about application rejection
+    const { notificationService } = await import('./notification.service.js');
+    await notificationService.notifyVendorRequestStatus(
+      String(application.createdBy),
+      applicationId,
+      application.type === 'BAZAAR' ? 'bazaar participation' : 'booth setup',
+      'REJECTED'
+    );
 
     return updated;
+  }
+
+  /**
+   * Cancel vendor application (Requirement #67)
+   * Can only cancel if payment has not been made
+   */
+  async cancelApplication(applicationId: string, vendorId: string): Promise<{ message: string }> {
+    const application = await this.repository.findById(applicationId);
+    
+    if (!application) {
+      throw new ServiceError('NOT_FOUND', 'Application not found', 404);
+    }
+    
+    // Verify ownership
+    if (String(application.createdBy) !== vendorId) {
+      throw new ServiceError('FORBIDDEN', 'You can only cancel your own applications', 403);
+    }
+    
+    // Check if payment has been made
+    if (application.paymentStatus === 'PAID') {
+      throw new ServiceError(
+        'FORBIDDEN',
+        'Cannot cancel application after payment has been made. Please contact Events Office for refund assistance.',
+        403
+      );
+    }
+    
+    // Check if already approved (additional safety for platform booths)
+    if (application.status === 'APPROVED' && application.type === 'PLATFORM') {
+      throw new ServiceError(
+        'FORBIDDEN',
+        'Cannot cancel approved platform booth reservations. Please contact Events Office.',
+        403
+      );
+    }
+    
+    // Mark as cancelled instead of deleting
+    await this.repository.update(applicationId, {
+      status: 'CANCELLED' as any,
+      updatedAt: new Date(),
+    });
+    
+    return { message: 'Application cancelled successfully' };
   }
 
   /**
@@ -366,6 +435,15 @@ export class VendorApplicationService extends BaseService<
       throw new ServiceError(
         "FORBIDDEN",
         "Cannot delete an approved platform booth reservation. Please contact an administrator if you need to cancel this booking.",
+        403
+      );
+    }
+    
+    // Check payment status
+    if (existing.paymentStatus === 'PAID') {
+      throw new ServiceError(
+        "FORBIDDEN",
+        "Cannot delete applications with completed payments. Please use the cancel option or contact Events Office.",
         403
       );
     }

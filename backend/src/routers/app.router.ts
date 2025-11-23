@@ -16,6 +16,8 @@ import { platformMapRouter } from './platform-map.router.js';
 import { paymentRouter } from "./payment.router.js";
 import { feedbackRouter } from './feedback.router.js';
 import { loyaltyRouter } from './loyalty.router.js';
+import { registrationsRouter } from './registrations.router.js';
+import { notificationsRouter } from './notifications.router.js';
 
 export const appRouter = router({
   auth: authRouter,
@@ -27,10 +29,8 @@ export const appRouter = router({
   payments: paymentRouter,
   feedback: feedbackRouter,
   loyalty: loyaltyRouter,
-  // Additional routers will be added here as development progresses
-  // registrations: registrationsRouter,
-  // notifications: notificationsRouter,
-  // etc.
+  registrations: registrationsRouter,
+  notifications: notificationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

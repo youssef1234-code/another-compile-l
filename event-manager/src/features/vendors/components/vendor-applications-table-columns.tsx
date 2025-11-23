@@ -361,5 +361,95 @@ export function getVendorApplicationsTableColumns({
       },
       size: 150,
     },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Actions</div>,
+      cell: ({ row }) => {
+        const application = row.original;
+        const canDownloadBadges = application.status === 'APPROVED' && (application.names?.length || 0) > 0;
+        const canCancel = application.status === 'PENDING' && application.paymentStatus !== 'PAID';
+        
+        return (
+          <div className="flex justify-end gap-2">
+            {canDownloadBadges && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const { trpc } = await import('@/lib/trpc');
+                      const toast = (await import('react-hot-toast')).toast;
+                      try {
+                        const result = await trpc.vendorApplications.generateVisitorBadges.mutate({ 
+                          applicationId: application.id 
+                        });
+                        
+                        // Convert base64 to blob and download
+                        const blob = new Blob(
+                          [Uint8Array.from(atob(result.data), c => c.charCodeAt(0))],
+                          { type: result.mimeType }
+                        );
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = result.filename;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success('Badges downloaded successfully');
+                      } catch (error: any) {
+                        toast.error(error.message || 'Failed to download badges');
+                      }
+                    }}
+                    className="gap-1.5"
+                  >
+                    <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m0 0l-4-4m4 4l4-4M5 20h14" />
+                    </svg>
+                    Download Badges
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Download QR badges for all {application.names?.length || 0} attendees</TooltipContent>
+              </Tooltip>
+            )}
+            {canCancel && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!confirm('Are you sure you want to cancel this application? This action cannot be undone.')) return;
+                      
+                      const { trpc } = await import('@/lib/trpc');
+                      const toast = (await import('react-hot-toast')).toast;
+                      try {
+                        await trpc.vendorApplications.cancelApplication.mutate({ 
+                          applicationId: application.id 
+                        });
+                        toast.success('Application cancelled successfully');
+                        window.location.reload();
+                      } catch (error: any) {
+                        toast.error(error.message || 'Failed to cancel application');
+                      }
+                    }}
+                    className="gap-1.5"
+                  >
+                    <XCircle className="size-4" />
+                    Cancel
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Cancel this application</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
+      enableSorting: false,
+      enableColumnFilter: false,
+      size: 250,
+    },
   ];
 }

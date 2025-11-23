@@ -4,7 +4,7 @@
  * @module lib/constants
  */
 
-import { CheckSquareIcon } from "lucide-react";
+
 
 export const APP_NAME = "Another Compile L";
 export const APP_DESCRIPTION = "Another Compile L Event Management System";

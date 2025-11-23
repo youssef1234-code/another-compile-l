@@ -5,6 +5,7 @@ import {
   protectedProcedure,
 } from "../trpc/trpc";
 import { vendorApplicationService } from "../services/vendor-application.service";
+import { qrBadgeService } from "../services/qr-badge.service";
 import {
   ApplicationFilterSchema,
   CreateApplicationSchema,
@@ -110,6 +111,51 @@ const applicationRoutes = {
         input.applicationId,
         input.reason,
       );
+    }),
+
+  /**
+   * Cancel vendor application (Requirement #67)
+   * Vendor can only cancel if payment has not been made
+   */
+  cancelApplication: vendorProcedure
+    .input(z.object({ applicationId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const vendorId = (ctx.user!._id as any).toString();
+      return vendorApplicationService.cancelApplication(input.applicationId, vendorId);
+    }),
+
+  /**
+   * Generate visitor badges (Requirement #66)
+   * Download QR code badges for all registered visitors
+   */
+  generateVisitorBadges: vendorProcedure
+    .input(z.object({ applicationId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const vendorId = (ctx.user!._id as any).toString();
+      const pdfBuffer = await qrBadgeService.generateAllBadgesForVendor(
+        input.applicationId,
+        vendorId
+      );
+
+      // Convert to base64 for transmission
+      const base64 = pdfBuffer.toString('base64');
+
+      return {
+        data: base64,
+        filename: `visitor-badges-${input.applicationId}-${Date.now()}.pdf`,
+        mimeType: 'application/pdf',
+      };
+    }),
+
+  /**
+   * Send visitor badges via email (Requirement #66)
+   */
+  sendVisitorBadges: vendorProcedure
+    .input(z.object({ applicationId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const vendorId = (ctx.user!._id as any).toString();
+      await qrBadgeService.sendBadgesToVendor(input.applicationId, vendorId);
+      return { success: true, message: 'Badges sent to your email successfully' };
     }),
 
   update: eventsOfficeProcedure

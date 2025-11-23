@@ -782,6 +782,209 @@ export class MailgunService extends BaseMailService {
   }
 
   /**
+   * Send certificate of attendance email with PDF attachment
+   * Requirement #30
+   */
+  async sendCertificateEmail(
+    to: string,
+    data: {
+      attendeeName: string;
+      workshopTitle: string;
+      pdfBuffer: Buffer;
+    }
+  ): Promise<void> {
+    const subject = `Certificate of Attendance - ${data.workshopTitle}`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <tr>
+                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border-radius: 12px 12px 0 0;">
+                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
+                        🎓 Certificate of Attendance
+                      </h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 48px 40px;">
+                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        Dear ${data.attendeeName},
+                      </p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Congratulations on successfully completing <strong style="color: #6366f1;">${data.workshopTitle}</strong>!
+                      </p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Your certificate of attendance is attached to this email. This certificate recognizes your participation and successful completion of the workshop.
+                      </p>
+                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-left: 4px solid #6366f1; border-radius: 8px;">
+                        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1e40af;">
+                          📎 Your certificate is attached as a PDF document
+                        </p>
+                        <p style="margin: 8px 0 0; font-size: 13px; color: #4b5563;">
+                          Keep this certificate for your records. You can print it or share it digitally.
+                        </p>
+                      </div>
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        We hope you found the workshop valuable and look forward to seeing you at future events!
+                      </p>
+                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Best regards,<br>
+                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
+                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        This is an automated email. Please do not reply to this message.
+                      </p>
+                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
+                        &copy; ${new Date().getFullYear()} German University in Cairo - Event Management System
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+    await this.sendMail({
+      to,
+      subject,
+      html,
+      attachments: [
+        {
+          filename: `certificate-${data.workshopTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`,
+          content: data.pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+
+    console.log(`📧 ✓ Certificate email sent to ${to}`);
+  }
+
+  /**
+   * Send vendor QR badges email with PDF attachment
+   * For approved vendor applications
+   */
+  async sendVendorBadgesEmail(
+    to: string,
+    data: {
+      vendorName: string;
+      applicationId: string;
+      pdfBuffer: Buffer;
+    }
+  ): Promise<void> {
+    const subject = `Your Vendor QR Badges - Application ${data.applicationId}`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <tr>
+                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px 12px 0 0;">
+                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
+                        📦 Vendor QR Badges
+                      </h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 48px 40px;">
+                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        Dear ${data.vendorName},
+                      </p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Your vendor application has been <strong style="color: #059669;">approved</strong>! Attached are your personalized QR code badges for your booth.
+                      </p>
+                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; border-radius: 8px;">
+                        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #92400e;">
+                          📎 Application ID: ${data.applicationId}
+                        </p>
+                        <p style="margin: 8px 0 0; font-size: 13px; color: #78350f;">
+                          Your QR badges are attached as a PDF document with multiple copies for printing.
+                        </p>
+                      </div>
+                      <h3 style="margin: 32px 0 16px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        📋 How to use your QR badges:
+                      </h3>
+                      <ul style="margin: 0 0 24px; padding-left: 24px; font-size: 15px; line-height: 1.8; color: #4b5563;">
+                        <li>Print the attached PDF on standard A4 paper</li>
+                        <li>Cut out the individual QR badges</li>
+                        <li>Display them prominently at your booth</li>
+                        <li>Attendees can scan to get your vendor information</li>
+                        <li>Print multiple copies if needed (the PDF contains several badges)</li>
+                      </ul>
+                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-left: 4px solid #059669; border-radius: 8px;">
+                        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #065f46;">
+                          💡 Pro Tip
+                        </p>
+                        <p style="margin: 8px 0 0; font-size: 13px; color: #047857;">
+                          Laminate your QR badges for durability and professional appearance!
+                        </p>
+                      </div>
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        We look forward to seeing your booth at the event!
+                      </p>
+                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Best regards,<br>
+                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
+                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        This is an automated email. For support, please contact the events team.
+                      </p>
+                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
+                        &copy; ${new Date().getFullYear()} German University in Cairo - Event Management System
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+    await this.sendMail({
+      to,
+      subject,
+      html,
+      attachments: [
+        {
+          filename: `vendor-qr-badges-${data.applicationId}.pdf`,
+          content: data.pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+
+    console.log(`📧 ✓ Vendor badges email sent to ${to}`);
+  }
+
+  /**
    * Send bulk emails (up to 1000 recipients)
    */
   async sendBulkMail(

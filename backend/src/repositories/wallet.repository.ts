@@ -1,5 +1,6 @@
-import { ClientSession } from "mongoose";
-import { WalletTxn, IWalletTxn } from "../models/wallet-transaction.model";
+import type { ClientSession } from "mongoose";
+import { WalletTxn } from "../models/wallet-transaction.model";
+import type { IWalletTxn } from "../models/wallet-transaction.model";
 import { BaseRepository } from "./base.repository";
 
 export class WalletRepository extends BaseRepository<IWalletTxn> {

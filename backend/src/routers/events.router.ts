@@ -22,8 +22,10 @@ import {
 } from "../trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { createSearchSchema } from "./base.router";
-import { EventService, eventService } from "../services/event.service";
+import { eventService } from "../services/event.service";
 import { registrationService } from "../services/registration.service";
+import { exportService } from "../services/export.service";
+import { notificationService } from "../services/notification.service";
 import {
   CreateEventSchema,
   UpdateEventSchema,
@@ -32,8 +34,7 @@ import {
   createGymSessionSchema,
   updateGymSessionSchema,
   CreateWorkshopSchema,
-  UpdateWorkshopSchema,
-  RegistrationForEventResponseSchema
+  UpdateWorkshopSchema
 } from "@event-manager/shared";
 import { z } from "zod";
 import { userService } from "../services/user.service";
@@ -398,6 +399,7 @@ const eventRoutes = {
 
   /**
    * Check if user is registered for an event - AUTHENTICATED users only
+   * Returns registration status and ID for certificate generation
    */
   isRegistered: protectedProcedure
     .input(
@@ -411,7 +413,15 @@ const eventRoutes = {
         userId,
         input.eventId
       );
-      return { isRegistered };
+      
+      // Get registration ID if registered (for certificate download)
+      let registrationId: string | undefined;
+      if (isRegistered) {
+        const registration = await registrationService.getMineForEvent(userId, input.eventId);
+        registrationId = registration?.id;
+      }
+      
+      return { isRegistered, registrationId };
     }),
 
   /**
@@ -583,7 +593,7 @@ const eventRoutes = {
       // Set the professor name from the authenticated user
       const professorName = `${ctx.user!.firstName} ${ctx.user!.lastName}`;
 
-      return eventService.create(
+      const workshop = await eventService.create(
         {
           ...input,
           type: "WORKSHOP",
@@ -591,6 +601,15 @@ const eventRoutes = {
         },
         { userId, role: ctx.user!.role.toString() }
       );
+      
+      // Requirement #39: Notify Events Office about new workshop submission
+      await notificationService.notifyPendingWorkshop(
+        String(workshop._id),
+        workshop.name,
+        professorName
+      );
+      
+      return workshop;
     }),
 
   /**
@@ -744,7 +763,7 @@ const eventRoutes = {
     )
     .query(async ({ input, ctx }) => {
       const userId = (ctx.user!._id as any).toString();
-      const isFavorite = await eventService.isFavorit(userId, input.eventId);
+      const isFavorite = await eventService.isFavorite(userId, input.eventId);
       return { isFavorite };
     }),
 
@@ -756,7 +775,7 @@ const eventRoutes = {
     )
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx.user!._id as any).toString();
-      const isFavorite = await eventService.isFavorit(userId, input.eventId);
+      const isFavorite = await eventService.isFavorite(userId, input.eventId);
       if (isFavorite) {
         await userService.removeFavoriteEvent({
           userId,
@@ -768,7 +787,7 @@ const eventRoutes = {
           isFavorite: false,
         };
       } else {
-        const favorite = await userService.favoriteEvent({
+        await userService.favoriteEvent({
           userId,
           eventId: input.eventId,
         });
@@ -778,6 +797,34 @@ const eventRoutes = {
           isFavorite: true,
         };
       }
+    }),
+
+  /**
+   * Export event registrations to Excel (Requirement #49)
+   * Events Office/Admin can export registrations (except conferences)
+   * Supports bulk export with specific registration IDs
+   */
+  exportRegistrations: eventsOfficeProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        registrationIds: z.array(z.string()).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const buffer = await exportService.exportRegistrationsToExcel(
+        input.eventId,
+        input.registrationIds
+      );
+      
+      // Convert buffer to base64 for transmission
+      const base64 = Buffer.from(buffer).toString('base64');
+      
+      return {
+        data: base64,
+        filename: `registrations-${input.eventId}-${Date.now()}.xlsx`,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      };
     }),
 };
 

@@ -5,7 +5,7 @@
  * @module repositories/registration.repository
  */
 
-import { IEvent } from '../models/event.model';
+import type { IEvent } from '../models/event.model';
 import { EventRegistration } from '../models/registration.model';
 import type { IEventRegistration } from '../models/registration.model';
 import { BaseRepository } from './base.repository';

@@ -14,7 +14,7 @@ import { useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
 import { usePageMeta } from '@/components/layout/page-meta-context';
-import { Loader2, Sparkles, AlertCircle, CheckCircle2, XCircle, Clock, Ban } from 'lucide-react';
+import { Loader2, Sparkles, AlertCircle, CheckCircle2, Ban } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { LoyaltyApplicationForm } from '../components/LoyaltyApplicationForm';

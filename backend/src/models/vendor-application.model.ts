@@ -18,6 +18,9 @@ export interface IVendorApplication extends IBaseDocument {
   companyName: string;
   names: string[];
   emails: string[];
+  paymentMethod?: string;
+  paymentStatus?: "PENDING" | "PAID" | "FAILED";
+  paymentAmount?: number;
 
   type: keyof typeof ApplicationType;
   boothSize: keyof typeof BoothSize;
@@ -88,9 +91,23 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
       type: String,
       required: false,
     },
+    paymentMethod: {
+      type: String,
+      required: false,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["PENDING", "PAID", "FAILED"],
+      default: "PENDING",
+      required: false,
+    },
+    paymentAmount: {
+      type: Number,
+      required: false,
+    },
     status: {
       type: String,
-      enum: ["APPROVED", "PENDING", "REJECTED"],
+      enum: ["APPROVED", "PENDING", "REJECTED", "CANCELLED"],
       default: "PENDING",
       required: true,
     },

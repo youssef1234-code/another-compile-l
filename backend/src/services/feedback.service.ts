@@ -361,6 +361,14 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
         // Log the error but don't fail the deletion
         console.error('⚠️  Failed to send comment deletion warning email:', emailError.message);
       }
+      
+      // Requirement #21: Send in-app notification about comment deletion
+      const { notificationService } = await import('./notification.service.js');
+      await notificationService.notifyCommentDeleted(
+        String(user._id),
+        event?.name || 'an event',
+        'Inappropriate content'
+      );
     }
 
     // Proceed with deletion

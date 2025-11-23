@@ -15,6 +15,7 @@ import { runSeeders } from './config/seed';
 import { createContext } from './trpc/context';
 import { appRouter } from './routers/app.router';
 import { stripeWebhookExpressHandler } from './http/stripe-webhook';
+import { initializeEventReminderScheduler } from './utils/event-reminder-scheduler.js';
 
 const app = express();
 
@@ -106,13 +107,17 @@ const startServer = async () => {
     // Run database seeders (create default admin account)
     await runSeeders();
     
+    // Start event reminder scheduler (runs every 15 minutes)
+    initializeEventReminderScheduler();
+    
     // Start Express server
     app.listen(config.port, () => {
       console.log('\n✅ Server started successfully!');
       console.log(`🚀 API running on: ${config.apiUrl}`);
       console.log(`🔗 tRPC endpoint: ${config.apiUrl}/trpc`);
       console.log(`🌍 Environment: ${config.nodeEnv}`);
-      console.log(`📡 Accepting requests from: ${config.clientUrl}\n`);
+      console.log(`📡 Accepting requests from: ${config.clientUrl}`);
+      console.log(`⏰ Event reminder scheduler: Active\n`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

@@ -11,6 +11,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { Separator } from '@/components/ui/separator';
 import { useState } from 'react';
 import type { PageMeta, PageMetaContext } from './page-meta-context';
+import { NotificationBell } from '@/components/NotificationBell';
 
 export function AppLayout() {
   const [pageMeta, setPageMeta] = useState<PageMeta>({ title: 'Another Compile L' });
@@ -23,12 +24,13 @@ export function AppLayout() {
         <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-6">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <div className="flex flex-col gap-0.5 min-w-0">
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
             <h1 className="text-sm font-semibold text-foreground truncate">{pageMeta.title}</h1>
             {pageMeta.description && (
               <p className="text-xs text-muted-foreground truncate">{pageMeta.description}</p>
             )}
           </div>
+          <NotificationBell />
         </header>
 
         {/* Main Content */}

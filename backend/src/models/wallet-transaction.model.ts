@@ -1,6 +1,8 @@
 import { model } from "mongoose";
-import { WalletTxnType, Currency } from "@event-manager/shared";
-import { createBaseSchema, IBaseDocument } from "./base.model";
+import { WalletTxnType } from "@event-manager/shared";
+import type { Currency } from "@event-manager/shared";
+import { createBaseSchema } from "./base.model";
+import type { IBaseDocument } from "./base.model";
 
 export interface IWalletTxn extends IBaseDocument {
   user: string;

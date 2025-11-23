@@ -144,7 +144,7 @@ export class UserRepository extends BaseRepository<IUser> {
 
   async getFavoriteEvents(
     userId: string,
-    options?: { page?: number; limit?: number }
+    _options?: { page?: number; limit?: number }
   ) {
     const user = await this.findById(userId);
     if (!user) {
@@ -182,7 +182,7 @@ export class UserRepository extends BaseRepository<IUser> {
     return user;
   }
 
-  async isFavorit(userId: string, eventId: string): Promise<boolean> {
+  async isFavorite(userId: string, eventId: string): Promise<boolean> {
     const user = await this.findById(userId);
     if (!user) {
       throw new Error("User Not Found");

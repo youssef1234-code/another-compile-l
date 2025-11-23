@@ -97,7 +97,6 @@ export function EventDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const [isRegistering, setIsRegistering] = useState(false);
   const [isFavoriting, setIsFavoriting] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
 
@@ -166,20 +165,62 @@ export function EventDetailsPage() {
 
   const utils = trpc.useUtils();
 
-  const registerMutation = trpc.events.registerForEvent.useMutation({
-    onSuccess: () => {
-      toast.success("Successfully registered for event!");
-      setIsRegistering(false);
-      // Invalidate queries to refresh event data and registration status
-      utils.events.getEventById.invalidate({ id: id! });
-      utils.events.isRegistered.invalidate({ eventId: id! });
+  // Export registrations mutation
+  const exportRegistrationsMutation = trpc.events.exportRegistrations.useMutation({
+    onSuccess: (result) => {
+      // Convert base64 to blob and download
+      const blob = new Blob(
+        [Uint8Array.from(atob(result.data), c => c.charCodeAt(0))],
+        { type: result.mimeType }
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Registrations exported to Excel successfully');
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
-      setIsRegistering(false);
+      toast.error(errorMessage);
     },
   });
+
+  const handleExportRegistrations = () => {
+    if (!id) return;
+    exportRegistrationsMutation.mutate({ eventId: id });
+  };
+
+  // Certificate generation mutation
+  const generateCertificateMutation = trpc.registrations.generateCertificate.useMutation({
+    onSuccess: (result) => {
+      // Convert base64 to blob and download
+      const blob = new Blob(
+        [Uint8Array.from(atob(result.data), c => c.charCodeAt(0))],
+        { type: result.mimeType }
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Certificate downloaded successfully!');
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage);
+    },
+  });
+
+  const handleDownloadCertificate = () => {
+    if (!isRegisteredData?.registrationId) {
+      toast.error('Registration ID not found');
+      return;
+    }
+    generateCertificateMutation.mutate({ registrationId: isRegisteredData.registrationId });
+  };
 
   const favoriteMutation = trpc.events.toggleFavorite.useMutation({
     onSuccess: () => {
@@ -250,12 +291,6 @@ export function EventDetailsPage() {
     } else if (event.type === "WORKSHOP") {
       navigate(ROUTES.EDIT_WORKSHOP.replace(":id", event.id));
     }
-  };
-
-  const handleRegister = async () => {
-    if (!canRegister) return;
-    setIsRegistering(true);
-    registerMutation.mutate({ eventId: event.id });
   };
 
   const handleFavorite = async () => {
@@ -486,10 +521,22 @@ export function EventDetailsPage() {
             {registrationsData &&
               registrationsData.registrations.length > 0 && (
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>
                       Registered Participants ({registrationsData.total})
                     </CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExportRegistrations}
+                      disabled={exportRegistrationsMutation.isPending}
+                      className="gap-2"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      {exportRegistrationsMutation.isPending ? 'Exporting...' : 'Export to Excel'}
+                    </Button>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
@@ -609,6 +656,26 @@ export function EventDetailsPage() {
                         You're confirmed for this event
                       </p>
                     </div>
+
+                    {/* Certificate Download for completed workshops */}
+                    {event.type === 'WORKSHOP' && hasEnded && (
+                      <div className="pt-4 border-t border-green-200 dark:border-green-800">
+                        <Button
+                          className="w-full gap-2"
+                          variant="outline"
+                          onClick={handleDownloadCertificate}
+                          disabled={generateCertificateMutation.isPending}
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          {generateCertificateMutation.isPending ? 'Generating...' : 'Download Certificate'}
+                        </Button>
+                        <p className="text-xs text-muted-foreground text-center mt-2">
+                          Certificate of Attendance
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

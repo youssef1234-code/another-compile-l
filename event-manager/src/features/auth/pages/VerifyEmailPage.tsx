@@ -40,7 +40,8 @@ export function VerifyEmailPage() {
     } else {
       setVerifying(false);
     }
-  }, [token, verifyEmailMutation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // Only depend on token, not verifyEmailMutation
 
   const handleContinue = () => {
     navigate(ROUTES.LOGIN);

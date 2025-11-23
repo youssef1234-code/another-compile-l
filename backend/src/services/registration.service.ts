@@ -10,7 +10,8 @@ import { eventService } from "./event.service";
 import { TRPCError } from "@trpc/server";
 import type { IEventRegistration } from "../models/registration.model";
 import mongoose, { startSession } from 'mongoose';
-import { PaymentStatus, RegistrationForEventResponse, RegistrationStatus } from '@event-manager/shared';
+import { PaymentStatus, RegistrationStatus } from '@event-manager/shared';
+import type { RegistrationForEventResponse } from '@event-manager/shared';
 import { paymentRepository } from '../repositories/payment.repository';
 import { paymentService } from './payment.service';
 
@@ -387,6 +388,7 @@ async registerForEvent(userId: string, eventId: string) {
 
   /**
    * Issue certificate for registration (after event completion)
+   * This is called automatically when a certificate is generated
    */
   async issueCertificate(
     registrationId: string
@@ -414,8 +416,10 @@ async registerForEvent(userId: string, eventId: string) {
       });
     }
 
+    // Mark certificate as issued
     return registrationRepository.update(registrationId, {
       certificateIssued: true,
+      certificateIssuedAt: new Date(),
     } as any);
   }
 

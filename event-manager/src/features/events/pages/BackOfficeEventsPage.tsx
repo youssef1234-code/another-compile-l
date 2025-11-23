@@ -96,6 +96,7 @@ export function BackOfficeEventsPage() {
   const [statusFilter] = useQueryState('status', parseAsArrayOf(parseAsString, ',').withDefault([]));
   const [locationFilter] = useQueryState('location', parseAsArrayOf(parseAsString, ',').withDefault([]));
   const [facultyFilter] = useQueryState('faculty', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  const [archivedFilter] = useQueryState('archived', parseAsArrayOf(parseAsString, ',').withDefault([]));
 
   // Read extended filters from URL - these are managed by DataTableFilterMenu (command mode)
   const [extendedFiltersState] = useQueryState('filters', parseAsJson<ExtendedFilter[]>((v) => {
@@ -135,8 +136,9 @@ export function BackOfficeEventsPage() {
     if (statusFilter.length > 0) result.status = statusFilter;
     if (locationFilter.length > 0) result.location = locationFilter;
     if (facultyFilter.length > 0) result.faculty = facultyFilter;
+    if (archivedFilter.length > 0) result.isArchived = archivedFilter;
     return result;
-  }, [typeFilter, statusFilter, locationFilter, facultyFilter]);
+  }, [typeFilter, statusFilter, locationFilter, facultyFilter, archivedFilter]);
 
   // Parse extended filters (command mode) with role-based additions
   const extendedFilters = useMemo(() => {
@@ -574,6 +576,7 @@ export function BackOfficeEventsPage() {
 
   const handleExport = useCallback(async () => {
     try {
+      // Note: This exports events as CSV. For registration export to Excel, use the event details page.
       const allEventsResponse = await utils.events.getAllEvents.fetch({
         page: 1,
         perPage: 999999,

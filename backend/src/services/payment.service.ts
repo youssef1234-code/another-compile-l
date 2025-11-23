@@ -3,16 +3,15 @@ import { startSession } from "mongoose";
 import {
   PaymentMethod, PaymentStatus, WalletTxnType,
   CardPaymentInitInput, WalletPaymentInput, WalletTopUpInitInput, RefundToWalletInput,
-  PaymentSummary,
-  WalletTxn,
   RegistrationStatus
 } from "@event-manager/shared";
+import type { PaymentSummary, WalletTxn } from "@event-manager/shared";
 import { PaymentRepository, paymentRepository } from "../repositories/payment.repository";
 import { walletRepository } from "../repositories/wallet.repository";
 import { TRPCError } from "@trpc/server";
 import { BaseService } from "./base.service";
-import { IPayment, Payment } from "../models/payment.model";
-import { PaginatedResponse } from "@event-manager/shared";
+import type { IPayment } from "../models/payment.model";
+import type { PaginatedResponse } from "@event-manager/shared";
 import { userRepository } from "../repositories/user.repository";
 import { mailService } from "./mail.service";
 import { eventRepository } from "../repositories/event.repository";

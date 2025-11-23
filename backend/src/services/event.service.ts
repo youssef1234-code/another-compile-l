@@ -5,6 +5,7 @@ import {
 import { registrationRepository } from "../repositories/registration.repository";
 import { vendorApplicationRepository } from "../repositories/vendor-application.repository";
 import { userRepository } from "../repositories/user.repository";
+import { notificationService } from "./notification.service.js";
 import { BaseService, type ServiceOptions } from "./base.service";
 import { TRPCError } from "@trpc/server";
 import type { IEvent } from "../models/event.model";
@@ -400,28 +401,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       filter.$or = searchConditions;
     }
 
-    // CRITICAL: Only show events with open registration (deadline not passed or null)
-    // This must be combined with any existing conditions using AND logic
-    const now = new Date();
-    const registrationDeadlineCondition = {
-      $or: [
-        { registrationDeadline: { $gte: now } },
-        { registrationDeadline: { $exists: false } },
-        { registrationDeadline: null },
-      ],
-    };
-
-    // Combine with existing filter using AND
-    if (Object.keys(filter).length > 0) {
-      // If filter already has conditions, wrap everything in $and
-      const existingConditions = { ...filter };
-      filter = {
-        $and: [existingConditions, registrationDeadlineCondition],
-      };
-    } else {
-      // No existing conditions, just use the deadline filter
-      filter = registrationDeadlineCondition;
-    }
+    // NOTE: Registration deadline filter removed to allow back office users
+    // (Admin, Event Office, Professors) to see all events including:
+    // - Pending workshops awaiting approval
+    // - Events with past registration deadlines
+    // - Draft events
 
     // Build multi-field sort
     const sort: any = {};
@@ -902,6 +886,24 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const newWorkshop = await eventRepository.update(workshopId, {
       status: "PUBLISHED",
     });
+    
+    // Requirement #44: Notify professor about workshop acceptance
+    if (workshop.createdBy) {
+      await notificationService.notifyWorkshopStatus(
+        String(workshop.createdBy),
+        workshopId,
+        workshop.name,
+        'ACCEPTED'
+      );
+    }
+    
+    // Requirement #57: Notify all users about new event
+    await notificationService.notifyNewEvent(
+      workshopId,
+      workshop.name,
+      'Workshop'
+    );
+    
     return newWorkshop;
   }
 
@@ -935,6 +937,18 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       status: "REJECTED",
       rejectionReason: reason,
     });
+    
+    // Requirement #44: Notify professor about workshop rejection
+    if (workshop.createdBy) {
+      await notificationService.notifyWorkshopStatus(
+        String(workshop.createdBy),
+        workshopId,
+        workshop.name,
+        'REJECTED',
+        reason
+      );
+    }
+    
     return newWorkshop;
   }
 
@@ -1066,16 +1080,20 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     );
   }
 
-  // Enforce capacity lower bound for gym sessions as well
-  if (patch.capacity !== undefined) {
-    const currentRegistrations = await registrationRepository.countActiveForCapacity(id);
-    if (patch.capacity < currentRegistrations) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "You need to update something",
-      });
-    }
-
+  /**
+   * Update gym session
+   */
+  async updateGymSession(
+    id: string,
+    patch: {
+      startDate?: Date;
+      duration?: number;
+      capacity?: number;
+      status?: EventStatus;
+      sessionType?: GymSessionType;
+    },
+    options?: ServiceOptions
+  ): Promise<IEvent> {
     const existing = await this.repository.findById(id);
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
@@ -1085,6 +1103,17 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         code: "BAD_REQUEST",
         message: "Not a gym session",
       });
+    }
+
+    // Enforce capacity lower bound for gym sessions
+    if (patch.capacity !== undefined) {
+      const currentRegistrations = await registrationRepository.countActiveForCapacity(id);
+      if (patch.capacity < currentRegistrations) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Capacity cannot be less than current registrations (${currentRegistrations}).`,
+        });
+      }
     }
 
     // Compute next schedule
@@ -1098,7 +1127,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     }
     const nextEnd = new Date(nextStart.getTime() + nextDuration * 60_000);
 
-    // Only run overlap check if time window changes OR status becomes published (your rule)
+    // Only run overlap check if time window changes OR status becomes published
     const timeWindowChanged =
       (patch.startDate && +patch.startDate !== +existing.startDate) ||
       (patch.duration && patch.duration !== (existing as any).duration);
@@ -1116,19 +1145,10 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       }
     }
 
-    // Enforce capacity lower bound for gym sessions as well
-    if (patch.capacity !== undefined) {
-      const currentRegistrations = await registrationRepository.countByEvent(
-        id
-      );
-      if (patch.capacity < currentRegistrations) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Capacity cannot be less than current registrations (${currentRegistrations}).`,
-        });
-      }
-    }
-
+    // Track if this is a cancellation or modification for notification
+    const isCancellation = patch.status === 'CANCELLED';
+    const isModification = timeWindowChanged && !isCancellation;
+    
     const updated = await this.repository.update(
       id,
       {
@@ -1144,10 +1164,43 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       options
     );
 
-  // Capacity cannot be set below current number of participants
-  if ((updateData as Partial<IEvent>).capacity !== undefined) {
-    const currentRegistrations = await registrationRepository.countActiveForCapacity(id);
-    if (((updateData as Partial<IEvent>).capacity as number) < currentRegistrations) {
+    if (!updated) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Update failed" });
+    }
+    
+    // Requirement #87: Notify registered users about gym session changes
+    if (isCancellation || isModification) {
+      const registrations = await registrationRepository.findAll(
+        { event: id, status: { $in: ['CONFIRMED', 'PENDING'] } } as any,
+        {}
+      );
+      
+      if (registrations.length > 0) {
+        const userIds = registrations.map((r: any) => String(r.user));
+        const updateType = isCancellation ? 'CANCELLED' : 'EDITED';
+        const details = isModification 
+          ? `Time changed to ${nextStart.toLocaleString()}` 
+          : undefined;
+        
+        await notificationService.notifyGymSessionUpdate(
+          userIds,
+          id,
+          existing.name,
+          updateType,
+          details
+        );
+      }
+    }
+    
+    return updated;
+  }
+
+  /**
+   * Update workshop
+   */
+  async updateWorkshop(data: UpdateWorkshopInput): Promise<IEvent> {
+    const validation = UpdateWorkshopSchema.safeParse(data);
+    if (!validation.success) {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "Invalid workshop update data",
@@ -1170,9 +1223,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     // Capacity cannot be set below current number of participants
     if ((updateData as Partial<IEvent>).capacity !== undefined) {
-      const currentRegistrations = await registrationRepository.countByEvent(
-        id
-      );
+      const currentRegistrations = await registrationRepository.countActiveForCapacity(id);
       if (
         ((updateData as Partial<IEvent>).capacity as number) <
         currentRegistrations
@@ -1186,9 +1237,15 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     // Update workshop
     const updated = await this.repository.update(id, updateData);
-    return updated as IEvent;
+    if (!updated) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Update failed" });
+    }
+    return updated;
   }
 
+  /**
+   * Get favorite events for a user
+   */
   async getFavoriteEvents(
     userId: string,
     options?: {
@@ -1199,8 +1256,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     return userRepository.getFavoriteEvents(userId, options);
   }
 
-  async isFavorit(userId: string, eventId: string) {
-    return userRepository.isFavorit(userId, eventId);
+  /**
+   * Check if event is favorited by user
+   */
+  async isFavorite(userId: string, eventId: string) {
+    return userRepository.isFavorite(userId, eventId);
   }
 }
 

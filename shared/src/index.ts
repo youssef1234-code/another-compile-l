@@ -172,6 +172,15 @@ export const NotificationType = {
   EVENT_REMINDER: "EVENT_REMINDER",
   REGISTRATION_CONFIRMED: "REGISTRATION_CONFIRMED",
   ROLE_VERIFIED: "ROLE_VERIFIED",
+  NEW_EVENT: "NEW_EVENT",
+  WORKSHOP_STATUS_UPDATE: "WORKSHOP_STATUS_UPDATE",
+  WORKSHOP_PENDING: "WORKSHOP_PENDING",
+  VENDOR_REQUEST_UPDATE: "VENDOR_REQUEST_UPDATE",
+  VENDOR_PENDING: "VENDOR_PENDING",
+  COMMENT_DELETED_WARNING: "COMMENT_DELETED_WARNING",
+  GYM_SESSION_UPDATE: "GYM_SESSION_UPDATE",
+  NEW_LOYALTY_PARTNER: "NEW_LOYALTY_PARTNER",
+  GENERAL: "GENERAL",
 } as const;
 
 export type NotificationType =
@@ -1056,6 +1065,15 @@ export type MarkNotificationReadInput = z.infer<
   typeof MarkNotificationReadSchema
 >;
 
+export const GetNotificationsSchema = z.object({
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(20),
+});
+
+export const DeleteNotificationSchema = z.object({
+  notificationId: z.string(),
+});
+
 // ============================================================================
 // RESPONSE TYPES (for frontend)
 // ============================================================================
@@ -1159,13 +1177,14 @@ export interface Registration {
 
 export interface Notification {
   id: string;
-  userId: string;
+  user: string;
+  type: NotificationType;
   title: string;
   message: string;
-  type: "INFO" | "SUCCESS" | "WARNING" | "ERROR";
   isRead: boolean;
-  link?: string;
+  relatedEntityId?: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Feedback {

@@ -143,8 +143,9 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     // Hash password
     const hashedPassword = await hashPassword(data.password);
 
-    // Generate verification token
+    // Generate verification token with 24-hour expiration
     const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Create user (validateCreate hook will check for duplicates)
     const user = await this.create({
@@ -155,6 +156,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       studentId: data.studentId,
       role: data.role,
       verificationToken,
+      verificationTokenExpires,
       isVerified: false, // All users need email verification
       roleVerifiedByAdmin: data.role === "STUDENT", // Students don't need admin approval
       isBlocked: false,
@@ -200,8 +202,9 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     // Hash password
     const hashedPassword = await hashPassword(data.password);
 
-    // Generate verification token (still need email verification)
+    // Generate verification token with 24-hour expiration
     const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Store tax card and logo as base64 (in production, use file service)
     // For now, we'll store directly in user record
@@ -223,6 +226,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       lastName: data.lastName,
       role: "VENDOR",
       verificationToken,
+      verificationTokenExpires,
       isVerified: false, // Need email verification first
       roleVerifiedByAdmin: !data.taxCardImage, // If no tax card, no approval needed
       isBlocked: false,
@@ -269,26 +273,35 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       });
     }
 
+    // Check if token has expired
+    if (user.verificationTokenExpires && new Date() > user.verificationTokenExpires) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Verification token has expired. Please request a new verification email.",
+      });
+    }
+
     // Check if already verified
     if (user.isVerified) {
       return { message: "Email already verified. You can log in." };
     }
 
-    // Verify user
+    // Verify user FIRST to prevent race condition
     await this.update((user._id as mongoose.Types.ObjectId).toString(), {
       isVerified: true,
       status: "ACTIVE",
       verificationToken: undefined,
+      verificationTokenExpires: undefined,
     } as any);
 
-    // Send welcome email
+    console.log(`✓ Email verified for ${user.email}`);
+
+    // Send welcome email AFTER user is verified to avoid duplicates
     const loginUrl = `${config.clientUrl}/login`;
     await mailService.sendWelcomeEmail(user.email, {
       name: `${user.firstName} ${user.lastName}`,
       loginUrl,
     });
-
-    console.log(`✓ Email verified for ${user.email}`);
 
     return {
       message: "Email verified successfully! You can now log in.",
@@ -337,12 +350,14 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       });
     }
 
-    // Generate new verification token
+    // Generate new verification token with 24-hour expiration
     const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Update user with new token and timestamp
     await this.update((user._id as mongoose.Types.ObjectId).toString(), {
       verificationToken,
+      verificationTokenExpires,
       verificationEmailSentAt: new Date(),
     } as any);
 
@@ -397,9 +412,13 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     // Verify role
     await userRepository.verifyRole(data.userId);
 
-    // Generate new verification token for email
+    // Generate new verification token with 24-hour expiration
     const verificationToken = crypto.randomBytes(32).toString("hex");
-    await this.update(data.userId, { verificationToken } as any);
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await this.update(data.userId, { 
+      verificationToken,
+      verificationTokenExpires 
+    } as any);
 
     // Send verification email
     const verificationUrl = `${config.clientUrl}/verify-email?token=${verificationToken}`;

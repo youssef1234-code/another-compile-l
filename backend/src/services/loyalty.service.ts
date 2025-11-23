@@ -89,6 +89,16 @@ export class LoyaltyService extends BaseService<ILoyaltyRequest, LoyaltyRequestR
       promoCode: input.promoCode.toUpperCase(),
       terms: input.terms,
     });
+    
+    // Requirement #73: Notify all users about new loyalty partner
+    const { User } = await import('../models/user.model.js');
+    const vendor = await User.findById(vendorId).lean();
+    const { notificationService } = await import('./notification.service.js');
+    await notificationService.notifyNewLoyaltyPartner(
+      vendor?.companyName || 'New Partner',
+      input.discountRate,
+      input.promoCode
+    );
 
     return loyaltyRequest;
   }

@@ -138,7 +138,7 @@ const authRoutes = {
       if (user.isBlocked || user.status === 'BLOCKED') {
         throw new TRPCError({
           code: 'FORBIDDEN',
-          message: 'Your account has been blocked',
+          message: 'Your account has been blocked. Please contact the administration for more information.',
         });
       }
 
