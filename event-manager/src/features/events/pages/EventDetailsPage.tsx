@@ -388,7 +388,8 @@ export function EventDetailsPage() {
                 variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"}
                 className={cn(
                   "shadow-lg backdrop-blur-md border border-white/20",
-                  hasStarted && !hasEnded && "text-white dark:text-white"
+                  hasStarted && !hasEnded && "text-white dark:text-white",
+                  !hasStarted && !hasEnded && "bg-black/40 text-white border-white/30"
                 )}
               >
                 {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
