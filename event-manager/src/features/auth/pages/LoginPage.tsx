@@ -271,19 +271,6 @@ export function LoginPage() {
           transition={{ duration: 0.8 }}
           className="w-full max-w-md space-y-6"
         >
-          {/* Back to Home Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="gap-2 mb-4"
-          >
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Link>
-          </Button>
-
           {/* Logo for Mobile */}
           <div className="lg:hidden flex justify-center mb-8">
             <div className="relative">

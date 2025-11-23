@@ -13,25 +13,6 @@ import { ArrowLeft, GraduationCap, Store, ShoppingBag, QrCode, TrendingUp } from
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 
-const pageVariants = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: { 
-    opacity: 1, 
-    scale: 1,
-    transition: {
-      duration: 0.5,
-      ease: "easeOut"
-    }
-  },
-  exit: { 
-    opacity: 0, 
-    scale: 0.95,
-    transition: {
-      duration: 0.3
-    }
-  }
-};
-
 export function SignupVendorPage() {
   const navigate = useNavigate();
 
