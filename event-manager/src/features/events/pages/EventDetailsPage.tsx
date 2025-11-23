@@ -466,8 +466,13 @@ export function EventDetailsPage() {
             variant="ghost"
             onClick={handleFavorite}
             disabled={isFavoriting}
+            className="absolute top-4 right-4 z-20 bg-white/90 dark:bg-black/90 hover:bg-white dark:hover:bg-black shadow-lg backdrop-blur-sm border-0"
           >
-            <Heart fill={isFavorite ? "red" : ""} />
+            <Heart 
+              fill={isFavorite ? "red" : "none"} 
+              stroke={isFavorite ? "red" : "currentColor"}
+              className="h-5 w-5"
+            />
           </Button>
         </div>
       </div>

@@ -76,6 +76,11 @@ export const eventsOfficeProcedure = protectedProcedure.use(async (opts: any) =>
 });
 
 /**
+ * Admin or Event Office procedure (both have access)
+ */
+export const adminOrEventOfficeProcedure = eventsOfficeProcedure;
+
+/**
  * Events Office only procedure (excludes ADMIN)
  */
 export const eventsOfficeOnlyProcedure = protectedProcedure.use(async (opts: any) => {

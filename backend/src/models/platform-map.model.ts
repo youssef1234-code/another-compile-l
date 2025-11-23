@@ -20,6 +20,18 @@ export interface IBoothPlacement {
   isOccupied: boolean;
   applicationId?: mongoose.Types.ObjectId; // Reference to VendorApplication
   label?: string; // Optional label like "Booth A1"
+  isVIP?: boolean; // VIP booth designation
+}
+
+// Landmark types for platform navigation
+export type LandmarkType = 'ENTRANCE' | 'EXIT' | 'SPECIAL_PLACE';
+
+export interface ILandmark {
+  id: string;
+  x: number; // Grid X position
+  y: number; // Grid Y position
+  type: LandmarkType;
+  label: string; // e.g., "Main Entrance", "Food Court", "Restrooms"
 }
 
 export interface IPlatformMap extends IBaseDocument {
@@ -28,6 +40,7 @@ export interface IPlatformMap extends IBaseDocument {
   gridHeight: number; // Number of grid rows (e.g., 15)
   cellSize: number; // Size of each grid cell in pixels (for rendering)
   booths: IBoothPlacement[]; // Array of booth placements
+  landmarks?: ILandmark[]; // Array of landmarks (entrance, exit, special places)
   isActive: boolean; // Whether this is the active platform layout
 }
 
@@ -45,6 +58,18 @@ const boothPlacementSchema = new Schema<IBoothPlacement>(
       required: false,
     },
     label: { type: String, required: false },
+    isVIP: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const landmarkSchema = new Schema<ILandmark>(
+  {
+    id: { type: String, required: true },
+    x: { type: Number, required: true, min: 0 },
+    y: { type: Number, required: true, min: 0 },
+    type: { type: String, required: true, enum: ['ENTRANCE', 'EXIT', 'SPECIAL_PLACE'] },
+    label: { type: String, required: true },
   },
   { _id: false }
 );
@@ -73,6 +98,10 @@ const platformMapSchema = createBaseSchema<IPlatformMap>(
     },
     booths: {
       type: [boothPlacementSchema],
+      default: [],
+    },
+    landmarks: {
+      type: [landmarkSchema],
       default: [],
     },
     isActive: {

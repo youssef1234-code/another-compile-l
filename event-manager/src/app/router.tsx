@@ -55,9 +55,10 @@ import { PlatformSetupPage } from "@/features/platform/pages/PlatformSetupPage";
 import {
   GymSchedulePage,
   MySessionsPage,
-  CourtBookingsPage,
   ManageSessionsPage,
+  CourtBookingsPage,
 } from "@/features/gym/pages";
+import { CourtManagementPage } from "@/features/gym/pages/CourtManagementPage";
 
 // Admin
 import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
@@ -298,6 +299,14 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.COURT_BOOKINGS,
         element: <CourtBookingsPage />,
+      },
+      {
+        path: ROUTES.COURT_MANAGEMENT,
+        element: (
+          <EventManagementRoute>
+            <CourtManagementPage />
+          </EventManagementRoute>
+        ),
       },
       {
         path: ROUTES.MANAGE_SESSIONS,

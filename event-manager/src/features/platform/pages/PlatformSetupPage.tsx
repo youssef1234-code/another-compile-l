@@ -72,6 +72,7 @@ interface Booth {
   isOccupied: boolean;
   applicationId?: string;
   label?: string;
+  isVIP?: boolean; // VIP booth designation
 }
 
 interface PlatformMap {
@@ -157,12 +158,13 @@ export function PlatformSetupPage() {
   }, [data]);
 
   useEffect(() => {
-    if (data) {
+    // Only update platform state once data is loaded
+    if (data && !isLoading) {
       setPlatform(data as PlatformMap);
       setEditedName((data as PlatformMap).name);
       updateStageSize(isFullscreen);
     }
-  }, [data, isFullscreen, updateStageSize]);
+  }, [data, isLoading, isFullscreen, updateStageSize]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -314,6 +316,7 @@ export function PlatformSetupPage() {
           isOccupied: b.isOccupied,
           applicationId: b.applicationId,
           label: b.label,
+          isVIP: b.isVIP || false,
         })),
       },
     });
@@ -637,9 +640,14 @@ export function PlatformSetupPage() {
               <div className="space-y-2 p-3 bg-primary/10 rounded-lg">
                 <div className="flex items-center justify-between">
                   <Label className="text-primary">Selected Booth</Label>
-                  {selectedBoothData.isOccupied && (
-                    <Badge variant="secondary">Occupied</Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {selectedBoothData.isVIP && (
+                      <Badge className="bg-amber-500 text-amber-950">⭐ VIP</Badge>
+                    )}
+                    {selectedBoothData.isOccupied && (
+                      <Badge variant="secondary">Occupied</Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1 text-sm">
                   <p><strong>Label:</strong> {selectedBoothData.label || 'N/A'}</p>
@@ -647,15 +655,35 @@ export function PlatformSetupPage() {
                   <p><strong>Position:</strong> ({selectedBoothData.x}, {selectedBoothData.y})</p>
                 </div>
                 {!selectedBoothData.isOccupied && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="w-full mt-2"
-                    onClick={handleRemoveBooth}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Remove Booth
-                  </Button>
+                  <div className="space-y-2 mt-2">
+                    <Button
+                      variant={selectedBoothData.isVIP ? "secondary" : "default"}
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        setPlatform({
+                          ...platform!,
+                          booths: platform!.booths.map(b =>
+                            b.id === selectedBooth
+                              ? { ...b, isVIP: !b.isVIP }
+                              : b
+                          ),
+                        });
+                        toast.success(selectedBoothData.isVIP ? 'VIP status removed' : 'Booth marked as VIP');
+                      }}
+                    >
+                      {selectedBoothData.isVIP ? '✕ Remove VIP' : '⭐ Mark as VIP'}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full"
+                      onClick={handleRemoveBooth}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Remove Booth
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
@@ -796,16 +824,21 @@ export function PlatformSetupPage() {
                     const isHovered = booth.id === hoveredBooth;
                     const isDragging = booth.id === draggedBooth;
                     const is4x4 = booth.width === 4 && booth.height === 4;
+                    const isVIP = booth.isVIP || false;
                     
-                    // Colors: Gray for occupied, purple for 4x4, blue for 2x2
-                    const fillColor = booth.isOccupied 
-                      ? colors.occupied 
+                    // Colors: Gold for VIP, Gray for occupied, purple for 4x4, blue for 2x2
+                    const fillColor = isVIP
+                      ? (isDark ? '#fbbf24' : '#fcd34d') // amber-400 : amber-300
+                      : booth.isOccupied 
+                        ? colors.occupied 
+                        : isSelected 
+                          ? (is4x4 ? colors.booth4x4Selected : colors.booth2x2Selected)
+                          : (is4x4 ? colors.booth4x4 : colors.booth2x2);
+                    const strokeColor = isVIP
+                      ? (isDark ? '#f59e0b' : '#f59e0b') // amber-500
                       : isSelected 
-                        ? (is4x4 ? colors.booth4x4Selected : colors.booth2x2Selected)
-                        : (is4x4 ? colors.booth4x4 : colors.booth2x2);
-                    const strokeColor = isSelected 
-                      ? (is4x4 ? colors.booth4x4Stroke : colors.booth2x2Stroke)
-                      : (is4x4 ? colors.booth4x4Selected : colors.booth2x2Selected);
+                        ? (is4x4 ? colors.booth4x4Stroke : colors.booth2x2Stroke)
+                        : (is4x4 ? colors.booth4x4Selected : colors.booth2x2Selected);
 
                     return (
                       <Group 
@@ -833,26 +866,40 @@ export function PlatformSetupPage() {
                           height={booth.height * platform.cellSize}
                           fill={fillColor}
                           stroke={strokeColor}
-                          strokeWidth={isSelected ? 3 : 2}
-                          shadowBlur={isHovered || isDragging ? 10 : 0}
-                          shadowColor="rgba(0,0,0,0.3)"
+                          strokeWidth={isVIP ? 4 : (isSelected ? 3 : 2)}
+                          shadowBlur={isHovered || isDragging ? 10 : (isVIP ? 8 : 0)}
+                          shadowColor={isVIP ? "rgba(245, 158, 11, 0.5)" : "rgba(0,0,0,0.3)"}
                           cornerRadius={4}
                           onMouseEnter={() => setHoveredBooth(booth.id)}
                           onMouseLeave={() => setHoveredBooth(null)}
                         />
                         <Text
                           x={0}
-                          y={0}
+                          y={isVIP ? 5 : 0}
                           width={booth.width * platform.cellSize}
                           height={booth.height * platform.cellSize}
                           text={booth.label || `${booth.width}x${booth.height}`}
                           fontSize={14}
                           fontStyle="bold"
-                          fill={colors.text}
+                          fill={isVIP ? (isDark ? '#78350f' : '#78350f') : colors.text}
                           align="center"
-                          verticalAlign="middle"
+                          verticalAlign={isVIP ? "top" : "middle"}
                           listening={false}
                         />
+                        {isVIP && (
+                          <Text
+                            x={0}
+                            y={(booth.height * platform.cellSize) / 2}
+                            width={booth.width * platform.cellSize}
+                            text="⭐ VIP"
+                            fontSize={12}
+                            fontStyle="bold"
+                            fill={isDark ? '#78350f' : '#78350f'}
+                            align="center"
+                            verticalAlign="middle"
+                            listening={false}
+                          />
+                        )}
                         {booth.isOccupied && (
                           <Text
                             x={0}

@@ -27,7 +27,7 @@ async getAvailability({
   slotMinutes: number;
   openHour?: number;
   closeHour?: number;
-  me: string; // current user id
+  me?: string; // current user id (optional for public access)
 }) {
   // Define the Cairo-local day, then convert bounds to UTC for querying
   const dayLocal = DateTime.fromJSDate(date, { zone: CAMPUS_TZ }).startOf("day");
@@ -66,6 +66,8 @@ const results: CourtAvailabilityRow[] = [];
         endUtc:   DateTime.fromJSDate(b.endDate).toUTC().toISO()!,
         status: b.status,
         byMe: userId === me,
+        studentName: b.studentName,
+        studentGucId: b.studentGucId,
       };
     });
 

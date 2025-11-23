@@ -6,14 +6,23 @@ import { createBaseSchema, type IBaseDocument } from "./base.model";
 export interface ICourt extends IBaseDocument {
   name: string;
   sport: CourtSport;
-  location: string;             
-  createdAt: Date; updatedAt: Date;
+  location: string;
+  description?: string;
+  specs?: string; // Court specifications (size, floor type, etc.)
+  customInstructions?: string; // Booking instructions
+  images?: string[]; // Array of image URLs or file IDs
+  createdAt: Date; 
+  updatedAt: Date;
 }
 
 const courtSchema = createBaseSchema<ICourt>({
   name: { type: String, required: true, index: true },
-  sport: { type: String, enum: CourtSport, required: true, index: true },
+  sport: { type: String, enum: Object.values(CourtSport), required: true, index: true },
   location: { type: String, required: true },
+  description: { type: String },
+  specs: { type: String },
+  customInstructions: { type: String },
+  images: { type: [String], default: [] },
 });
 
 courtSchema.index({ sport: 1, name: 1 }, { unique: true });

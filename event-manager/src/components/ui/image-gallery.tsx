@@ -63,6 +63,7 @@ function ImageThumbnail({ imageId, alt }: { imageId: string; alt: string }) {
 interface ImageGalleryProps {
   value?: string[]; // Array of file IDs
   onChange: (images: string[]) => void;
+  onUploadingChange?: (isUploading: boolean) => void;
   maxImages?: number;
   disabled?: boolean;
   className?: string;
@@ -70,7 +71,8 @@ interface ImageGalleryProps {
 
 export function ImageGallery({ 
   value = [], 
-  onChange, 
+  onChange,
+  onUploadingChange,
   maxImages = 10,
   disabled = false,
   className 
@@ -78,36 +80,70 @@ export function ImageGallery({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   // Track which images are currently uploading with their preview URLs
   const [uploadingPreviews, setUploadingPreviews] = useState<string[]>([]);
-  // Map base64 to dataUrl for removal after upload
+  // Map unique upload ID to dataUrl for removal after upload
   const [uploadMap, setUploadMap] = useState<Record<string, string>>({});
+  // Local accumulator for completed uploads to avoid race conditions
+  const [pendingUploads, setPendingUploads] = useState<string[]>([]);
+  
+  // Keep a ref to the latest value to avoid stale closures
+  const valueRef = React.useRef(value);
+  React.useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+  
+  // Keep a ref to the latest uploadMap to avoid stale closures
+  const uploadMapRef = React.useRef(uploadMap);
+  React.useEffect(() => {
+    uploadMapRef.current = uploadMap;
+  }, [uploadMap]);
+  
+  // Counter for generating unique upload IDs
+  const uploadIdCounter = React.useRef(0);
+  
+  // Sync pending uploads to parent when they change
+  React.useEffect(() => {
+    if (pendingUploads.length > 0) {
+      const allImages = [...value, ...pendingUploads];
+      onChange(allImages);
+      setPendingUploads([]);
+    }
+  }, [pendingUploads, value, onChange]);
+
+  // Notify parent when uploading state changes
+  React.useEffect(() => {
+    onUploadingChange?.(uploadingPreviews.length > 0);
+  }, [uploadingPreviews.length, onUploadingChange]);
 
   const uploadMutation = trpc.files.uploadFile.useMutation({
     onSuccess: (data, variables) => {
-      // Get the dataUrl from the map and remove from uploading state
-      const dataUrl = uploadMap[variables.file];
-      if (dataUrl) {
+      // Get the uploadId from variables context
+      const uploadId = (variables as any).uploadId;
+      const dataUrl = uploadId ? uploadMapRef.current[uploadId] : null;
+      
+      if (dataUrl && uploadId) {
         setUploadingPreviews((prev) => prev.filter((url) => url !== dataUrl));
         setUploadMap((prev) => {
           const newMap = { ...prev };
-          delete newMap[variables.file];
+          delete newMap[uploadId];
           return newMap;
         });
       }
       
-      // Add the uploaded file ID to the array
-      const newImages = [...value, data.id];
-      onChange(newImages);
+      // Add to pending uploads - the useEffect will sync to parent
+      setPendingUploads((prev) => [...prev, data.id]);
       
       toast.success('Image uploaded successfully');
     },
     onError: (error, variables) => {
-      // Get the dataUrl from the map and remove from uploading state
-      const dataUrl = uploadMap[variables.file];
-      if (dataUrl) {
+      // Get the uploadId from variables context
+      const uploadId = (variables as any).uploadId;
+      const dataUrl = uploadId ? uploadMapRef.current[uploadId] : null;
+      
+      if (dataUrl && uploadId) {
         setUploadingPreviews((prev) => prev.filter((url) => url !== dataUrl));
         setUploadMap((prev) => {
           const newMap = { ...prev };
-          delete newMap[variables.file];
+          delete newMap[uploadId];
           return newMap;
         });
       }
@@ -126,44 +162,66 @@ export function ImageGallery({
     }
 
     const filesToUpload = Array.from(files).slice(0, remainingSlots);
-
-    for (const file of filesToUpload) {
+    
+    // Process all files in parallel
+    const filePromises = filesToUpload.map(async (file) => {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        toast.error('Invalid file type. Please upload only image files');
-        continue;
+        toast.error(`${file.name}: Invalid file type. Please upload only image files`);
+        return null;
       }
 
       // Validate file size (5MB max)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('File too large. Please upload images smaller than 5MB');
-        continue;
+        toast.error(`${file.name}: File too large. Please upload images smaller than 5MB`);
+        return null;
       }
 
       // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        // Extract base64 part from data URL (remove "data:image/png;base64," prefix)
-        const base64 = dataUrl.split(',')[1];
-        
-        // Add to uploading previews so we can show it immediately
-        setUploadingPreviews((prev) => [...prev, dataUrl]);
-        
-        // Store mapping of base64 to dataUrl so we can remove it after upload
-        setUploadMap((prev) => ({ ...prev, [base64]: dataUrl }));
-        
-        // Upload file
-        uploadMutation.mutate({
-          file: base64,
-          filename: file.name,
-          mimeType: file.type,
-          entityType: 'event',
-          isPublic: true,
-        });
-      };
-      reader.readAsDataURL(file);
-    }
+      return new Promise<{ dataUrl: string; base64: string; file: File } | null>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          // Extract base64 part from data URL (remove "data:image/png;base64," prefix)
+          const base64 = dataUrl.split(',')[1];
+          resolve({ dataUrl, base64, file });
+        };
+        reader.onerror = () => {
+          toast.error(`${file.name}: Failed to read file`);
+          resolve(null);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    // Wait for all files to be processed
+    const processedFiles = (await Promise.all(filePromises)).filter((f): f is NonNullable<typeof f> => f !== null);
+
+    if (processedFiles.length === 0) return;
+
+    // Batch update state for all previews at once with unique IDs
+    const newPreviews = processedFiles.map(f => f.dataUrl);
+    const newMap: Record<string, string> = {};
+    const uploadsWithIds = processedFiles.map(f => {
+      const uploadId = `upload_${++uploadIdCounter.current}_${Date.now()}`;
+      newMap[uploadId] = f.dataUrl;
+      return { ...f, uploadId };
+    });
+
+    setUploadingPreviews((prev) => [...prev, ...newPreviews]);
+    setUploadMap((prev) => ({ ...prev, ...newMap }));
+
+    // Upload all files in parallel (each mutate call is independent)
+    uploadsWithIds.forEach(({ base64, file, uploadId }) => {
+      uploadMutation.mutate({
+        file: base64,
+        filename: file.name,
+        mimeType: file.type,
+        entityType: 'event',
+        isPublic: true,
+        uploadId, // Pass uploadId in context
+      } as any);
+    });
   }, [value.length, maxImages, disabled, uploadMutation]);
 
   const handleDelete = (index: number) => {

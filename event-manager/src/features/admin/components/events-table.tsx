@@ -45,6 +45,7 @@ interface EventsTableProps {
   onNeedsEdits?: (eventId: string) => void;
   // Action buttons for toolbar
   onExport?: () => void;
+  onExportParticipants?: (eventIds: string[]) => void;
   onCreate?: () => void;
   exportDisabled?: boolean;
   exportLabel?: string;
@@ -69,6 +70,7 @@ export function EventsTable({
   onRejectWorkshop,
   onNeedsEdits,
   onExport,
+  onExportParticipants,
   onCreate,
   exportDisabled,
   exportLabel = 'Export All',
@@ -172,12 +174,22 @@ export function EventsTable({
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={onExport} 
+                onClick={() => {
+                  const selectedRows = table.getFilteredSelectedRowModel().rows;
+                  if (selectedRows.length > 0 && onExportParticipants) {
+                    const eventIds = selectedRows.map(row => row.original.id);
+                    onExportParticipants(eventIds);
+                  } else {
+                    onExport();
+                  }
+                }}
                 disabled={exportDisabled}
                 className="gap-2"
               >
                 <Download className="h-4 w-4" />
-                {exportLabel}
+                {table.getFilteredSelectedRowModel().rows.length > 0 && onExportParticipants
+                  ? `Export Participants (${table.getFilteredSelectedRowModel().rows.length} events)`
+                  : exportLabel}
               </Button>
             )}
             {onCreate && (

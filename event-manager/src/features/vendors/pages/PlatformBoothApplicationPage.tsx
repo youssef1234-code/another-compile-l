@@ -36,6 +36,7 @@ import {
 import { ROUTES } from '@/lib/constants';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { useTheme } from '@/hooks/useTheme';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface Attendee {
   name: string;
@@ -119,13 +120,14 @@ export function PlatformBoothApplicationPage() {
   });
 
   useEffect(() => {
-    if (data) {
+    // Only update platform state once data is fully loaded
+    if (data && !isLoading) {
       setPlatform(data as PlatformMap);
       const width = (data as PlatformMap).gridWidth * (data as PlatformMap).cellSize;
       const height = (data as PlatformMap).gridHeight * (data as PlatformMap).cellSize;
       setStageSize({ width: Math.min(width, 1000), height: Math.min(height, 600) });
     }
-  }, [data]);
+  }, [data, isLoading]);
 
   const handleStageClick = (e: KonvaEventObject<MouseEvent>) => {
     if (!platform) return;
@@ -287,12 +289,11 @@ export function PlatformBoothApplicationPage() {
             {/* Start Date */}
             <div className="space-y-2">
               <Label htmlFor="start-date">Start Date *</Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+              <DatePicker
+                value={startDate ? new Date(startDate) : null}
+                onChange={(date) => setStartDate(date ? date.toISOString().split('T')[0] : '')}
+                minDate={new Date()}
+                placeholder="Select start date"
               />
             </div>
 

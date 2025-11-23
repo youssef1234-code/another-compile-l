@@ -60,6 +60,7 @@ export const ROUTES = {
   GYM_SCHEDULE: "/gym/schedule",
   MY_SESSIONS: "/gym/sessions",
   COURT_BOOKINGS: "/gym/courts",
+  COURT_MANAGEMENT: "/gym/courts/manage",
   MANAGE_SESSIONS: "/gym/manage",
 
   // Admin

@@ -83,6 +83,7 @@ export function CreateEventSheet({
   const [step, setStep] = useState<'type' | 'details'>('type');
   const [pendingType, setPendingType] = useState<EventType | null>(null);
   const [selectedType, setSelectedType] = useState<EventType | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Auto-set type and skip to details if initialType is provided
   useEffect(() => {
@@ -811,6 +812,7 @@ export function CreateEventSheet({
               <ImageGallery
                 value={formData.images}
                 onChange={(images) => setFormData((prev) => ({ ...prev, images }))}
+                onUploadingChange={setIsUploading}
                 maxImages={10}
               />
               <p className="text-xs text-muted-foreground mt-2">
@@ -832,8 +834,9 @@ export function CreateEventSheet({
             Back
           </Button>
         )}
-        <Button type="submit" disabled={createMutation.isPending}>
+        <Button type="submit" disabled={createMutation.isPending || isUploading}>
           {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isUploading && !createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           <Save className="mr-2 h-4 w-4" />
           Create event
         </Button>

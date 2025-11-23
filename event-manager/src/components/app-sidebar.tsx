@@ -169,6 +169,12 @@ const navigationConfig: NavItem[] = [
         icon: Settings,
         roles: ["EVENT_OFFICE"],
       },
+      {
+        title: "Manage Courts",
+        url: ROUTES.COURT_MANAGEMENT,
+        icon: Trophy,
+        roles: ["EVENT_OFFICE", "ADMIN"],
+      },
     ],
   },
   {

@@ -31,6 +31,7 @@ import {
   Building2,
   Check,
   XCircle,
+  Download,
 } from 'lucide-react';
 import { formatDate } from '@/lib/design-system';
 
@@ -72,6 +73,28 @@ export function EventExpandedRow({
       { eventId: event.id, page: 1, limit: 100 },
       { enabled: !!event.id }
     );
+
+  // Export registrations mutation
+  const exportRegistrationsMutation = trpc.events.exportRegistrations.useMutation({
+    onSuccess: (data) => {
+      // Create blob and download
+      const blob = new Blob([Uint8Array.from(atob(data.data), c => c.charCodeAt(0))], {
+        type: data.mimeType
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = data.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }
+  });
+
+  const handleExportRegistrations = () => {
+    exportRegistrationsMutation.mutate({ eventId: event.id });
+  };
 
   // Check if current user is admin/event office
   const isAdminOrEventOffice = user?.role === UserRole.ADMIN || user?.role === UserRole.EVENT_OFFICE;
@@ -410,10 +433,22 @@ export function EventExpandedRow({
           {registrationsData && registrationsData.registrations.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Registered Participants ({registrationsData.total})
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Registered Participants ({registrationsData.total})
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportRegistrations}
+                    disabled={exportRegistrationsMutation.isPending}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {exportRegistrationsMutation.isPending ? 'Exporting...' : 'Export to Excel'}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">

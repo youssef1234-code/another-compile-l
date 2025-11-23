@@ -548,8 +548,29 @@ export const CourtSchema = z.object({
   name: z.string(),
   sport: z.nativeEnum(CourtSport),
   location: z.string().default("ON_CAMPUS"),
-  // optional capacity for team size etc. if needed
+  description: z.string().optional(),
+  specs: z.string().optional(), // Court specifications (e.g., "Indoor court, wooden floor, 28m x 15m")
+  customInstructions: z.string().optional(), // Custom booking instructions
+  images: z.array(z.string()).optional(), // Array of image URLs or file IDs
 });
+
+export const CreateCourtSchema = z.object({
+  name: z.string().min(3, "Court name must be at least 3 characters"),
+  sport: z.nativeEnum(CourtSport),
+  location: z.string().min(3, "Location is required"),
+  description: z.string().optional(),
+  specs: z.string().optional(),
+  customInstructions: z.string().optional(),
+  images: z.array(z.string()).optional(),
+});
+
+export type CreateCourtInput = z.infer<typeof CreateCourtSchema>;
+
+export const UpdateCourtSchema = CreateCourtSchema.partial().extend({
+  id: z.string(),
+});
+
+export type UpdateCourtInput = z.infer<typeof UpdateCourtSchema>;
 
 export const AvailabilityQuerySchema = z.object({
   courtId: z.string().optional(),

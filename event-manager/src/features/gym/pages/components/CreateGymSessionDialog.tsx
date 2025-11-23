@@ -4,6 +4,8 @@ import { trpc } from "@/lib/trpc";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { toast } from "react-hot-toast";
 import { GymSessionType, GYM_SESSION_TYPE_LABELS } from "@event-manager/shared";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -156,13 +158,21 @@ export function CreateGymSessionDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div>
+            <div className="space-y-1">
               <label className="text-xs">Date</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <DatePicker
+                value={date ? new Date(date) : null}
+                onChange={(d) => setDate(d ? formatDateToInput(d) : '')}
+                placeholder="Select date"
+              />
             </div>
-            <div>
+            <div className="space-y-1">
               <label className="text-xs">Start time</label>
-              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+              <TimePicker
+                value={time}
+                onChange={setTime}
+                placeholder="Select time"
+              />
             </div>
           </div>
 
