@@ -18,6 +18,7 @@ export interface IVendorApplication extends IBaseDocument {
   companyName: string;
   names: string[];
   emails: string[];
+  idPictures: string[];
   paymentMethod?: string;
   paymentStatus?: "PENDING" | "PAID" | "FAILED";
   paymentAmount?: number;
@@ -56,6 +57,16 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
           return v && v.length >= 1 && v.length <= 5;
         },
         message: "Must be between 1 and 5 emails",
+      },
+      required: true,
+    },
+    idPictures: {
+      type: [String],
+      validate: {
+        validator: function (v) {
+          return v && v.length >= 1 && v.length <= 5;
+        },
+        message: "Must be between 1 and 5 ID pictures",
       },
       required: true,
     },
@@ -125,20 +136,20 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
         return ret;
       },
     },
-  },
+  }
 );
 
 // Compound index to prevent duplicate applications for same vendor+bazaar
 // Only for BAZAAR applications (where bazaarId exists)
 applicationSchema.index(
   { createdBy: 1, bazaarId: 1 },
-  { 
+  {
     unique: true,
     name: "vendor_bazaar_unique_v2",
-    partialFilterExpression: { 
+    partialFilterExpression: {
       type: "BAZAAR",
-      bazaarId: { $exists: true }
-    }
+      bazaarId: { $exists: true },
+    },
   }
 );
 
@@ -146,14 +157,14 @@ applicationSchema.index(
 // Same vendor cannot reserve same booth location on same start date
 applicationSchema.index(
   { boothLocationId: 1, createdBy: 1, startDate: 1 },
-  { 
+  {
     unique: true,
     name: "platform_booth_unique",
-    partialFilterExpression: { 
+    partialFilterExpression: {
       type: "PLATFORM",
       boothLocationId: { $exists: true },
-      startDate: { $exists: true }
-    }
+      startDate: { $exists: true },
+    },
   }
 );
 
@@ -162,5 +173,5 @@ applicationSchema.index({ boothLocationId: 1, startDate: 1, duration: 1 });
 
 export const VendorApplication = mongoose.model<IVendorApplication>(
   "VendorApplication",
-  applicationSchema,
+  applicationSchema
 );

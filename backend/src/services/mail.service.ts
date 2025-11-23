@@ -1,24 +1,25 @@
 /**
  * Mail Service Interface
- * 
+ *
  * Abstract mail service for sending emails
  * Supports multiple providers (Mailgun, SMTP, SendGrid, etc.)
- * 
+ *
  * @module services/mail.service
  */
 
-import formData from 'form-data';
-import Mailgun from 'mailgun.js';
-import { config } from '../config/env.js';
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
+import formData from "form-data";
+import Mailgun from "mailgun.js";
+import { config } from "../config/env.js";
+import * as fs from "fs";
+import * as path from "path";
+import { fileURLToPath } from "url";
+import { string } from "zod/v4";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Import types from mailgun.js internal structure
-type IMailgunClient = ReturnType<InstanceType<typeof Mailgun>['client']>;
+type IMailgunClient = ReturnType<InstanceType<typeof Mailgun>["client"]>;
 
 /**
  * Email options interface
@@ -92,9 +93,9 @@ export abstract class BaseMailService {
 
   constructor(from?: string) {
     this.from = from || config.emailFrom;
-    
+
     // Setup logs directory
-    this.logsDir = path.join(__dirname, '../../logs/emails');
+    this.logsDir = path.join(__dirname, "../../logs/emails");
     this.ensureLogsDirectory();
   }
 
@@ -118,8 +119,8 @@ export abstract class BaseMailService {
     html: string
   ): void {
     try {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const sanitizedRecipient = recipient.replace(/[^a-z0-9]/gi, '_');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const sanitizedRecipient = recipient.replace(/[^a-z0-9]/gi, "_");
       const filename = `${timestamp}_${type}_${sanitizedRecipient}.html`;
       const filepath = path.join(this.logsDir, filename);
 
@@ -173,10 +174,10 @@ export abstract class BaseMailService {
 </html>
       `.trim();
 
-      fs.writeFileSync(filepath, fullHtml, 'utf-8');
+      fs.writeFileSync(filepath, fullHtml, "utf-8");
       console.log(`💾 Email saved to logs: ${filename}`);
     } catch (error: any) {
-      console.error('⚠️  Failed to save email to logs:', error.message);
+      console.error("⚠️  Failed to save email to logs:", error.message);
     }
   }
 
@@ -194,10 +195,10 @@ export abstract class BaseMailService {
   ): Promise<void> {
     console.log(`📧 Sending verification email to: ${email}`);
     const html = this.generateVerificationEmailHTML(data);
-    const subject = 'Verify Your Email - Another Compile L';
-    
-    this.saveEmailToLogs('verification', email, subject, html);
-    
+    const subject = "Verify Your Email - Another Compile L";
+
+    this.saveEmailToLogs("verification", email, subject, html);
+
     await this.sendMail({
       to: email,
       subject,
@@ -208,16 +209,13 @@ export abstract class BaseMailService {
   /**
    * Send welcome email
    */
-  async sendWelcomeEmail(
-    email: string,
-    data: WelcomeEmailData
-  ): Promise<void> {
+  async sendWelcomeEmail(email: string, data: WelcomeEmailData): Promise<void> {
     console.log(`📧 Sending welcome email to: ${email}`);
     const html = this.generateWelcomeEmailHTML(data);
-    const subject = 'Welcome to Another Compile L!';
-    
-    this.saveEmailToLogs('welcome', email, subject, html);
-    
+    const subject = "Welcome to Another Compile L!";
+
+    this.saveEmailToLogs("welcome", email, subject, html);
+
     await this.sendMail({
       to: email,
       subject,
@@ -234,10 +232,10 @@ export abstract class BaseMailService {
   ): Promise<void> {
     console.log(`📧 Sending password reset email to: ${email}`);
     const html = this.generatePasswordResetEmailHTML(data);
-    const subject = 'Reset Your Password - Another Compile L';
-    
-    this.saveEmailToLogs('password-reset', email, subject, html);
-    
+    const subject = "Reset Your Password - Another Compile L";
+
+    this.saveEmailToLogs("password-reset", email, subject, html);
+
     await this.sendMail({
       to: email,
       subject,
@@ -255,9 +253,9 @@ export abstract class BaseMailService {
     console.log(`📧 Sending event reminder email to: ${email}`);
     const html = this.generateEventReminderEmailHTML(data);
     const subject = `Reminder: ${data.eventName}`;
-    
-    this.saveEmailToLogs('event-reminder', email, subject, html);
-    
+
+    this.saveEmailToLogs("event-reminder", email, subject, html);
+
     await this.sendMail({
       to: email,
       subject,
@@ -275,9 +273,9 @@ export abstract class BaseMailService {
     console.log(`📧 Sending payment receipt email to: ${email}`);
     const html = this.generatePaymentReceiptEmailHTML(data);
     const subject = `Payment Receipt - ${data.eventName}`;
-    
-    this.saveEmailToLogs('payment-receipt', email, subject, html);
-    
+
+    this.saveEmailToLogs("payment-receipt", email, subject, html);
+
     await this.sendMail({
       to: email,
       subject,
@@ -294,9 +292,9 @@ export abstract class BaseMailService {
     html: string
   ): Promise<void> {
     console.log(`📧 Sending custom email to: ${email}`);
-    
-    this.saveEmailToLogs('custom', email, subject, html);
-    
+
+    this.saveEmailToLogs("custom", email, subject, html);
+
     await this.sendMail({
       to: email,
       subject,
@@ -314,10 +312,10 @@ export abstract class BaseMailService {
   ): Promise<void> {
     console.log(`📧 Sending comment deletion warning email to: ${email}`);
     const html = this.generateCommentDeletedWarningEmailHTML(data);
-    const subject = 'Comment Removed - Another Compile L';
-    
-    this.saveEmailToLogs('comment-deleted-warning', email, subject, html);
-    
+    const subject = "Comment Removed - Another Compile L";
+
+    this.saveEmailToLogs("comment-deleted-warning", email, subject, html);
+
     await this.sendMail({
       to: email,
       subject,
@@ -330,8 +328,8 @@ export abstract class BaseMailService {
   // ============================================================================
 
   protected generateVerificationEmailHTML(data: VerificationEmailData): string {
-    const { name, verificationUrl, expiresIn = '24 hours' } = data;
-    
+    const { name, verificationUrl, expiresIn = "24 hours" } = data;
+
     return `
       <!DOCTYPE html>
       <html>
@@ -391,7 +389,7 @@ export abstract class BaseMailService {
 
   protected generateWelcomeEmailHTML(data: WelcomeEmailData): string {
     const { name, loginUrl } = data;
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -443,9 +441,11 @@ export abstract class BaseMailService {
     `;
   }
 
-  protected generatePasswordResetEmailHTML(data: PasswordResetEmailData): string {
-    const { name, resetUrl, expiresIn = '1 hour' } = data;
-    
+  protected generatePasswordResetEmailHTML(
+    data: PasswordResetEmailData
+  ): string {
+    const { name, resetUrl, expiresIn = "1 hour" } = data;
+
     return `
       <!DOCTYPE html>
       <html>
@@ -504,19 +504,21 @@ export abstract class BaseMailService {
     `;
   }
 
-  protected generateEventReminderEmailHTML(data: EventReminderEmailData): string {
+  protected generateEventReminderEmailHTML(
+    data: EventReminderEmailData
+  ): string {
     const { name, eventName, eventDate, eventLocation, eventUrl } = data;
-    const formattedDate = eventDate.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    const formattedDate = eventDate.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
-    const formattedTime = eventDate.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
+    const formattedTime = eventDate.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -560,14 +562,16 @@ export abstract class BaseMailService {
     `;
   }
 
-  protected generatePaymentReceiptEmailHTML(data: PaymentReceiptEmailData): string {
+  protected generatePaymentReceiptEmailHTML(
+    data: PaymentReceiptEmailData
+  ): string {
     const { name, eventName, amount, currency, receiptId, paymentDate } = data;
-    const formattedDate = paymentDate.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    const formattedDate = paymentDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -628,9 +632,11 @@ export abstract class BaseMailService {
     `;
   }
 
-  protected generateCommentDeletedWarningEmailHTML(data: CommentDeletedWarningEmailData): string {
+  protected generateCommentDeletedWarningEmailHTML(
+    data: CommentDeletedWarningEmailData
+  ): string {
     const { name, comment, eventName, deletedAt } = data;
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -724,18 +730,20 @@ export class MailgunService extends BaseMailService {
 
   constructor() {
     super();
-    
+
     if (!config.mailgun.apiKey || !config.mailgun.domain) {
-      throw new Error('Mailgun API key and domain are required. Please set MAILGUN_API_KEY and MAILGUN_DOMAIN in .env');
+      throw new Error(
+        "Mailgun API key and domain are required. Please set MAILGUN_API_KEY and MAILGUN_DOMAIN in .env"
+      );
     }
 
     const mg = new Mailgun(formData);
     this.mailgun = mg.client({
-      username: 'api',
+      username: "api",
       key: config.mailgun.apiKey,
-      url: 'https://api.eu.mailgun.net'
+      url: "https://api.eu.mailgun.net",
     });
-    
+
     this.domain = config.mailgun.domain;
   }
 
@@ -757,10 +765,12 @@ export class MailgunService extends BaseMailService {
         messageData.cc = Array.isArray(options.cc) ? options.cc : [options.cc];
       }
       if (options.bcc) {
-        messageData.bcc = Array.isArray(options.bcc) ? options.bcc : [options.bcc];
+        messageData.bcc = Array.isArray(options.bcc)
+          ? options.bcc
+          : [options.bcc];
       }
       if (options.replyTo) {
-        messageData['h:Reply-To'] = options.replyTo;
+        messageData["h:Reply-To"] = options.replyTo;
       }
 
       // Add attachments
@@ -773,10 +783,10 @@ export class MailgunService extends BaseMailService {
       }
 
       await this.mailgun.messages.create(this.domain, messageData);
-      
+
       console.log(`📧 ✓ Email sent successfully to ${options.to}`);
     } catch (error: any) {
-      console.error('📧 ✗ Failed to send email:', error.message);
+      console.error("📧 ✗ Failed to send email:", error.message);
       throw new Error(`Failed to send email: ${error.message}`);
     }
   }
@@ -819,7 +829,9 @@ export class MailgunService extends BaseMailService {
                         Dear ${data.attendeeName},
                       </p>
                       <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
-                        Congratulations on successfully completing <strong style="color: #6366f1;">${data.workshopTitle}</strong>!
+                        Congratulations on successfully completing <strong style="color: #6366f1;">${
+                          data.workshopTitle
+                        }</strong>!
                       </p>
                       <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
                         Your certificate of attendance is attached to this email. This certificate recognizes your participation and successful completion of the workshop.
@@ -865,9 +877,11 @@ export class MailgunService extends BaseMailService {
       html,
       attachments: [
         {
-          filename: `certificate-${data.workshopTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`,
+          filename: `certificate-${data.workshopTitle
+            .replace(/[^a-z0-9]/gi, "-")
+            .toLowerCase()}.pdf`,
           content: data.pdfBuffer,
-          contentType: 'application/pdf',
+          contentType: "application/pdf",
         },
       ],
     });
@@ -976,7 +990,7 @@ export class MailgunService extends BaseMailService {
         {
           filename: `vendor-qr-badges-${data.applicationId}.pdf`,
           content: data.pdfBuffer,
-          contentType: 'application/pdf',
+          contentType: "application/pdf",
         },
       ],
     });
@@ -994,11 +1008,11 @@ export class MailgunService extends BaseMailService {
   ): Promise<void> {
     console.log(`📧 Sending bulk email to ${recipients.length} recipients`);
     if (recipients.length > 1000) {
-      throw new Error('Mailgun supports up to 1000 recipients per batch');
+      throw new Error("Mailgun supports up to 1000 recipients per batch");
     }
 
     // Save a sample email to logs
-    this.saveEmailToLogs('bulk', recipients.join(', '), subject, html);
+    this.saveEmailToLogs("bulk", recipients.join(", "), subject, html);
 
     await this.sendMail({
       to: recipients,
@@ -1013,11 +1027,280 @@ export class MailgunService extends BaseMailService {
   async verifyEmail(email: string): Promise<boolean> {
     try {
       const result = await this.mailgun.validate.get(email);
-      return result.result === 'deliverable';
+      return result.result === "deliverable";
     } catch (error) {
-      console.error('Email verification failed:', error);
+      console.error("Email verification failed:", error);
       return false;
     }
+  }
+  /**
+   * Send vendor application status email (approved/rejected)
+   * For vendor application notifications
+   */
+  async sendVendorApplicationStatusEmail(
+    to: string,
+    data: {
+      vendorName: string;
+      status: "approved" | "rejected";
+      eventName: string;
+      applicationId: string;
+      rejectionReason?: string;
+    }
+  ): Promise<void> {
+    const isApproved = data.status === "approved";
+    const subject = `Vendor Application ${
+      isApproved ? "Approved" : "Rejected"
+    } - ${data.eventName}`;
+
+    const html = isApproved
+      ? this.generateVendorApprovalEmailHTML(data)
+      : this.generateVendorRejectionEmailHTML(data);
+
+    this.saveEmailToLogs(
+      `vendor-application-${data.status}`,
+      to,
+      subject,
+      html
+    );
+
+    await this.sendMail({
+      to,
+      subject,
+      html,
+    });
+
+    console.log(`📧 ✓ Vendor ${data.status} email sent to ${to}`);
+  }
+
+  /**
+   * Generate vendor application approval email HTML
+   */
+  protected generateVendorApprovalEmailHTML(data: {
+    vendorName: string;
+    eventName: string;
+    applicationId: string;
+  }): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px 12px 0 0;">
+                      <div style="width: 80px; height: 80px; margin: 0 auto 20px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <h1 style="margin: 0; font-size: 48px; color: #ffffff;">✓</h1>
+                      </div>
+                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
+                        Application Approved!
+                      </h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 48px 40px;">
+                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        Dear ${data.vendorName},
+                      </p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Congratulations! Your vendor application for <strong style="color: #10b981;">${
+                          data.eventName
+                        }</strong> has been approved.
+                      </p>
+                      
+                      <!-- Success Box -->
+                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid #10b981; border-radius: 8px;">
+                        <p style="margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #065f46;">
+                          🎉 You're all set!
+                        </p>
+                        <p style="margin: 0; font-size: 14px; color: #047857;">
+                          <strong>Application ID:</strong> ${data.applicationId}
+                        </p>
+                      </div>
+                      
+                      <!-- Next Steps -->
+                      <h3 style="margin: 32px 0 16px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        📋 Next Steps:
+                      </h3>
+                      <ul style="margin: 0 0 24px; padding-left: 24px; font-size: 15px; line-height: 1.8; color: #4b5563;">
+                        <li>You will receive your vendor QR badges in a separate email</li>
+                        <li>Print and display the QR codes at your booth</li>
+                        <li>Attendees can scan the codes to learn more about your offerings</li>
+                        <li>Set up your booth according to the event guidelines</li>
+                        <li>Arrive early on event day for setup</li>
+                      </ul>
+                      
+                      <!-- Important Info -->
+                      <div style="margin: 32px 0; padding: 24px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #92400e;">
+                          ⚠️ Important Information
+                        </p>
+                        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #78350f;">
+                          Please review the vendor guidelines and event schedule. Contact the events team if you have any questions about booth setup or requirements.
+                        </p>
+                      </div>
+                      
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        We're excited to have you as part of this event and look forward to your participation!
+                      </p>
+                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Best regards,<br>
+                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                      </p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
+                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        This is an automated email. For support, please contact the events team.
+                      </p>
+                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
+                        &copy; ${new Date().getFullYear()} German University in Cairo - Event Management System
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Generate vendor application rejection email HTML
+   */
+  protected generateVendorRejectionEmailHTML(data: {
+    vendorName: string;
+    eventName: string;
+    applicationId: string;
+    rejectionReason?: string;
+  }): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px 12px 0 0;">
+                      <div style="width: 80px; height: 80px; margin: 0 auto 20px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <h1 style="margin: 0; font-size: 48px; color: #ffffff;">✕</h1>
+                      </div>
+                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
+                        Application Status Update
+                      </h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 48px 40px;">
+                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        Dear ${data.vendorName},
+                      </p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Thank you for your interest in participating as a vendor for <strong style="color: #1f2937;">${
+                          data.eventName
+                        }</strong>.
+                      </p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        After careful consideration, we regret to inform you that your vendor application has not been approved at this time.
+                      </p>
+                      
+                      <!-- Application Info -->
+                      <div style="margin: 32px 0; padding: 24px; background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #991b1b;">
+                          Application Details
+                        </p>
+                        <p style="margin: 0; font-size: 13px; color: #7f1d1d;">
+                          <strong>Application ID:</strong> ${
+                            data.applicationId
+                          }<br>
+                          <strong>Event:</strong> ${data.eventName}
+                        </p>
+                      </div>
+                      
+                      ${
+                        data.rejectionReason
+                          ? `
+                      <!-- Rejection Reason -->
+                      <div style="margin: 32px 0; padding: 24px; background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 8px;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #92400e;">
+                          Reason for Decision
+                        </p>
+                        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #78350f;">
+                          ${data.rejectionReason}
+                        </p>
+                      </div>
+                      `
+                          : ""
+                      }
+                      
+                      <!-- Future Opportunities -->
+                      <h3 style="margin: 32px 0 16px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        📅 Future Opportunities
+                      </h3>
+                      <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #4b5563;">
+                        We encourage you to apply for future events. Each application is evaluated independently based on the specific event requirements and available space.
+                      </p>
+                      
+                      <!-- Support Info -->
+                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left: 4px solid #3b82f6; border-radius: 8px;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #1e3a8a;">
+                          💬 Questions?
+                        </p>
+                        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #1e40af;">
+                          If you have any questions about this decision or would like feedback on your application, please feel free to contact our events team.
+                        </p>
+                      </div>
+                      
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Thank you for your interest in our event, and we hope to work with you in the future.
+                      </p>
+                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Best regards,<br>
+                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                      </p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
+                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        This is an automated email. For support, please contact the events team.
+                      </p>
+                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
+                        &copy; ${new Date().getFullYear()} German University in Cairo - Event Management System
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
   }
 }
 

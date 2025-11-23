@@ -1,15 +1,21 @@
 /**
  * Bazaars List Page (Vendor View)
- * 
+ *
  * Optimized with React 19 features:
  * - useDeferredValue for search performance
  * - useTransition for non-blocking updates
  * - Proper DataTable with advanced/simple filters
- * 
+ *
  * Requirements: #59, #60
  */
 
-import { useState, useMemo, useTransition, useDeferredValue, useEffect } from "react";
+import {
+  useState,
+  useMemo,
+  useTransition,
+  useDeferredValue,
+  useEffect,
+} from "react";
 import { useQueryState, parseAsString, parseAsBoolean } from "nuqs";
 import { trpc } from "@/lib/trpc";
 import { DataTable } from "@/components/data-table/data-table";
@@ -38,16 +44,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Plus, Trash2, ShoppingBag, Calendar, MapPin, Clock, Info, Search, ListFilter } from "lucide-react";
-import { toast } from 'react-hot-toast';
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  ShoppingBag,
+  Calendar,
+  MapPin,
+  Clock,
+  Info,
+  Search,
+  ListFilter,
+} from "lucide-react";
+import { toast } from "react-hot-toast";
 import { getBazaarsTableColumns } from "../components/bazaars-table-columns";
 import { formatDate } from "@/lib/design-system";
 import type { Event } from "@event-manager/shared";
-import { usePageMeta } from '@/components/layout/page-meta-context';
+import { usePageMeta } from "@/components/layout/page-meta-context";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface Attendee {
   name: string;
   email: string;
+  idPicture: string;
 }
 
 // Expandable Row Component
@@ -60,12 +79,19 @@ function BazaarExpandedRow({ bazaar }: { bazaar: Event }) {
             <div className="flex items-start gap-3">
               <Calendar className="h-5 w-5 text-primary mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Event Dates</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Event Dates
+                </p>
                 <p className="text-base font-semibold mt-1">
-                  {bazaar.startDate ? formatDate(new Date(bazaar.startDate)) : 'TBD'}
+                  {bazaar.startDate
+                    ? formatDate(new Date(bazaar.startDate))
+                    : "TBD"}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  to {bazaar.endDate ? formatDate(new Date(bazaar.endDate)) : 'TBD'}
+                  to{" "}
+                  {bazaar.endDate
+                    ? formatDate(new Date(bazaar.endDate))
+                    : "TBD"}
                 </p>
               </div>
             </div>
@@ -77,8 +103,12 @@ function BazaarExpandedRow({ bazaar }: { bazaar: Event }) {
             <div className="flex items-start gap-3">
               <MapPin className="h-5 w-5 text-primary mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Location</p>
-                <p className="text-base font-semibold mt-1">{bazaar.location || 'TBD'}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Location
+                </p>
+                <p className="text-base font-semibold mt-1">
+                  {bazaar.location || "TBD"}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -89,9 +119,13 @@ function BazaarExpandedRow({ bazaar }: { bazaar: Event }) {
             <div className="flex items-start gap-3">
               <Clock className="h-5 w-5 text-primary mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Registration Deadline</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Registration Deadline
+                </p>
                 <p className="text-base font-semibold mt-1">
-                  {bazaar.registrationDeadline ? formatDate(new Date(bazaar.registrationDeadline)) : 'TBD'}
+                  {bazaar.registrationDeadline
+                    ? formatDate(new Date(bazaar.registrationDeadline))
+                    : "TBD"}
                 </p>
               </div>
             </div>
@@ -104,8 +138,12 @@ function BazaarExpandedRow({ bazaar }: { bazaar: Event }) {
               <div className="flex items-start gap-3">
                 <Info className="h-5 w-5 text-primary mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
-                  <p className="text-base leading-relaxed">{bazaar.description}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                    Description
+                  </p>
+                  <p className="text-base leading-relaxed">
+                    {bazaar.description}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -121,13 +159,17 @@ export function BazaarsListPage() {
   const [isPending, startTransition] = useTransition();
   const [selectedBazaar, setSelectedBazaar] = useState<Event | null>(null);
   const [showDialog, setShowDialog] = useState(false);
-  const [attendees, setAttendees] = useState<Attendee[]>([{ name: "", email: "" }]);
-  const [boothSize, setBoothSize] = useState<"TWO_BY_TWO" | "FOUR_BY_FOUR">("TWO_BY_TWO");
+  const [attendees, setAttendees] = useState<Attendee[]>([
+    { name: "", email: "", idPicture: "" },
+  ]);
+  const [boothSize, setBoothSize] = useState<"TWO_BY_TWO" | "FOUR_BY_FOUR">(
+    "TWO_BY_TWO"
+  );
 
   useEffect(() => {
     setPageMeta({
-      title: 'Browse Bazaars',
-      description: 'View upcoming bazaars and apply to participate as a vendor',
+      title: "Browse Bazaars",
+      description: "View upcoming bazaars and apply to participate as a vendor",
     });
   }, [setPageMeta]);
 
@@ -136,20 +178,24 @@ export function BazaarsListPage() {
 
   // Advanced filter toggle
   const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
-    'advanced',
-    parseAsBoolean.withOptions({
-      history: 'replace',
-      shallow: false,
-    }).withDefault(false)
+    "advanced",
+    parseAsBoolean
+      .withOptions({
+        history: "replace",
+        shallow: false,
+      })
+      .withDefault(false)
   );
 
   // Global search with deferred value for performance
   const [search, setSearch] = useQueryState(
-    'search',
-    parseAsString.withOptions({
-      history: 'replace',
-      shallow: false,
-    }).withDefault('')
+    "search",
+    parseAsString
+      .withOptions({
+        history: "replace",
+        shallow: false,
+      })
+      .withDefault("")
   );
   const deferredSearch = useDeferredValue(search);
 
@@ -161,15 +207,22 @@ export function BazaarsListPage() {
     onlyUpcoming: true,
   });
 
-  const bazaars = useMemo(() => (data?.events || []) as Event[], [data?.events]);
-
-  // Check which bazaars vendor has already applied to
-  const { data: existingApplications, refetch: refetchApplications } = trpc.vendorApplications.checkExistingApplications.useQuery(
-    { bazaarIds: bazaars.map((b) => b.id) },
-    { enabled: bazaars.length > 0 }
+  const bazaars = useMemo(
+    () => (data?.events || []) as Event[],
+    [data?.events]
   );
 
-  const appliedBazaarIds = useMemo(() => existingApplications || [], [existingApplications]);
+  // Check which bazaars vendor has already applied to
+  const { data: existingApplications, refetch: refetchApplications } =
+    trpc.vendorApplications.checkExistingApplications.useQuery(
+      { bazaarIds: bazaars.map((b) => b.id) },
+      { enabled: bazaars.length > 0 }
+    );
+
+  const appliedBazaarIds = useMemo(
+    () => existingApplications || [],
+    [existingApplications]
+  );
 
   // Apply mutation
   const applyMutation = trpc.vendorApplications.create.useMutation({
@@ -185,21 +238,22 @@ export function BazaarsListPage() {
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
     },
   });
 
   // Table columns with Apply callback
   const columns = useMemo(
-    () => getBazaarsTableColumns({
-      onApply: (bazaar) => {
-        startTransition(() => {
-          setSelectedBazaar(bazaar);
-          setShowDialog(true);
-        });
-      },
-      appliedBazaarIds,
-    }),
+    () =>
+      getBazaarsTableColumns({
+        onApply: (bazaar) => {
+          startTransition(() => {
+            setSelectedBazaar(bazaar);
+            setShowDialog(true);
+          });
+        },
+        appliedBazaarIds,
+      }),
     [appliedBazaarIds]
   );
 
@@ -218,7 +272,7 @@ export function BazaarsListPage() {
 
   const handleAddAttendee = () => {
     if (attendees.length < 5) {
-      setAttendees([...attendees, { name: "", email: "" }]);
+      setAttendees([...attendees, { name: "", email: "", idPicture: "" }]);
     } else {
       toast.error("Maximum 5 attendees allowed");
     }
@@ -232,7 +286,7 @@ export function BazaarsListPage() {
 
   const handleUpdateAttendee = (
     index: number,
-    field: "name" | "email",
+    field: "name" | "email" | "idPicture",
     value: string
   ) => {
     const updated = [...attendees];
@@ -252,8 +306,8 @@ export function BazaarsListPage() {
       return;
     }
 
-    if (attendees.some((a) => !a.name || !a.email)) {
-      toast.error("All attendees must have a name and email");
+    if (attendees.some((a) => !a.name || !a.email || !a.idPicture)) {
+      toast.error("All attendees must have a name, email, and ID picture");
       return;
     }
 
@@ -270,13 +324,14 @@ export function BazaarsListPage() {
       startDate: selectedBazaar.startDate,
       names: attendees.map((a) => a.name),
       emails: attendees.map((a) => a.email),
+      idPictures: attendees.map((a) => a.idPicture),
       boothSize,
       status: "PENDING",
     });
   };
 
   const resetForm = () => {
-    setAttendees([{ name: "", email: "" }]);
+    setAttendees([{ name: "", email: "", idPicture: "" }]);
     setBoothSize("TWO_BY_TWO");
     setSelectedBazaar(null);
   };
@@ -291,9 +346,11 @@ export function BazaarsListPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <DataTable 
+      <DataTable
         table={table}
-        renderSubComponent={(row) => <BazaarExpandedRow bazaar={row.original} />}
+        renderSubComponent={(row) => (
+          <BazaarExpandedRow bazaar={row.original} />
+        )}
       >
         {/* Toggle Buttons */}
         <div className="flex items-center gap-2 p-1">
@@ -404,7 +461,11 @@ export function BazaarsListPage() {
                             placeholder="Full name"
                             value={attendee.name}
                             onChange={(e) =>
-                              handleUpdateAttendee(index, "name", e.target.value)
+                              handleUpdateAttendee(
+                                index,
+                                "name",
+                                e.target.value
+                              )
                             }
                           />
                         </div>
@@ -416,7 +477,19 @@ export function BazaarsListPage() {
                             placeholder="email@example.com"
                             value={attendee.email}
                             onChange={(e) =>
-                              handleUpdateAttendee(index, "email", e.target.value)
+                              handleUpdateAttendee(
+                                index,
+                                "email",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`email-${index}`}>ID/Passport</Label>
+                          <ImageUpload
+                            onChange={(e) =>
+                              handleUpdateAttendee(index, "idPicture", e)
                             }
                           />
                         </div>
@@ -448,10 +521,7 @@ export function BazaarsListPage() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={applyMutation.isPending}
-            >
+            <Button onClick={handleSubmit} disabled={applyMutation.isPending}>
               {applyMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

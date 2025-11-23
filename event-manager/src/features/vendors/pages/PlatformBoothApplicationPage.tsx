@@ -1,45 +1,47 @@
 /**
  * Platform Booth Application Page
- * 
+ *
  * Optimized with React 19 features:
  * - useTransition for non-blocking UI updates
  * - useMemo for expensive computations
- * 
+ *
  * Vendors can apply for platform booth with:
  * - Names and emails of attendees (max 5)
  * - Duration (1-4 weeks)
  * - Booth location selection on platform map
  * - Booth size (2x2 or 4x4)
- * 
+ *
  * Requirements: #61
  */
 
-import React, { useState, useEffect, useTransition, useMemo } from 'react';
-import { Stage, Layer, Rect, Text, Line } from 'react-konva';
-import type { KonvaEventObject } from 'konva/lib/Node';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { trpc } from '@/lib/trpc';
-import { toast } from 'react-hot-toast';
-import { Loader2, Plus, Trash2, Save, MapPin } from 'lucide-react';
-import { formatValidationErrors } from '@/lib/format-errors';
-import { 
+import React, { useState, useEffect, useTransition, useMemo } from "react";
+import { Stage, Layer, Rect, Text, Line } from "react-konva";
+import type { KonvaEventObject } from "konva/lib/Node";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { trpc } from "@/lib/trpc";
+import { toast } from "react-hot-toast";
+import { Loader2, Plus, Trash2, Save, MapPin } from "lucide-react";
+import { formatValidationErrors } from "@/lib/format-errors";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { ROUTES } from '@/lib/constants';
-import { usePageMeta } from '@/components/layout/page-meta-context';
-import { useTheme } from '@/hooks/useTheme';
+} from "@/components/ui/select";
+import { ROUTES } from "@/lib/constants";
+import { usePageMeta } from "@/components/layout/page-meta-context";
+import { useTheme } from "@/hooks/useTheme";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface Attendee {
   name: string;
   email: string;
+  idPicture: string;
 }
 
 interface Booth {
@@ -73,31 +75,33 @@ export function PlatformBoothApplicationPage() {
   const { resolvedTheme } = useTheme();
   const [, startTransition] = useTransition();
   const [platform, setPlatform] = useState<PlatformMap | null>(null);
-  const [selectedBoothSize, setSelectedBoothSize] = useState<'2' | '4'>('2');
+  const [selectedBoothSize, setSelectedBoothSize] = useState<"2" | "4">("2");
   const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
-  const [attendees, setAttendees] = useState<Attendee[]>([{ name: '', email: '' }]);
-  const [duration, setDuration] = useState<string>('1');
-  const [startDate, setStartDate] = useState<string>('');
+  const [attendees, setAttendees] = useState<Attendee[]>([
+    { name: "", email: "", idPicture: "" },
+  ]);
+  const [duration, setDuration] = useState<string>("1");
+  const [startDate, setStartDate] = useState<string>("");
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
 
   // Theme-aware colors for Konva canvas
-  const isDark = resolvedTheme === 'dark';
+  const isDark = resolvedTheme === "dark";
   const colors = {
-    grid: isDark ? '#374151' : '#e5e7eb',        // gray-700 : gray-200
-    occupied: isDark ? '#64748b' : '#94a3b8',    // slate-500 : slate-400
-    booth4x4: isDark ? '#a855f7' : '#c084fc',    // purple-500 : purple-400
-    booth4x4Selected: isDark ? '#9333ea' : '#a855f7',  // purple-600 : purple-500
-    booth4x4Stroke: isDark ? '#7e22ce' : '#9333ea',    // purple-700 : purple-600
-    booth2x2: isDark ? '#60a5fa' : '#93c5fd',    // blue-400 : blue-300
-    booth2x2Selected: isDark ? '#3b82f6' : '#60a5fa',  // blue-500 : blue-400
-    booth2x2Stroke: isDark ? '#2563eb' : '#3b82f6',    // blue-600 : blue-500
-    text: isDark ? '#ffffff' : '#000000',        // white : black
+    grid: isDark ? "#374151" : "#e5e7eb", // gray-700 : gray-200
+    occupied: isDark ? "#64748b" : "#94a3b8", // slate-500 : slate-400
+    booth4x4: isDark ? "#a855f7" : "#c084fc", // purple-500 : purple-400
+    booth4x4Selected: isDark ? "#9333ea" : "#a855f7", // purple-600 : purple-500
+    booth4x4Stroke: isDark ? "#7e22ce" : "#9333ea", // purple-700 : purple-600
+    booth2x2: isDark ? "#60a5fa" : "#93c5fd", // blue-400 : blue-300
+    booth2x2Selected: isDark ? "#3b82f6" : "#60a5fa", // blue-500 : blue-400
+    booth2x2Stroke: isDark ? "#2563eb" : "#3b82f6", // blue-600 : blue-500
+    text: isDark ? "#ffffff" : "#000000", // white : black
   };
 
   useEffect(() => {
     setPageMeta({
-      title: 'Apply for Platform Booth',
-      description: 'Select a booth location and provide attendee details',
+      title: "Apply for Platform Booth",
+      description: "Select a booth location and provide attendee details",
     });
   }, [setPageMeta]);
 
@@ -108,22 +112,27 @@ export function PlatformBoothApplicationPage() {
       utils.vendorApplications.getApplications.invalidate();
       utils.vendorApplications.getApplicationStats.invalidate();
       utils.platformMaps.getActivePlatform.invalidate(); // Refresh platform map to show updated booth status
-      
-      toast.success('Platform booth application submitted successfully!');
+
+      toast.success("Platform booth application submitted successfully!");
       navigate(ROUTES.VENDOR_APPLICATIONS);
     },
     onError: (error: TRPCError) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
     },
   });
 
   useEffect(() => {
     if (data) {
       setPlatform(data as PlatformMap);
-      const width = (data as PlatformMap).gridWidth * (data as PlatformMap).cellSize;
-      const height = (data as PlatformMap).gridHeight * (data as PlatformMap).cellSize;
-      setStageSize({ width: Math.min(width, 1000), height: Math.min(height, 600) });
+      const width =
+        (data as PlatformMap).gridWidth * (data as PlatformMap).cellSize;
+      const height =
+        (data as PlatformMap).gridHeight * (data as PlatformMap).cellSize;
+      setStageSize({
+        width: Math.min(width, 1000),
+        height: Math.min(height, 600),
+      });
     }
   }, [data]);
 
@@ -155,18 +164,24 @@ export function PlatformBoothApplicationPage() {
     if (clickedBooth) {
       startTransition(() => {
         setSelectedBooth(clickedBooth);
-        toast.success(`Selected booth: ${clickedBooth.label || `${clickedBooth.width}×${clickedBooth.height}`}`);
+        toast.success(
+          `Selected booth: ${
+            clickedBooth.label || `${clickedBooth.width}×${clickedBooth.height}`
+          }`
+        );
       });
     } else {
-      toast.error('Please select an available booth (green) matching your chosen size');
+      toast.error(
+        "Please select an available booth (green) matching your chosen size"
+      );
     }
   };
 
   const handleAddAttendee = () => {
     if (attendees.length < 5) {
-      setAttendees([...attendees, { name: '', email: '' }]);
+      setAttendees([...attendees, { name: "", email: "", idPicture: "" }]);
     } else {
-      toast.error('Maximum 5 attendees allowed');
+      toast.error("Maximum 5 attendees allowed");
     }
   };
 
@@ -174,11 +189,15 @@ export function PlatformBoothApplicationPage() {
     if (attendees.length > 1) {
       setAttendees(attendees.filter((_, i) => i !== index));
     } else {
-      toast.error('At least one attendee is required');
+      toast.error("At least one attendee is required");
     }
   };
 
-  const handleUpdateAttendee = (index: number, field: 'name' | 'email', value: string) => {
+  const handleUpdateAttendee = (
+    index: number,
+    field: "name" | "email" | "idPicture",
+    value: string
+  ) => {
     const updated = [...attendees];
     updated[index][field] = value;
     setAttendees(updated);
@@ -187,32 +206,38 @@ export function PlatformBoothApplicationPage() {
   const handleSubmit = () => {
     // Validation
     if (!selectedBooth) {
-      toast.error('Please select a booth location on the map');
+      toast.error("Please select a booth location on the map");
       return;
     }
 
-    if (attendees.some((a) => !a.name.trim() || !a.email.trim())) {
-      toast.error('Please fill in all attendee names and emails');
+    if (
+      attendees.some((a) => !a.name.trim() || !a.email.trim() || !a.idPicture)
+    ) {
+      toast.error(
+        "Please fill in all attendee names and emails and upload ID pictures"
+      );
       return;
     }
 
     if (!startDate) {
-      toast.error('Please select a start date');
+      toast.error("Please select a start date");
       return;
     }
 
-    const boothSize = selectedBoothSize === '2' ? 'TWO_BY_TWO' : 'FOUR_BY_FOUR';
-    
+    const boothSize = selectedBoothSize === "2" ? "TWO_BY_TWO" : "FOUR_BY_FOUR";
+
     createApplication.mutate({
       names: attendees.map((a) => a.name),
       emails: attendees.map((a) => a.email),
-      type: 'PLATFORM' as const,
+      idPictures: attendees.map((a) => a.idPicture),
+      type: "PLATFORM" as const,
       boothSize,
       duration: parseInt(duration),
       startDate: new Date(startDate), // Convert to Date object
       boothLocationId: selectedBooth.id,
-      boothLabel: selectedBooth.label || `${selectedBooth.width}×${selectedBooth.height}`, // Store human-readable label
-      status: 'PENDING' as const, // Required field - initial status
+      boothLabel:
+        selectedBooth.label || `${selectedBooth.width}×${selectedBooth.height}`, // Store human-readable label
+      status: "PENDING" as const, // Required field - initial status
     });
   };
 
@@ -220,7 +245,10 @@ export function PlatformBoothApplicationPage() {
   const availableBooths = useMemo(() => {
     if (!platform) return [];
     return platform.booths.filter(
-      (b) => !b.isOccupied && b.width === parseInt(selectedBoothSize) && b.height === parseInt(selectedBoothSize)
+      (b) =>
+        !b.isOccupied &&
+        b.width === parseInt(selectedBoothSize) &&
+        b.height === parseInt(selectedBoothSize)
     );
   }, [platform, selectedBoothSize]);
 
@@ -236,7 +264,9 @@ export function PlatformBoothApplicationPage() {
     return (
       <div className="flex flex-col gap-6 p-6">
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No platform layout available. Contact administrator.</p>
+          <p className="text-muted-foreground">
+            No platform layout available. Contact administrator.
+          </p>
         </div>
       </div>
     );
@@ -254,7 +284,10 @@ export function PlatformBoothApplicationPage() {
             {/* Booth Size */}
             <div className="space-y-2">
               <Label htmlFor="booth-size">Booth Size *</Label>
-              <Select value={selectedBoothSize} onValueChange={(v) => setSelectedBoothSize(v as '2' | '4')}>
+              <Select
+                value={selectedBoothSize}
+                onValueChange={(v) => setSelectedBoothSize(v as "2" | "4")}
+              >
                 <SelectTrigger id="booth-size">
                   <SelectValue />
                 </SelectTrigger>
@@ -264,7 +297,8 @@ export function PlatformBoothApplicationPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                {availableBooths.length} available booth{availableBooths.length !== 1 ? 's' : ''}
+                {availableBooths.length} available booth
+                {availableBooths.length !== 1 ? "s" : ""}
               </p>
             </div>
 
@@ -292,7 +326,7 @@ export function PlatformBoothApplicationPage() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+                min={new Date().toISOString().split("T")[0]}
               />
             </div>
 
@@ -302,7 +336,9 @@ export function PlatformBoothApplicationPage() {
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className="h-4 w-4 text-primary" />
                   <span className="font-semibold text-primary">
-                    Selected: {selectedBooth.label || `Booth ${selectedBooth.width}×${selectedBooth.height}`}
+                    Selected:{" "}
+                    {selectedBooth.label ||
+                      `Booth ${selectedBooth.width}×${selectedBooth.height}`}
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -333,18 +369,26 @@ export function PlatformBoothApplicationPage() {
                   <Card key={index} className="border-2">
                     <CardContent className="pt-4 space-y-3">
                       <div className="space-y-2">
-                        <Label htmlFor={`attendee-name-${index}`} className="text-xs">
+                        <Label
+                          htmlFor={`attendee-name-${index}`}
+                          className="text-xs"
+                        >
                           Name {index + 1} *
                         </Label>
                         <Input
                           id={`attendee-name-${index}`}
                           placeholder="Full name"
                           value={attendee.name}
-                          onChange={(e) => handleUpdateAttendee(index, 'name', e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateAttendee(index, "name", e.target.value)
+                          }
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor={`attendee-email-${index}`} className="text-xs">
+                        <Label
+                          htmlFor={`attendee-email-${index}`}
+                          className="text-xs"
+                        >
                           Email {index + 1} *
                         </Label>
                         <Input
@@ -352,7 +396,17 @@ export function PlatformBoothApplicationPage() {
                           type="email"
                           placeholder="email@example.com"
                           value={attendee.email}
-                          onChange={(e) => handleUpdateAttendee(index, 'email', e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateAttendee(index, "email", e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`email-${index}`}>ID/Passport</Label>
+                        <ImageUpload
+                          onChange={(e) =>
+                            handleUpdateAttendee(index, "idPicture", e)
+                          }
                         />
                       </div>
                       {attendees.length > 1 && (
@@ -380,11 +434,15 @@ export function PlatformBoothApplicationPage() {
           <CardHeader>
             <CardTitle>Select Booth Location</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Click on a green booth to select it. Only booths matching your chosen size are available.
+              Click on a green booth to select it. Only booths matching your
+              chosen size are available.
             </p>
           </CardHeader>
           <CardContent className="overflow-auto">
-            <div className="border rounded-md overflow-hidden mx-auto bg-gray-50 dark:bg-gray-900" style={{ width: 'fit-content' }}>
+            <div
+              className="border rounded-md overflow-hidden mx-auto bg-gray-50 dark:bg-gray-900"
+              style={{ width: "fit-content" }}
+            >
               <Stage
                 width={stageSize.width}
                 height={stageSize.height}
@@ -397,44 +455,61 @@ export function PlatformBoothApplicationPage() {
                     y={0}
                     width={platform.gridWidth * platform.cellSize}
                     height={platform.gridHeight * platform.cellSize}
-                    fill={isDark ? '#1f2937' : '#ffffff'}
+                    fill={isDark ? "#1f2937" : "#ffffff"}
                     listening={false}
                   />
-                  
+
                   {/* Grid lines */}
-                  {Array.from({ length: platform.gridWidth + 1 }).map((_, i) => (
-                    <Line
-                      key={`v-${i}`}
-                      points={[i * platform.cellSize, 0, i * platform.cellSize, platform.gridHeight * platform.cellSize]}
-                      stroke={colors.grid}
-                      strokeWidth={1}
-                    />
-                  ))}
-                  {Array.from({ length: platform.gridHeight + 1 }).map((_, i) => (
-                    <Line
-                      key={`h-${i}`}
-                      points={[0, i * platform.cellSize, platform.gridWidth * platform.cellSize, i * platform.cellSize]}
-                      stroke={colors.grid}
-                      strokeWidth={1}
-                    />
-                  ))}
+                  {Array.from({ length: platform.gridWidth + 1 }).map(
+                    (_, i) => (
+                      <Line
+                        key={`v-${i}`}
+                        points={[
+                          i * platform.cellSize,
+                          0,
+                          i * platform.cellSize,
+                          platform.gridHeight * platform.cellSize,
+                        ]}
+                        stroke={colors.grid}
+                        strokeWidth={1}
+                      />
+                    )
+                  )}
+                  {Array.from({ length: platform.gridHeight + 1 }).map(
+                    (_, i) => (
+                      <Line
+                        key={`h-${i}`}
+                        points={[
+                          0,
+                          i * platform.cellSize,
+                          platform.gridWidth * platform.cellSize,
+                          i * platform.cellSize,
+                        ]}
+                        stroke={colors.grid}
+                        strokeWidth={1}
+                      />
+                    )
+                  )}
 
                   {/* Booths */}
                   {platform.booths.map((booth) => {
                     const sizeNumber = parseInt(selectedBoothSize);
-                    const isAvailable = !booth.isOccupied && booth.width === sizeNumber && booth.height === sizeNumber;
+                    const isAvailable =
+                      !booth.isOccupied &&
+                      booth.width === sizeNumber &&
+                      booth.height === sizeNumber;
                     const isSelected = selectedBooth?.id === booth.id;
-                    
+
                     // Available (green), Occupied/Unavailable (gray), Selected (blue)
-                    let fillColor = isDark ? '#475569' : '#cbd5e1'; // slate-600 : slate-300
-                    let strokeColor = isDark ? '#334155' : '#64748b'; // slate-700 : slate-500
-                    
+                    let fillColor = isDark ? "#475569" : "#cbd5e1"; // slate-600 : slate-300
+                    let strokeColor = isDark ? "#334155" : "#64748b"; // slate-700 : slate-500
+
                     if (isSelected) {
-                      fillColor = isDark ? '#3b82f6' : '#60a5fa'; // blue-500 : blue-400
-                      strokeColor = isDark ? '#2563eb' : '#3b82f6'; // blue-600 : blue-500
+                      fillColor = isDark ? "#3b82f6" : "#60a5fa"; // blue-500 : blue-400
+                      strokeColor = isDark ? "#2563eb" : "#3b82f6"; // blue-600 : blue-500
                     } else if (isAvailable) {
-                      fillColor = isDark ? '#22c55e' : '#86efac'; // green-500 : green-300
-                      strokeColor = isDark ? '#16a34a' : '#22c55e'; // green-600 : green-500
+                      fillColor = isDark ? "#22c55e" : "#86efac"; // green-500 : green-300
+                      strokeColor = isDark ? "#16a34a" : "#22c55e"; // green-600 : green-500
                     }
 
                     return (
@@ -464,7 +539,7 @@ export function PlatformBoothApplicationPage() {
                   })}
                 </Layer>
               </Stage>
-              
+
               {/* Legend */}
               <div className="flex items-center justify-center gap-4 p-3 bg-muted border-t dark:border-border">
                 <div className="flex items-center gap-2">

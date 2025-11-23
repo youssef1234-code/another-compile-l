@@ -133,19 +133,70 @@ export type GymSessionType =
   (typeof GymSessionType)[keyof typeof GymSessionType];
 
 // Gym session type color mapping for consistent UI across FE & BE
-export const GYM_SESSION_TYPE_COLORS: Record<GymSessionType, { bg: string; text: string; border: string }> = {
-  YOGA: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-300", border: "border-purple-200 dark:border-purple-800" },
-  PILATES: { bg: "bg-pink-100 dark:bg-pink-900/30", text: "text-pink-700 dark:text-pink-300", border: "border-pink-200 dark:border-pink-800" },
-  AEROBICS: { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-700 dark:text-orange-300", border: "border-orange-200 dark:border-orange-800" },
-  ZUMBA: { bg: "bg-yellow-100 dark:bg-yellow-900/30", text: "text-yellow-700 dark:text-yellow-300", border: "border-yellow-200 dark:border-yellow-800" },
-  CROSS_CIRCUIT: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-300", border: "border-red-200 dark:border-red-800" },
-  KICK_BOXING: { bg: "bg-rose-100 dark:bg-rose-900/30", text: "text-rose-700 dark:text-rose-300", border: "border-rose-200 dark:border-rose-800" },
-  CROSSFIT: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800" },
-  CARDIO: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-300", border: "border-blue-200 dark:border-blue-800" },
-  STRENGTH: { bg: "bg-slate-100 dark:bg-slate-900/30", text: "text-slate-700 dark:text-slate-300", border: "border-slate-200 dark:border-slate-800" },
-  DANCE: { bg: "bg-fuchsia-100 dark:bg-fuchsia-900/30", text: "text-fuchsia-700 dark:text-fuchsia-300", border: "border-fuchsia-200 dark:border-fuchsia-800" },
-  MARTIAL_ARTS: { bg: "bg-gray-100 dark:bg-gray-900/30", text: "text-gray-700 dark:text-gray-300", border: "border-gray-200 dark:border-gray-800" },
-  OTHER: { bg: "bg-neutral-100 dark:bg-neutral-900/30", text: "text-neutral-700 dark:text-neutral-300", border: "border-neutral-200 dark:border-neutral-800" },
+export const GYM_SESSION_TYPE_COLORS: Record<
+  GymSessionType,
+  { bg: string; text: string; border: string }
+> = {
+  YOGA: {
+    bg: "bg-purple-100 dark:bg-purple-900/30",
+    text: "text-purple-700 dark:text-purple-300",
+    border: "border-purple-200 dark:border-purple-800",
+  },
+  PILATES: {
+    bg: "bg-pink-100 dark:bg-pink-900/30",
+    text: "text-pink-700 dark:text-pink-300",
+    border: "border-pink-200 dark:border-pink-800",
+  },
+  AEROBICS: {
+    bg: "bg-orange-100 dark:bg-orange-900/30",
+    text: "text-orange-700 dark:text-orange-300",
+    border: "border-orange-200 dark:border-orange-800",
+  },
+  ZUMBA: {
+    bg: "bg-yellow-100 dark:bg-yellow-900/30",
+    text: "text-yellow-700 dark:text-yellow-300",
+    border: "border-yellow-200 dark:border-yellow-800",
+  },
+  CROSS_CIRCUIT: {
+    bg: "bg-red-100 dark:bg-red-900/30",
+    text: "text-red-700 dark:text-red-300",
+    border: "border-red-200 dark:border-red-800",
+  },
+  KICK_BOXING: {
+    bg: "bg-rose-100 dark:bg-rose-900/30",
+    text: "text-rose-700 dark:text-rose-300",
+    border: "border-rose-200 dark:border-rose-800",
+  },
+  CROSSFIT: {
+    bg: "bg-amber-100 dark:bg-amber-900/30",
+    text: "text-amber-700 dark:text-amber-300",
+    border: "border-amber-200 dark:border-amber-800",
+  },
+  CARDIO: {
+    bg: "bg-blue-100 dark:bg-blue-900/30",
+    text: "text-blue-700 dark:text-blue-300",
+    border: "border-blue-200 dark:border-blue-800",
+  },
+  STRENGTH: {
+    bg: "bg-slate-100 dark:bg-slate-900/30",
+    text: "text-slate-700 dark:text-slate-300",
+    border: "border-slate-200 dark:border-slate-800",
+  },
+  DANCE: {
+    bg: "bg-fuchsia-100 dark:bg-fuchsia-900/30",
+    text: "text-fuchsia-700 dark:text-fuchsia-300",
+    border: "border-fuchsia-200 dark:border-fuchsia-800",
+  },
+  MARTIAL_ARTS: {
+    bg: "bg-gray-100 dark:bg-gray-900/30",
+    text: "text-gray-700 dark:text-gray-300",
+    border: "border-gray-200 dark:border-gray-800",
+  },
+  OTHER: {
+    bg: "bg-neutral-100 dark:bg-neutral-900/30",
+    text: "text-neutral-700 dark:text-neutral-300",
+    border: "border-neutral-200 dark:border-neutral-800",
+  },
 };
 
 // Gym session type display labels
@@ -216,7 +267,7 @@ export const GUCEmailSchema = z
     {
       message:
         "Must use a GUC email address (@guc.edu.eg or @student.guc.edu.eg)",
-    },
+    }
   );
 
 /**
@@ -237,7 +288,7 @@ export const StrongPasswordSchema = z
   .regex(/[0-9]/, "Password must contain at least one number")
   .regex(
     /[^A-Za-z0-9]/,
-    "Password must contain at least one special character",
+    "Password must contain at least one special character"
   );
 
 /**
@@ -371,8 +422,8 @@ export type CreateEventInput = z.infer<typeof CreateEventSchema>;
 export const CreateBazaarSchema = z.object({
   name: z.string().min(5).max(100),
   description: z.string().min(20).max(2000),
-  type: z.literal('BAZAAR'),
-  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
+  type: z.literal("BAZAAR"),
+  location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]),
   locationDetails: z.string().min(5).max(200),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
@@ -387,8 +438,8 @@ export type CreateBazaarInput = z.infer<typeof CreateBazaarSchema>;
 export const CreateTripSchema = z.object({
   name: z.string().min(5).max(100),
   description: z.string().min(20).max(2000),
-  type: z.literal('TRIP'),
-  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
+  type: z.literal("TRIP"),
+  location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]),
   locationDetails: z.string().min(5).max(200),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
@@ -405,15 +456,15 @@ export type CreateTripInput = z.infer<typeof CreateTripSchema>;
 export const CreateConferenceSchema = z.object({
   name: z.string().min(5).max(100),
   description: z.string().min(20).max(2000),
-  type: z.literal('CONFERENCE'),
-  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
+  type: z.literal("CONFERENCE"),
+  location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]),
   locationDetails: z.string().min(5).max(200),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   websiteUrl: z.string().url(),
   fullAgenda: z.string().min(20),
   requiredBudget: z.number().nonnegative(),
-  fundingSource: z.enum(['UNIVERSITY', 'EXTERNAL_FUNDING']),
+  fundingSource: z.enum(["UNIVERSITY", "EXTERNAL_FUNDING"]),
   extraResources: z.string().optional(),
   images: z.array(z.string()).optional(),
   requirements: z.string().max(500).optional(),
@@ -487,7 +538,7 @@ export const updateGymSessionSchema = z
       v.capacity != null ||
       v.status != null ||
       v.sessionType != null,
-    { message: "You need to update at least one field" },
+    { message: "You need to update at least one field" }
   );
 
 export type UpdateGymSessionInput = z.infer<typeof updateGymSessionSchema>;
@@ -501,8 +552,6 @@ export type CourtSport = (typeof CourtSport)[keyof typeof CourtSport];
 
 export const CourtReservationStatus = z.enum(["BOOKED", "CANCELLED"]);
 export type CourtReservationStatus = z.infer<typeof CourtReservationStatus>;
-
-
 
 /** Summarized court info for availability rows */
 export const CourtSummarySchema = z.object({
@@ -540,8 +589,12 @@ export const CourtAvailabilityRowSchema = z.object({
 export type CourtAvailabilityRow = z.infer<typeof CourtAvailabilityRowSchema>;
 
 /** Full availability response (array of rows) */
-export const CourtAvailabilityResponseSchema = z.array(CourtAvailabilityRowSchema);
-export type CourtAvailabilityResponse = z.infer<typeof CourtAvailabilityResponseSchema>;
+export const CourtAvailabilityResponseSchema = z.array(
+  CourtAvailabilityRowSchema
+);
+export type CourtAvailabilityResponse = z.infer<
+  typeof CourtAvailabilityResponseSchema
+>;
 
 export const CourtSchema = z.object({
   id: z.string(),
@@ -571,21 +624,29 @@ export const CourtReservationCancelSchema = z.object({
 // ============================================================================
 // WORKSHOP SCHEMAS
 // ============================================================================
-// Req #35: WORKSHOP - name, location (GUC Cairo/Berlin), start/end dates/times, description, 
+// Req #35: WORKSHOP - name, location (GUC Cairo/Berlin), start/end dates/times, description,
 // full agenda, faculty, professor(s), required budget, funding source, extra resources, capacity, registration deadline
 export const CreateWorkshopSchema = z.object({
   name: z.string().min(5).max(100),
   description: z.string().min(20).max(2000),
-  type: z.literal('WORKSHOP'),
-  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']),
-  locationDetails: z.enum(['GUC Cairo', 'GUC Berlin']), // Requirement #35: GUC Cairo or GUC Berlin
+  type: z.literal("WORKSHOP"),
+  location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]),
+  locationDetails: z.enum(["GUC Cairo", "GUC Berlin"]), // Requirement #35: GUC Cairo or GUC Berlin
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   fullAgenda: z.string().min(20),
-  faculty: z.enum(['MET', 'IET', 'ARTS', 'LAW', 'PHARMACY', 'BUSINESS', 'BIOTECHNOLOGY']), // Requirement #35: MET, IET, etc.
+  faculty: z.enum([
+    "MET",
+    "IET",
+    "ARTS",
+    "LAW",
+    "PHARMACY",
+    "BUSINESS",
+    "BIOTECHNOLOGY",
+  ]), // Requirement #35: MET, IET, etc.
   professors: z.array(z.string()).min(1), // Requirement #35: professor(s) participating - multiple allowed
   requiredBudget: z.number().nonnegative(),
-  fundingSource: z.enum(['GUC', 'EXTERNAL']), // Requirement #35: GUC or external funding
+  fundingSource: z.enum(["GUC", "EXTERNAL"]), // Requirement #35: GUC or external funding
   extraResources: z.string().optional(),
   capacity: z.number().int().positive().min(1),
   registrationDeadline: z.coerce.date(), // Required per Requirement #35
@@ -625,21 +686,33 @@ export const LegacyCreateWorkshopSchema = z.object({
   }),
 });
 
-export type LegacyCreateWorkshopInput = z.infer<typeof LegacyCreateWorkshopSchema>;
+export type LegacyCreateWorkshopInput = z.infer<
+  typeof LegacyCreateWorkshopSchema
+>;
 
 export const UpdateWorkshopSchema = z.object({
   id: z.string(),
   name: z.string().min(5).max(100).optional(),
   description: z.string().min(20).max(2000).optional(),
-  location: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']).optional(),
-  locationDetails: z.enum(['GUC Cairo', 'GUC Berlin']).optional(),
+  location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]).optional(),
+  locationDetails: z.enum(["GUC Cairo", "GUC Berlin"]).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
   fullAgenda: z.string().min(20).optional(),
-  faculty: z.enum(['MET', 'IET', 'ARTS', 'LAW', 'PHARMACY', 'BUSINESS', 'BIOTECHNOLOGY']).optional(),
+  faculty: z
+    .enum([
+      "MET",
+      "IET",
+      "ARTS",
+      "LAW",
+      "PHARMACY",
+      "BUSINESS",
+      "BIOTECHNOLOGY",
+    ])
+    .optional(),
   professors: z.array(z.string()).min(1).optional(),
   requiredBudget: z.number().nonnegative().optional(),
-  fundingSource: z.enum(['GUC', 'EXTERNAL']).optional(),
+  fundingSource: z.enum(["GUC", "EXTERNAL"]).optional(),
   extraResources: z.string().optional(),
   capacity: z.number().int().positive().min(1).optional(),
   registrationDeadline: z.coerce.date().optional(),
@@ -677,13 +750,15 @@ export const RegistrationForEventResponseSchema = z.object({
   userId: z.string(),
   status: z.nativeEnum(RegistrationStatus),
   paymentAmount: z.number().int().nonnegative().nullable(), // null for free events
-  currency: z.enum(["EGP", "USD"]).nullable(),                   // align with your DEFAULT_CURRENCY set
-  holdUntil: z.date().nullable(),                                 // present only when PENDING
+  currency: z.enum(["EGP", "USD"]).nullable(), // align with your DEFAULT_CURRENCY set
+  holdUntil: z.date().nullable(), // present only when PENDING
   createdAt: z.date(),
   updatedAt: z.date(),
 });
 
-export type RegistrationForEventResponse = z.infer<typeof RegistrationForEventResponseSchema>;
+export type RegistrationForEventResponse = z.infer<
+  typeof RegistrationForEventResponseSchema
+>;
 
 // ============================================================================
 // VENDOR APPLICATION SCHEMAS
@@ -692,6 +767,7 @@ export type RegistrationForEventResponse = z.infer<typeof RegistrationForEventRe
 export const CreateApplicationSchema = z.object({
   names: z.array(z.string()).min(1).max(5),
   emails: z.array(z.string().email()).min(1).max(5),
+  idPictures: z.array(z.string()).min(1).max(5),
 
   type: z.enum(["BAZAAR", "PLATFORM"]),
   boothSize: z.enum(["TWO_BY_TWO", "FOUR_BY_FOUR"]),
@@ -728,7 +804,7 @@ export const ApplicationFilterSchema = z.object({
 
   isApproved: z.boolean().optional(),
   status: z.enum(["APPROVED", "REJECTED", "PENDING"]).optional(),
-  
+
   // ✅ Sorting parameters
   sortBy: z.string().optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
@@ -797,11 +873,9 @@ export const DeleteAdminSchema = z.object({
 
 export type DeleteAdminInput = z.infer<typeof DeleteAdminSchema>;
 
-
 // ============================================================================
 // Payment schemas
 // ============================================================================
-
 
 /** Minor currency always (e.g., EGP piasters, USD cents) */
 export const MoneyMinorSchema = z.number().int().nonnegative();
@@ -809,13 +883,11 @@ export const MoneyMinorSchema = z.number().int().nonnegative();
 export const CurrencySchema = z.enum(["EGP", "USD"]); // extend if needed
 export type Currency = z.infer<typeof CurrencySchema>;
 
-
 export const PaymentMethod = {
   STRIPE_CARD: "STRIPE_CARD",
   WALLET: "WALLET",
 } as const;
-export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
-
+export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
 
 export const PaymentStatus = {
   PENDING: "PENDING",
@@ -824,10 +896,7 @@ export const PaymentStatus = {
   FAILED: "FAILED",
   REFUNDED: "REFUNDED",
 } as const;
-export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
-
-
-
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 // this is to track wallet transaction types without introducing negatives so can decide on the sign based on this type:
 
@@ -838,14 +907,10 @@ export const WalletTxnType = {
   CREDIT_ADJUSTMENT: "CREDIT_ADJUSTMENT",
   DEBIT_ADJUSTMENT: "DEBIT_ADJUSTMENT",
 } as const;
-export type WalletTxnType = typeof WalletTxnType[keyof typeof WalletTxnType];
-
-
+export type WalletTxnType = (typeof WalletTxnType)[keyof typeof WalletTxnType];
 
 // ID param schema (reusable)
 export const IdSchema = z.string().min(1);
-
-
 
 /** Create a card payment (event registration) – init step */
 export const CardPaymentInitInput = z.object({
@@ -856,7 +921,6 @@ export const CardPaymentInitInput = z.object({
 });
 export type CardPaymentInitInput = z.infer<typeof CardPaymentInitInput>;
 
-
 /** Pay with wallet for an event registration */
 export const WalletPaymentInput = z.object({
   registrationId: IdSchema,
@@ -866,7 +930,6 @@ export const WalletPaymentInput = z.object({
 });
 export type WalletPaymentInput = z.infer<typeof WalletPaymentInput>;
 
-
 /** Top-up the wallet by card */
 export const WalletTopUpInitInput = z.object({
   amountMinor: MoneyMinorSchema.min(100), // e.g., >= 1.00 in minor units
@@ -874,16 +937,12 @@ export const WalletTopUpInitInput = z.object({
 });
 export type WalletTopUpInitInput = z.infer<typeof WalletTopUpInitInput>;
 
-
 /** Refund a registration (if allowed by policy) */
 export const RefundToWalletInput = z.object({
   registrationId: IdSchema,
   paymentId: IdSchema,
 });
 export type RefundToWalletInput = z.infer<typeof RefundToWalletInput>;
-
-
-
 
 /** API shapes */
 export const PaymentSummarySchema = z.object({
@@ -900,8 +959,6 @@ export const PaymentSummarySchema = z.object({
   updatedAt: z.coerce.date(),
 });
 export type PaymentSummary = z.infer<typeof PaymentSummarySchema>;
-
-
 
 export const WalletTxnSchema = z.object({
   id: IdSchema,
@@ -922,15 +979,12 @@ export const WalletTxnSchema = z.object({
 });
 export type WalletTxn = z.infer<typeof WalletTxnSchema>;
 
-
-
 export const WalletBalanceSchema = z.object({
   userId: IdSchema,
   balanceMinor: MoneyMinorSchema, // computed
   currency: CurrencySchema,
 });
 export type WalletBalance = z.infer<typeof WalletBalanceSchema>;
-
 
 // ============================================================================
 // FEEDBACK SCHEMAS
@@ -1004,7 +1058,8 @@ export const LoyaltyRequestStatus = {
   ACTIVE: "active",
 } as const;
 
-export type LoyaltyRequestStatus = (typeof LoyaltyRequestStatus)[keyof typeof LoyaltyRequestStatus];
+export type LoyaltyRequestStatus =
+  (typeof LoyaltyRequestStatus)[keyof typeof LoyaltyRequestStatus];
 
 /**
  * Apply to loyalty program schema (Story #70)
@@ -1020,7 +1075,7 @@ export const ApplyToLoyaltySchema = z.object({
     .min(1, "Promo code is required")
     .max(50, "Promo code cannot exceed 50 characters")
     .trim()
-    .transform(val => val.toUpperCase()),
+    .transform((val) => val.toUpperCase()),
   terms: z
     .string()
     .min(10, "Terms and conditions must be at least 10 characters")
@@ -1147,6 +1202,7 @@ export interface VendorApplication {
   companyName: string;
   names: string[];
   emails: string[];
+  idPictures: string[];
 
   type: ApplicationType;
   boothSize: BoothSize;
@@ -1271,7 +1327,7 @@ export const createPriceRangeSchema = () =>
       {
         message: "Maximum price must be greater than or equal to minimum price",
         path: ["maxPrice"],
-      },
+      }
     );
 
 // Pagination params schema (reusable)
@@ -1290,8 +1346,6 @@ export const SortSchema = z.object({
 export const SearchSchema = z.object({
   search: z.string().trim().optional(),
 });
-
-
 
 // Bulk IDs schema (reusable)
 export const BulkIdsSchema = z.object({
@@ -1321,7 +1375,7 @@ export function formatZodError(error: z.ZodError): Record<string, string> {
  */
 export function validateSchema<T>(
   schema: z.ZodSchema<T>,
-  data: unknown,
+  data: unknown
 ):
   | { success: true; data: T }
   | { success: false; errors: Record<string, string> } {

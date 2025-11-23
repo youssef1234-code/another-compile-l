@@ -89,7 +89,7 @@ const applicationRoutes = {
     .input(
       z.object({
         applicationId: z.string(),
-      }),
+      })
     )
     .mutation(async ({ input }) => {
       return vendorApplicationService.approveApplication(input.applicationId);
@@ -104,12 +104,12 @@ const applicationRoutes = {
       z.object({
         applicationId: z.string(),
         reason: z.string().min(1, "Rejection reason is required"),
-      }),
+      })
     )
     .mutation(async ({ input }) => {
       return vendorApplicationService.rejectApplication(
         input.applicationId,
-        input.reason,
+        input.reason
       );
     }),
 
@@ -121,7 +121,10 @@ const applicationRoutes = {
     .input(z.object({ applicationId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const vendorId = (ctx.user!._id as any).toString();
-      return vendorApplicationService.cancelApplication(input.applicationId, vendorId);
+      return vendorApplicationService.cancelApplication(
+        input.applicationId,
+        vendorId
+      );
     }),
 
   /**
@@ -138,12 +141,12 @@ const applicationRoutes = {
       );
 
       // Convert to base64 for transmission
-      const base64 = pdfBuffer.toString('base64');
+      const base64 = pdfBuffer.toString("base64");
 
       return {
         data: base64,
         filename: `visitor-badges-${input.applicationId}-${Date.now()}.pdf`,
-        mimeType: 'application/pdf',
+        mimeType: "application/pdf",
       };
     }),
 
@@ -155,7 +158,10 @@ const applicationRoutes = {
     .mutation(async ({ input, ctx }) => {
       const vendorId = (ctx.user!._id as any).toString();
       await qrBadgeService.sendBadgesToVendor(input.applicationId, vendorId);
-      return { success: true, message: 'Badges sent to your email successfully' };
+      return {
+        success: true,
+        message: "Badges sent to your email successfully",
+      };
     }),
 
   update: eventsOfficeProcedure
@@ -163,7 +169,7 @@ const applicationRoutes = {
       z.object({
         id: z.string(),
         status: UpdateApplicationSchema.partial(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const userId = (ctx.user!._id as any).toString();
