@@ -1,14 +1,20 @@
 /**
  * Event Model
- * 
+ *
  * Mongoose schema for Event entity
- * 
+ *
  * @module models/event.model
  */
 
-import mongoose, { Schema } from 'mongoose';
-import { EventType, EventStatus, FundingSource, Faculty, GymSessionType } from '@event-manager/shared';
-import { type IBaseDocument, createBaseSchema } from './base.model';
+import mongoose, { Schema } from "mongoose";
+import {
+  EventType,
+  EventStatus,
+  FundingSource,
+  Faculty,
+  GymSessionType,
+} from "@event-manager/shared";
+import { type IBaseDocument, createBaseSchema } from "./base.model";
 
 export interface IEvent extends IBaseDocument {
   name: string;
@@ -25,7 +31,8 @@ export interface IEvent extends IBaseDocument {
   registeredCount: number;
   registrationDeadline?: Date;
   restrictedTo?: string[];
-  
+  whitelistedUsers?: mongoose.Types.ObjectId[];
+
   // Workshop specific
   fullAgenda?: string;
   faculty?: keyof typeof Faculty;
@@ -36,20 +43,20 @@ export interface IEvent extends IBaseDocument {
   extraResources?: string;
   requirements?: string; // Prerequisites or requirements for attendees
   price?: number;
-  
+
   // Media
   images?: string[]; // Array of file IDs or URLs
-  
+
   // Conference specific
   websiteUrl?: string;
-  
+
   // Bazaar specific
   vendors?: mongoose.Types.ObjectId[];
-  
+
   // Gym session specific
   sessionType?: keyof typeof GymSessionType;
   duration?: number;
-  
+
   // Ratings
   averageRating?: number;
   totalRatings?: number;
@@ -64,14 +71,21 @@ const eventSchema = createBaseSchema<IEvent>(
     },
     type: {
       type: String,
-      enum: ['WORKSHOP', 'TRIP', 'BAZAAR', 'BOOTH', 'CONFERENCE', 'GYM_SESSION'],
+      enum: [
+        "WORKSHOP",
+        "TRIP",
+        "BAZAAR",
+        "BOOTH",
+        "CONFERENCE",
+        "GYM_SESSION",
+      ],
       required: true,
     },
     description: {
       type: String,
-      required: function(this: IEvent) {
+      required: function (this: IEvent) {
         // Description is optional for GYM_SESSION
-        return this.type !== 'GYM_SESSION';
+        return this.type !== "GYM_SESSION";
       },
     },
     startDate: {
@@ -91,8 +105,18 @@ const eventSchema = createBaseSchema<IEvent>(
     },
     status: {
       type: String,
-      enum: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'NEEDS_EDITS', 'REJECTED', 'PUBLISHED', 'CANCELLED', 'COMPLETED', 'ARCHIVED'],
-      default: 'DRAFT',
+      enum: [
+        "DRAFT",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "NEEDS_EDITS",
+        "REJECTED",
+        "PUBLISHED",
+        "CANCELLED",
+        "COMPLETED",
+        "ARCHIVED",
+      ],
+      default: "DRAFT",
     },
     isArchived: {
       type: Boolean,
@@ -105,25 +129,37 @@ const eventSchema = createBaseSchema<IEvent>(
       default: 0,
     },
     registrationDeadline: Date,
-    restrictedTo: [{
-      type: String,
-      enum: ['STUDENT', 'STAFF', 'TA', 'PROFESSOR'],
-    }],
-    
+    restrictedTo: [
+      {
+        type: String,
+        enum: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
+      },
+    ],
+
     // Workshop specific
     fullAgenda: String,
     faculty: {
       type: String,
-      enum: ['MET', 'IET', 'ARTS', 'LAW', 'PHARMACY', 'BUSINESS', 'BIOTECHNOLOGY'],
+      enum: [
+        "MET",
+        "IET",
+        "ARTS",
+        "LAW",
+        "PHARMACY",
+        "BUSINESS",
+        "BIOTECHNOLOGY",
+      ],
     },
-    professors: [{
-      type: String, // Professor names as strings - Requirement #35
-    }],
+    professors: [
+      {
+        type: String, // Professor names as strings - Requirement #35
+      },
+    ],
     professorName: String, // Deprecated: kept for backwards compatibility
     requiredBudget: Number,
     fundingSource: {
       type: String,
-      enum: ['EXTERNAL', 'GUC'],
+      enum: ["EXTERNAL", "GUC"],
     },
     extraResources: String,
     requirements: String, // Prerequisites or requirements for attendees
@@ -131,32 +167,36 @@ const eventSchema = createBaseSchema<IEvent>(
       type: Number,
       default: 0,
     },
-    rejectionReason:{
+    rejectionReason: {
       type: String,
       required: false,
     },
-    
+
     // Media
-    images: [{
-      type: String, // File IDs or URLs
-    }],
-    
+    images: [
+      {
+        type: String, // File IDs or URLs
+      },
+    ],
+
     // Conference specific
     websiteUrl: String,
-    
+
     // Bazaar specific
-    vendors: [{
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-    }],
-    
+    vendors: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
     // Gym session specific
     sessionType: {
       type: String,
       enum: GymSessionType,
     },
     duration: Number,
-    
+
     // Ratings
     averageRating: {
       type: Number,
@@ -168,6 +208,12 @@ const eventSchema = createBaseSchema<IEvent>(
       type: Number,
       default: 0,
     },
+    whitelistedUsers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     toJSON: {
@@ -181,22 +227,20 @@ const eventSchema = createBaseSchema<IEvent>(
   }
 );
 
-
 // Indexes
 eventSchema.index({ type: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ startDate: 1 });
 // Note: createdBy and isActive already have indexes from base schema
-eventSchema.index({ name: 'text', description: 'text' });
+eventSchema.index({ name: "text", description: "text" });
 
-eventSchema.pre('validate', function (next) {
+eventSchema.pre("validate", function (next) {
   if (this.isNew) {
-    if (this.type === 'WORKSHOP') {
-      this.status = 'PENDING_APPROVAL';
+    if (this.type === "WORKSHOP") {
+      this.status = "PENDING_APPROVAL";
     }
   }
   next();
 });
 
-export const Event = mongoose.model<IEvent>('Event', eventSchema);
-
+export const Event = mongoose.model<IEvent>("Event", eventSchema);

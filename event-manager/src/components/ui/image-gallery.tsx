@@ -1,8 +1,8 @@
 /**
  * ImageGallery Component
- * 
+ *
  * Multiple image upload with drag-drop reordering and deletion
- * 
+ *
  * Features:
  * - Multiple file upload with drag-drop
  * - Reorder images by drag-drop
@@ -12,19 +12,25 @@
  * - Image preview thumbnails
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { X, Upload, GripVertical, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from './button';
-import { trpc } from '@/lib/trpc';
-import { toast } from 'react-hot-toast';
-import { formatValidationErrors } from '@/lib/format-errors';
+import React, { useState, useCallback, useMemo } from "react";
+import {
+  X,
+  Upload,
+  GripVertical,
+  Image as ImageIcon,
+  Loader2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "./button";
+import { trpc } from "@/lib/trpc";
+import { toast } from "react-hot-toast";
+import { formatValidationErrors } from "@/lib/format-errors";
 
 // Component to load and display a single image thumbnail
 function ImageThumbnail({ imageId, alt }: { imageId: string; alt: string }) {
   const { data: fileData, isLoading } = trpc.files.downloadPublicFile.useQuery(
     { fileId: imageId },
-    { 
+    {
       staleTime: 5 * 60 * 1000, // Cache for 5 minutes
       retry: 1,
     }
@@ -52,11 +58,7 @@ function ImageThumbnail({ imageId, alt }: { imageId: string; alt: string }) {
   }
 
   return (
-    <img
-      src={imageUrl}
-      alt={alt}
-      className="w-full h-full object-cover"
-    />
+    <img src={imageUrl} alt={alt} className="w-full h-full object-cover" />
   );
 }
 
@@ -68,12 +70,12 @@ interface ImageGalleryProps {
   className?: string;
 }
 
-export function ImageGallery({ 
-  value = [], 
-  onChange, 
+export function ImageGallery({
+  value = [],
+  onChange,
   maxImages = 10,
   disabled = false,
-  className 
+  className,
 }: ImageGalleryProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   // Track which images are currently uploading with their preview URLs
@@ -93,12 +95,12 @@ export function ImageGallery({
           return newMap;
         });
       }
-      
+
       // Add the uploaded file ID to the array
       const newImages = [...value, data.id];
       onChange(newImages);
-      
-      toast.success('Image uploaded successfully');
+
+      toast.success("Image uploaded successfully");
     },
     onError: (error, variables) => {
       // Get the dataUrl from the map and remove from uploading state
@@ -112,59 +114,99 @@ export function ImageGallery({
         });
       }
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
     },
   });
 
-  const handleFileSelect = useCallback(async (files: FileList | null) => {
-    if (!files || disabled) return;
-
-    const remainingSlots = maxImages - value.length;
-    if (remainingSlots <= 0) {
-      toast.error(`Maximum images reached. You can only upload up to ${maxImages} images`);
-      return;
-    }
-
-    const filesToUpload = Array.from(files).slice(0, remainingSlots);
-
-    for (const file of filesToUpload) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Invalid file type. Please upload only image files');
-        continue;
-      }
-
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('File too large. Please upload images smaller than 5MB');
-        continue;
-      }
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        // Extract base64 part from data URL (remove "data:image/png;base64," prefix)
-        const base64 = dataUrl.split(',')[1];
-        
-        // Add to uploading previews so we can show it immediately
-        setUploadingPreviews((prev) => [...prev, dataUrl]);
-        
-        // Store mapping of base64 to dataUrl so we can remove it after upload
-        setUploadMap((prev) => ({ ...prev, [base64]: dataUrl }));
-        
-        // Upload file
-        uploadMutation.mutate({
-          file: base64,
-          filename: file.name,
-          mimeType: file.type,
-          entityType: 'event',
-          isPublic: true,
+  const uploadUnsecureMutation = trpc.files.uploadUnprotectedFile.useMutation({
+    onSuccess: (data, variables) => {
+      // Get the dataUrl from the map and remove from uploading state
+      const dataUrl = uploadMap[variables.file];
+      if (dataUrl) {
+        setUploadingPreviews((prev) => prev.filter((url) => url !== dataUrl));
+        setUploadMap((prev) => {
+          const newMap = { ...prev };
+          delete newMap[variables.file];
+          return newMap;
         });
-      };
-      reader.readAsDataURL(file);
-    }
-  }, [value.length, maxImages, disabled, uploadMutation]);
+      }
+
+      // Add the uploaded file ID to the array
+      const newImages = [...value, data.id];
+      onChange(newImages);
+
+      toast.success("Image uploaded successfully");
+    },
+    onError: (error, variables) => {
+      // Get the dataUrl from the map and remove from uploading state
+      const dataUrl = uploadMap[variables.file];
+      if (dataUrl) {
+        setUploadingPreviews((prev) => prev.filter((url) => url !== dataUrl));
+        setUploadMap((prev) => {
+          const newMap = { ...prev };
+          delete newMap[variables.file];
+          return newMap;
+        });
+      }
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
+    },
+  });
+
+  const handleFileSelect = useCallback(
+    async (files: FileList | null) => {
+      if (!files || disabled) return;
+
+      const remainingSlots = maxImages - value.length;
+      if (remainingSlots <= 0) {
+        toast.error(
+          `Maximum images reached. You can only upload up to ${maxImages} images`
+        );
+        return;
+      }
+
+      const filesToUpload = Array.from(files).slice(0, remainingSlots);
+
+      for (const file of filesToUpload) {
+        // Validate file type
+        if (!file.type.startsWith("image/")) {
+          toast.error("Invalid file type. Please upload only image files");
+          continue;
+        }
+
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error("File too large. Please upload images smaller than 5MB");
+          continue;
+        }
+
+        // Create preview
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          // Extract base64 part from data URL (remove "data:image/png;base64," prefix)
+          const base64 = dataUrl.split(",")[1];
+
+          // Add to uploading previews so we can show it immediately
+          setUploadingPreviews((prev) => [...prev, dataUrl]);
+
+          // Store mapping of base64 to dataUrl so we can remove it after upload
+          setUploadMap((prev) => ({ ...prev, [base64]: dataUrl }));
+
+          // Upload file
+          uploadMutation.mutate({
+            file: base64,
+            filename: file.name,
+            mimeType: file.type,
+            entityType: "event",
+            isPublic: true,
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+    [value.length, maxImages, disabled, uploadMutation]
+  );
 
   const handleDelete = (index: number) => {
     if (disabled) return;
@@ -184,7 +226,7 @@ export function ImageGallery({
     const draggedImage = newImages[draggedIndex];
     newImages.splice(draggedIndex, 1);
     newImages.splice(index, 0, draggedImage);
-    
+
     onChange(newImages);
     setDraggedIndex(index);
   };
@@ -196,32 +238,41 @@ export function ImageGallery({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (disabled) return;
-    
+
     const files = e.dataTransfer.files;
     handleFileSelect(files);
   };
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
       {/* Upload Area */}
       {value.length < maxImages && (
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           className={cn(
-            'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
-            disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-primary',
-            uploadMutation.isPending && 'opacity-50 cursor-wait'
+            "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
+            disabled
+              ? "opacity-50 cursor-not-allowed"
+              : "cursor-pointer hover:border-primary",
+            (uploadMutation.isPending || uploadUnsecureMutation.isPending) &&
+              "opacity-50 cursor-wait"
           )}
           onClick={() => {
-            if (disabled || uploadMutation.isPending) return;
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
+            if (
+              disabled ||
+              uploadMutation.isPending ||
+              uploadUnsecureMutation.isPending
+            )
+              return;
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "image/*";
             input.multiple = true;
-            input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement).files);
+            input.onchange = (e) =>
+              handleFileSelect((e.target as HTMLInputElement).files);
             input.click();
           }}
         >
@@ -231,10 +282,13 @@ export function ImageGallery({
             </div>
             <div className="space-y-1">
               <p className="text-sm font-medium">
-                {uploadMutation.isPending ? 'Uploading...' : 'Click to upload or drag and drop'}
+                {uploadMutation.isPending || uploadUnsecureMutation.isPending
+                  ? "Uploading..."
+                  : "Click to upload or drag and drop"}
               </p>
               <p className="text-xs text-muted-foreground">
-                PNG, JPG, GIF up to 5MB (Max {maxImages} images, {maxImages - value.length} remaining)
+                PNG, JPG, GIF up to 5MB (Max {maxImages} images,{" "}
+                {maxImages - value.length} remaining)
               </p>
             </div>
           </div>
@@ -253,10 +307,12 @@ export function ImageGallery({
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
               className={cn(
-                'relative group aspect-square rounded-lg overflow-hidden border-2 transition-all',
-                disabled ? 'cursor-default' : 'cursor-move hover:border-primary',
-                draggedIndex === index && 'opacity-50',
-                index === 0 && 'ring-2 ring-primary ring-offset-2'
+                "relative group aspect-square rounded-lg overflow-hidden border-2 transition-all",
+                disabled
+                  ? "cursor-default"
+                  : "cursor-move hover:border-primary",
+                draggedIndex === index && "opacity-50",
+                index === 0 && "ring-2 ring-primary ring-offset-2"
               )}
             >
               {/* Primary Badge */}
@@ -289,10 +345,13 @@ export function ImageGallery({
               )}
 
               {/* Image */}
-              <ImageThumbnail imageId={imageId} alt={`Gallery image ${index + 1}`} />
+              <ImageThumbnail
+                imageId={imageId}
+                alt={`Gallery image ${index + 1}`}
+              />
             </div>
           ))}
-          
+
           {/* Show uploading previews */}
           {uploadingPreviews.map((previewUrl, index) => (
             <div
@@ -316,12 +375,14 @@ export function ImageGallery({
       )}
 
       {/* Empty State */}
-      {value.length === 0 && uploadingPreviews.length === 0 && !uploadMutation.isPending && (
-        <div className="text-center py-8 text-muted-foreground">
-          <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">No images uploaded yet</p>
-        </div>
-      )}
+      {value.length === 0 &&
+        uploadingPreviews.length === 0 &&
+        !uploadMutation.isPending && (
+          <div className="text-center py-8 text-muted-foreground">
+            <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No images uploaded yet</p>
+          </div>
+        )}
 
       {/* Helper Text */}
       {value.length > 0 && (

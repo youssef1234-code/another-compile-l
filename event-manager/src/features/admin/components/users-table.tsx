@@ -10,7 +10,14 @@ import type { QueryKeys } from "@/types/data-table";
 import { getUsersTableColumns } from "./users-table-columns.tsx";
 import { useQueryState, parseAsBoolean, parseAsString } from "nuqs";
 import { Button } from "@/components/ui/button";
-import { ListFilter, Search, Filter, FilterX, Download, UserPlus } from "lucide-react";
+import {
+  ListFilter,
+  Search,
+  Filter,
+  FilterX,
+  Download,
+  UserPlus,
+} from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 interface UsersTableProps {
@@ -26,13 +33,19 @@ interface UsersTableProps {
   onCreateUser?: () => void;
   exportDisabled?: boolean;
   exportLabel?: string;
-  onUpdateUser?: (userId: string, field: string, value: string) => Promise<void>;
+  onUpdateUser?: (
+    userId: string,
+    field: string,
+    value: string
+  ) => Promise<void>;
   onVerifyRole?: (userId: string) => void;
   onApproveVendor?: (userId: string) => void;
   onRejectVendor?: (userId: string) => void;
   onBlockUser?: (userId: string) => void;
   onUnblockUser?: (userId: string) => void;
   onDeleteUser?: (userId: string) => void;
+  onDownloadTaxCard?: (userId: string) => void;
+  onDownloadLogo?: (userId: string) => void;
 }
 
 export function UsersTable({
@@ -47,7 +60,7 @@ export function UsersTable({
   onExport,
   onCreateUser,
   exportDisabled = false,
-  exportLabel = 'Export All',
+  exportLabel = "Export All",
   onUpdateUser,
   onVerifyRole,
   onApproveVendor,
@@ -55,23 +68,29 @@ export function UsersTable({
   onBlockUser,
   onUnblockUser,
   onDeleteUser,
+  onDownloadTaxCard,
+  onDownloadLogo,
 }: UsersTableProps) {
   // Toggle between advanced and simple filters (default to simple)
   const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
-    'advanced',
-    parseAsBoolean.withOptions({
-      history: 'replace',
-      shallow: false,
-    }).withDefault(false) // Default to simple mode
+    "advanced",
+    parseAsBoolean
+      .withOptions({
+        history: "replace",
+        shallow: false,
+      })
+      .withDefault(false) // Default to simple mode
   );
 
   // Global search state (for simple mode)
   const [search, setSearch] = useQueryState(
-    'search',
-    parseAsString.withOptions({
-      history: 'replace',
-      shallow: false,
-    }).withDefault('')
+    "search",
+    parseAsString
+      .withOptions({
+        history: "replace",
+        shallow: false,
+      })
+      .withDefault("")
   );
 
   const columns = React.useMemo(
@@ -86,8 +105,20 @@ export function UsersTable({
         onBlockUser,
         onUnblockUser,
         onDeleteUser,
+        onDownloadLogo,
+        onDownloadTaxCard,
       }),
-    [roleCounts, statusCounts, onUpdateUser, onVerifyRole, onApproveVendor, onRejectVendor, onBlockUser, onUnblockUser, onDeleteUser],
+    [
+      roleCounts,
+      statusCounts,
+      onUpdateUser,
+      onVerifyRole,
+      onApproveVendor,
+      onRejectVendor,
+      onBlockUser,
+      onUnblockUser,
+      onDeleteUser,
+    ]
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({
@@ -139,8 +170,12 @@ export function UsersTable({
                 onClick={onTogglePendingApprovals}
                 className="gap-2"
               >
-                {showPendingApprovals ? <FilterX className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
-                {showPendingApprovals ? 'Show All' : 'Pending Approvals'}
+                {showPendingApprovals ? (
+                  <FilterX className="h-4 w-4" />
+                ) : (
+                  <Filter className="h-4 w-4" />
+                )}
+                {showPendingApprovals ? "Show All" : "Pending Approvals"}
               </Button>
             </>
           )}
@@ -148,11 +183,11 @@ export function UsersTable({
 
         <div className="flex items-center gap-2">
           {onExport && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
-              onClick={onExport} 
-              className="gap-2" 
+              onClick={onExport}
+              className="gap-2"
               disabled={exportDisabled}
             >
               <Download className="h-4 w-4" />
@@ -160,11 +195,7 @@ export function UsersTable({
             </Button>
           )}
           {onCreateUser && (
-            <Button 
-              size="sm"
-              onClick={onCreateUser} 
-              className="gap-2"
-            >
+            <Button size="sm" onClick={onCreateUser} className="gap-2">
               <UserPlus className="h-4 w-4" />
               Create User
             </Button>
@@ -187,8 +218,8 @@ export function UsersTable({
         </DataTableAdvancedToolbar>
       ) : (
         // Simple mode: Global search bar (searches across name & email) + faceted filters (with plus icons)
-        <DataTableToolbar 
-          table={table} 
+        <DataTableToolbar
+          table={table}
           showColumnFilters={true}
           showGlobalSearch={true}
           globalSearchValue={search}

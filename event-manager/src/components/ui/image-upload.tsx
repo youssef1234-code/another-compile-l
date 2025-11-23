@@ -1,27 +1,33 @@
 /**
  * Image Upload Component
- * 
+ *
  * Handles image upload with preview, drag-and-drop, and compression
  * Integrates with file.service for production-ready image management
  */
 
-import { useState, useRef, useEffect } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { trpc } from '@/lib/trpc';
-import { formatValidationErrors } from '@/lib/format-errors';
+import { useState, useRef, useEffect } from "react";
+import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
+import { formatValidationErrors } from "@/lib/format-errors";
 
 interface ImageUploadProps {
   value?: string; // File ID or URL
   onChange: (fileId: string) => void;
   onRemove?: () => void;
-  entityType?: 'user' | 'event' | 'vendor' | 'feedback' | 'registration' | 'other';
+  entityType?:
+    | "user"
+    | "event"
+    | "vendor"
+    | "feedback"
+    | "registration"
+    | "other";
   entityId?: string;
   disabled?: boolean;
   maxSizeMB?: number;
-  aspectRatio?: 'square' | 'video' | 'banner' | 'auto'; // 1:1, 16:9, 3:1, or auto
+  aspectRatio?: "square" | "video" | "banner" | "auto"; // 1:1, 16:9, 3:1, or auto
   className?: string;
 }
 
@@ -29,11 +35,11 @@ export function ImageUpload({
   value,
   onChange,
   onRemove,
-  entityType = 'event',
+  entityType = "event",
   entityId,
   disabled = false,
   maxSizeMB = 5,
-  aspectRatio = 'banner',
+  aspectRatio = "banner",
   className,
 }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -44,7 +50,7 @@ export function ImageUpload({
   useEffect(() => {
     if (value && !preview) {
       // Check if it's already a data URL or HTTP URL
-      if (value.startsWith('data:') || value.startsWith('http')) {
+      if (value.startsWith("data:") || value.startsWith("http")) {
         setPreview(value);
       }
     }
@@ -54,19 +60,32 @@ export function ImageUpload({
     onSuccess: (data) => {
       // Store file ID and keep preview
       onChange(data.id);
-      toast.success('Image uploaded successfully!');
+      toast.success("Image uploaded successfully!");
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
+      setPreview(null);
+    },
+  });
+
+  const uploadUnsecureMutation = trpc.files.uploadUnprotectedFile.useMutation({
+    onSuccess: (data) => {
+      // Store file ID and keep preview
+      onChange(data.id);
+      toast.success("Image uploaded successfully!");
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
       setPreview(null);
     },
   });
 
   const handleFileSelect = async (file: File) => {
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
       return;
     }
 
@@ -87,17 +106,29 @@ export function ImageUpload({
     // Upload to server
     try {
       const base64 = await fileToBase64(file);
-      await uploadMutation.mutateAsync({
-        file: base64.split(',')[1], // Remove data:image/...;base64, prefix
-        filename: file.name,
-        mimeType: file.type,
-        entityType,
-        entityId,
-        isPublic: true,
-        skipCompression: false, // Let backend compress
-      });
+      if (entityType === "vendor") {
+        await uploadUnsecureMutation.mutateAsync({
+          file: base64.split(",")[1], // Remove data:image/...;base64, prefix
+          filename: file.name,
+          mimeType: file.type,
+          entityType,
+          entityId,
+          isPublic: true,
+          skipCompression: false, // Let backend compress
+        });
+      } else {
+        await uploadMutation.mutateAsync({
+          file: base64.split(",")[1], // Remove data:image/...;base64, prefix
+          filename: file.name,
+          mimeType: file.type,
+          entityType,
+          entityId,
+          isPublic: true,
+          skipCompression: false, // Let backend compress
+        });
+      }
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error("Upload error:", error);
     }
   };
 
@@ -145,19 +176,19 @@ export function ImageUpload({
     if (onRemove) {
       onRemove();
     } else {
-      onChange('');
+      onChange("");
     }
   };
 
   const aspectRatioClasses = {
-    square: 'aspect-square',
-    video: 'aspect-video',
-    banner: 'aspect-[3/1]',
-    auto: 'aspect-auto min-h-[200px]',
+    square: "aspect-square",
+    video: "aspect-video",
+    banner: "aspect-[3/1]",
+    auto: "aspect-auto min-h-[200px]",
   };
 
   return (
-    <div className={cn('w-full', className)}>
+    <div className={cn("w-full", className)}>
       <input
         ref={fileInputRef}
         type="file"
@@ -178,12 +209,14 @@ export function ImageUpload({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         className={cn(
-          'relative w-full rounded-lg border-2 border-dashed transition-all cursor-pointer overflow-hidden',
+          "relative w-full rounded-lg border-2 border-dashed transition-all cursor-pointer overflow-hidden",
           aspectRatioClasses[aspectRatio],
-          isDragging && 'border-primary bg-primary/5',
-          !isDragging && !preview && 'border-muted-foreground/25 hover:border-muted-foreground/50 bg-muted/20',
-          disabled && 'opacity-50 cursor-not-allowed',
-          preview && 'border-transparent'
+          isDragging && "border-primary bg-primary/5",
+          !isDragging &&
+            !preview &&
+            "border-muted-foreground/25 hover:border-muted-foreground/50 bg-muted/20",
+          disabled && "opacity-50 cursor-not-allowed",
+          preview && "border-transparent"
         )}
       >
         {uploadMutation.isPending ? (
@@ -228,7 +261,9 @@ export function ImageUpload({
               <ImageIcon className="h-8 w-8 text-muted-foreground" />
             </div>
             <p className="text-sm font-medium mb-1">
-              {isDragging ? 'Drop image here' : 'Click to upload or drag and drop'}
+              {isDragging
+                ? "Drop image here"
+                : "Click to upload or drag and drop"}
             </p>
             <p className="text-xs text-muted-foreground">
               PNG, JPG, GIF up to {maxSizeMB}MB

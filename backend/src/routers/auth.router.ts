@@ -1,32 +1,37 @@
 /**
  * Authentication Router
- * 
+ *
  * tRPC router for authentication and user management operations
- * 
+ *
  * Features:
  * - Public routes: signup, login, email verification
  * - Protected routes: user profile, logout
  * - Admin routes: user management, role verification
- * 
+ *
  * @module routers/auth.router
  */
 
-import { TRPCError } from '@trpc/server';
-import { publicProcedure, protectedProcedure, adminProcedure, router } from '../trpc/trpc';
-import { userService } from '../services/user.service';
+import { TRPCError } from "@trpc/server";
+import {
+  publicProcedure,
+  protectedProcedure,
+  adminProcedure,
+  router,
+} from "../trpc/trpc";
+import { userService } from "../services/user.service";
 import {
   SignupAcademicSchema,
   SignupVendorSchema,
   LoginSchema,
-} from '@event-manager/shared';
-import { User } from '../models/user.model';
+} from "@event-manager/shared";
+import { User } from "../models/user.model";
 import {
   comparePassword,
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
-} from '../utils/auth.util';
-import { z } from 'zod';
+} from "../utils/auth.util";
+import { z } from "zod";
 
 // ==================== AUTHENTICATION ROUTES ====================
 
@@ -42,7 +47,7 @@ const authRoutes = {
         password: input.password,
         firstName: input.firstName,
         lastName: input.lastName,
-        studentId: input.gucId || '', // Use gucId from schema
+        studentId: input.gucId || "", // Use gucId from schema
         role: input.role as any,
       });
 
@@ -92,69 +97,71 @@ const authRoutes = {
   /**
    * Login
    */
-  login: publicProcedure
-    .input(LoginSchema)
-    .mutation(async ({ input }) => {
-      // Find user with password
-      const user = await User.findOne({ email: input.email }).select('+password');
+  login: publicProcedure.input(LoginSchema).mutation(async ({ input }) => {
+    // Find user with password
+    const user = await User.findOne({ email: input.email }).select("+password");
 
-      if (!user) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Invalid email or password',
-        });
-      }
+    if (!user) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Invalid email or password",
+      });
+    }
 
-      // Check if account is deleted/inactive
-      if (user.isActive === false) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'This account has been deleted. Please contact the administration for assistance.',
-        });
-      }
+    // Check if account is deleted/inactive
+    if (user.isActive === false) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message:
+          "This account has been deleted. Please contact the administration for assistance.",
+      });
+    }
 
-      // Check password
-      const isPasswordValid = await comparePassword(input.password, user.password);
-      if (!isPasswordValid) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Invalid email or password',
-        });
-      }
+    // Check password
+    const isPasswordValid = await comparePassword(
+      input.password,
+      user.password
+    );
+    if (!isPasswordValid) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Invalid email or password",
+      });
+    }
 
-      // Check if verified
-      if (!user.isVerified) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Please verify your email before logging in',
-          cause: { 
-            email: user.email,
-            requiresVerification: true 
-          },
-        });
-      }
+    // Check if verified
+    if (!user.isVerified) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Please verify your email before logging in",
+        cause: {
+          email: user.email,
+          requiresVerification: true,
+        },
+      });
+    }
 
-      // Check if blocked
-      if (user.isBlocked || user.status === 'BLOCKED') {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Your account has been blocked',
-        });
-      }
+    // Check if blocked
+    if (user.isBlocked || user.status === "BLOCKED") {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Your account has been blocked",
+      });
+    }
 
-      // Generate tokens
-      const token = generateAccessToken((user._id as any).toString(), user.role);
-      const refreshToken = generateRefreshToken((user._id as any).toString());
+    // Generate tokens
+    const token = generateAccessToken((user._id as any).toString(), user.role);
+    const refreshToken = generateRefreshToken((user._id as any).toString());
 
-      // Return user without password
-      const userWithoutPassword = user.toJSON();
+    // Return user without password
+    const userWithoutPassword = user.toJSON();
 
-      return {
-        user: userWithoutPassword,
-        token,
-        refreshToken,
-      };
-    }),
+    return {
+      user: userWithoutPassword,
+      token,
+      refreshToken,
+    };
+  }),
 
   /**
    * Get current user
@@ -167,58 +174,62 @@ const authRoutes = {
    * Refresh access token using refresh token
    */
   refreshToken: publicProcedure
-    .input(z.object({ 
-      refreshToken: z.string().min(1, 'Refresh token is required') 
-    }))
+    .input(
+      z.object({
+        refreshToken: z.string().min(1, "Refresh token is required"),
+      })
+    )
     .mutation(async ({ input }) => {
       try {
         // Verify refresh token
         const decoded = verifyRefreshToken(input.refreshToken);
-        
+
         // Get user and check status
         const user = await User.findById(decoded.userId);
-        
+
         if (!user) {
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User not found',
+            code: "UNAUTHORIZED",
+            message: "User not found",
           });
         }
 
         // Check if user is blocked
-        if (user.isBlocked || user.status === 'BLOCKED') {
+        if (user.isBlocked || user.status === "BLOCKED") {
           throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Your account has been blocked',
+            code: "FORBIDDEN",
+            message: "Your account has been blocked",
           });
         }
 
         // Check if user is verified
         if (!user.isVerified) {
           throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Please verify your email',
+            code: "FORBIDDEN",
+            message: "Please verify your email",
           });
         }
-        
+
         // Generate new access token
         const newAccessToken = generateAccessToken(
           (user._id as any).toString(),
           user.role
         );
-        
+
         // Rotate refresh token (security best practice)
-        const newRefreshToken = generateRefreshToken((user._id as any).toString());
-        
+        const newRefreshToken = generateRefreshToken(
+          (user._id as any).toString()
+        );
+
         return {
           token: newAccessToken,
           refreshToken: newRefreshToken,
-          message: 'Token refreshed successfully',
+          message: "Token refreshed successfully",
         };
       } catch (error) {
         throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Invalid or expired refresh token',
+          code: "UNAUTHORIZED",
+          message: "Invalid or expired refresh token",
         });
       }
     }),
@@ -227,7 +238,7 @@ const authRoutes = {
    * Logout (client-side token removal)
    */
   logout: protectedProcedure.mutation(() => {
-    return { message: 'Logged out successfully' };
+    return { message: "Logged out successfully" };
   }),
 
   /**
@@ -246,7 +257,9 @@ const authRoutes = {
     .input(
       z.object({
         token: z.string(),
-        newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+        newPassword: z
+          .string()
+          .min(8, "Password must be at least 8 characters"),
       })
     )
     .mutation(async ({ input }) => {
@@ -263,12 +276,14 @@ const authRoutes = {
     .input(
       z.object({
         currentPassword: z.string(),
-        newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+        newPassword: z
+          .string()
+          .min(8, "Password must be at least 8 characters"),
       })
     )
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) {
-        throw new TRPCError({ code: 'UNAUTHORIZED' });
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
       return userService.changePassword({
@@ -285,12 +300,12 @@ const authRoutes = {
     .input(
       z.object({
         avatar: z.string(),
-        avatarType: z.enum(['upload', 'preset']),
+        avatarType: z.enum(["upload", "preset"]),
       })
     )
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) {
-        throw new TRPCError({ code: 'UNAUTHORIZED' });
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
       return userService.updateAvatar({
@@ -308,9 +323,11 @@ const adminRoutes = {
    * Admin: Verify staff/TA/professor role and send verification email
    */
   verifyRole: adminProcedure
-    .input(z.object({
-      userId: z.string(),
-    }))
+    .input(
+      z.object({
+        userId: z.string(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const result = await userService.verifyRole({
         userId: input.userId,
@@ -324,12 +341,14 @@ const adminRoutes = {
    * Admin: Create admin or event office account
    */
   createAdminAccount: adminProcedure
-    .input(z.object({
-      name: z.string(),
-      email: z.string().email(),
-      password: z.string().min(8),
-      role: z.enum(['ADMIN', 'EVENT_OFFICE']),
-    }))
+    .input(
+      z.object({
+        name: z.string(),
+        email: z.string().email(),
+        password: z.string().min(8),
+        role: z.enum(["ADMIN", "EVENT_OFFICE"]),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const result = await userService.createAdminAccount({
         name: input.name,
@@ -360,9 +379,11 @@ const adminRoutes = {
    * Admin: Block user
    */
   blockUser: adminProcedure
-    .input(z.object({
-      userId: z.string(),
-    }))
+    .input(
+      z.object({
+        userId: z.string(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const result = await userService.blockUser({
         userId: input.userId,
@@ -376,9 +397,11 @@ const adminRoutes = {
    * Admin: Unblock user
    */
   unblockUser: adminProcedure
-    .input(z.object({
-      userId: z.string(),
-    }))
+    .input(
+      z.object({
+        userId: z.string(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const result = await userService.unblockUser({
         userId: input.userId,
@@ -392,12 +415,14 @@ const adminRoutes = {
    * Admin: Update user fields (for inline editing)
    */
   updateUser: adminProcedure
-    .input(z.object({
-      userId: z.string(),
-      firstName: z.string().optional(),
-      lastName: z.string().optional(),
-      email: z.string().email().optional(),
-    }))
+    .input(
+      z.object({
+        userId: z.string(),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        email: z.string().email().optional(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const result = await userService.updateUser({
         userId: input.userId,
@@ -422,42 +447,72 @@ const adminRoutes = {
    * - Server-side pagination
    */
   getAllUsers: adminProcedure
-    .input(z.object({
-      // Pagination
-      page: z.number().optional().default(1),
-      perPage: z.number().optional().default(20),
-      
-      // Global search
-      search: z.string().optional(),
-      
-      // Multi-field sorting: [{id: "email", desc: false}, {id: "createdAt", desc: true}]
-      sort: z.array(z.object({
-        id: z.string(),
-        desc: z.boolean(),
-      })).optional(),
-      
-      // Simple faceted filters: {role: ["ADMIN", "STUDENT"], status: ["ACTIVE"]}
-      filters: z.record(z.array(z.string())).optional(),
-      
-      // Special filter for pending approvals
-      pendingApprovalsOnly: z.boolean().optional(),
-      
-      // Extended filters with operators (for command mode)
-      extendedFilters: z.array(z.object({
-        id: z.string(),
-        value: z.union([z.string(), z.array(z.string())]),
-        operator: z.enum([
-          'iLike', 'notILike', 'eq', 'ne', 'isEmpty', 'isNotEmpty',
-          'lt', 'lte', 'gt', 'gte', 'isBetween', 
-          'inArray', 'notInArray', 'isRelativeToToday'
-        ]),
-        variant: z.enum(['text', 'number', 'range', 'date', 'dateRange', 'boolean', 'select', 'multiSelect']),
-        filterId: z.string(),
-      })).optional(),
-      
-      // Join operator for extended filters (AND/OR logic)
-      joinOperator: z.enum(['and', 'or']).optional().default('and'),
-    }))
+    .input(
+      z.object({
+        // Pagination
+        page: z.number().optional().default(1),
+        perPage: z.number().optional().default(20),
+
+        // Global search
+        search: z.string().optional(),
+
+        // Multi-field sorting: [{id: "email", desc: false}, {id: "createdAt", desc: true}]
+        sort: z
+          .array(
+            z.object({
+              id: z.string(),
+              desc: z.boolean(),
+            })
+          )
+          .optional(),
+
+        // Simple faceted filters: {role: ["ADMIN", "STUDENT"], status: ["ACTIVE"]}
+        filters: z.record(z.array(z.string())).optional(),
+
+        // Special filter for pending approvals
+        pendingApprovalsOnly: z.boolean().optional(),
+
+        // Extended filters with operators (for command mode)
+        extendedFilters: z
+          .array(
+            z.object({
+              id: z.string(),
+              value: z.union([z.string(), z.array(z.string())]),
+              operator: z.enum([
+                "iLike",
+                "notILike",
+                "eq",
+                "ne",
+                "isEmpty",
+                "isNotEmpty",
+                "lt",
+                "lte",
+                "gt",
+                "gte",
+                "isBetween",
+                "inArray",
+                "notInArray",
+                "isRelativeToToday",
+              ]),
+              variant: z.enum([
+                "text",
+                "number",
+                "range",
+                "date",
+                "dateRange",
+                "boolean",
+                "select",
+                "multiSelect",
+              ]),
+              filterId: z.string(),
+            })
+          )
+          .optional(),
+
+        // Join operator for extended filters (AND/OR logic)
+        joinOperator: z.enum(["and", "or"]).optional().default("and"),
+      })
+    )
     .query(async ({ input }) => {
       const result = await userService.getAllUsers({
         page: input.page,
@@ -476,30 +531,30 @@ const adminRoutes = {
   /**
    * Admin: Get user statistics
    */
-  getUserStats: adminProcedure
-    .query(async () => {
-      const stats = await userService.getUserStats();
-      return stats;
-    }),
+  getUserStats: adminProcedure.query(async () => {
+    const stats = await userService.getUserStats();
+    return stats;
+  }),
 
   /**
    * Admin: Get pending academic users (need role verification)
    */
-  getPendingAcademicUsers: adminProcedure
-    .query(async () => {
-      const result = await userService.getPendingAcademicUsers();
-      return result;
-    }),
+  getPendingAcademicUsers: adminProcedure.query(async () => {
+    const result = await userService.getPendingAcademicUsers();
+    return result;
+  }),
 
   /**
    * Admin: Search users
    */
   searchUsers: adminProcedure
-    .input(z.object({
-      query: z.string(),
-      page: z.number().optional().default(1),
-      limit: z.number().optional().default(20),
-    }))
+    .input(
+      z.object({
+        query: z.string(),
+        page: z.number().optional().default(1),
+        limit: z.number().optional().default(20),
+      })
+    )
     .query(async ({ input }) => {
       const result = await userService.searchUsers(input.query, {
         page: input.page,
@@ -513,11 +568,13 @@ const adminRoutes = {
    * Admin: Get users by role
    */
   getUsersByRole: adminProcedure
-    .input(z.object({
-      role: z.string(),
-      page: z.number().optional().default(1),
-      limit: z.number().optional().default(20),
-    }))
+    .input(
+      z.object({
+        role: z.string(),
+        page: z.number().optional().default(1),
+        limit: z.number().optional().default(20),
+      })
+    )
     .query(async ({ input }) => {
       const result = await userService.getUsersByRole(input.role, {
         page: input.page,
@@ -530,21 +587,22 @@ const adminRoutes = {
   /**
    * Admin: Get pending vendor approvals
    */
-  getPendingVendors: adminProcedure
-    .query(async () => {
-      const vendors = await userService.getPendingVendors();
-      return vendors;
-    }),
+  getPendingVendors: adminProcedure.query(async () => {
+    const vendors = await userService.getPendingVendors();
+    return vendors;
+  }),
 
   /**
    * Admin: Approve or reject vendor
    */
   processVendorApproval: adminProcedure
-    .input(z.object({
-      userId: z.string(),
-      status: z.enum(['APPROVED', 'REJECTED']),
-      rejectionReason: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        userId: z.string(),
+        status: z.enum(["APPROVED", "REJECTED"]),
+        rejectionReason: z.string().optional(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const result = await userService.processVendorApproval({
         userId: input.userId,
@@ -574,7 +632,7 @@ export const authRouter = router({
   resetPassword: authRoutes.resetPassword,
   changePassword: authRoutes.changePassword,
   updateAvatar: authRoutes.updateAvatar,
-  
+
   // Admin routes
   verifyRole: adminRoutes.verifyRole,
   createAdminAccount: adminRoutes.createAdminAccount,

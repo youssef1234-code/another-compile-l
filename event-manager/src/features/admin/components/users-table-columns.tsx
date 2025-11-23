@@ -1,9 +1,25 @@
-
 import type { User } from "@event-manager/shared";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Shield, Mail, MoreHorizontal, UserX, Trash2, UserCheck, Users, CheckCircle, XCircle } from "lucide-react";
+import {
+  Shield,
+  Mail,
+  MoreHorizontal,
+  UserX,
+  Trash2,
+  UserCheck,
+  Users,
+  CheckCircle,
+  XCircle,
+  Briefcase,
+  FileText,
+  FileImage,
+} from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import { InlineEditCell, RoleBadge, UserStatusBadge } from "@/components/generic";
+import {
+  InlineEditCell,
+  RoleBadge,
+  UserStatusBadge,
+} from "@/components/generic";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,13 +41,19 @@ import { formatDate } from "@/lib/design-system";
 interface GetUsersTableColumnsProps {
   roleCounts: Record<string, number>;
   statusCounts: { active: number; blocked: number };
-  onUpdateUser?: (userId: string, field: string, value: string) => Promise<void>;
+  onUpdateUser?: (
+    userId: string,
+    field: string,
+    value: string
+  ) => Promise<void>;
   onVerifyRole?: (userId: string) => void;
   onApproveVendor?: (userId: string) => void;
   onRejectVendor?: (userId: string) => void;
   onBlockUser?: (userId: string) => void;
   onUnblockUser?: (userId: string) => void;
   onDeleteUser?: (userId: string) => void;
+  onDownloadTaxCard?: (userId: string) => void;
+  onDownloadLogo?: (userId: string) => void;
 }
 
 export function getUsersTableColumns({
@@ -44,6 +66,8 @@ export function getUsersTableColumns({
   onBlockUser,
   onUnblockUser,
   onDeleteUser,
+  onDownloadTaxCard,
+  onDownloadLogo,
 }: GetUsersTableColumnsProps): ColumnDef<User>[] {
   return [
     {
@@ -82,9 +106,9 @@ export function getUsersTableColumns({
         return onUpdateUser ? (
           <InlineEditCell
             value={user.email}
-            onSave={(newValue) => onUpdateUser(user.id, 'email', newValue)}
+            onSave={(newValue) => onUpdateUser(user.id, "email", newValue)}
             validate={(value) => {
-              if (!value.includes('@')) return 'Invalid email';
+              if (!value.includes("@")) return "Invalid email";
               return null;
             }}
           />
@@ -114,9 +138,9 @@ export function getUsersTableColumns({
         return onUpdateUser ? (
           <InlineEditCell
             value={user.firstName}
-            onSave={(newValue) => onUpdateUser(user.id, 'firstName', newValue)}
+            onSave={(newValue) => onUpdateUser(user.id, "firstName", newValue)}
             validate={(value) => {
-              if (value.length < 2) return 'Name too short';
+              if (value.length < 2) return "Name too short";
               return null;
             }}
           />
@@ -143,9 +167,9 @@ export function getUsersTableColumns({
         return onUpdateUser ? (
           <InlineEditCell
             value={user.lastName}
-            onSave={(newValue) => onUpdateUser(user.id, 'lastName', newValue)}
+            onSave={(newValue) => onUpdateUser(user.id, "lastName", newValue)}
             validate={(value) => {
-              if (value.length < 2) return 'Name too short';
+              if (value.length < 2) return "Name too short";
               return null;
             }}
           />
@@ -176,9 +200,23 @@ export function getUsersTableColumns({
         label: "Role",
         variant: "multiSelect" as const,
         options: [
-          { label: "Admin", value: "ADMIN", count: roleCounts.ADMIN, icon: Shield },
-          { label: "Event Office", value: "EVENT_OFFICE", count: roleCounts.EVENT_OFFICE, icon: Users },
-          { label: "Professor", value: "PROFESSOR", count: roleCounts.PROFESSOR },
+          {
+            label: "Admin",
+            value: "ADMIN",
+            count: roleCounts.ADMIN,
+            icon: Shield,
+          },
+          {
+            label: "Event Office",
+            value: "EVENT_OFFICE",
+            count: roleCounts.EVENT_OFFICE,
+            icon: Users,
+          },
+          {
+            label: "Professor",
+            value: "PROFESSOR",
+            count: roleCounts.PROFESSOR,
+          },
           { label: "TA", value: "TA", count: roleCounts.TA },
           { label: "Staff", value: "STAFF", count: roleCounts.STAFF },
           { label: "Student", value: "STUDENT", count: roleCounts.STUDENT },
@@ -202,8 +240,18 @@ export function getUsersTableColumns({
         label: "Status",
         variant: "multiSelect" as const,
         options: [
-          { label: "Active", value: "ACTIVE", count: statusCounts.active, icon: UserCheck },
-          { label: "Blocked", value: "BLOCKED", count: statusCounts.blocked, icon: UserX },
+          {
+            label: "Active",
+            value: "ACTIVE",
+            count: statusCounts.active,
+            icon: UserCheck,
+          },
+          {
+            label: "Blocked",
+            value: "BLOCKED",
+            count: statusCounts.blocked,
+            icon: UserX,
+          },
         ],
       },
       size: 120,
@@ -217,11 +265,17 @@ export function getUsersTableColumns({
       cell: ({ row }) => (
         <div className="text-center text-sm">
           {row.getValue("isVerified") ? (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
+            <Badge
+              variant="outline"
+              className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
+            >
               Verified
             </Badge>
           ) : (
-            <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800">
+            <Badge
+              variant="outline"
+              className="bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800"
+            >
               Unverified
             </Badge>
           )}
@@ -250,11 +304,17 @@ export function getUsersTableColumns({
       cell: ({ row }) => (
         <div className="text-center text-sm">
           {row.original.roleVerifiedByAdmin ? (
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
+            <Badge
+              variant="outline"
+              className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
+            >
               Verified
             </Badge>
           ) : (
-            <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800">
+            <Badge
+              variant="outline"
+              className="bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800"
+            >
               Pending
             </Badge>
           )}
@@ -276,42 +336,52 @@ export function getUsersTableColumns({
     },
     {
       id: "vendorStatus",
-      accessorFn: (row) => (row as User & { vendorApprovalStatus?: string }).vendorApprovalStatus,
+      accessorFn: (row) =>
+        (row as User & { vendorApprovalStatus?: string }).vendorApprovalStatus,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Vendor Status" />
       ),
       cell: ({ row }) => {
         const user = row.original;
-        const vendorStatus = (user as User & { vendorApprovalStatus?: string }).vendorApprovalStatus;
-        const rejectionReason = (user as User & { vendorRejectionReason?: string }).vendorRejectionReason;
-        
-        if (user.role !== 'VENDOR') {
+        const vendorStatus = (user as User & { vendorApprovalStatus?: string })
+          .vendorApprovalStatus;
+        const rejectionReason = (
+          user as User & { vendorRejectionReason?: string }
+        ).vendorRejectionReason;
+
+        if (user.role !== "VENDOR") {
           return <span className="text-xs text-muted-foreground">N/A</span>;
         }
 
-        if (!vendorStatus || vendorStatus === 'PENDING') {
+        if (!vendorStatus || vendorStatus === "PENDING") {
           return (
-            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
+            <Badge
+              variant="outline"
+              className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800"
+            >
               Pending
             </Badge>
           );
         }
-        
-        if (vendorStatus === 'APPROVED') {
+
+        if (vendorStatus === "APPROVED") {
           return (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
+            <Badge
+              variant="outline"
+              className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
+            >
               Approved
             </Badge>
           );
         }
-        
-        if (vendorStatus === 'REJECTED') {
+
+        if (vendorStatus === "REJECTED") {
           return (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="bg-red-50 text-red-700 border-red-200 cursor-help dark:bg-red-900/30 dark:text-red-300 dark:border-red-800"
                   >
                     Rejected
@@ -319,7 +389,9 @@ export function getUsersTableColumns({
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   <p className="font-semibold mb-1">Rejection Reason:</p>
-                  <p className="text-sm">{rejectionReason || 'No reason provided'}</p>
+                  <p className="text-sm">
+                    {rejectionReason || "No reason provided"}
+                  </p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -366,11 +438,13 @@ export function getUsersTableColumns({
       id: "actions",
       cell: ({ row }) => {
         const user = row.original;
-        const isVendor = user.role === 'VENDOR';
-        const vendorStatus = (user as User & { vendorApprovalStatus?: string }).vendorApprovalStatus;
-        const isAcademicRole = ['PROFESSOR', 'TA', 'STAFF'].includes(user.role);
-        const needsRoleVerification = isAcademicRole && !user.roleVerifiedByAdmin;
-        const needsVendorApproval = isVendor && vendorStatus === 'PENDING';
+        const isVendor = user.role === "VENDOR";
+        const vendorStatus = (user as User & { vendorApprovalStatus?: string })
+          .vendorApprovalStatus;
+        const isAcademicRole = ["PROFESSOR", "TA", "STAFF"].includes(user.role);
+        const needsRoleVerification =
+          isAcademicRole && !user.roleVerifiedByAdmin;
+        const needsVendorApproval = isVendor && vendorStatus === "PENDING";
 
         return (
           <DropdownMenu>
@@ -395,14 +469,14 @@ export function getUsersTableColumns({
               )}
               {needsVendorApproval && (
                 <>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="text-green-600 dark:text-green-400"
                     onClick={() => onApproveVendor?.(user.id)}
                   >
                     <CheckCircle className="mr-2 size-4" />
                     Approve Vendor
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="text-red-600 dark:text-red-400"
                     onClick={() => onRejectVendor?.(user.id)}
                   >
@@ -412,7 +486,25 @@ export function getUsersTableColumns({
                   <DropdownMenuSeparator />
                 </>
               )}
-              <DropdownMenuItem 
+              {isVendor && (
+                <>
+                  <DropdownMenuItem
+                    className="text-blue-600 dark:text-blue-400"
+                    onClick={() => onDownloadTaxCard?.(user.id)}
+                  >
+                    <FileText className="mr-2 size-4" />
+                    Download Tax Card
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-blue-600 dark:text-blue-400"
+                    onClick={() => onDownloadLogo?.(user.id)}
+                  >
+                    <FileImage className="mr-2 size-4" />
+                    Download Logo
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuItem
                 className="text-yellow-600 dark:text-yellow-400"
                 onClick={() => {
                   if (user.isBlocked) {
@@ -425,7 +517,7 @@ export function getUsersTableColumns({
                 <UserX className="mr-2 size-4" />
                 {user.isBlocked ? "Unblock" : "Block"}
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-destructive"
                 onClick={() => onDeleteUser?.(user.id)}
               >

@@ -1,6 +1,6 @@
 /**
  * Admin Users Page - Complete tablecn Implementation
- * 
+ *
  * Professional admin interface using full tablecn pattern
  * Features:
  * - Global search with URL state
@@ -12,28 +12,68 @@
  * - Shareable URLs (all state in URL params)
  */
 
-
-import type { User } from '@event-manager/shared';
-import { Users, UserCheck, UserX } from 'lucide-react';
+import type { User } from "@event-manager/shared";
+import { Users, UserCheck, UserX } from "lucide-react";
 
 type ExtendedFilter = {
   id: string;
   value: string | string[];
-  operator: "isEmpty" | "isNotEmpty" | "iLike" | "notILike" | "eq" | "ne" | "inArray" | "notInArray" | "lt" | "lte" | "gt" | "gte" | "isBetween" | "isRelativeToToday";
-  variant: "number" | "date" | "text" | "select" | "multiSelect" | "boolean" | "range" | "dateRange";
+  operator:
+    | "isEmpty"
+    | "isNotEmpty"
+    | "iLike"
+    | "notILike"
+    | "eq"
+    | "ne"
+    | "inArray"
+    | "notInArray"
+    | "lt"
+    | "lte"
+    | "gt"
+    | "gte"
+    | "isBetween"
+    | "isRelativeToToday";
+  variant:
+    | "number"
+    | "date"
+    | "text"
+    | "select"
+    | "multiSelect"
+    | "boolean"
+    | "range"
+    | "dateRange";
   filterId: string;
 };
-import { useMemo, useState, useCallback, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
-import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson, parseAsBoolean } from 'nuqs';
-import { formatValidationErrors } from '@/lib/format-errors';
+import { useMemo, useState, useCallback, useEffect } from "react";
+import { toast } from "react-hot-toast";
+import {
+  useQueryState,
+  parseAsInteger,
+  parseAsString,
+  parseAsArrayOf,
+  parseAsJson,
+  parseAsBoolean,
+} from "nuqs";
+import { formatValidationErrors } from "@/lib/format-errors";
 
-import { FormSheet, FormSheetContent, FormSheetField, FormSheetFooter, ConfirmDialog } from '@/components/generic';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  FormSheet,
+  FormSheetContent,
+  FormSheetField,
+  FormSheetFooter,
+  ConfirmDialog,
+} from "@/components/generic";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -41,89 +81,128 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { exportToCSV, formatDate } from '@/lib/design-system';
-import { trpc } from '@/lib/trpc';
-import { UsersTable } from '../components/users-table';
-import { usePageMeta } from '@/components/layout/page-meta-context';
+} from "@/components/ui/dialog";
+import { exportToCSV, formatDate } from "@/lib/design-system";
+import { trpc } from "@/lib/trpc";
+import { UsersTable } from "../components/users-table";
+import { usePageMeta } from "@/components/layout/page-meta-context";
 
 export function AdminUsersPage() {
   const utils = trpc.useUtils();
   const { setPageMeta } = usePageMeta();
-  
+
   // Set page title and description in the top bar
   useEffect(() => {
     setPageMeta({
-      title: 'Users',
-      description: 'Manage all users in the system with advanced filters and sorting',
+      title: "Users",
+      description:
+        "Manage all users in the system with advanced filters and sorting",
     });
   }, [setPageMeta]);
-  
+
   // Confirmation dialog state
-  const [blockDialog, setBlockDialog] = useState<{ open: boolean; userId: string; isBlocked: boolean }>({
+  const [blockDialog, setBlockDialog] = useState<{
+    open: boolean;
+    userId: string;
+    isBlocked: boolean;
+  }>({
     open: false,
-    userId: '',
+    userId: "",
     isBlocked: false,
   });
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; userId: string }>({
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    userId: string;
+  }>({
     open: false,
-    userId: '',
+    userId: "",
   });
-  const [rejectVendorDialog, setRejectVendorDialog] = useState<{ open: boolean; userId: string; reason: string }>({
+  const [rejectVendorDialog, setRejectVendorDialog] = useState<{
+    open: boolean;
+    userId: string;
+    reason: string;
+  }>({
     open: false,
-    userId: '',
-    reason: '',
+    userId: "",
+    reason: "",
   });
-  
+
   // Form state for creating users
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
-    email: '',
-    firstName: '',
-    lastName: '',
-    role: '',
-    password: '',
+    email: "",
+    firstName: "",
+    lastName: "",
+    role: "",
+    password: "",
   });
 
   // Read URL state for pagination, sorting, filters, and search
-  const [page] = useQueryState('page', parseAsInteger.withDefault(1));
-  const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
-  const [search] = useQueryState('search', parseAsString.withDefault(''));
-  const [sortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>((v) => {
-    if (!v) return null;
-    if (typeof v === 'string') {
-      try {
-        return JSON.parse(v) as Array<{id: string; desc: boolean}>;
-      } catch {
-        return null;
+  const [page] = useQueryState("page", parseAsInteger.withDefault(1));
+  const [perPage] = useQueryState("perPage", parseAsInteger.withDefault(10));
+  const [search] = useQueryState("search", parseAsString.withDefault(""));
+  const [sortState] = useQueryState(
+    "sort",
+    parseAsJson<Array<{ id: string; desc: boolean }>>((v) => {
+      if (!v) return null;
+      if (typeof v === "string") {
+        try {
+          return JSON.parse(v) as Array<{ id: string; desc: boolean }>;
+        } catch {
+          return null;
+        }
       }
-    }
-    return v as Array<{id: string; desc: boolean}>;
-  }).withDefault([]));
-  
+      return v as Array<{ id: string; desc: boolean }>;
+    }).withDefault([])
+  );
+
   // Read simple filters from URL - these are managed by DataTableFacetedFilter (advanced mode)
-  const [roleFilter] = useQueryState('role', parseAsArrayOf(parseAsString, ',').withDefault([]));
-  const [statusFilter] = useQueryState('status', parseAsArrayOf(parseAsString, ',').withDefault([]));
-  const [isVerifiedFilter] = useQueryState('isVerified', parseAsArrayOf(parseAsString, ',').withDefault([]));
-  const [roleVerifiedFilter] = useQueryState('roleVerifiedByAdmin', parseAsArrayOf(parseAsString, ',').withDefault([]));
-  const [vendorStatusFilter] = useQueryState('vendorStatus', parseAsArrayOf(parseAsString, ',').withDefault([]));
-  const [showPendingApprovals, setShowPendingApprovals] = useQueryState('pendingApprovals', parseAsBoolean.withDefault(false));
+  const [roleFilter] = useQueryState(
+    "role",
+    parseAsArrayOf(parseAsString, ",").withDefault([])
+  );
+  const [statusFilter] = useQueryState(
+    "status",
+    parseAsArrayOf(parseAsString, ",").withDefault([])
+  );
+  const [isVerifiedFilter] = useQueryState(
+    "isVerified",
+    parseAsArrayOf(parseAsString, ",").withDefault([])
+  );
+  const [roleVerifiedFilter] = useQueryState(
+    "roleVerifiedByAdmin",
+    parseAsArrayOf(parseAsString, ",").withDefault([])
+  );
+  const [vendorStatusFilter] = useQueryState(
+    "vendorStatus",
+    parseAsArrayOf(parseAsString, ",").withDefault([])
+  );
+  const [showPendingApprovals, setShowPendingApprovals] = useQueryState(
+    "pendingApprovals",
+    parseAsBoolean.withDefault(false)
+  );
 
   // Read extended filters from URL - these are managed by DataTableFilterMenu (command mode)
-  const [extendedFiltersState] = useQueryState('filters', parseAsJson<ExtendedFilter[]>((v) => {
-    if (!v) return null;
-    if (typeof v === 'string') {
-      try {
-        return JSON.parse(v) as ExtendedFilter[];
-      } catch {
-        return null;
+  const [extendedFiltersState] = useQueryState(
+    "filters",
+    parseAsJson<ExtendedFilter[]>((v) => {
+      if (!v) return null;
+      if (typeof v === "string") {
+        try {
+          return JSON.parse(v) as ExtendedFilter[];
+        } catch {
+          return null;
+        }
       }
-    }
-    return v as ExtendedFilter[];
-  }).withDefault([]));
-  
+      return v as ExtendedFilter[];
+    }).withDefault([])
+  );
+
   // Read join operator for extended filters (and/or)
-  const [joinOperator] = useQueryState('joinOperator', parseAsString.withDefault('and'));
+  const [joinOperator] = useQueryState(
+    "joinOperator",
+    parseAsString.withDefault("and")
+  );
 
   // Build simple filters object for backend (advanced mode)
   const filters = useMemo(() => {
@@ -131,15 +210,25 @@ export function AdminUsersPage() {
     if (roleFilter.length > 0) result.role = roleFilter;
     if (statusFilter.length > 0) result.status = statusFilter;
     if (isVerifiedFilter.length > 0) result.isVerified = isVerifiedFilter;
-    if (roleVerifiedFilter.length > 0) result.roleVerifiedByAdmin = roleVerifiedFilter;
+    if (roleVerifiedFilter.length > 0)
+      result.roleVerifiedByAdmin = roleVerifiedFilter;
     if (vendorStatusFilter.length > 0) result.vendorStatus = vendorStatusFilter;
     return result;
-  }, [roleFilter, statusFilter, isVerifiedFilter, roleVerifiedFilter, vendorStatusFilter]);
+  }, [
+    roleFilter,
+    statusFilter,
+    isVerifiedFilter,
+    roleVerifiedFilter,
+    vendorStatusFilter,
+  ]);
 
   // Parse extended filters (command mode)
   const extendedFilters = useMemo(() => {
     try {
-      if (Array.isArray(extendedFiltersState) && extendedFiltersState.length > 0) {
+      if (
+        Array.isArray(extendedFiltersState) &&
+        extendedFiltersState.length > 0
+      ) {
         return extendedFiltersState;
       }
       return undefined;
@@ -152,7 +241,7 @@ export function AdminUsersPage() {
   const parsedSort = useMemo(() => {
     try {
       if (Array.isArray(sortState)) {
-        return sortState as Array<{id: string; desc: boolean}>;
+        return sortState as Array<{ id: string; desc: boolean }>;
       }
       return [];
     } catch {
@@ -174,7 +263,7 @@ export function AdminUsersPage() {
       sort: parsedSort.length > 0 ? parsedSort : undefined,
       filters: Object.keys(filters).length > 0 ? filters : undefined,
       extendedFilters: extendedFilters,
-      joinOperator: (joinOperator === 'or' ? 'or' : 'and') as 'and' | 'or',
+      joinOperator: (joinOperator === "or" ? "or" : "and") as "and" | "or",
       pendingApprovalsOnly: showPendingApprovals || undefined,
     },
     {
@@ -186,9 +275,9 @@ export function AdminUsersPage() {
   // Transform users to add status field
   const users = useMemo(() => {
     const rawUsers = data?.users || [];
-    return rawUsers.map(user => ({
+    return rawUsers.map((user) => ({
       ...user,
-      status: user.isBlocked ? 'BLOCKED' as const : 'ACTIVE' as const,
+      status: user.isBlocked ? ("BLOCKED" as const) : ("ACTIVE" as const),
     }));
   }, [data?.users]);
 
@@ -200,7 +289,7 @@ export function AdminUsersPage() {
   // Note: For true counts across all data, we'd need a separate stats endpoint
   const roleCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    users.forEach(user => {
+    users.forEach((user) => {
       counts[user.role] = (counts[user.role] || 0) + 1;
     });
     return counts;
@@ -210,35 +299,67 @@ export function AdminUsersPage() {
   const stats = useMemo(() => {
     if (!statsData) {
       return [
-        { label: 'Total Users', value: data?.total || 0, icon: Users, colorRole: 'info' as const },
+        {
+          label: "Total Users",
+          value: data?.total || 0,
+          icon: Users,
+          colorRole: "info" as const,
+        },
       ];
     }
 
     return [
-      { label: 'Total Users', value: statsData.total, icon: Users, colorRole: 'info' as const },
-      { label: 'Active', value: statsData.active, icon: UserCheck, colorRole: 'success' as const },
-      { label: 'Blocked', value: statsData.blocked, icon: UserX, colorRole: 'critical' as const },
+      {
+        label: "Total Users",
+        value: statsData.total,
+        icon: Users,
+        colorRole: "info" as const,
+      },
+      {
+        label: "Active",
+        value: statsData.active,
+        icon: UserCheck,
+        colorRole: "success" as const,
+      },
+      {
+        label: "Blocked",
+        value: statsData.blocked,
+        icon: UserX,
+        colorRole: "critical" as const,
+      },
     ];
   }, [statsData, data?.total]);
 
   // Mutations
-  const createUserMutation = (trpc.auth as typeof trpc.auth & { createAdminAccount: typeof trpc.auth.getAllUsers }).createAdminAccount.useMutation({
+  const createUserMutation = (
+    trpc.auth as typeof trpc.auth & {
+      createAdminAccount: typeof trpc.auth.getAllUsers;
+    }
+  ).createAdminAccount.useMutation({
     onSuccess: () => {
-      toast.success('User created successfully');
+      toast.success("User created successfully");
       utils.auth.getAllUsers.invalidate();
       utils.auth.getUserStats.invalidate();
       setIsCreateOpen(false);
-      setCreateForm({ email: '', firstName: '', lastName: '', role: '', password: '' });
+      setCreateForm({
+        email: "",
+        firstName: "",
+        lastName: "",
+        role: "",
+        password: "",
+      });
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
     },
   });
 
-  const updateUserMutation = (trpc.auth as typeof trpc.auth & { updateUser: typeof trpc.auth.getAllUsers }).updateUser.useMutation({
+  const updateUserMutation = (
+    trpc.auth as typeof trpc.auth & { updateUser: typeof trpc.auth.getAllUsers }
+  ).updateUser.useMutation({
     onSuccess: () => {
-      toast.success('User updated successfully');
+      toast.success("User updated successfully");
       utils.auth.getAllUsers.invalidate();
     },
     // Don't show toast here - let handleUpdateUser handle errors for better messages
@@ -246,137 +367,220 @@ export function AdminUsersPage() {
 
   const verifyRoleMutation = trpc.auth.verifyRole.useMutation({
     onSuccess: () => {
-      toast.success('Role verified successfully');
+      toast.success("Role verified successfully");
       utils.auth.getAllUsers.invalidate();
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
     },
   });
 
   const approveVendorMutation = trpc.auth.processVendorApproval.useMutation({
     onSuccess: () => {
-      toast.success('Vendor approved successfully');
+      toast.success("Vendor approved successfully");
       utils.auth.getAllUsers.invalidate();
       utils.auth.getUserStats.invalidate();
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
     },
   });
 
   const rejectVendorMutation = trpc.auth.processVendorApproval.useMutation({
     onSuccess: () => {
-      toast.success('Vendor rejected');
+      toast.success("Vendor rejected");
       utils.auth.getAllUsers.invalidate();
       utils.auth.getUserStats.invalidate();
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
     },
   });
 
   const blockUserMutation = trpc.auth.blockUser.useMutation({
     onSuccess: () => {
-      toast.success('User blocked successfully');
+      toast.success("User blocked successfully");
       utils.auth.getAllUsers.invalidate();
       utils.auth.getUserStats.invalidate();
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
     },
   });
 
   const unblockUserMutation = trpc.auth.unblockUser.useMutation({
     onSuccess: () => {
-      toast.success('User unblocked successfully');
+      toast.success("User unblocked successfully");
       utils.auth.getAllUsers.invalidate();
       utils.auth.getUserStats.invalidate();
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
     },
   });
 
-  const deleteUserMutation = (trpc.auth as typeof trpc.auth & { deleteAdminAccount: typeof trpc.auth.getAllUsers }).deleteAdminAccount.useMutation({
+  const deleteUserMutation = (
+    trpc.auth as typeof trpc.auth & {
+      deleteAdminAccount: typeof trpc.auth.getAllUsers;
+    }
+  ).deleteAdminAccount.useMutation({
     onSuccess: () => {
-      toast.success('User deleted successfully');
+      toast.success("User deleted successfully");
       utils.auth.getAllUsers.invalidate();
       utils.auth.getUserStats.invalidate();
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
     },
   });
 
   // Handlers - wrapped in useCallback for performance
-  const handleUpdateUser = useCallback(async (userId: string, field: string, value: string) => {
-    const updates: Record<string, string> = {};
-    updates[field] = value;
-    
-    try {
-      await updateUserMutation.mutateAsync({ 
-        userId, 
-        ...updates 
-      });
-    } catch (error: unknown) {
-      // Use universal error formatter
-      const errorMessage = formatValidationErrors(error);
-      
-      // Show toast with clean error message
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
-      
-      // Re-throw with clean message for InlineEditCell to catch
-      throw new Error(errorMessage);
-    }
-  }, [updateUserMutation]);
+  const handleUpdateUser = useCallback(
+    async (userId: string, field: string, value: string) => {
+      const updates: Record<string, string> = {};
+      updates[field] = value;
 
-  const handleVerifyRole = useCallback((userId: string) => {
-    verifyRoleMutation.mutate({ userId });
-  }, [verifyRoleMutation]);
+      try {
+        await updateUserMutation.mutateAsync({
+          userId,
+          ...updates,
+        });
+      } catch (error: unknown) {
+        // Use universal error formatter
+        const errorMessage = formatValidationErrors(error);
 
-  const handleApproveVendor = useCallback((userId: string) => {
-    approveVendorMutation.mutate({ userId, status: 'APPROVED' });
-  }, [approveVendorMutation]);
+        // Show toast with clean error message
+        toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
+
+        // Re-throw with clean message for InlineEditCell to catch
+        throw new Error(errorMessage);
+      }
+    },
+    [updateUserMutation]
+  );
+
+  const handleVerifyRole = useCallback(
+    (userId: string) => {
+      verifyRoleMutation.mutate({ userId });
+    },
+    [verifyRoleMutation]
+  );
+
+  const handleApproveVendor = useCallback(
+    (userId: string) => {
+      approveVendorMutation.mutate({ userId, status: "APPROVED" });
+    },
+    [approveVendorMutation]
+  );
+
+  const handleDownloadTaxCard = useCallback(
+    async (userId: string) => {
+      console.log(userId);
+      const user = data?.users.find((u: User) => u.id === userId);
+      console.log(user.taxCardUrl);
+      const fileId = user?.taxCardUrl;
+
+      if (!fileId) {
+        toast.error("No tax card found for this vendor");
+        return;
+      }
+
+      try {
+        const fileData = await utils.files.downloadFile.fetch({ fileId });
+
+        // Create a download link
+        const dataUrl = `data:${fileData.mimeType};base64,${fileData.data}`;
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = fileData.filename || `taxcard-${userId}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success("Tax card downloaded successfully");
+      } catch (error) {
+        const errorMessage = formatValidationErrors(error);
+        toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
+      }
+    },
+    [data?.users, utils]
+  );
+
+  const handleDownloadLogo = useCallback(
+    async (userId: string) => {
+      const user = data?.users.find((u: User) => u.id === userId);
+      const fileId = user?.logoUrl;
+
+      if (!fileId) {
+        toast.error("No logo found for this vendor");
+        return;
+      }
+
+      try {
+        const fileData = await utils.files.downloadFile.fetch({ fileId });
+
+        // Create a download link
+        const dataUrl = `data:${fileData.mimeType};base64,${fileData.data}`;
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = fileData.filename || `taxcard-${userId}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success("Tax card downloaded successfully");
+      } catch (error) {
+        const errorMessage = formatValidationErrors(error);
+        toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
+      }
+    },
+    [data?.users, utils]
+  );
 
   const handleRejectVendor = useCallback((userId: string) => {
-    setRejectVendorDialog({ open: true, userId, reason: '' });
+    setRejectVendorDialog({ open: true, userId, reason: "" });
   }, []);
 
   const confirmRejectVendor = useCallback(() => {
     if (!rejectVendorDialog.reason.trim()) {
-      toast.error('Please provide a reason for rejection');
+      toast.error("Please provide a reason for rejection");
       return;
     }
-    
+
     rejectVendorMutation.mutate({
       userId: rejectVendorDialog.userId,
-      status: 'REJECTED',
+      status: "REJECTED",
       rejectionReason: rejectVendorDialog.reason,
     });
-    setRejectVendorDialog({ open: false, userId: '', reason: '' });
+    setRejectVendorDialog({ open: false, userId: "", reason: "" });
   }, [rejectVendorDialog, rejectVendorMutation]);
 
-  const handleBlockUser = useCallback((userId: string) => {
-    // Find user to check if blocked
-    const user = data?.users.find((u: User) => u.id === userId);
-    setBlockDialog({
-      open: true,
-      userId,
-      isBlocked: user?.isBlocked ?? false,
-    });
-  }, [data?.users]);
+  const handleBlockUser = useCallback(
+    (userId: string) => {
+      // Find user to check if blocked
+      const user = data?.users.find((u: User) => u.id === userId);
+      setBlockDialog({
+        open: true,
+        userId,
+        isBlocked: user?.isBlocked ?? false,
+      });
+    },
+    [data?.users]
+  );
 
-  const handleUnblockUser = useCallback((userId: string) => {
-    // Same handler, just pass isBlocked state
-    handleBlockUser(userId);
-  }, [handleBlockUser]);
+  const handleUnblockUser = useCallback(
+    (userId: string) => {
+      // Same handler, just pass isBlocked state
+      handleBlockUser(userId);
+    },
+    [handleBlockUser]
+  );
 
   const confirmBlockUnblock = useCallback(() => {
     if (blockDialog.isBlocked) {
@@ -384,7 +588,7 @@ export function AdminUsersPage() {
     } else {
       blockUserMutation.mutate({ userId: blockDialog.userId });
     }
-    setBlockDialog({ open: false, userId: '', isBlocked: false });
+    setBlockDialog({ open: false, userId: "", isBlocked: false });
   }, [blockDialog, blockUserMutation, unblockUserMutation]);
 
   const handleDeleteUser = useCallback((userId: string) => {
@@ -393,17 +597,25 @@ export function AdminUsersPage() {
 
   const confirmDelete = useCallback(() => {
     deleteUserMutation.mutate({ userId: deleteDialog.userId });
-    setDeleteDialog({ open: false, userId: '' });
+    setDeleteDialog({ open: false, userId: "" });
   }, [deleteDialog.userId, deleteUserMutation]);
 
   const handleCreateUser = useCallback(() => {
-    if (!createForm.email || !createForm.firstName || !createForm.lastName || !createForm.role || !createForm.password) {
-      toast.error('Please fill in all fields');
+    if (
+      !createForm.email ||
+      !createForm.firstName ||
+      !createForm.lastName ||
+      !createForm.role ||
+      !createForm.password
+    ) {
+      toast.error("Please fill in all fields");
       return;
     }
 
-    if (createForm.role !== 'ADMIN' && createForm.role !== 'EVENT_OFFICE') {
-      toast.error('Currently only ADMIN and EVENT_OFFICE users can be created from this interface');
+    if (createForm.role !== "ADMIN" && createForm.role !== "EVENT_OFFICE") {
+      toast.error(
+        "Currently only ADMIN and EVENT_OFFICE users can be created from this interface"
+      );
       return;
     }
 
@@ -411,7 +623,7 @@ export function AdminUsersPage() {
       name: `${createForm.firstName} ${createForm.lastName}`,
       email: createForm.email,
       password: createForm.password,
-      role: createForm.role as 'ADMIN' | 'EVENT_OFFICE',
+      role: createForm.role as "ADMIN" | "EVENT_OFFICE",
     });
   }, [createForm, createUserMutation]);
 
@@ -428,31 +640,33 @@ export function AdminUsersPage() {
         search: search || undefined,
         filters: Object.keys(filters).length > 0 ? filters : undefined,
         extendedFilters: extendedFilters,
-        joinOperator: (joinOperator === 'or' ? 'or' : 'and') as 'and' | 'or',
+        joinOperator: (joinOperator === "or" ? "or" : "and") as "and" | "or",
         sort: parsedSort.length > 0 ? parsedSort : undefined,
       });
 
       const allUsers = allUsersResponse.users.map((user) => ({
         ...user,
-        status: (user as User & { isBlocked?: boolean }).isBlocked ? 'BLOCKED' : 'ACTIVE',
+        status: (user as User & { isBlocked?: boolean }).isBlocked
+          ? "BLOCKED"
+          : "ACTIVE",
       }));
 
       const exportData = allUsers.map((user) => ({
         Email: user.email,
-        'First Name': user.firstName,
-        'Last Name': user.lastName,
+        "First Name": user.firstName,
+        "Last Name": user.lastName,
         Role: user.role,
         Status: user.status,
-        Verified: user.isVerified ? 'Yes' : 'No',
-        'Role Verified': user.roleVerifiedByAdmin ? 'Yes' : 'No',
-        'Created At': formatDate(user.createdAt),
+        Verified: user.isVerified ? "Yes" : "No",
+        "Role Verified": user.roleVerifiedByAdmin ? "Yes" : "No",
+        "Created At": formatDate(user.createdAt),
       }));
-      
+
       exportToCSV(exportData, `users-export-${Date.now()}`);
       toast.success(`Exported ${allUsers.length} users successfully`);
     } catch (error) {
-      toast.error('Failed to export users');
-      console.error('Export error:', error);
+      toast.error("Failed to export users");
+      console.error("Export error:", error);
     }
   }, [utils, search, filters, extendedFilters, joinOperator, parsedSort]);
 
@@ -463,25 +677,36 @@ export function AdminUsersPage() {
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           const colorClasses = {
-            success: 'text-[var(--stat-icon-success-fg)] bg-[var(--stat-icon-success-bg)] border-[var(--stat-icon-success-border)]',
-            warning: 'text-[var(--stat-icon-warning-fg)] bg-[var(--stat-icon-warning-bg)] border-[var(--stat-icon-warning-border)]',
-            critical: 'text-[var(--stat-icon-critical-fg)] bg-[var(--stat-icon-critical-bg)] border-[var(--stat-icon-critical-border)]',
-            info: 'text-[var(--stat-icon-info-fg)] bg-[var(--stat-icon-info-bg)] border-[var(--stat-icon-info-border)]',
-            brand: 'text-[var(--stat-icon-brand-fg)] bg-[var(--stat-icon-brand-bg)] border-[var(--stat-icon-brand-border)]',
+            success:
+              "text-[var(--stat-icon-success-fg)] bg-[var(--stat-icon-success-bg)] border-[var(--stat-icon-success-border)]",
+            warning:
+              "text-[var(--stat-icon-warning-fg)] bg-[var(--stat-icon-warning-bg)] border-[var(--stat-icon-warning-border)]",
+            critical:
+              "text-[var(--stat-icon-critical-fg)] bg-[var(--stat-icon-critical-bg)] border-[var(--stat-icon-critical-border)]",
+            info: "text-[var(--stat-icon-info-fg)] bg-[var(--stat-icon-info-bg)] border-[var(--stat-icon-info-border)]",
+            brand:
+              "text-[var(--stat-icon-brand-fg)] bg-[var(--stat-icon-brand-bg)] border-[var(--stat-icon-brand-border)]",
           };
-          const colorRole = stat.colorRole || 'info';
-          
+          const colorRole = stat.colorRole || "info";
+
           return (
-            <div key={index} className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-card">
+            <div
+              key={index}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-card"
+            >
               {Icon && (
                 <div className={`p-2 rounded-md ${colorClasses[colorRole]}`}>
                   <Icon className="h-5 w-5" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground truncate">{stat.label}</p>
+                <p className="text-sm text-muted-foreground truncate">
+                  {stat.label}
+                </p>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-2xl font-semibold tracking-tight">{stat.value}</p>
+                  <p className="text-2xl font-semibold tracking-tight">
+                    {stat.value}
+                  </p>
                 </div>
               </div>
             </div>
@@ -504,7 +729,11 @@ export function AdminUsersPage() {
         onExport={handleExport}
         onCreateUser={() => setIsCreateOpen(true)}
         exportDisabled={isLoading}
-        exportLabel={search || Object.keys(filters).length > 0 ? 'Export Filtered' : 'Export All'}
+        exportLabel={
+          search || Object.keys(filters).length > 0
+            ? "Export Filtered"
+            : "Export All"
+        }
         onUpdateUser={handleUpdateUser}
         onVerifyRole={handleVerifyRole}
         onApproveVendor={handleApproveVendor}
@@ -512,6 +741,8 @@ export function AdminUsersPage() {
         onBlockUser={handleBlockUser}
         onUnblockUser={handleUnblockUser}
         onDeleteUser={handleDeleteUser}
+        onDownloadTaxCard={handleDownloadTaxCard}
+        onDownloadLogo={handleDownloadLogo}
       />
 
       {/* Create User Sheet */}
@@ -523,12 +754,20 @@ export function AdminUsersPage() {
         isLoading={createUserMutation.isPending}
       >
         <FormSheetContent>
-          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateUser(); }}>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCreateUser();
+            }}
+          >
             <FormSheetField label="Email" required>
               <Input
                 type="email"
                 value={createForm.email}
-                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, email: e.target.value })
+                }
                 placeholder="user@example.com"
               />
             </FormSheetField>
@@ -536,7 +775,9 @@ export function AdminUsersPage() {
             <FormSheetField label="First Name" required>
               <Input
                 value={createForm.firstName}
-                onChange={(e) => setCreateForm({ ...createForm, firstName: e.target.value })}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, firstName: e.target.value })
+                }
                 placeholder="John"
               />
             </FormSheetField>
@@ -544,7 +785,9 @@ export function AdminUsersPage() {
             <FormSheetField label="Last Name" required>
               <Input
                 value={createForm.lastName}
-                onChange={(e) => setCreateForm({ ...createForm, lastName: e.target.value })}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, lastName: e.target.value })
+                }
                 placeholder="Doe"
               />
             </FormSheetField>
@@ -552,7 +795,9 @@ export function AdminUsersPage() {
             <FormSheetField label="Role" required>
               <Select
                 value={createForm.role}
-                onValueChange={(value) => setCreateForm({ ...createForm, role: value })}
+                onValueChange={(value) =>
+                  setCreateForm({ ...createForm, role: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
@@ -568,13 +813,15 @@ export function AdminUsersPage() {
               <Input
                 type="password"
                 value={createForm.password}
-                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, password: e.target.value })
+                }
                 placeholder="Enter password"
               />
             </FormSheetField>
           </form>
         </FormSheetContent>
-        
+
         <FormSheetFooter>
           <Button
             variant="outline"
@@ -587,7 +834,7 @@ export function AdminUsersPage() {
             onClick={handleCreateUser}
             disabled={createUserMutation.isPending}
           >
-            {createUserMutation.isPending ? 'Creating...' : 'Create User'}
+            {createUserMutation.isPending ? "Creating..." : "Create User"}
           </Button>
         </FormSheetFooter>
       </FormSheet>
@@ -596,15 +843,15 @@ export function AdminUsersPage() {
       <ConfirmDialog
         open={blockDialog.open}
         onOpenChange={(open) => setBlockDialog({ ...blockDialog, open })}
-        title={blockDialog.isBlocked ? 'Unblock User' : 'Block User'}
+        title={blockDialog.isBlocked ? "Unblock User" : "Block User"}
         description={
           blockDialog.isBlocked
-            ? 'Are you sure you want to unblock this user? They will be able to access the system again.'
-            : 'Are you sure you want to block this user? They will not be able to access the system until unblocked.'
+            ? "Are you sure you want to unblock this user? They will be able to access the system again."
+            : "Are you sure you want to block this user? They will not be able to access the system until unblocked."
         }
-        confirmLabel={blockDialog.isBlocked ? 'Unblock' : 'Block'}
+        confirmLabel={blockDialog.isBlocked ? "Unblock" : "Block"}
         onConfirm={confirmBlockUnblock}
-        variant={blockDialog.isBlocked ? 'default' : 'destructive'}
+        variant={blockDialog.isBlocked ? "default" : "destructive"}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -619,15 +866,18 @@ export function AdminUsersPage() {
       />
 
       {/* Vendor Rejection Dialog */}
-      <Dialog 
-        open={rejectVendorDialog.open} 
-        onOpenChange={(open) => setRejectVendorDialog({ ...rejectVendorDialog, open })}
+      <Dialog
+        open={rejectVendorDialog.open}
+        onOpenChange={(open) =>
+          setRejectVendorDialog({ ...rejectVendorDialog, open })
+        }
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reject Vendor Application</DialogTitle>
             <DialogDescription>
-              Please provide a reason for rejecting this vendor application. This will be sent to the applicant.
+              Please provide a reason for rejecting this vendor application.
+              This will be sent to the applicant.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -637,24 +887,33 @@ export function AdminUsersPage() {
                 id="reason"
                 placeholder="e.g., Documentation incomplete, business license not valid, etc."
                 value={rejectVendorDialog.reason}
-                onChange={(e) => setRejectVendorDialog({ ...rejectVendorDialog, reason: e.target.value })}
+                onChange={(e) =>
+                  setRejectVendorDialog({
+                    ...rejectVendorDialog,
+                    reason: e.target.value,
+                  })
+                }
                 rows={4}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setRejectVendorDialog({ open: false, userId: '', reason: '' })}
+            <Button
+              variant="outline"
+              onClick={() =>
+                setRejectVendorDialog({ open: false, userId: "", reason: "" })
+              }
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               variant="destructive"
               onClick={confirmRejectVendor}
               disabled={rejectVendorMutation.isPending}
             >
-              {rejectVendorMutation.isPending ? 'Rejecting...' : 'Reject Application'}
+              {rejectVendorMutation.isPending
+                ? "Rejecting..."
+                : "Reject Application"}
             </Button>
           </DialogFooter>
         </DialogContent>

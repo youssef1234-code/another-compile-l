@@ -1,21 +1,21 @@
 /**
  * User Service
- * 
+ *
  * Business logic layer for user management
  * Extends BaseService for standard CRUD operations
- * 
+ *
  * @module services/user.service
  */
 
-import { BaseService } from './base.service';
-import { userRepository } from '../repositories/user.repository';
-import type { IUser } from '../models/user.model';
-import { TRPCError } from '@trpc/server';
-import { hashPassword } from '../utils/auth.util';
-import { mailService } from './mail.service';
-import mongoose from 'mongoose';
-import crypto from 'crypto';
-import { config } from '../config/env';
+import { BaseService } from "./base.service";
+import { userRepository } from "../repositories/user.repository";
+import type { IUser } from "../models/user.model";
+import { TRPCError } from "@trpc/server";
+import { hashPassword } from "../utils/auth.util";
+import { mailService } from "./mail.service";
+import mongoose from "mongoose";
+import crypto from "crypto";
+import { config } from "../config/env";
 
 export class UserService extends BaseService<IUser, typeof userRepository> {
   constructor() {
@@ -26,7 +26,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
    * Get entity name for error messages
    */
   protected getEntityName(): string {
-    return 'User';
+    return "User";
   }
 
   /**
@@ -40,13 +40,14 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
         // Check if the existing account is inactive/deleted
         if (existingUser.isActive === false) {
           throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'This account has been deleted. Please contact the administration for assistance.'
+            code: "FORBIDDEN",
+            message:
+              "This account has been deleted. Please contact the administration for assistance.",
           });
         }
         throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'An account with this email already exists'
+          code: "CONFLICT",
+          message: "An account with this email already exists",
         });
       }
     }
@@ -56,8 +57,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       const existingId = await userRepository.existsByStudentId(data.studentId);
       if (existingId) {
         throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'This student/staff ID is already registered'
+          code: "CONFLICT",
+          message: "This student/staff ID is already registered",
         });
       }
     }
@@ -66,12 +67,15 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
   /**
    * Validation hook before updating a user
    */
-  protected async validateUpdate(id: string, data: Partial<IUser>): Promise<void> {
+  protected async validateUpdate(
+    id: string,
+    data: Partial<IUser>
+  ): Promise<void> {
     const user = await userRepository.findById(id);
     if (!user) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found'
+        code: "NOT_FOUND",
+        message: "User not found",
       });
     }
 
@@ -80,8 +84,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       const existingUser = await userRepository.findByEmail(data.email);
       if (existingUser) {
         throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'An account with this email already exists'
+          code: "CONFLICT",
+          message: "An account with this email already exists",
         });
       }
     }
@@ -91,8 +95,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       const existingId = await userRepository.existsByStudentId(data.studentId);
       if (existingId) {
         throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'This student/staff ID is already registered'
+          code: "CONFLICT",
+          message: "This student/staff ID is already registered",
         });
       }
     }
@@ -105,8 +109,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const user = await userRepository.findById(id);
     if (!user) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found'
+        code: "NOT_FOUND",
+        message: "User not found",
       });
     }
   }
@@ -123,13 +127,16 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     firstName: string;
     lastName: string;
     studentId: string;
-    role: 'STUDENT' | 'STAFF' | 'TA' | 'PROFESSOR';
+    role: "STUDENT" | "STAFF" | "TA" | "PROFESSOR";
   }): Promise<{ message: string; requiresAdminApproval: boolean }> {
     // Validate GUC email
-    if (!data.email.endsWith('@guc.edu.eg') && !data.email.endsWith('@student.guc.edu.eg')) {
+    if (
+      !data.email.endsWith("@guc.edu.eg") &&
+      !data.email.endsWith("@student.guc.edu.eg")
+    ) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Please use your GUC email address'
+        code: "BAD_REQUEST",
+        message: "Please use your GUC email address",
       });
     }
 
@@ -137,7 +144,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const hashedPassword = await hashPassword(data.password);
 
     // Generate verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationToken = crypto.randomBytes(32).toString("hex");
 
     // Create user (validateCreate hook will check for duplicates)
     const user = await this.create({
@@ -149,28 +156,30 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       role: data.role,
       verificationToken,
       isVerified: false, // All users need email verification
-      roleVerifiedByAdmin: data.role === 'STUDENT', // Students don't need admin approval
+      roleVerifiedByAdmin: data.role === "STUDENT", // Students don't need admin approval
       isBlocked: false,
-      status: 'PENDING_VERIFICATION'
+      status: "PENDING_VERIFICATION",
     } as any);
 
     // Send verification email
-    if (data.role === 'STUDENT') {
+    if (data.role === "STUDENT") {
       const verificationUrl = `${config.clientUrl}/verify-email?token=${verificationToken}`;
       await mailService.sendVerificationEmail(user.email, {
         name: `${user.firstName} ${user.lastName}`,
         verificationUrl,
-        expiresIn: '24 hours',
+        expiresIn: "24 hours",
       });
       return {
-        message: 'Registration successful! Please check your email to verify your account.',
-        requiresAdminApproval: false
+        message:
+          "Registration successful! Please check your email to verify your account.",
+        requiresAdminApproval: false,
       };
     } else {
       // Staff/TA/Professor need admin approval first
       return {
-        message: 'Registration submitted! Please wait for admin approval. You will receive a verification email once approved.',
-        requiresAdminApproval: true
+        message:
+          "Registration submitted! Please wait for admin approval. You will receive a verification email once approved.",
+        requiresAdminApproval: true,
       };
     }
   }
@@ -192,7 +201,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const hashedPassword = await hashPassword(data.password);
 
     // Generate verification token (still need email verification)
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationToken = crypto.randomBytes(32).toString("hex");
 
     // Store tax card and logo as base64 (in production, use file service)
     // For now, we'll store directly in user record
@@ -200,8 +209,10 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const logoUrl = data.logoImage || undefined;
 
     // Determine status: if no tax card, PENDING_VERIFICATION, else PENDING_APPROVAL
-    const status = data.taxCardImage ? 'PENDING_APPROVAL' : 'PENDING_VERIFICATION';
-    const vendorApprovalStatus = data.taxCardImage ? 'PENDING' : undefined;
+    const status = data.taxCardImage
+      ? "PENDING_APPROVAL"
+      : "PENDING_VERIFICATION";
+    const vendorApprovalStatus = data.taxCardImage ? "PENDING" : undefined;
 
     // Create vendor
     await this.create({
@@ -210,7 +221,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       companyName: data.companyName,
       firstName: data.firstName,
       lastName: data.lastName,
-      role: 'VENDOR',
+      role: "VENDOR",
       verificationToken,
       isVerified: false, // Need email verification first
       roleVerifiedByAdmin: !data.taxCardImage, // If no tax card, no approval needed
@@ -227,16 +238,18 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     await mailService.sendVerificationEmail(data.email, {
       name: data.companyName,
       verificationUrl,
-      expiresIn: '24 hours',
+      expiresIn: "24 hours",
     });
 
     if (data.taxCardImage) {
       return {
-        message: 'Registration successful! Please verify your email. Your account will be reviewed by an administrator.'
+        message:
+          "Registration successful! Please verify your email. Your account will be reviewed by an administrator.",
       };
     } else {
       return {
-        message: 'Registration successful! Please check your email to verify your account.'
+        message:
+          "Registration successful! Please check your email to verify your account.",
       };
     }
   }
@@ -245,24 +258,26 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
    * Verify email with token
    */
   async verifyEmail(token: string): Promise<{ message: string }> {
-    const user = await userRepository.findOne({ verificationToken: token } as any);
+    const user = await userRepository.findOne({
+      verificationToken: token,
+    } as any);
 
     if (!user) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Invalid or expired verification token',
+        code: "BAD_REQUEST",
+        message: "Invalid or expired verification token",
       });
     }
 
     // Check if already verified
     if (user.isVerified) {
-      return { message: 'Email already verified. You can log in.' };
+      return { message: "Email already verified. You can log in." };
     }
 
     // Verify user
     await this.update((user._id as mongoose.Types.ObjectId).toString(), {
       isVerified: true,
-      status: 'ACTIVE',
+      status: "ACTIVE",
       verificationToken: undefined,
     } as any);
 
@@ -276,7 +291,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     console.log(`✓ Email verified for ${user.email}`);
 
     return {
-      message: 'Email verified successfully! You can now log in.',
+      message: "Email verified successfully! You can now log in.",
     };
   }
 
@@ -284,21 +299,23 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
    * Resend verification email
    * Business Rule: 5-minute cooldown between resend attempts
    */
-  async resendVerificationEmail(email: string): Promise<{ message: string; canResendAfter?: Date }> {
+  async resendVerificationEmail(
+    email: string
+  ): Promise<{ message: string; canResendAfter?: Date }> {
     const user = await userRepository.findByEmail(email);
 
     if (!user) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'No account found with this email',
+        code: "NOT_FOUND",
+        message: "No account found with this email",
       });
     }
 
     // Check if already verified
     if (user.isVerified) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Your email is already verified. Please try logging in.',
+        code: "BAD_REQUEST",
+        message: "Your email is already verified. Please try logging in.",
       });
     }
 
@@ -307,17 +324,21 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const lastEmailSent = (user as any).verificationEmailSentAt;
 
     if (lastEmailSent && new Date(lastEmailSent) > fiveMinutesAgo) {
-      const canResendAfter = new Date(new Date(lastEmailSent).getTime() + 5 * 60 * 1000);
-      const waitTimeSeconds = Math.ceil((canResendAfter.getTime() - Date.now()) / 1000);
-      
+      const canResendAfter = new Date(
+        new Date(lastEmailSent).getTime() + 5 * 60 * 1000
+      );
+      const waitTimeSeconds = Math.ceil(
+        (canResendAfter.getTime() - Date.now()) / 1000
+      );
+
       throw new TRPCError({
-        code: 'TOO_MANY_REQUESTS',
+        code: "TOO_MANY_REQUESTS",
         message: `Please wait ${waitTimeSeconds} seconds before requesting another verification email`,
       });
     }
 
     // Generate new verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationToken = crypto.randomBytes(32).toString("hex");
 
     // Update user with new token and timestamp
     await this.update((user._id as mongoose.Types.ObjectId).toString(), {
@@ -330,13 +351,13 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     await mailService.sendVerificationEmail(user.email, {
       name: `${user.firstName} ${user.lastName}`,
       verificationUrl,
-      expiresIn: '24 hours',
+      expiresIn: "24 hours",
     });
 
     console.log(`✓ Verification email resent to ${user.email}`);
 
     return {
-      message: 'Verification email sent! Please check your inbox.',
+      message: "Verification email sent! Please check your inbox.",
     };
   }
 
@@ -352,24 +373,24 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const user = await userRepository.findById(data.userId);
     if (!user) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found'
+        code: "NOT_FOUND",
+        message: "User not found",
       });
     }
 
     // Check if user is academic staff
-    if (!['STAFF', 'TA', 'PROFESSOR'].includes(user.role)) {
+    if (!["STAFF", "TA", "PROFESSOR"].includes(user.role)) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Only Staff, TA, and Professor roles require verification'
+        code: "BAD_REQUEST",
+        message: "Only Staff, TA, and Professor roles require verification",
       });
     }
 
     // Check if already verified
     if (user.roleVerifiedByAdmin) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'This user role is already verified'
+        code: "BAD_REQUEST",
+        message: "This user role is already verified",
       });
     }
 
@@ -377,7 +398,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     await userRepository.verifyRole(data.userId);
 
     // Generate new verification token for email
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationToken = crypto.randomBytes(32).toString("hex");
     await this.update(data.userId, { verificationToken } as any);
 
     // Send verification email
@@ -385,11 +406,11 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     await mailService.sendVerificationEmail(user.email, {
       name: `${user.firstName} ${user.lastName}`,
       verificationUrl,
-      expiresIn: '24 hours',
+      expiresIn: "24 hours",
     });
 
     return {
-      message: 'Role verified successfully! Verification email sent to user.'
+      message: "Role verified successfully! Verification email sent to user.",
     };
   }
 
@@ -399,16 +420,17 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
    */
   async requestPasswordReset(email: string): Promise<{ message: string }> {
     const user = await userRepository.findByEmail(email);
-    
+
     if (!user) {
       // Don't reveal if email exists for security
       return {
-        message: 'If an account with that email exists, a password reset link has been sent.',
+        message:
+          "If an account with that email exists, a password reset link has been sent.",
       };
     }
 
     // Generate password reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetToken = crypto.randomBytes(32).toString("hex");
     const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
     // Save reset token
@@ -422,13 +444,14 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     await mailService.sendPasswordResetEmail(user.email, {
       name: `${user.firstName} ${user.lastName}`,
       resetUrl,
-      expiresIn: '1 hour',
+      expiresIn: "1 hour",
     });
 
     console.log(`✓ Password reset email sent to ${email}`);
 
     return {
-      message: 'If an account with that email exists, a password reset link has been sent.',
+      message:
+        "If an account with that email exists, a password reset link has been sent.",
     };
   }
 
@@ -446,8 +469,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
 
     if (!user) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Invalid or expired password reset token',
+        code: "BAD_REQUEST",
+        message: "Invalid or expired password reset token",
       });
     }
 
@@ -464,7 +487,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     console.log(`✓ Password reset successful for ${user.email}`);
 
     return {
-      message: 'Password reset successful! You can now log in with your new password.',
+      message:
+        "Password reset successful! You can now log in with your new password.",
     };
   }
 
@@ -477,32 +501,38 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     newPassword: string;
   }): Promise<{ message: string }> {
     const user = await userRepository.findById(data.userId);
-    
+
     if (!user) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found',
+        code: "NOT_FOUND",
+        message: "User not found",
       });
     }
 
     // Get user with password field
-    const userWithPassword = await userRepository.findOne({ _id: user._id } as any, '+password');
-    
+    const userWithPassword = await userRepository.findOne(
+      { _id: user._id } as any,
+      "+password"
+    );
+
     if (!userWithPassword) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found',
+        code: "NOT_FOUND",
+        message: "User not found",
       });
     }
 
     // Verify current password
-    const bcrypt = await import('bcrypt');
-    const isValidPassword = await bcrypt.compare(data.currentPassword, userWithPassword.password);
-    
+    const bcrypt = await import("bcrypt");
+    const isValidPassword = await bcrypt.compare(
+      data.currentPassword,
+      userWithPassword.password
+    );
+
     if (!isValidPassword) {
       throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message: 'Current password is incorrect',
+        code: "UNAUTHORIZED",
+        message: "Current password is incorrect",
       });
     }
 
@@ -517,7 +547,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     console.log(`✓ Password changed for ${user.email}`);
 
     return {
-      message: 'Password changed successfully!',
+      message: "Password changed successfully!",
     };
   }
 
@@ -527,7 +557,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
   async updateAvatar(data: {
     userId: string;
     avatar: string;
-    avatarType: 'upload' | 'preset';
+    avatarType: "upload" | "preset";
   }): Promise<{ message: string }> {
     await this.update(data.userId, {
       avatar: data.avatar,
@@ -537,7 +567,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     console.log(`✓ Avatar updated for user ${data.userId}`);
 
     return {
-      message: 'Avatar updated successfully!',
+      message: "Avatar updated successfully!",
     };
   }
 
@@ -549,7 +579,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     name: string;
     email: string;
     password: string;
-    role: 'ADMIN' | 'EVENT_OFFICE';
+    role: "ADMIN" | "EVENT_OFFICE";
     createdBy: string;
   }): Promise<{ message: string; user: Partial<IUser> }> {
     // Hash password
@@ -559,13 +589,13 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const user = await this.create({
       email: data.email,
       password: hashedPassword,
-      firstName: data.name.split(' ')[0] || data.name,
-      lastName: data.name.split(' ').slice(1).join(' ') || '',
+      firstName: data.name.split(" ")[0] || data.name,
+      lastName: data.name.split(" ").slice(1).join(" ") || "",
       role: data.role,
       isVerified: true, // Admin accounts are pre-verified
       roleVerifiedByAdmin: true,
       isBlocked: false,
-      status: 'ACTIVE'
+      status: "ACTIVE",
     } as any);
 
     return {
@@ -574,8 +604,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
         id: (user._id as any).toString(),
         email: user.email,
         firstName: user.firstName,
-        role: user.role
-      }
+        role: user.role,
+      },
     };
   }
 
@@ -590,8 +620,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     // Check if deleting self
     if (data.userId === data.adminId) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'You cannot delete your own account'
+        code: "BAD_REQUEST",
+        message: "You cannot delete your own account",
       });
     }
 
@@ -599,16 +629,17 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const user = await userRepository.findById(data.userId);
     if (!user) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found'
+        code: "NOT_FOUND",
+        message: "User not found",
       });
     }
 
     // Check if user is admin or event office
-    if (!['ADMIN', 'EVENT_OFFICE'].includes(user.role)) {
+    if (!["ADMIN", "EVENT_OFFICE"].includes(user.role)) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Only Admin and Event Office accounts can be deleted through this endpoint'
+        code: "BAD_REQUEST",
+        message:
+          "Only Admin and Event Office accounts can be deleted through this endpoint",
       });
     }
 
@@ -616,7 +647,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     await this.delete(data.userId);
 
     return {
-      message: 'Account deleted successfully!'
+      message: "Account deleted successfully!",
     };
   }
 
@@ -631,8 +662,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     // Check if blocking self
     if (data.userId === data.adminId) {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'You cannot block your own account'
+        code: "BAD_REQUEST",
+        message: "You cannot block your own account",
       });
     }
 
@@ -640,8 +671,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const user = await userRepository.findById(data.userId);
     if (!user) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found'
+        code: "NOT_FOUND",
+        message: "User not found",
       });
     }
 
@@ -649,7 +680,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     await userRepository.setBlockStatus(data.userId, true);
 
     return {
-      message: 'User blocked successfully!'
+      message: "User blocked successfully!",
     };
   }
 
@@ -665,8 +696,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const user = await userRepository.findById(data.userId);
     if (!user) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found'
+        code: "NOT_FOUND",
+        message: "User not found",
       });
     }
 
@@ -674,7 +705,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     await userRepository.setBlockStatus(data.userId, false);
 
     return {
-      message: 'User unblocked successfully!'
+      message: "User unblocked successfully!",
     };
   }
 
@@ -694,8 +725,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const user = await userRepository.findById(data.userId);
     if (!user) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found'
+        code: "NOT_FOUND",
+        message: "User not found",
       });
     }
 
@@ -704,8 +735,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       const existingUser = await userRepository.findByEmail(data.updates.email);
       if (existingUser) {
         throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'An account with this email already exists'
+          code: "CONFLICT",
+          message: "An account with this email already exists",
         });
       }
     }
@@ -714,7 +745,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const updatedUser = await userRepository.update(data.userId, data.updates);
 
     return {
-      message: 'User updated successfully!',
+      message: "User updated successfully!",
       user: updatedUser,
     };
   }
@@ -740,7 +771,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       variant: string;
       filterId: string;
     }>;
-    joinOperator?: 'and' | 'or'; // Add join operator support
+    joinOperator?: "and" | "or"; // Add join operator support
     pendingApprovalsOnly?: boolean; // Special filter for pending approvals
   }): Promise<{
     users: any[];
@@ -762,12 +793,12 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     if (data.pendingApprovalsOnly) {
       filter.$or = [
         {
-          role: { $in: ['PROFESSOR', 'TA', 'STAFF'] },
+          role: { $in: ["PROFESSOR", "TA", "STAFF"] },
           roleVerifiedByAdmin: false,
         },
         {
-          role: 'VENDOR',
-          vendorApprovalStatus: 'PENDING',
+          role: "VENDOR",
+          vendorApprovalStatus: "PENDING",
         },
       ];
     }
@@ -781,9 +812,9 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
 
       // Status filter - map ACTIVE/BLOCKED to isBlocked field
       if (data.filters.status && data.filters.status.length > 0) {
-        const includeActive = data.filters.status.includes('ACTIVE');
-        const includeBlocked = data.filters.status.includes('BLOCKED');
-        
+        const includeActive = data.filters.status.includes("ACTIVE");
+        const includeBlocked = data.filters.status.includes("BLOCKED");
+
         if (includeActive && !includeBlocked) {
           filter.isBlocked = false;
         } else if (includeBlocked && !includeActive) {
@@ -794,9 +825,9 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
 
       // Email Verified filter
       if (data.filters.isVerified && data.filters.isVerified.length > 0) {
-        const includeVerified = data.filters.isVerified.includes('true');
-        const includeUnverified = data.filters.isVerified.includes('false');
-        
+        const includeVerified = data.filters.isVerified.includes("true");
+        const includeUnverified = data.filters.isVerified.includes("false");
+
         if (includeVerified && !includeUnverified) {
           filter.isVerified = true;
         } else if (includeUnverified && !includeVerified) {
@@ -806,10 +837,15 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       }
 
       // Role Verified filter
-      if (data.filters.roleVerifiedByAdmin && data.filters.roleVerifiedByAdmin.length > 0) {
-        const includeVerified = data.filters.roleVerifiedByAdmin.includes('true');
-        const includePending = data.filters.roleVerifiedByAdmin.includes('false');
-        
+      if (
+        data.filters.roleVerifiedByAdmin &&
+        data.filters.roleVerifiedByAdmin.length > 0
+      ) {
+        const includeVerified =
+          data.filters.roleVerifiedByAdmin.includes("true");
+        const includePending =
+          data.filters.roleVerifiedByAdmin.includes("false");
+
         if (includeVerified && !includePending) {
           filter.roleVerifiedByAdmin = true;
         } else if (includePending && !includeVerified) {
@@ -837,52 +873,52 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
         const value = extFilter.value;
 
         // Skip empty/invalid values (except for isEmpty/isNotEmpty)
-        if (operator !== 'isEmpty' && operator !== 'isNotEmpty') {
+        if (operator !== "isEmpty" && operator !== "isNotEmpty") {
           if (Array.isArray(value) && value.length === 0) continue;
-          if (typeof value === 'string' && !value.trim()) continue;
+          if (typeof value === "string" && !value.trim()) continue;
         }
 
         const condition: any = {};
 
         switch (operator) {
-          case 'iLike': // Contains (case-insensitive)
-            condition[field] = { $regex: value, $options: 'i' };
+          case "iLike": // Contains (case-insensitive)
+            condition[field] = { $regex: value, $options: "i" };
             break;
 
-          case 'notILike': // Does not contain
-            condition[field] = { $not: { $regex: value, $options: 'i' } };
+          case "notILike": // Does not contain
+            condition[field] = { $not: { $regex: value, $options: "i" } };
             break;
 
-          case 'eq': // Equals
+          case "eq": // Equals
             // Handle status field mapping
-            if (field === 'status') {
-              condition.isBlocked = value === 'BLOCKED';
+            if (field === "status") {
+              condition.isBlocked = value === "BLOCKED";
             } else {
               condition[field] = value;
             }
             break;
 
-          case 'ne': // Not equals
-            if (field === 'status') {
-              condition.isBlocked = value === 'ACTIVE'; // Inverse
+          case "ne": // Not equals
+            if (field === "status") {
+              condition.isBlocked = value === "ACTIVE"; // Inverse
             } else {
               condition[field] = { $ne: value };
             }
             break;
 
-          case 'isEmpty': // Is empty
-            condition[field] = { $in: [null, '', undefined] };
+          case "isEmpty": // Is empty
+            condition[field] = { $in: [null, "", undefined] };
             break;
 
-          case 'isNotEmpty': // Is not empty
-            condition[field] = { $nin: [null, '', undefined], $exists: true };
+          case "isNotEmpty": // Is not empty
+            condition[field] = { $nin: [null, "", undefined], $exists: true };
             break;
 
-          case 'inArray': // Has any of (for multiselect)
+          case "inArray": // Has any of (for multiselect)
             if (Array.isArray(value)) {
-              if (field === 'status') {
-                const includeActive = value.includes('ACTIVE');
-                const includeBlocked = value.includes('BLOCKED');
+              if (field === "status") {
+                const includeActive = value.includes("ACTIVE");
+                const includeBlocked = value.includes("BLOCKED");
                 if (includeActive && !includeBlocked) {
                   condition.isBlocked = false;
                 } else if (includeBlocked && !includeActive) {
@@ -894,29 +930,29 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
             }
             break;
 
-          case 'notInArray': // Has none of
+          case "notInArray": // Has none of
             if (Array.isArray(value)) {
               condition[field] = { $nin: value };
             }
             break;
 
-          case 'lt': // Less than (for numbers/dates)
+          case "lt": // Less than (for numbers/dates)
             condition[field] = { $lt: value };
             break;
 
-          case 'lte': // Less than or equal
+          case "lte": // Less than or equal
             condition[field] = { $lte: value };
             break;
 
-          case 'gt': // Greater than
+          case "gt": // Greater than
             condition[field] = { $gt: value };
             break;
 
-          case 'gte': // Greater than or equal
+          case "gte": // Greater than or equal
             condition[field] = { $gte: value };
             break;
 
-          case 'isBetween': // Between (for ranges)
+          case "isBetween": // Between (for ranges)
             if (Array.isArray(value) && value.length === 2) {
               condition[field] = { $gte: value[0], $lte: value[1] };
             }
@@ -930,8 +966,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
 
       // Combine extended filters with AND or OR logic based on joinOperator
       if (extendedConditions.length > 0) {
-        const joinOp = data.joinOperator === 'or' ? '$or' : '$and';
-        
+        const joinOp = data.joinOperator === "or" ? "$or" : "$and";
+
         if (filter[joinOp]) {
           filter[joinOp].push(...extendedConditions);
         } else {
@@ -942,7 +978,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
 
     // Handle global search - search across email, firstName, lastName
     if (data.search && data.search.trim()) {
-      const searchRegex = { $regex: data.search.trim(), $options: 'i' };
+      const searchRegex = { $regex: data.search.trim(), $options: "i" };
       filter.$or = [
         { email: searchRegex },
         { firstName: searchRegex },
@@ -954,7 +990,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const sort: any = {};
     if (data.sort && data.sort.length > 0) {
       // Apply sorts in order (TanStack Table supports multi-sort)
-      data.sort.forEach(sortField => {
+      data.sort.forEach((sortField) => {
         sort[sortField.id] = sortField.desc ? -1 : 1;
       });
     } else {
@@ -967,13 +1003,13 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       skip,
       limit,
       sort,
-      populate: []
+      populate: [],
     });
 
     const total = await userRepository.count(filter);
 
     // Format users for frontend
-    const formattedUsers = users.map(user => ({
+    const formattedUsers = users.map((user) => ({
       id: (user._id as any).toString(),
       email: user.email,
       firstName: user.firstName,
@@ -986,14 +1022,16 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       roleVerifiedByAdmin: user.roleVerifiedByAdmin,
       vendorApprovalStatus: user.vendorApprovalStatus,
       vendorRejectionReason: user.vendorRejectionReason,
-      createdAt: user.createdAt
+      taxCardUrl: user.taxCardUrl,
+      logoUrl: user.logoUrl,
+      createdAt: user.createdAt,
     }));
 
     return {
       users: formattedUsers,
       total,
       page,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -1009,18 +1047,18 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     byRole: Record<string, number>;
   }> {
     const allUsers = await userRepository.findAll({}, { populate: [] });
-    
+
     const stats = {
       total: allUsers.length,
-      active: allUsers.filter(u => !u.isBlocked).length,
-      blocked: allUsers.filter(u => u.isBlocked).length,
-      pending: allUsers.filter(u => !u.isVerified).length,
-      verified: allUsers.filter(u => u.isVerified).length,
-      byRole: {} as Record<string, number>
+      active: allUsers.filter((u) => !u.isBlocked).length,
+      blocked: allUsers.filter((u) => u.isBlocked).length,
+      pending: allUsers.filter((u) => !u.isVerified).length,
+      verified: allUsers.filter((u) => u.isVerified).length,
+      byRole: {} as Record<string, number>,
     };
 
     // Count by role
-    allUsers.forEach(user => {
+    allUsers.forEach((user) => {
       stats.byRole[user.role] = (stats.byRole[user.role] || 0) + 1;
     });
 
@@ -1032,21 +1070,24 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
    */
   async getPendingAcademicUsers(): Promise<any[]> {
     const users = await userRepository.findPendingAcademic();
-    return users.map(user => ({
+    return users.map((user) => ({
       id: (user._id as any).toString(),
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
       studentId: user.studentId,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
     }));
   }
 
   /**
    * Search users by name or email
    */
-  async searchUsers(query: string, options?: { page?: number; limit?: number }): Promise<{
+  async searchUsers(
+    query: string,
+    options?: { page?: number; limit?: number }
+  ): Promise<{
     users: any[];
     total: number;
     page: number;
@@ -1059,28 +1100,31 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const users = await userRepository.search(query, { skip, limit });
     const total = (await userRepository.search(query)).length;
 
-    const formattedUsers = users.map(user => ({
+    const formattedUsers = users.map((user) => ({
       id: (user._id as any).toString(),
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
       companyName: user.companyName,
-      isBlocked: user.isBlocked
+      isBlocked: user.isBlocked,
     }));
 
     return {
       users: formattedUsers,
       total,
       page,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
   /**
    * Get users by role
    */
-  async getUsersByRole(role: string, options?: { page?: number; limit?: number }): Promise<{
+  async getUsersByRole(
+    role: string,
+    options?: { page?: number; limit?: number }
+  ): Promise<{
     users: any[];
     total: number;
     page: number;
@@ -1093,21 +1137,21 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
     const users = await userRepository.findByRole(role, { skip, limit });
     const total = (await userRepository.findByRole(role)).length;
 
-    const formattedUsers = users.map(user => ({
+    const formattedUsers = users.map((user) => ({
       id: (user._id as any).toString(),
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
       studentId: user.studentId,
-      companyName: user.companyName
+      companyName: user.companyName,
     }));
 
     return {
       users: formattedUsers,
       total,
       page,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -1117,12 +1161,12 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
    */
   async getPendingVendors(): Promise<any[]> {
     const vendors = await userRepository.findAll({
-      role: 'VENDOR',
-      vendorApprovalStatus: 'PENDING',
-      status: 'PENDING_APPROVAL',
+      role: "VENDOR",
+      vendorApprovalStatus: "PENDING",
+      status: "PENDING_APPROVAL",
     } as any);
 
-    return vendors.map(vendor => ({
+    return vendors.map((vendor) => ({
       id: (vendor._id as any).toString(),
       email: vendor.email,
       firstName: vendor.firstName,
@@ -1141,7 +1185,7 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
    */
   async processVendorApproval(data: {
     userId: string;
-    status: 'APPROVED' | 'REJECTED';
+    status: "APPROVED" | "REJECTED";
     rejectionReason?: string;
     adminId: string;
   }): Promise<{ message: string }> {
@@ -1149,40 +1193,40 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
 
     if (!vendor) {
       throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Vendor not found',
+        code: "NOT_FOUND",
+        message: "Vendor not found",
       });
     }
 
-    if (vendor.role !== 'VENDOR') {
+    if (vendor.role !== "VENDOR") {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'User is not a vendor',
+        code: "BAD_REQUEST",
+        message: "User is not a vendor",
       });
     }
 
-    if (vendor.vendorApprovalStatus !== 'PENDING') {
+    if (vendor.vendorApprovalStatus !== "PENDING") {
       throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Vendor has already been processed',
+        code: "BAD_REQUEST",
+        message: "Vendor has already been processed",
       });
     }
 
     const admin = await userRepository.findById(data.adminId);
-    if (!admin || admin.role !== 'ADMIN') {
+    if (!admin || admin.role !== "ADMIN") {
       throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'Only admins can approve/reject vendors',
+        code: "FORBIDDEN",
+        message: "Only admins can approve/reject vendors",
       });
     }
 
-    if (data.status === 'APPROVED') {
+    if (data.status === "APPROVED") {
       // Approve vendor
       await this.update(data.userId, {
-        vendorApprovalStatus: 'APPROVED',
+        vendorApprovalStatus: "APPROVED",
         taxCardVerified: true,
         roleVerifiedByAdmin: true,
-        status: vendor.isVerified ? 'ACTIVE' : 'PENDING_VERIFICATION', // Active if email verified
+        status: vendor.isVerified ? "ACTIVE" : "PENDING_VERIFICATION", // Active if email verified
       } as any);
 
       // Send approval email
@@ -1195,22 +1239,24 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       console.log(`✓ Vendor approved: ${vendor.email} by admin ${admin.email}`);
 
       return {
-        message: 'Vendor approved successfully. Approval email sent.',
+        message: "Vendor approved successfully. Approval email sent.",
       };
     } else {
       // Reject vendor
       await this.update(data.userId, {
-        vendorApprovalStatus: 'REJECTED',
+        vendorApprovalStatus: "REJECTED",
         vendorRejectionReason: data.rejectionReason,
-        status: 'BLOCKED',
+        status: "BLOCKED",
       } as any);
 
       // Send rejection email (you can create a new template)
       // For now, we'll just log it
-      console.log(`✗ Vendor rejected: ${vendor.email} - Reason: ${data.rejectionReason}`);
+      console.log(
+        `✗ Vendor rejected: ${vendor.email} - Reason: ${data.rejectionReason}`
+      );
 
       return {
-        message: 'Vendor rejected successfully.',
+        message: "Vendor rejected successfully.",
       };
     }
   }
@@ -1218,4 +1264,3 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
 
 // Singleton instance
 export const userService = new UserService();
-
