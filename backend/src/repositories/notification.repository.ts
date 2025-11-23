@@ -1,16 +1,16 @@
 /**
  * Notification Repository
- * 
+ *
  * Data access layer for notifications
- * 
+ *
  * @module repositories/notification.repository
  */
 
-import { BaseRepository } from './base.repository.js';
-import type { INotification } from '../models/notification.model.js';
-import { Notification } from '../models/notification.model.js';
-import type { UserRole } from '@event-manager/shared';
-import mongoose from 'mongoose';
+import { BaseRepository } from "./base.repository.js";
+import type { INotification } from "../models/notification.model.js";
+import { Notification } from "../models/notification.model.js";
+import type { UserRole } from "@event-manager/shared";
+import mongoose from "mongoose";
 
 export class NotificationRepository extends BaseRepository<INotification> {
   constructor() {
@@ -38,7 +38,7 @@ export class NotificationRepository extends BaseRepository<INotification> {
     limit: number = 20
   ): Promise<{ notifications: any[]; total: number; hasMore: boolean }> {
     const skip = (page - 1) * limit;
-    
+
     const [notifications, total] = await Promise.all([
       this.model
         .find({ user: userId })
@@ -67,7 +67,7 @@ export class NotificationRepository extends BaseRepository<INotification> {
         { $set: { isRead: true } }
       )
       .exec();
-    
+
     return result.modifiedCount > 0;
   }
 
@@ -76,12 +76,9 @@ export class NotificationRepository extends BaseRepository<INotification> {
    */
   async markAllAsRead(userId: string): Promise<number> {
     const result = await this.model
-      .updateMany(
-        { user: userId, isRead: false },
-        { $set: { isRead: true } }
-      )
+      .updateMany({ user: userId, isRead: false }, { $set: { isRead: true } })
       .exec();
-    
+
     return result.modifiedCount;
   }
 
@@ -95,11 +92,14 @@ export class NotificationRepository extends BaseRepository<INotification> {
   /**
    * Delete notification
    */
-  async deleteNotification(notificationId: string, userId: string): Promise<boolean> {
+  async deleteNotification(
+    notificationId: string,
+    userId: string
+  ): Promise<boolean> {
     const result = await this.model
       .deleteOne({ _id: notificationId, user: userId })
       .exec();
-    
+
     return result.deletedCount > 0;
   }
 
@@ -116,7 +116,7 @@ export class NotificationRepository extends BaseRepository<INotification> {
    */
   async createForUser(
     userId: string,
-    type: INotification['type'],
+    type: INotification["type"],
     title: string,
     message: string,
     relatedEntityId?: string
@@ -138,7 +138,7 @@ export class NotificationRepository extends BaseRepository<INotification> {
    */
   async createForUsers(
     userIds: string[],
-    type: INotification['type'],
+    type: INotification["type"],
     title: string,
     message: string,
     relatedEntityId?: string
@@ -161,22 +161,25 @@ export class NotificationRepository extends BaseRepository<INotification> {
    */
   async createForUsersByRole(
     userRole: UserRole | UserRole[],
-    type: INotification['type'],
+    type: INotification["type"],
     title: string,
     message: string,
     relatedEntityId?: string
   ): Promise<number> {
     // Import User model dynamically to avoid circular dependency
-    const { User } = await import('../models/user.model.js');
-    
+    const { User } = await import("../models/user.model.js");
+
     const roles = Array.isArray(userRole) ? userRole : [userRole];
-    
+
     // Find all users with the specified role(s)
-    const users = await User.find({ 
+    const users = await User.find({
       role: { $in: roles },
-      isActive: true,
-      isEmailVerified: true,
-    }).select('_id').lean().exec();
+      isVerified: true,
+      isBlocked: false,
+    })
+      .select("_id")
+      .lean()
+      .exec();
 
     const userIds = users.map((u) => u._id.toString());
     return this.createForUsers(userIds, type, title, message, relatedEntityId);
@@ -186,18 +189,21 @@ export class NotificationRepository extends BaseRepository<INotification> {
    * Create notifications for all users
    */
   async createForAllUsers(
-    type: INotification['type'],
+    type: INotification["type"],
     title: string,
     message: string,
     relatedEntityId?: string
   ): Promise<number> {
     // Import User model dynamically to avoid circular dependency
-    const { User } = await import('../models/user.model.js');
-    
-    const users = await User.find({ 
-      isActive: true,
-      isEmailVerified: true,
-    }).select('_id').lean().exec();
+    const { User } = await import("../models/user.model.js");
+
+    const users = await User.find({
+      isVerified: true,
+      isBlocked: false,
+    })
+      .select("_id")
+      .lean()
+      .exec();
 
     const userIds = users.map((u) => u._id.toString());
     return this.createForUsers(userIds, type, title, message, relatedEntityId);

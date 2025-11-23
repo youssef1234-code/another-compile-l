@@ -85,9 +85,24 @@ const navigationConfig: NavItem[] = [
     icon: Calendar,
     url: ROUTES.EVENTS,
     items: [
-      { title: "Browse Events", url: ROUTES.EVENTS, icon: Calendar,roles:["STUDENT", "STAFF", "TA", "PROFESSOR","ADMIN","EVENT_OFFICE"] },
-      { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: Settings, roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"] },
-      { title: "Favorites", url: ROUTES.FAVORITES, icon: Heart, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
+      {
+        title: "Browse Events",
+        url: ROUTES.EVENTS,
+        icon: Calendar,
+        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "ADMIN", "EVENT_OFFICE"],
+      },
+      {
+        title: "Manage Events",
+        url: ROUTES.ADMIN_EVENTS,
+        icon: Settings,
+        roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"],
+      },
+      {
+        title: "Favorites",
+        url: ROUTES.FAVORITES,
+        icon: Heart,
+        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
+      },
       // { title: "Create Trip", url: ROUTES.CREATE_TRIP, icon: MapPin, roles: ["EVENT_OFFICE"] },
       // { title: "Create Bazaar", url: ROUTES.CREATE_BAZAAR, icon: ShoppingBag, roles: ["EVENT_OFFICE"] },
       // { title: "Create Conference", url: ROUTES.CREATE_CONFERENCE, icon: Building2, roles: ["EVENT_OFFICE"] },
@@ -127,20 +142,19 @@ const navigationConfig: NavItem[] = [
     title: "Vendors",
     icon: ShoppingBag,
     url: ROUTES.BROWSE_BAZAARS,
-    roles: [
-      "ADMIN",
-      "EVENT_OFFICE",
-      "STUDENT",
-      "STAFF",
-      "TA",
-      "PROFESSOR",
-    ],
+    roles: ["ADMIN", "EVENT_OFFICE", "STUDENT", "STAFF", "TA", "PROFESSOR"],
     items: [
       {
         title: "Manage Requests",
         url: ROUTES.VENDOR_REQUESTS,
         icon: Clipboard,
         roles: ["ADMIN", "EVENT_OFFICE"],
+      },
+      {
+        title: "Vendor Polls",
+        url: ROUTES.VENDOR_POLLS,
+        icon: Vote,
+        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "ADMIN", "EVENT_OFFICE"],
       },
     ],
   },
@@ -149,8 +163,12 @@ const navigationConfig: NavItem[] = [
     icon: Dumbbell,
     url: ROUTES.GYM_SCHEDULE,
     items: [
-      { title: "Gym Schedule", url: ROUTES.GYM_SCHEDULE, icon: Calendar , 
-        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR","EVENT_OFFICE","ADMIN"] },
+      {
+        title: "Gym Schedule",
+        url: ROUTES.GYM_SCHEDULE,
+        icon: Calendar,
+        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "EVENT_OFFICE", "ADMIN"],
+      },
       {
         title: "My Sessions",
         url: ROUTES.MY_SESSIONS,
@@ -189,7 +207,6 @@ const navigationConfig: NavItem[] = [
     roles: ["EVENT_OFFICE", "ADMIN"],
     items: [
       { title: "Platform Setup", url: ROUTES.PLATFORM_SETUP, icon: LayoutGrid },
-      { title: "Vendor Polls", url: ROUTES.VENDOR_POLLS, icon: Vote },
       { title: "Reports", url: ROUTES.EVENT_OFFICE_REPORTS, icon: BarChart3 },
       { title: "QR Codes", url: ROUTES.QR_CODES, icon: Package },
     ],
@@ -246,12 +263,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     >
       <SidebarHeader className="p-2 pb-4 overflow-hidden">
         <Link to={ROUTES.DASHBOARD} className="block">
-          <img 
+          <img
             src={state === "collapsed" ? "/favicon.png" : "/logo.png"}
-            alt="Another Compile L" 
+            alt="Another Compile L"
             className={`w-full h-auto max-h-12 object-contain transition-transform duration-300 ${
               state === "collapsed" ? "scale-100" : "scale-320"
-           }`}
+            }`}
           />
         </Link>
       </SidebarHeader>
@@ -276,7 +293,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
                 // Check if any sub-item is active
                 const hasActiveChild = filteredItems.some(
-                  (subItem) => location.pathname === subItem.url,
+                  (subItem) => location.pathname === subItem.url
                 );
                 const isMainOrChildActive = isActive || hasActiveChild;
 

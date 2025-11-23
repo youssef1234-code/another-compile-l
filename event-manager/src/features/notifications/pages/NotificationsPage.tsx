@@ -1,27 +1,27 @@
 /**
  * Notifications Page
- * 
+ *
  * Full page view of all notifications with pagination
  */
 
-import { useState } from 'react';
-import { Bell, CheckCheck, Trash2, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import { useState } from "react";
+import { Bell, CheckCheck, Trash2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import {
   useNotifications,
   useNotificationHistory,
-} from '@/hooks/useNotifications';
-import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+} from "@/hooks/useNotifications";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export function NotificationsPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const [activeTab, setActiveTab] = useState<'unread' | 'all'>('unread');
+  const [activeTab, setActiveTab] = useState<"unread" | "all">("unread");
 
   const {
     unreadNotifications,
@@ -41,54 +41,28 @@ export function NotificationsPage() {
     refetch: refetchHistory,
   } = useNotificationHistory(page, 20);
 
-  const handleNotificationClick = (notification: any) => {
-    if (!notification.isRead) {
-      markAsRead(notification.id);
-    }
-
-    // Navigate to related entity if available
-    if (notification.relatedEntityId) {
-      switch (notification.type) {
-        case 'NEW_EVENT':
-        case 'EVENT_REMINDER':
-          navigate(`/events/${notification.relatedEntityId}`);
-          break;
-        case 'WORKSHOP_STATUS_UPDATE':
-        case 'WORKSHOP_PENDING':
-          navigate(`/events/${notification.relatedEntityId}`);
-          break;
-        case 'VENDOR_REQUEST_UPDATE':
-        case 'VENDOR_PENDING':
-          navigate(`/vendor/applications`);
-          break;
-        case 'GYM_SESSION_UPDATE':
-          navigate(`/gym`);
-          break;
-        case 'NEW_LOYALTY_PARTNER':
-          navigate(`/loyalty`);
-          break;
-      }
-    }
-  };
-
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'NEW_EVENT':
-        return '🎉';
-      case 'EVENT_REMINDER':
-        return '⏰';
-      case 'WORKSHOP_STATUS_UPDATE':
-        return '📝';
-      case 'VENDOR_REQUEST_UPDATE':
-        return '✅';
-      case 'COMMENT_DELETED_WARNING':
-        return '⚠️';
-      case 'GYM_SESSION_UPDATE':
-        return '🏋️';
-      case 'NEW_LOYALTY_PARTNER':
-        return '🎁';
+      case "NEW_EVENT":
+        return "🎉";
+      case "EVENT_REMINDER":
+        return "⏰";
+      case "WORKSHOP_STATUS_UPDATE":
+        return "📝";
+      case "VENDOR_REQUEST_UPDATE":
+        return "✅";
+      case "VENDOR_PENDING":
+        return "📋";
+      case "VENDOR_POLL_CREATED":
+        return "🗳️";
+      case "COMMENT_DELETED_WARNING":
+        return "⚠️";
+      case "GYM_SESSION_UPDATE":
+        return "🏋️";
+      case "NEW_LOYALTY_PARTNER":
+        return "🎁";
       default:
-        return '🔔';
+        return "🔔";
     }
   };
 
@@ -96,15 +70,16 @@ export function NotificationsPage() {
     <Card
       key={notification.id}
       className={cn(
-        "mb-4 cursor-pointer transition-all hover:shadow-md",
+        "mb-4 transition-all",
         !notification.isRead && "border-primary/50 bg-accent/30"
       )}
-      onClick={() => handleNotificationClick(notification)}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">
-            <span className="text-2xl">{getNotificationIcon(notification.type)}</span>
+            <span className="text-2xl">
+              {getNotificationIcon(notification.type)}
+            </span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold text-sm">{notification.title}</h3>
@@ -143,6 +118,11 @@ export function NotificationsPage() {
               onClick={(e) => {
                 e.stopPropagation();
                 deleteNotification(notification.id);
+                // Force refresh both unread and all notifications
+                setTimeout(() => {
+                  refresh();
+                  refetchHistory();
+                }, 100);
               }}
             >
               <Trash2 className="h-4 w-4" />
@@ -169,7 +149,9 @@ export function NotificationsPage() {
           }}
           disabled={isLoading || isLoadingHistory}
         >
-          <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+          <RefreshCw
+            className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")}
+          />
           Refresh
         </Button>
       </div>
@@ -195,13 +177,24 @@ export function NotificationsPage() {
             </TabsTrigger>
           </TabsList>
 
-          {activeTab === 'unread' && unreadNotifications.length > 0 && (
+          {activeTab === "unread" && unreadNotifications.length > 0 && (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={markAllAsRead}>
                 <CheckCheck className="h-4 w-4 mr-2" />
                 Mark all read
               </Button>
-              <Button variant="outline" size="sm" onClick={deleteAll}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  deleteAll();
+                  // Force refresh both unread and all notifications
+                  setTimeout(() => {
+                    refresh();
+                    refetchHistory();
+                  }, 100);
+                }}
+              >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete all
               </Button>
@@ -230,14 +223,18 @@ export function NotificationsPage() {
             <Card>
               <CardContent className="py-12 text-center">
                 <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
-                <p className="text-muted-foreground">Loading notifications...</p>
+                <p className="text-muted-foreground">
+                  Loading notifications...
+                </p>
               </CardContent>
             </Card>
           ) : allNotifications.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Bell className="h-16 w-16 text-muted-foreground opacity-20 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No notifications yet</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  No notifications yet
+                </h3>
                 <p className="text-muted-foreground text-center">
                   You'll see notifications here when you have them
                 </p>

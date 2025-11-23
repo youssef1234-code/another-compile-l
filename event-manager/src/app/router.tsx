@@ -21,7 +21,7 @@ import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
 
 // Dashboard
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
-import { NotificationsPage } from "@/features/dashboard/pages";
+import { NotificationsPage } from "@/features/notifications/pages/NotificationsPage";
 
 // Events
 import { EventsPage, EventDetailsPage } from "@/features/events/pages";
@@ -61,10 +61,7 @@ import {
 
 // Admin
 import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
-import {
-  CommentsPage,
-  ReportsPage,
-} from "@/features/admin/pages";
+import { CommentsPage, ReportsPage } from "@/features/admin/pages";
 
 // Events - Back Office
 import { BackOfficeEventsPage } from "@/features/events/pages";
@@ -90,12 +87,11 @@ import {
   AdminRoute,
   VendorRoute,
   EventOfficeRoute,
-  EventManagementRoute
+  EventManagementRoute,
 } from "@/components/auth/ProtectedRoute";
 import InsufficientFundsPage from "@/features/payments/pages/InsufficientFundsPage";
 import PaymentSuccessPage from "@/features/payments/pages/PaymentSuccessPage";
 import PaymentPage from "@/features/payments/pages/PaymentPage";
-
 
 export const router = createBrowserRouter([
   {
@@ -227,18 +223,18 @@ export const router = createBrowserRouter([
       //   element: <PaymentResultPage />,
       // },
       // payments
-{
-  path: "/checkout/:registrationId",
-  element: <PaymentPage />, // requires auth wrapper if all app is protected
-},
-{
-  path: ROUTES.PAY_SUCCESS,
-  element: <PaymentSuccessPage />,
-},
-{
-  path: ROUTES.PAY_INSUFFICIENT,
-  element: <InsufficientFundsPage />,
-},
+      {
+        path: "/checkout/:registrationId",
+        element: <PaymentPage />, // requires auth wrapper if all app is protected
+      },
+      {
+        path: ROUTES.PAY_SUCCESS,
+        element: <PaymentSuccessPage />,
+      },
+      {
+        path: ROUTES.PAY_INSUFFICIENT,
+        element: <InsufficientFundsPage />,
+      },
 
       // Vendor Routes
       {
@@ -350,9 +346,9 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.VENDOR_POLLS,
         element: (
-          <EventOfficeRoute>
+          <ProtectedRoute>
             <VendorPollsPage />
-          </EventOfficeRoute>
+          </ProtectedRoute>
         ),
       },
       {
