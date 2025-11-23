@@ -32,6 +32,24 @@ export interface ILandmark {
   y: number; // Grid Y position
   type: LandmarkType;
   label: string; // e.g., "Main Entrance", "Food Court", "Restrooms"
+  rotation?: number; // Rotation in degrees (0, 90, 180, 270)
+}
+
+export interface ICustomText {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  fontSize: number;
+}
+
+export interface ICustomObject {
+  id: string;
+  x: number;
+  y: number;
+  type: 'circle' | 'square';
+  size: number;
+  color: string;
 }
 
 export interface IPlatformMap extends IBaseDocument {
@@ -41,6 +59,8 @@ export interface IPlatformMap extends IBaseDocument {
   cellSize: number; // Size of each grid cell in pixels (for rendering)
   booths: IBoothPlacement[]; // Array of booth placements
   landmarks?: ILandmark[]; // Array of landmarks (entrance, exit, special places)
+  customTexts?: ICustomText[]; // Array of custom text elements
+  customObjects?: ICustomObject[]; // Array of custom objects (circles, squares)
   isActive: boolean; // Whether this is the active platform layout
 }
 
@@ -70,6 +90,30 @@ const landmarkSchema = new Schema<ILandmark>(
     y: { type: Number, required: true, min: 0 },
     type: { type: String, required: true, enum: ['ENTRANCE', 'EXIT', 'SPECIAL_PLACE'] },
     label: { type: String, required: true },
+    rotation: { type: Number, required: false, default: 0, enum: [0, 90, 180, 270] },
+  },
+  { _id: false }
+);
+
+const customTextSchema = new Schema<ICustomText>(
+  {
+    id: { type: String, required: true },
+    x: { type: Number, required: true },
+    y: { type: Number, required: true },
+    text: { type: String, required: true },
+    fontSize: { type: Number, required: true, default: 16 },
+  },
+  { _id: false }
+);
+
+const customObjectSchema = new Schema<ICustomObject>(
+  {
+    id: { type: String, required: true },
+    x: { type: Number, required: true },
+    y: { type: Number, required: true },
+    type: { type: String, required: true, enum: ['circle', 'square'] },
+    size: { type: Number, required: true, default: 60 },
+    color: { type: String, required: true },
   },
   { _id: false }
 );
@@ -102,6 +146,14 @@ const platformMapSchema = createBaseSchema<IPlatformMap>(
     },
     landmarks: {
       type: [landmarkSchema],
+      default: [],
+    },
+    customTexts: {
+      type: [customTextSchema],
+      default: [],
+    },
+    customObjects: {
+      type: [customObjectSchema],
       default: [],
     },
     isActive: {
