@@ -4,19 +4,19 @@
  * Modern, creative login page with animations and beautiful design
  */
 
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
-import { motion } from 'framer-motion';
 import { GenericForm } from '@/components/generic';
-import { LoginSchema, type LoginInput, type User } from '@event-manager/shared';
-import { trpc } from '@/lib/trpc';
-import { useAuthStore } from '@/store/authStore';
-import { ROUTES } from '@/lib/constants';
-import { Mail, Lock, Sparkles, ArrowLeft, GraduationCap, Ticket, Store, Dumbbell, CreditCard, Star, Calendar, Trophy, Users } from 'lucide-react';
-import { formatValidationErrors } from '@/lib/format-errors';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { ROUTES } from '@/lib/constants';
+import { formatValidationErrors } from '@/lib/format-errors';
+import { trpc } from '@/lib/trpc';
+import { useAuthStore } from '@/store/authStore';
+import { LoginSchema, type LoginInput, type User } from '@event-manager/shared';
+import { motion } from 'framer-motion';
+import { Calendar, CreditCard, Dumbbell, GraduationCap, Lock, Mail, Sparkles, Star, Store, Ticket, Trophy, Users } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export function LoginPage() {
   const navigate = useNavigate();
