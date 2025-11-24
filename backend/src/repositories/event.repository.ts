@@ -351,6 +351,23 @@ export class EventRepository extends BaseRepository<IEvent> {
       await event.save();
     }
   }
+
+  async removeWhitelistedUser(userId: string, eventId: string): Promise<void> {
+    const event = await this.model.findById(eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    if (event.whitelistedUsers === undefined) {
+      return;
+    }
+
+    const userObjectId = new Types.ObjectId(userId);
+    event.whitelistedUsers = event.whitelistedUsers.filter(
+      (id) => id.toString() !== userId
+    );
+    await event.save();
+  }
 }
 
 // Singleton instance

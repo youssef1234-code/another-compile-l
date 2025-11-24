@@ -1,6 +1,6 @@
 /**
  * Production-Ready Events Page
- * 
+ *
  * Student-facing page for browsing all available events
  * Features:
  * - Backend-driven filtering (type, location, date, price)
@@ -12,24 +12,49 @@
  * - URL state management for all filters
  */
 
-
-import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Calendar, Grid3x3, List, ArrowUpDown, Loader2, CheckSquare } from 'lucide-react';
-import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJson } from 'nuqs';
-import { trpc } from '@/lib/trpc';
-import { EventFilters, type EventFiltersState } from '../components/EventFilters';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import { formatDate } from '@/lib/design-system';
-import { getEventTypeConfig, getEventStatus, EVENT_STATUS_COLORS } from '@/lib/event-colors';
-import type { Event, Registration } from '@event-manager/shared';
-import { useAuthStore } from '@/store/authStore';
-import { usePageMeta } from '@/components/layout/page-meta-context';
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Calendar,
+  Grid3x3,
+  List,
+  ArrowUpDown,
+  Loader2,
+  CheckSquare,
+} from "lucide-react";
+import {
+  useQueryState,
+  parseAsInteger,
+  parseAsString,
+  parseAsArrayOf,
+  parseAsJson,
+} from "nuqs";
+import { trpc } from "@/lib/trpc";
+import {
+  EventFilters,
+  type EventFiltersState,
+} from "../components/EventFilters";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/design-system";
+import {
+  getEventTypeConfig,
+  getEventStatus,
+  EVENT_STATUS_COLORS,
+} from "@/lib/event-colors";
+import type { Event, Registration } from "@event-manager/shared";
+import { useAuthStore } from "@/store/authStore";
+import { usePageMeta } from "@/components/layout/page-meta-context";
 
 // Type for populated registration from backend
 type PopulatedRegistration = Registration & {
@@ -42,44 +67,81 @@ export function EventsPage() {
   const { user } = useAuthStore();
 
   // URL state management - matching BackOfficeEventsPage pattern
-  const [activeTab, setActiveTab] = useQueryState('tab', parseAsString.withDefault('browse'));
-  const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1));
-  const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(24));
-  const [search, setSearch] = useQueryState('search', parseAsString.withDefault(''));
-  const [view, setView] = useQueryState('view', parseAsString.withDefault('grid'));
-  
+  const [activeTab, setActiveTab] = useQueryState(
+    "tab",
+    parseAsString.withDefault("browse")
+  );
+  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const [perPage] = useQueryState("perPage", parseAsInteger.withDefault(24));
+  const [search, setSearch] = useQueryState(
+    "search",
+    parseAsString.withDefault("")
+  );
+  const [view, setView] = useQueryState(
+    "view",
+    parseAsString.withDefault("grid")
+  );
+
   // Sort state - proper format for getAllEvents
-  const [sortState, setSortState] = useQueryState('sort', parseAsJson<Array<{id: string; desc: boolean}>>((v) => {
-    if (!v) return null;
-    if (typeof v === 'string') {
-      try {
-        return JSON.parse(v) as Array<{id: string; desc: boolean}>;
-      } catch {
-        return null;
+  const [sortState, setSortState] = useQueryState(
+    "sort",
+    parseAsJson<Array<{ id: string; desc: boolean }>>((v) => {
+      if (!v) return null;
+      if (typeof v === "string") {
+        try {
+          return JSON.parse(v) as Array<{ id: string; desc: boolean }>;
+        } catch {
+          return null;
+        }
       }
-    }
-    return v as Array<{id: string; desc: boolean}>;
-  }).withDefault([{ id: 'startDate', desc: false }]));
+      return v as Array<{ id: string; desc: boolean }>;
+    }).withDefault([{ id: "startDate", desc: false }])
+  );
 
   // Simple filters from URL
-  const [typeFilter, setTypeFilter] = useQueryState('type', parseAsArrayOf(parseAsString, ',').withDefault([]));
-  const [locationFilter, setLocationFilter] = useQueryState('location', parseAsString.withDefault(''));
-  const [statusFilter] = useQueryState('status', parseAsArrayOf(parseAsString, ',').withDefault([]));
-  
+  const [typeFilter, setTypeFilter] = useQueryState(
+    "type",
+    parseAsArrayOf(parseAsString, ",").withDefault([])
+  );
+  const [locationFilter, setLocationFilter] = useQueryState(
+    "location",
+    parseAsString.withDefault("")
+  );
+  const [statusFilter] = useQueryState(
+    "status",
+    parseAsArrayOf(parseAsString, ",").withDefault([])
+  );
+
   // Advanced filters URL state
-  const [dateRange, setDateRange] = useQueryState('dateRange', parseAsString.withDefault(''));
-  const [dateFrom, setDateFrom] = useQueryState('dateFrom', parseAsString.withDefault(''));
-  const [dateTo, setDateTo] = useQueryState('dateTo', parseAsString.withDefault(''));
-  const [maxPrice, setMaxPrice] = useQueryState('maxPrice', parseAsString.withDefault(''));
-  const [showFreeOnly, setShowFreeOnly] = useQueryState('freeOnly', parseAsString.withDefault(''));
+  const [dateRange, setDateRange] = useQueryState(
+    "dateRange",
+    parseAsString.withDefault("")
+  );
+  const [dateFrom, setDateFrom] = useQueryState(
+    "dateFrom",
+    parseAsString.withDefault("")
+  );
+  const [dateTo, setDateTo] = useQueryState(
+    "dateTo",
+    parseAsString.withDefault("")
+  );
+  const [maxPrice, setMaxPrice] = useQueryState(
+    "maxPrice",
+    parseAsString.withDefault("")
+  );
+  const [showFreeOnly, setShowFreeOnly] = useQueryState(
+    "freeOnly",
+    parseAsString.withDefault("")
+  );
 
   // Local search input state for debouncing
   const [searchInput, setSearchInput] = useState(search);
 
   useEffect(() => {
     setPageMeta({
-      title: 'Events',
-      description: 'Browse workshops, trips, conferences, and more or manage your registrations',
+      title: "Events",
+      description:
+        "Browse workshops, trips, conferences, and more or manage your registrations",
     });
   }, [setPageMeta]);
 
@@ -94,7 +156,7 @@ export function EventsPage() {
     return () => clearTimeout(timer);
   }, [searchInput, search, setSearch, setPage]);
 
-  const handleTabChange = (tab: 'browse' | 'registrations') => {
+  const handleTabChange = (tab: "browse" | "registrations") => {
     setActiveTab(tab);
     setPage(1);
   };
@@ -102,10 +164,10 @@ export function EventsPage() {
   // Build simple filters for getAllEvents
   const filters = useMemo(() => {
     const result: Record<string, string[]> = {};
-    
+
     // Always exclude gym sessions and booths from public events page
-    const publicTypes = ['WORKSHOP', 'TRIP', 'CONFERENCE', 'BAZAAR'];
-    
+    const publicTypes = ["WORKSHOP", "TRIP", "CONFERENCE", "BAZAAR"];
+
     if (typeFilter.length > 0) {
       // User selected specific types - only include those
       result.type = typeFilter;
@@ -113,16 +175,16 @@ export function EventsPage() {
       // No user selection - show all public event types
       result.type = publicTypes;
     }
-    
+
     // Location filter - convert single value to array format
     if (locationFilter) {
       result.location = [locationFilter];
     }
-    
+
     if (statusFilter.length > 0) {
       result.status = statusFilter;
     }
-    
+
     return result;
   }, [typeFilter, locationFilter, statusFilter]);
 
@@ -131,11 +193,33 @@ export function EventsPage() {
     type ExtendedFilter = {
       id: string;
       value: string | string[];
-      operator: 'iLike' | 'notILike' | 'eq' | 'ne' | 'isEmpty' | 'isNotEmpty' | 'lt' | 'lte' | 'gt' | 'gte' | 'isBetween' | 'inArray' | 'notInArray' | 'isRelativeToToday';
-      variant: 'text' | 'number' | 'range' | 'date' | 'dateRange' | 'boolean' | 'select' | 'multiSelect';
+      operator:
+        | "iLike"
+        | "notILike"
+        | "eq"
+        | "ne"
+        | "isEmpty"
+        | "isNotEmpty"
+        | "lt"
+        | "lte"
+        | "gt"
+        | "gte"
+        | "isBetween"
+        | "inArray"
+        | "notInArray"
+        | "isRelativeToToday";
+      variant:
+        | "text"
+        | "number"
+        | "range"
+        | "date"
+        | "dateRange"
+        | "boolean"
+        | "select"
+        | "multiSelect";
       filterId: string;
     };
-    
+
     const result: ExtendedFilter[] = [];
 
     // Date range filter
@@ -145,25 +229,33 @@ export function EventsPage() {
       let endDate: Date | null = null;
 
       switch (dateRange) {
-        case 'this_week': {
+        case "this_week": {
           const today = new Date(now);
           const dayOfWeek = today.getDay();
           const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
           startDate = new Date(today);
           startDate.setDate(today.getDate() + diffToMonday);
           startDate.setHours(0, 0, 0, 0);
-          
+
           endDate = new Date(startDate);
           endDate.setDate(startDate.getDate() + 6);
           endDate.setHours(23, 59, 59, 999);
           break;
         }
-        case 'this_month': {
+        case "this_month": {
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+          endDate = new Date(
+            now.getFullYear(),
+            now.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
+            999
+          );
           break;
         }
-        case 'custom': {
+        case "custom": {
           if (dateFrom) startDate = new Date(dateFrom);
           if (dateTo) endDate = new Date(dateTo);
           break;
@@ -172,31 +264,31 @@ export function EventsPage() {
 
       if (startDate && endDate) {
         result.push({
-          id: 'startDate',
+          id: "startDate",
           value: [startDate.toISOString(), endDate.toISOString()],
-          operator: 'isBetween' as const,
-          variant: 'dateRange' as const,
-          filterId: 'date-range-filter'
+          operator: "isBetween" as const,
+          variant: "dateRange" as const,
+          filterId: "date-range-filter",
         });
       }
     }
 
     // Price filter
-    if (showFreeOnly === 'true') {
+    if (showFreeOnly === "true") {
       result.push({
-        id: 'price',
-        value: '0',
-        operator: 'eq' as const,
-        variant: 'number' as const,
-        filterId: 'free-only-filter'
+        id: "price",
+        value: "0",
+        operator: "eq" as const,
+        variant: "number" as const,
+        filterId: "free-only-filter",
       });
     } else if (maxPrice) {
       result.push({
-        id: 'price',
+        id: "price",
         value: maxPrice,
-        operator: 'lte' as const,
-        variant: 'number' as const,
-        filterId: 'max-price-filter'
+        operator: "lte" as const,
+        variant: "number" as const,
+        filterId: "max-price-filter",
       });
     }
 
@@ -207,48 +299,50 @@ export function EventsPage() {
   const parsedSort = useMemo(() => {
     try {
       if (Array.isArray(sortState)) {
-        return sortState as Array<{id: string; desc: boolean}>;
+        return sortState as Array<{ id: string; desc: boolean }>;
       }
-      return [{ id: 'startDate', desc: false }];
+      return [{ id: "startDate", desc: false }];
     } catch {
-      return [{ id: 'startDate', desc: false }];
+      return [{ id: "startDate", desc: false }];
     }
   }, [sortState]);
 
   // Fetch events for browse tab using getAllEvents with proper sorting
-  const { data: browseData, isLoading: isBrowseLoading } = trpc.events.getAllEvents.useQuery(
-    {
-      page,
-      perPage,
-      search: search || undefined,
-      sort: parsedSort,
-      filters: Object.keys(filters).length > 0 ? filters : undefined,
-      extendedFilters: extendedFilters,
-      joinOperator: 'and' as const,
-    },
-    {
-      enabled: activeTab === 'browse',
-      placeholderData: (previousData) => previousData,
-      staleTime: 5000,
-    }
-  );
+  const { data: browseData, isLoading: isBrowseLoading } =
+    trpc.events.getAllEvents.useQuery(
+      {
+        page,
+        perPage,
+        search: search || undefined,
+        sort: parsedSort,
+        filters: Object.keys(filters).length > 0 ? filters : undefined,
+        extendedFilters: extendedFilters,
+        joinOperator: "and" as const,
+      },
+      {
+        enabled: activeTab === "browse",
+        placeholderData: (previousData) => previousData,
+        staleTime: 5000,
+      }
+    );
 
   // Fetch user's registrations for "My Registrations" tab
-  const { data: registrationsData, isLoading: isRegistrationsLoading } = trpc.events.getMyRegistrations.useQuery(
-    { 
-      page: 1, 
-      limit: 100,
-    },
-    { 
-      enabled: activeTab === 'registrations' && !!user,
-      staleTime: 5000,
-    }
-  );
+  const { data: registrationsData, isLoading: isRegistrationsLoading } =
+    trpc.events.getMyRegistrations.useQuery(
+      {
+        page: 1,
+        limit: 100,
+      },
+      {
+        enabled: activeTab === "registrations" && !!user,
+        staleTime: 5000,
+      }
+    );
 
   // Fetch user's registrations to mark registered events in browse tab
   const { data: myRegistrationsData } = trpc.events.getMyRegistrations.useQuery(
     { page: 1, limit: 100 },
-    { enabled: !!user && activeTab === 'browse' }
+    { enabled: !!user && activeTab === "browse" }
   );
 
   // Create a Set of registered event IDs for quick lookup
@@ -256,7 +350,7 @@ export function EventsPage() {
     const ids = new Set<string>();
     if (myRegistrationsData?.registrations) {
       (myRegistrationsData.registrations as Registration[]).forEach((reg) => {
-        if (reg.status !== 'CANCELLED' && reg.eventId) {
+        if (reg.status !== "CANCELLED" && reg.eventId) {
           ids.add(reg.eventId);
         }
       });
@@ -266,10 +360,12 @@ export function EventsPage() {
 
   // Display events based on active tab
   const displayedEvents = useMemo(() => {
-    if (activeTab === 'registrations') {
-      const registrations = registrationsData?.registrations as PopulatedRegistration[] | undefined;
+    if (activeTab === "registrations") {
+      const registrations = registrationsData?.registrations as
+        | PopulatedRegistration[]
+        | undefined;
       if (!registrations) return [];
-      
+
       // Extract populated events from registrations
       return registrations
         .map((reg) => reg.event)
@@ -280,17 +376,17 @@ export function EventsPage() {
     return browseData?.events || [];
   }, [browseData, registrationsData, activeTab]);
 
-  const totalPages = activeTab === 'browse' ? (browseData?.totalPages || 1) : 1;
-  const totalEvents = activeTab === 'browse' 
-    ? (browseData?.total || 0)
-    : displayedEvents.length;
+  const totalPages = activeTab === "browse" ? browseData?.totalPages || 1 : 1;
+  const totalEvents =
+    activeTab === "browse" ? browseData?.total || 0 : displayedEvents.length;
 
-  const isLoading = activeTab === 'browse' ? isBrowseLoading : isRegistrationsLoading;
+  const isLoading =
+    activeTab === "browse" ? isBrowseLoading : isRegistrationsLoading;
 
   // Helper to update sort
   const updateSort = (field: string) => {
     setSortState((prev) => {
-      const existing = prev.find(s => s.id === field);
+      const existing = prev.find((s) => s.id === field);
       if (existing) {
         // Toggle direction
         return [{ id: field, desc: !existing.desc }];
@@ -300,46 +396,60 @@ export function EventsPage() {
     });
   };
 
-  const getCurrentSortDirection = (field: string): 'asc' | 'desc' => {
-    const sort = parsedSort.find(s => s.id === field);
-    return sort?.desc ? 'desc' : 'asc';
+  const getCurrentSortDirection = (field: string): "asc" | "desc" => {
+    const sort = parsedSort.find((s) => s.id === field);
+    return sort?.desc ? "desc" : "asc";
   };
 
   // Sync filters state for EventFilters component
-  const filtersState = useMemo((): EventFiltersState => ({
-    search: search,
-    types: typeFilter,
-    location: (locationFilter as 'ON_CAMPUS' | 'OFF_CAMPUS') || undefined,
-    dateRange: (dateRange as 'upcoming' | 'this_week' | 'this_month' | 'custom') || undefined,
-    dateFrom: dateFrom ? new Date(dateFrom) : undefined,
-    dateTo: dateTo ? new Date(dateTo) : undefined,
-    maxPrice: maxPrice ? Number(maxPrice) : undefined,
-    showFreeOnly: showFreeOnly === 'true',
-  }), [search, typeFilter, locationFilter, dateRange, dateFrom, dateTo, maxPrice, showFreeOnly]);
+  const filtersState = useMemo(
+    (): EventFiltersState => ({
+      search: search,
+      types: typeFilter,
+      location: (locationFilter as "ON_CAMPUS" | "OFF_CAMPUS") || undefined,
+      dateRange:
+        (dateRange as "upcoming" | "this_week" | "this_month" | "custom") ||
+        undefined,
+      dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      dateTo: dateTo ? new Date(dateTo) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      showFreeOnly: showFreeOnly === "true",
+    }),
+    [
+      search,
+      typeFilter,
+      locationFilter,
+      dateRange,
+      dateFrom,
+      dateTo,
+      maxPrice,
+      showFreeOnly,
+    ]
+  );
 
   const handleResetFilters = () => {
     setPage(1);
-    setSearch('');
+    setSearch("");
     setTypeFilter([]);
-    setLocationFilter('');
-    setDateRange('');
-    setDateFrom('');
-    setDateTo('');
-    setMaxPrice('');
-    setShowFreeOnly('');
-    setSearchInput('');
+    setLocationFilter("");
+    setDateRange("");
+    setDateFrom("");
+    setDateTo("");
+    setMaxPrice("");
+    setShowFreeOnly("");
+    setSearchInput("");
   };
 
   const handleFiltersChange = (newFilters: EventFiltersState) => {
     setPage(1);
     setSearch(newFilters.search);
     setTypeFilter(newFilters.types);
-    setLocationFilter(newFilters.location || '');
-    setDateRange(newFilters.dateRange || '');
-    setDateFrom(newFilters.dateFrom ? newFilters.dateFrom.toISOString() : '');
-    setDateTo(newFilters.dateTo ? newFilters.dateTo.toISOString() : '');
-    setMaxPrice(newFilters.maxPrice ? String(newFilters.maxPrice) : '');
-    setShowFreeOnly(newFilters.showFreeOnly ? 'true' : '');
+    setLocationFilter(newFilters.location || "");
+    setDateRange(newFilters.dateRange || "");
+    setDateFrom(newFilters.dateFrom ? newFilters.dateFrom.toISOString() : "");
+    setDateTo(newFilters.dateTo ? newFilters.dateTo.toISOString() : "");
+    setMaxPrice(newFilters.maxPrice ? String(newFilters.maxPrice) : "");
+    setShowFreeOnly(newFilters.showFreeOnly ? "true" : "");
     setSearchInput(newFilters.search);
   };
 
@@ -367,14 +477,14 @@ export function EventsPage() {
         searchInput={searchInput}
         onSearchInputChange={setSearchInput}
         isSearching={searchInput !== search}
-        hidePrice={activeTab === 'registrations'}
+        hidePrice={activeTab === "registrations"}
       />
 
       {/* Toolbar - Gym page style */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground font-medium">
-            {totalEvents} {totalEvents === 1 ? 'event' : 'events'}
+            {totalEvents} {totalEvents === 1 ? "event" : "events"}
           </span>
 
           {/* View Mode Toggle - Gym page style */}
@@ -382,12 +492,12 @@ export function EventsPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleTabChange('browse')}
+              onClick={() => handleTabChange("browse")}
               className={cn(
-                'gap-2 transition-all',
-                activeTab === 'browse'
-                  ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
-                  : 'hover:bg-muted text-muted-foreground'
+                "gap-2 transition-all",
+                activeTab === "browse"
+                  ? "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+                  : "hover:bg-muted text-muted-foreground"
               )}
             >
               <Calendar className="h-4 w-4" />
@@ -396,12 +506,12 @@ export function EventsPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleTabChange('registrations')}
+              onClick={() => handleTabChange("registrations")}
               className={cn(
-                'gap-2 transition-all',
-                activeTab === 'registrations'
-                  ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
-                  : 'hover:bg-muted text-muted-foreground'
+                "gap-2 transition-all",
+                activeTab === "registrations"
+                  ? "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+                  : "hover:bg-muted text-muted-foreground"
               )}
             >
               <CheckSquare className="h-4 w-4" />
@@ -412,8 +522,8 @@ export function EventsPage() {
 
         <div className="flex items-center gap-2">
           {/* Sort Controls */}
-          <Select 
-            value={parsedSort[0]?.id || 'startDate'} 
+          <Select
+            value={parsedSort[0]?.id || "startDate"}
             onValueChange={(value: string) => updateSort(value)}
           >
             <SelectTrigger className="w-[130px]">
@@ -429,28 +539,33 @@ export function EventsPage() {
             variant="outline"
             size="icon"
             onClick={() => {
-              const currentField = parsedSort[0]?.id || 'startDate';
+              const currentField = parsedSort[0]?.id || "startDate";
               updateSort(currentField);
             }}
-            title={getCurrentSortDirection(parsedSort[0]?.id || 'startDate') === 'asc' ? 'Ascending' : 'Descending'}
+            title={
+              getCurrentSortDirection(parsedSort[0]?.id || "startDate") ===
+              "asc"
+                ? "Ascending"
+                : "Descending"
+            }
           >
             <ArrowUpDown className="h-4 w-4" />
           </Button>
-          
+
           {/* View Toggle */}
           <div className="flex border rounded-lg">
             <Button
-              variant={view === 'grid' ? 'default' : 'ghost'}
+              variant={view === "grid" ? "default" : "ghost"}
               size="icon"
-              onClick={() => setView('grid')}
+              onClick={() => setView("grid")}
               className="rounded-r-none"
             >
               <Grid3x3 className="h-4 w-4" />
             </Button>
             <Button
-              variant={view === 'list' ? 'default' : 'ghost'}
+              variant={view === "list" ? "default" : "ghost"}
               size="icon"
-              onClick={() => setView('list')}
+              onClick={() => setView("list")}
               className="rounded-l-none"
             >
               <List className="h-4 w-4" />
@@ -466,11 +581,11 @@ export function EventsPage() {
             <Calendar className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No events found</h3>
             <p className="text-muted-foreground text-center mb-4">
-              {activeTab === 'registrations' 
+              {activeTab === "registrations"
                 ? "You haven't registered for any events yet"
                 : "Try adjusting your filters or check back later for new events"}
             </p>
-            {activeTab === 'browse' && (
+            {activeTab === "browse" && (
               <Button onClick={handleResetFilters} variant="outline">
                 Clear Filters
               </Button>
@@ -481,26 +596,28 @@ export function EventsPage() {
         <>
           <div
             className={cn(
-              view === 'grid'
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-                : 'space-y-4'
+              view === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                : "space-y-4"
             )}
           >
             {displayedEvents.map((event) => {
               // Check if the current user is a professor who owns this workshop
-              const eventCreatorId = typeof event.createdBy === 'object' && event.createdBy !== null
-                ? (event.createdBy as { id?: string }).id
-                : event.createdBy;
-              
-              const isProfessorOwned = user?.role === 'PROFESSOR' && 
-                event.type === 'WORKSHOP' &&
+              const eventCreatorId =
+                typeof event.createdBy === "object" && event.createdBy !== null
+                  ? (event.createdBy as { id?: string }).id
+                  : event.createdBy;
+
+              const isProfessorOwned =
+                user?.role === "PROFESSOR" &&
+                event.type === "WORKSHOP" &&
                 eventCreatorId === user.id;
-              
+
               return (
                 <EventCardProduction
                   key={event.id}
                   event={event}
-                  view={(view === 'grid' || view === 'list') ? view : 'grid'}
+                  view={view === "grid" || view === "list" ? view : "grid"}
                   onClick={() => navigate(`/events/${event.id}`)}
                   isRegistered={registeredEventIds.has(event.id)}
                   isProfessorOwned={isProfessorOwned}
@@ -510,7 +627,7 @@ export function EventsPage() {
           </div>
 
           {/* Pagination - only for browse tab */}
-          {activeTab === 'browse' && totalPages > 1 && (
+          {activeTab === "browse" && totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
               <Button
                 variant="outline"
@@ -526,7 +643,7 @@ export function EventsPage() {
                   return (
                     <Button
                       key={pageNum}
-                      variant={page === pageNum ? 'default' : 'outline'}
+                      variant={page === pageNum ? "default" : "outline"}
                       size="sm"
                       onClick={() => setPage(pageNum)}
                     >
@@ -538,7 +655,7 @@ export function EventsPage() {
                   <>
                     <span className="text-muted-foreground">...</span>
                     <Button
-                      variant={page === totalPages ? 'default' : 'outline'}
+                      variant={page === totalPages ? "default" : "outline"}
                       size="sm"
                       onClick={() => setPage(totalPages)}
                     >
@@ -566,7 +683,7 @@ export function EventsPage() {
 // Production Event Card Component
 interface EventCardProductionProps {
   event: Event;
-  view: 'grid' | 'list';
+  view: "grid" | "list";
   onClick: () => void;
   isRegistered?: boolean;
   isProfessorOwned?: boolean; // New prop to indicate if the professor owns this workshop
@@ -609,16 +726,34 @@ function EventCardImage({ imageId, alt }: { imageId: string; alt: string }) {
   );
 }
 
-function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOwned }: EventCardProductionProps) {
+function EventCardProduction({
+  event,
+  view,
+  onClick,
+  isRegistered,
+  isProfessorOwned,
+}: EventCardProductionProps) {
   const typeConfig = getEventTypeConfig(event.type);
   const eventStatus = getEventStatus(event);
-  const statusConfig = EVENT_STATUS_COLORS[eventStatus as keyof typeof EVENT_STATUS_COLORS] || EVENT_STATUS_COLORS.UPCOMING;
+  const statusConfig =
+    EVENT_STATUS_COLORS[eventStatus as keyof typeof EVENT_STATUS_COLORS] ||
+    EVENT_STATUS_COLORS.UPCOMING;
 
-  const capacityPercentage = event.capacity ? ((event.registeredCount || 0) / event.capacity) * 100 : 0;
-  const isFull = event.capacity ? (event.registeredCount || 0) >= event.capacity : false;
+  const capacityPercentage = event.capacity
+    ? ((event.registeredCount || 0) / event.capacity) * 100
+    : 0;
+  const isFull = event.capacity
+    ? (event.registeredCount || 0) >= event.capacity
+    : false;
   const isFree = !event.price || event.price === 0;
 
-  if (view === 'list') {
+  // Check if event is whitelisted
+  const { data: isWhitelisted } = trpc.events.checkEventWhitelisted.useQuery(
+    { eventId: event.id },
+    { enabled: !!event.id }
+  );
+
+  if (view === "list") {
     return (
       <Card
         className="cursor-pointer hover:shadow-lg transition-all"
@@ -626,7 +761,7 @@ function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOw
       >
         <CardContent className="p-4 flex gap-4">
           <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative group/img">
-            {(event.images && event.images.length > 0) ? (
+            {event.images && event.images.length > 0 ? (
               <>
                 <EventCardImage imageId={event.images[0]} alt={event.name} />
                 {event.images.length > 1 && (
@@ -643,10 +778,10 @@ function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOw
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-4xl">
-                {event.type === 'WORKSHOP' && '📚'}
-                {event.type === 'TRIP' && '✈️'}
-                {event.type === 'BAZAAR' && '🛍️'}
-                {event.type === 'CONFERENCE' && '🎤'}
+                {event.type === "WORKSHOP" && "📚"}
+                {event.type === "TRIP" && "✈️"}
+                {event.type === "BAZAAR" && "🛍️"}
+                {event.type === "CONFERENCE" && "🎤"}
               </div>
             )}
           </div>
@@ -654,10 +789,22 @@ function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOw
             <div className="flex items-start justify-between gap-4 mb-2">
               <h3 className="font-semibold text-lg truncate">{event.name}</h3>
               <div className="flex gap-2 flex-shrink-0 flex-wrap">
-                <Badge className={cn('text-white border-none', typeConfig.bg)}>
+                <Badge className={cn("text-white border-none", typeConfig.bg)}>
                   {typeConfig.label}
                 </Badge>
-                <Badge variant={eventStatus === 'ENDED' ? 'secondary' : eventStatus === 'FULL' ? 'destructive' : 'default'} className={cn(eventStatus === 'OPEN' && statusConfig.bg, 'text-white border-none')}>
+                <Badge
+                  variant={
+                    eventStatus === "ENDED"
+                      ? "secondary"
+                      : eventStatus === "FULL"
+                      ? "destructive"
+                      : "default"
+                  }
+                  className={cn(
+                    eventStatus === "OPEN" && statusConfig.bg,
+                    "text-white border-none"
+                  )}
+                >
                   {statusConfig.label}
                 </Badge>
                 {isProfessorOwned && (
@@ -676,7 +823,7 @@ function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOw
             <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
               {event.description}
             </p>
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-4 text-sm flex-wrap">
               {event.startDate && (
                 <span className="text-muted-foreground">
                   📅 {formatDate(new Date(event.startDate))}
@@ -695,6 +842,11 @@ function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOw
                 )}
               </span>
               {isFull && <Badge variant="destructive">Full</Badge>}
+              {isWhitelisted && (
+                <Badge className="bg-amber-500 text-white border-none">
+                  🔒 Whitelisted
+                </Badge>
+              )}
             </div>
           </div>
         </CardContent>
@@ -708,7 +860,7 @@ function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOw
       onClick={onClick}
     >
       <div className="relative h-48 overflow-hidden bg-gradient-to-br from-muted to-muted/50">
-        {(event.images && event.images.length > 0) ? (
+        {event.images && event.images.length > 0 ? (
           <>
             <EventCardImage imageId={event.images[0]} alt={event.name} />
             {event.images.length > 1 && (
@@ -725,22 +877,30 @@ function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOw
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-6xl">
-            {event.type === 'WORKSHOP' && '📚'}
-            {event.type === 'TRIP' && '✈️'}
-            {event.type === 'BAZAAR' && '🛍️'}
-            {event.type === 'CONFERENCE' && '🎤'}
+            {event.type === "WORKSHOP" && "📚"}
+            {event.type === "TRIP" && "✈️"}
+            {event.type === "BAZAAR" && "🛍️"}
+            {event.type === "CONFERENCE" && "🎤"}
           </div>
         )}
         <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
-          <Badge className={cn('text-white border-none shadow-lg', typeConfig.bg)}>
+          <Badge
+            className={cn("text-white border-none shadow-lg", typeConfig.bg)}
+          >
             {typeConfig.label}
           </Badge>
-          <Badge 
-            variant={eventStatus === 'ENDED' ? 'secondary' : eventStatus === 'FULL' ? 'destructive' : 'default'} 
+          <Badge
+            variant={
+              eventStatus === "ENDED"
+                ? "secondary"
+                : eventStatus === "FULL"
+                ? "destructive"
+                : "default"
+            }
             className={cn(
-              eventStatus === 'OPEN' && statusConfig.bg, 
-              eventStatus === 'ONGOING' && 'bg-emerald-500',
-              'text-white border-none shadow-lg'
+              eventStatus === "OPEN" && statusConfig.bg,
+              eventStatus === "ONGOING" && "bg-emerald-500",
+              "text-white border-none shadow-lg"
             )}
           >
             {statusConfig.label}
@@ -757,21 +917,30 @@ function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOw
             </Badge>
           )}
         </div>
-        {(isFree) && (
-          <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
+          {isFree && (
             <Badge className="bg-emerald-500 text-white border-none shadow-md">
               Free
             </Badge>
-          </div>
-        )}
+          )}
+          {isWhitelisted && (
+            <Badge className="bg-amber-500 text-white border-none shadow-md">
+              🔒 Whitelisted
+            </Badge>
+          )}
+        </div>
       </div>
       <div className="p-4 space-y-3">
         <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
           {event.name}
         </h3>
-        <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
-        {event.type === 'WORKSHOP' && event.professorName && (
-          <p className="text-sm font-medium text-primary">By Prof. {event.professorName}</p>
+        <p className="text-sm text-muted-foreground line-clamp-2">
+          {event.description}
+        </p>
+        {event.type === "WORKSHOP" && event.professorName && (
+          <p className="text-sm font-medium text-primary">
+            By Prof. {event.professorName}
+          </p>
         )}
         <div className="space-y-2 text-sm">
           {event.startDate && (
@@ -792,12 +961,12 @@ function EventCardProduction({ event, view, onClick, isRegistered, isProfessorOw
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className={cn(
-                  'h-full transition-all',
+                  "h-full transition-all",
                   capacityPercentage >= 100
-                    ? 'bg-destructive'
+                    ? "bg-destructive"
                     : capacityPercentage >= 80
-                    ? 'bg-amber-500'
-                    : 'bg-primary'
+                    ? "bg-amber-500"
+                    : "bg-primary"
                 )}
                 style={{ width: `${Math.min(capacityPercentage, 100)}%` }}
               />

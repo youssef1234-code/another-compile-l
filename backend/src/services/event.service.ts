@@ -1244,6 +1244,18 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     await eventRepository.whitelistUser(userId, eventId);
   }
 
+  async removeWhitelistedUser(input: {
+    eventId: string;
+    userId: string;
+  }): Promise<void> {
+    const { eventId, userId } = input;
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    await eventRepository.removeWhitelistedUser(userId, eventId);
+  }
+
   async getWhitelistedUsers(input: { eventId: string }): Promise<IUser[]> {
     const event = await this.repository.findById(input.eventId);
     if (!event) {
@@ -1263,6 +1275,20 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
     }
     return (event.whitelistedUsers?.length ?? 0) > 0;
+  }
+
+  async checkUserWhitelisted(data: {
+    eventId: string;
+    userId: string;
+  }): Promise<boolean> {
+    const event = await this.repository.findById(data.eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    return (
+      event.whitelistedUsers?.some((id) => id.toString() === data.userId) ??
+      false
+    );
   }
 }
 

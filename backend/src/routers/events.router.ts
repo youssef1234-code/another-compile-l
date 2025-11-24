@@ -690,6 +690,17 @@ const eventRoutes = {
       return eventService.whitelistUser(input);
     }),
 
+  removeWhiteListUser: eventsOfficeOnlyProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        userId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return eventService.removeWhitelistedUser(input);
+    }),
+
   getWhitelistUsers: eventsOfficeOnlyProcedure
     .input(
       z.object({
@@ -703,7 +714,7 @@ const eventRoutes = {
       return eventService.getWhitelistedUsers({ eventId });
     }),
 
-  checkEventWhitelisted: eventsOfficeOnlyProcedure
+  checkEventWhitelisted: publicProcedure
     .input(
       z.object({
         eventId: z.string(),
@@ -711,6 +722,17 @@ const eventRoutes = {
     )
     .query(async ({ input }) => {
       return eventService.checkEventWhitelisted(input.eventId);
+    }),
+
+  checkUserWhitelisted: publicProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        userId: z.string(),
+      })
+    )
+    .query(async ({ input }) => {
+      return eventService.checkUserWhitelisted(input);
     }),
 };
 

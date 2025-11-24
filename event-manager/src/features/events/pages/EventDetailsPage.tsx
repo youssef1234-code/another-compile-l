@@ -1,6 +1,6 @@
 /**
  * Production-Ready Event Details Page
- * 
+ *
  * Comprehensive event view with:
  * - Hero section with large event image
  * - Full event details and description
@@ -11,10 +11,9 @@
  * - Related events section
  */
 
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import type { User as EventUser, Registration } from '@event-manager/shared';
+import type { User as EventUser, Registration } from "@event-manager/shared";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/store/authStore";
 import { ROUTES } from "@/lib/constants";
@@ -28,14 +27,14 @@ import { VendorCard } from "@/features/events/components/VendorCard";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { FeedbackSection } from "@/features/events/components/feedback";
-import { formatValidationErrors } from '@/lib/format-errors';
-import { 
-  Edit, 
-  Calendar, 
-  MapPin, 
-  Users, 
-  DollarSign, 
-  Clock, 
+import { formatValidationErrors } from "@/lib/format-errors";
+import {
+  Edit,
+  Calendar,
+  MapPin,
+  Users,
+  DollarSign,
+  Clock,
   User,
   Building2,
   AlertCircle,
@@ -46,13 +45,13 @@ import {
   GraduationCap,
   Store,
   Plane,
-  Dumbbell
+  Dumbbell,
 } from "lucide-react";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import { EventImageCarousel } from "@/components/ui/event-image-carousel";
-import { usePageMeta } from '@/components/layout/page-meta-context';
+import { usePageMeta } from "@/components/layout/page-meta-context";
 
 function EventDetailsPageSkeleton() {
   return (
@@ -103,7 +102,7 @@ export function EventDetailsPage() {
     if (event) {
       setPageMeta({
         title: event.name,
-        description: `${event.type} - ${event.location || 'TBD'}`,
+        description: `${event.type} - ${event.location || "TBD"}`,
       });
     }
   }, [event, setPageMeta]);
@@ -115,18 +114,30 @@ export function EventDetailsPage() {
 
   // Check if the current user is a professor who owns this workshop
   // createdBy might be populated (object) or just an ID (string)
-  const eventCreatorId = event && typeof event.createdBy === 'object' && event.createdBy !== null
-    ? (event.createdBy as EventUser).id
-    : event?.createdBy;
-  
-  const isProfessorOwned = user?.role === 'PROFESSOR' && 
-    event && 
-    event.type === 'WORKSHOP' &&
+  const eventCreatorId =
+    event && typeof event.createdBy === "object" && event.createdBy !== null
+      ? (event.createdBy as EventUser).id
+      : event?.createdBy;
+
+  const isProfessorOwned =
+    user?.role === "PROFESSOR" &&
+    event &&
+    event.type === "WORKSHOP" &&
     eventCreatorId === user.id; // Compare user IDs, not names!
 
+  const isWhitelisted = trpc.events.checkUserWhitelisted.useQuery(
+    {
+      eventId: id!,
+      userId: user?.id || "",
+    },
+    {
+      enabled: !!id && !!user,
+    }
+  );
+
   // Debug logging
-  if (user?.role === 'PROFESSOR' && event?.type === 'WORKSHOP') {
-    console.log('🔍 Frontend Professor Workshop Check:', {
+  if (user?.role === "PROFESSOR" && event?.type === "WORKSHOP") {
+    console.log("🔍 Frontend Professor Workshop Check:", {
       eventId: event.id,
       eventType: event.type,
       createdByType: typeof event.createdBy,
@@ -134,24 +145,23 @@ export function EventDetailsPage() {
       eventCreatorId: eventCreatorId,
       currentUserId: user.id,
       idsMatch: eventCreatorId === user.id,
-      isProfessorOwned
+      isProfessorOwned,
     });
   }
 
   // Allow EVENT_OFFICE, ADMIN, or professors to view registrations for their own workshops
-  const canViewRegistrations = user && (
-    user.role === "EVENT_OFFICE" || 
-    user.role === "ADMIN" || 
-    isProfessorOwned
-  );
+  const canViewRegistrations =
+    user &&
+    (user.role === "EVENT_OFFICE" || user.role === "ADMIN" || isProfessorOwned);
 
-  const { data: registrationsData } = trpc.events.getEventRegistrations.useQuery(
-    { eventId: id!, page: 1, limit: 100 },
-    { enabled: !!id && !!canViewRegistrations }
-  );
+  const { data: registrationsData } =
+    trpc.events.getEventRegistrations.useQuery(
+      { eventId: id!, page: 1, limit: 100 },
+      { enabled: !!id && !!canViewRegistrations }
+    );
 
   const utils = trpc.useUtils();
-  
+
   const registerMutation = trpc.events.registerForEvent.useMutation({
     onSuccess: () => {
       toast.success("Successfully registered for event!");
@@ -162,7 +172,7 @@ export function EventDetailsPage() {
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
       setIsRegistering(false);
     },
   });
@@ -188,34 +198,39 @@ export function EventDetailsPage() {
     );
   }
 
-  const canEdit = (user?.role === "EVENT_OFFICE" && event.type === "BAZAAR") || 
-                  (user?.role === "PROFESSOR" && event.type === "WORKSHOP" && isProfessorOwned);
+  const canEdit =
+    (user?.role === "EVENT_OFFICE" && event.type === "BAZAAR") ||
+    (user?.role === "PROFESSOR" &&
+      event.type === "WORKSHOP" &&
+      isProfessorOwned);
   const hasStarted = new Date(event.startDate) <= new Date();
   const hasEnded = new Date(event.endDate) <= new Date();
-  const registrationClosed = event.registrationDeadline 
+  const registrationClosed = event.registrationDeadline
     ? new Date(event.registrationDeadline) < new Date()
     : false;
   const isFull = event.capacity && event.registeredCount >= event.capacity;
   const isRegistered = isRegisteredData?.isRegistered || false;
-  
+
   // Professors should not be able to register for their own workshops
-  const canRegister = user && 
-    ['STUDENT', 'STAFF', 'TA', 'PROFESSOR'].includes(user.role) &&
+  const canRegister =
+    user &&
+    ["STUDENT", "STAFF", "TA", "PROFESSOR"].includes(user.role) &&
     !hasStarted &&
     !registrationClosed &&
     !isFull &&
     !isRegistered &&
-    !isProfessorOwned; // Professors cannot register for their own workshops
+    !isProfessorOwned &&
+    !isWhitelisted; // Professors cannot register for their own workshops
 
-  const capacityPercentage = event.capacity 
-    ? (event.registeredCount / event.capacity) * 100 
+  const capacityPercentage = event.capacity
+    ? (event.registeredCount / event.capacity) * 100
     : 0;
 
   const handleEdit = () => {
     if (event.type === "BAZAAR") {
-      navigate(ROUTES.EDIT_BAZAAR.replace(':id', event.id));
+      navigate(ROUTES.EDIT_BAZAAR.replace(":id", event.id));
     } else if (event.type === "WORKSHOP") {
-      navigate(ROUTES.EDIT_WORKSHOP.replace(':id', event.id));
+      navigate(ROUTES.EDIT_WORKSHOP.replace(":id", event.id));
     }
   };
 
@@ -225,33 +240,62 @@ export function EventDetailsPage() {
     registerMutation.mutate({ eventId: event.id });
   };
 
-  const typeConfigMap: Record<string, { label: string; color: string; icon: typeof GraduationCap }> = {
-    WORKSHOP: { label: 'Workshop', color: 'bg-blue-500 dark:bg-blue-600', icon: GraduationCap },
-    TRIP: { label: 'Trip', color: 'bg-green-500 dark:bg-green-600', icon: Plane },
-    CONFERENCE: { label: 'Conference', color: 'bg-purple-500 dark:bg-purple-600', icon: Users },
-    BAZAAR: { label: 'Bazaar', color: 'bg-orange-500 dark:bg-orange-600', icon: Store },
-    GYM_SESSION: { label: 'Gym Session', color: 'bg-red-500 dark:bg-red-600', icon: Dumbbell },
+  const typeConfigMap: Record<
+    string,
+    { label: string; color: string; icon: typeof GraduationCap }
+  > = {
+    WORKSHOP: {
+      label: "Workshop",
+      color: "bg-blue-500 dark:bg-blue-600",
+      icon: GraduationCap,
+    },
+    TRIP: {
+      label: "Trip",
+      color: "bg-green-500 dark:bg-green-600",
+      icon: Plane,
+    },
+    CONFERENCE: {
+      label: "Conference",
+      color: "bg-purple-500 dark:bg-purple-600",
+      icon: Users,
+    },
+    BAZAAR: {
+      label: "Bazaar",
+      color: "bg-orange-500 dark:bg-orange-600",
+      icon: Store,
+    },
+    GYM_SESSION: {
+      label: "Gym Session",
+      color: "bg-red-500 dark:bg-red-600",
+      icon: Dumbbell,
+    },
   };
-  const typeConfig = typeConfigMap[event.type] || { label: event.type, color: 'bg-gray-500 dark:bg-gray-600', icon: Calendar };
+  const typeConfig = typeConfigMap[event.type] || {
+    label: event.type,
+    color: "bg-gray-500 dark:bg-gray-600",
+    icon: Calendar,
+  };
 
   const TypeIcon = typeConfig.icon;
 
   return (
-    <div className={cn(
-      "min-h-screen bg-gradient-to-br from-background via-background to-muted/20 transition-opacity duration-200",
-      isLoading && "opacity-60"
-    )}>
+    <div
+      className={cn(
+        "min-h-screen bg-gradient-to-br from-background via-background to-muted/20 transition-opacity duration-200",
+        isLoading && "opacity-60"
+      )}
+    >
       {/* Hero Section */}
       <div className="relative h-[400px] bg-gradient-to-r from-primary/10 via-primary/5 to-background overflow-hidden">
-        {(event.images && event.images.length > 0) ? (
+        {event.images && event.images.length > 0 ? (
           <div className="absolute inset-0">
             <EventImageCarousel images={event.images} alt={event.name} />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
           </div>
         ) : event.imageUrl ? (
           <div className="absolute inset-0">
-            <img 
-              src={event.imageUrl} 
+            <img
+              src={event.imageUrl}
               alt={event.name}
               className="w-full h-full object-cover"
             />
@@ -260,11 +304,11 @@ export function EventDetailsPage() {
         ) : (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
             <div className="text-[120px] opacity-20">
-              {event.type === 'WORKSHOP' && '📚'}
-              {event.type === 'TRIP' && '✈️'}
-              {event.type === 'BAZAAR' && '🛍️'}
-              {event.type === 'CONFERENCE' && '🎤'}
-              {event.type === 'GYM_SESSION' && '🏋️'}
+              {event.type === "WORKSHOP" && "📚"}
+              {event.type === "TRIP" && "✈️"}
+              {event.type === "BAZAAR" && "🛍️"}
+              {event.type === "CONFERENCE" && "🎤"}
+              {event.type === "GYM_SESSION" && "🏋️"}
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
           </div>
@@ -272,12 +316,19 @@ export function EventDetailsPage() {
         <div className="relative max-w-7xl mx-auto h-full flex items-end p-8 pb-6">
           <div className="space-y-3 text-white w-full">
             <div className="flex items-center gap-3 flex-wrap">
-              <Badge className={cn(typeConfig.color, "text-white shadow-lg backdrop-blur-md border border-white/20")}>
+              <Badge
+                className={cn(
+                  typeConfig.color,
+                  "text-white shadow-lg backdrop-blur-md border border-white/20"
+                )}
+              >
                 <TypeIcon className="h-3 w-3 mr-1" />
                 {typeConfig.label}
               </Badge>
-              <Badge 
-                variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"} 
+              <Badge
+                variant={
+                  hasEnded ? "secondary" : hasStarted ? "default" : "outline"
+                }
                 className="shadow-lg backdrop-blur-md bg-background/90 border border-white/20"
               >
                 {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
@@ -289,25 +340,36 @@ export function EventDetailsPage() {
                 </Badge>
               )}
               {event.status === "APPROVED" && (
-                <Badge variant="default" className="bg-emerald-500 shadow-lg backdrop-blur-md border border-white/20">
+                <Badge
+                  variant="default"
+                  className="bg-emerald-500 shadow-lg backdrop-blur-md border border-white/20"
+                >
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Approved
                 </Badge>
               )}
               {event.status === "PENDING" && (
-                <Badge variant="secondary" className="shadow-lg backdrop-blur-md border border-white/20">
+                <Badge
+                  variant="secondary"
+                  className="shadow-lg backdrop-blur-md border border-white/20"
+                >
                   <Clock className="h-3 w-3 mr-1" />
                   Pending Approval
                 </Badge>
               )}
               {event.status === "REJECTED" && (
-                <Badge variant="destructive" className="shadow-lg backdrop-blur-md border border-white/20">
+                <Badge
+                  variant="destructive"
+                  className="shadow-lg backdrop-blur-md border border-white/20"
+                >
                   <XCircle className="h-3 w-3 mr-1" />
                   Rejected
                 </Badge>
               )}
             </div>
-            <h1 className="text-4xl font-bold drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] [text-shadow:_0_2px_8px_rgb(0_0_0_/_80%)]">{event.name}</h1>
+            <h1 className="text-4xl font-bold drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] [text-shadow:_0_2px_8px_rgb(0_0_0_/_80%)]">
+              {event.name}
+            </h1>
             <div className="flex items-center gap-4 text-sm flex-wrap [text-shadow:_0_2px_4px_rgb(0_0_0_/_60%)]">
               <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
                 <Calendar className="h-4 w-4" />
@@ -315,7 +377,9 @@ export function EventDetailsPage() {
               </div>
               <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
                 <MapPin className="h-4 w-4" />
-                <span className="font-medium">{event.location === 'ON_CAMPUS' ? 'On Campus' : 'Off Campus'}</span>
+                <span className="font-medium">
+                  {event.location === "ON_CAMPUS" ? "On Campus" : "Off Campus"}
+                </span>
               </div>
               {event.locationDetails && (
                 <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
@@ -328,7 +392,12 @@ export function EventDetailsPage() {
                   {event.price} EGP
                 </div>
               ) : (
-                <Badge variant="default" className="bg-emerald-500 shadow-lg backdrop-blur-md border border-white/20">FREE</Badge>
+                <Badge
+                  variant="default"
+                  className="bg-emerald-500 shadow-lg backdrop-blur-md border border-white/20"
+                >
+                  FREE
+                </Badge>
               )}
             </div>
           </div>
@@ -372,7 +441,7 @@ export function EventDetailsPage() {
             </Card>
 
             {/* Feedback Section - Comments & Ratings */}
-            <FeedbackSection 
+            <FeedbackSection
               eventId={event.id}
               userId={user?.id}
               userRole={user?.role}
@@ -381,83 +450,112 @@ export function EventDetailsPage() {
             />
 
             {/* Registered Students (EVENT_OFFICE/ADMIN only) */}
-            {registrationsData && registrationsData.registrations.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Registered Participants ({registrationsData.total})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {(registrationsData.registrations as Array<Registration & { user: EventUser }>).map((reg) => (
-                      <div 
-                        key={reg.id} 
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-5 w-5 text-primary" />
+            {registrationsData &&
+              registrationsData.registrations.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      Registered Participants ({registrationsData.total})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {(
+                        registrationsData.registrations as Array<
+                          Registration & { user: EventUser }
+                        >
+                      ).map((reg) => (
+                        <div
+                          key={reg.id}
+                          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <User className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {reg.user.firstName} {reg.user.lastName}
+                              </p>
+                              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                <Mail className="h-3 w-3" />
+                                {reg.user.email}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">
-                              {reg.user.firstName} {reg.user.lastName}
-                            </p>
-                            <p className="text-sm text-muted-foreground flex items-center gap-2">
-                              <Mail className="h-3 w-3" />
-                              {reg.user.email}
-                            </p>
-                          </div>
+                          <Badge
+                            variant={
+                              reg.status === "CONFIRMED"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
+                            {reg.status}
+                          </Badge>
                         </div>
-                        <Badge variant={reg.status === "CONFIRMED" ? "default" : "secondary"}>
-                          {reg.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             {/* Vendors (for Bazaars) */}
-            {event.type === "BAZAAR" && event.vendors && event.vendors.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5" />
-                      Participating Vendors ({event.vendors.length})
-                    </CardTitle>
-                    {(user?.role === "ADMIN" || user?.role === "EVENT_OFFICE") && (
-                      <div className="flex items-center gap-2">
-                        <Switch 
-                          id="show-participants" 
-                          checked={showParticipants}
-                          onCheckedChange={setShowParticipants}
-                        />
-                        <Label htmlFor="show-participants" className="text-sm cursor-pointer">
-                          Show Participants
-                        </Label>
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {event.vendors.map((vendor: { id: string; companyName: string; email: string; boothSize?: string; names?: string[]; emails?: string[] }) => (
-                      <VendorCard 
-                        key={vendor.id}
-                        vendor={vendor}
-                        showParticipants={
-                          (user?.role === "ADMIN" || user?.role === "EVENT_OFFICE") 
-                            ? showParticipants 
-                            : false
-                        }
-                        defaultExpanded={false}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {event.type === "BAZAAR" &&
+              event.vendors &&
+              event.vendors.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5" />
+                        Participating Vendors ({event.vendors.length})
+                      </CardTitle>
+                      {(user?.role === "ADMIN" ||
+                        user?.role === "EVENT_OFFICE") && (
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id="show-participants"
+                            checked={showParticipants}
+                            onCheckedChange={setShowParticipants}
+                          />
+                          <Label
+                            htmlFor="show-participants"
+                            className="text-sm cursor-pointer"
+                          >
+                            Show Participants
+                          </Label>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {event.vendors.map(
+                        (vendor: {
+                          id: string;
+                          companyName: string;
+                          email: string;
+                          boothSize?: string;
+                          names?: string[];
+                          emails?: string[];
+                        }) => (
+                          <VendorCard
+                            key={vendor.id}
+                            vendor={vendor}
+                            showParticipants={
+                              user?.role === "ADMIN" ||
+                              user?.role === "EVENT_OFFICE"
+                                ? showParticipants
+                                : false
+                            }
+                            defaultExpanded={false}
+                          />
+                        )
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
           </div>
 
           {/* Right Column - Sidebar */}
@@ -487,14 +585,18 @@ export function EventDetailsPage() {
                   <div className="space-y-4">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-primary mb-1">
-                        {event.price ? `${event.price} EGP` : 'FREE'}
+                        {event.price ? `${event.price} EGP` : "FREE"}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {event.capacity ? `${event.capacity - event.registeredCount} spots left` : 'Open registration'}
+                        {event.capacity
+                          ? `${
+                              event.capacity - event.registeredCount
+                            } spots left`
+                          : "Open registration"}
                       </p>
                     </div>
-                    <Button 
-                      className="w-full" 
+                    <Button
+                      className="w-full"
                       size="lg"
                       onClick={handleRegister}
                       disabled={isRegistering}
@@ -503,22 +605,32 @@ export function EventDetailsPage() {
                     </Button>
                     {event.registrationDeadline && (
                       <p className="text-xs text-center text-muted-foreground">
-                        Register by {formatDate(new Date(event.registrationDeadline))}
+                        Register by{" "}
+                        {formatDate(new Date(event.registrationDeadline))}
                       </p>
                     )}
                   </div>
                 </CardContent>
               </Card>
-            ) : user && !hasStarted && (
-              <Card className="border-muted shadow-lg">
-                <CardContent className="pt-6">
-                  <div className="space-y-2 text-center">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {isFull ? "Event is full" : registrationClosed ? "Registration closed" : "Registration not available"}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+            ) : (
+              user &&
+              !hasStarted && (
+                <Card className="border-muted shadow-lg">
+                  <CardContent className="pt-6">
+                    <div className="space-y-2 text-center">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {isFull
+                          ? "Event is full"
+                          : registrationClosed
+                          ? "Registration closed"
+                          : !isWhitelisted
+                          ? "Registration not available"
+                          : " You are not Whitelisted for this event"}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
             )}
 
             {/* Capacity Progress */}
@@ -534,12 +646,15 @@ export function EventDetailsPage() {
                       {event.registeredCount} / {event.capacity}
                     </span>
                   </div>
-                  <Progress 
-                    value={capacityPercentage} 
+                  <Progress
+                    value={capacityPercentage}
                     className={cn(
                       "h-2",
-                      capacityPercentage >= 100 && "bg-red-100 dark:bg-red-900/30",
-                      capacityPercentage >= 80 && capacityPercentage < 100 && "bg-orange-100 dark:bg-orange-900/30"
+                      capacityPercentage >= 100 &&
+                        "bg-red-100 dark:bg-red-900/30",
+                      capacityPercentage >= 80 &&
+                        capacityPercentage < 100 &&
+                        "bg-orange-100 dark:bg-orange-900/30"
                     )}
                   />
                   {isFull && (
@@ -598,7 +713,9 @@ export function EventDetailsPage() {
                         <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
                           <p className="font-medium">Instructor</p>
-                          <p className="text-muted-foreground">{event.professorName}</p>
+                          <p className="text-muted-foreground">
+                            {event.professorName}
+                          </p>
                         </div>
                       </div>
                     </>
@@ -610,7 +727,9 @@ export function EventDetailsPage() {
                         <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
                           <p className="font-medium">Faculty</p>
-                          <p className="text-muted-foreground">{event.faculty}</p>
+                          <p className="text-muted-foreground">
+                            {event.faculty}
+                          </p>
                         </div>
                       </div>
                     </>
@@ -623,7 +742,8 @@ export function EventDetailsPage() {
                         <div>
                           <p className="font-medium">Organized By</p>
                           <p className="text-muted-foreground">
-                            {event.createdBy.firstName} {event.createdBy.lastName}
+                            {event.createdBy.firstName}{" "}
+                            {event.createdBy.lastName}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {event.createdBy.role}
@@ -637,7 +757,7 @@ export function EventDetailsPage() {
                 {canEdit && (
                   <>
                     <Separator />
-                    <Button 
+                    <Button
                       onClick={handleEdit}
                       disabled={hasStarted}
                       variant="outline"
