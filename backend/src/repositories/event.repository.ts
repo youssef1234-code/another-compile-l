@@ -352,6 +352,34 @@ export class EventRepository extends BaseRepository<IEvent> {
     }
   }
 
+  async whitelistRole(role: string, eventId: string): Promise<void> {
+    const event = await this.model.findById(eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+    // Initialize array if it doesn't exist
+    if (!event.whitelistedRoles) {
+      event.whitelistedRoles = [];
+    }
+    const roleIndex = event.whitelistedRoles.indexOf(role);
+    if (roleIndex === -1) {
+      event.whitelistedRoles.push(role);
+      await event.save();
+    }
+  }
+
+  async removeWhitelistedRole(role: string, eventId: string): Promise<void> {
+    const event = await this.model.findById(eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+    if (event.whitelistedRoles === undefined) {
+      return;
+    }
+    event.whitelistedRoles = event.whitelistedRoles.filter((r) => r !== role);
+    await event.save();
+  }
+
   async removeWhitelistedUser(userId: string, eventId: string): Promise<void> {
     const event = await this.model.findById(eventId);
     if (!event) {

@@ -17,6 +17,7 @@ import {
   protectedProcedure,
   adminProcedure,
   router,
+  eventsOfficeProcedure,
 } from "../trpc/trpc";
 import { userService } from "../services/user.service";
 import {
@@ -547,7 +548,7 @@ const adminRoutes = {
   /**
    * Admin: Search users
    */
-  searchUsers: adminProcedure
+  searchUsers: eventsOfficeProcedure
     .input(
       z.object({
         query: z.string(),
@@ -567,7 +568,7 @@ const adminRoutes = {
   /**
    * Admin: Get users by role
    */
-  getUsersByRole: adminProcedure
+  getUsersByRole: eventsOfficeProcedure
     .input(
       z.object({
         role: z.string(),

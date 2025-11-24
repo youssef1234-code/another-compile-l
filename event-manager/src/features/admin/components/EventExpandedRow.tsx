@@ -36,8 +36,27 @@ import {
   Check,
   XCircle,
   ClipboardCheck,
+  Plus,
 } from "lucide-react";
 import { formatDate } from "@/lib/design-system";
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import toast from "react-hot-toast";
 
 interface EventExpandedRowProps {
   event: Event;
@@ -81,11 +100,35 @@ export function EventExpandedRow({
     { enabled: !!event.id }
   );
 
-  const { data: whiteListData, isLoading: loadingWhiteList } =
+  const { data: whitelistUserData, isLoading: loadingWhitelist } =
     trpc.events.getWhitelistUsers.useQuery(
       { eventId: event.id, page: 1, limit: 100 },
       { enabled: !!event.id }
     );
+
+  const { data: whitelistRoleData, isLoading: loadingWhitelistRoles } =
+    trpc.events.getWhitelistRoles.useQuery(
+      { eventId: event.id },
+      { enabled: !!event.id }
+    );
+
+  const whiteListUser = trpc.events.whiteListUser.useMutation({
+    onSuccess: () => {
+      toast.success("User added to whitelist successfully");
+    },
+    onError: (error) => {
+      toast.error(`Error adding user to whitelist: ${error.message}`);
+    },
+  });
+
+  const whiteListRole = trpc.events.whitelistRole.useMutation({
+    onSuccess: () => {
+      toast.success("Role added to whitelist successfully");
+    },
+    onError: (error) => {
+      toast.error(`Error adding role to whitelist: ${error.message}`);
+    },
+  });
 
   // Check if current user is admin/event office
   const isAdminOrEventOffice =
@@ -119,6 +162,96 @@ export function EventExpandedRow({
   const hasAnyQuickActions = Boolean(
     canEdit || canArchive || canDelete || hasWorkshopApprovalActions
   );
+
+  // State for whitelist search dialog
+  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<EventUser[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole | "">("");
+
+  // tRPC utils for manual queries
+  const trpcUtils = trpc.useUtils();
+
+  // Function to search users
+  const handleSearchUsers = async (query: string = searchQuery) => {
+    setIsSearching(true);
+    try {
+      // Search by name or email (empty query returns all users)
+      const response = await trpcUtils.client.auth.searchUsers.query({
+        query: query || "",
+        page: 1,
+        limit: 50,
+      });
+      const results = response.users as EventUser[];
+
+      // Filter out users already in whitelist
+      const whitelistedIds = new Set(
+        (whitelistUserData as EventUser[] | undefined)?.map(
+          (user) => user.id
+        ) || []
+      );
+      const filteredResults = results.filter(
+        (user) => !whitelistedIds.has(user.id)
+      );
+
+      setSearchResults(filteredResults);
+    } catch (error) {
+      console.error("Error searching users:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Load all users when user search dialog opens
+  useEffect(() => {
+    if (isSearchDialogOpen) {
+      handleSearchUsers("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSearchDialogOpen]);
+
+  // Debounced search effect for user search
+  useEffect(() => {
+    if (isSearchDialogOpen) {
+      const timer = setTimeout(() => {
+        handleSearchUsers(searchQuery);
+      }, 300); // 300ms debounce
+
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, isSearchDialogOpen]);
+
+  // Dummy function to add user to whitelist
+  const handleWhitelistUser = (userId: string) => {
+    // TODO: Implement actual add user to whitelist logic
+    console.log("Adding user to whitelist:", {
+      userId,
+      eventId: event.id,
+    });
+    whiteListUser.mutate({ userId, eventId: event.id });
+    setIsSearchDialogOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSelectedRole("");
+  };
+
+  // Function to add role to whitelist
+  const handleWhitelistRole = () => {
+    if (!selectedRole) return;
+
+    console.log("Adding role to whitelist:", {
+      role: selectedRole,
+      eventId: event.id,
+    });
+
+    whiteListRole.mutate({ role: selectedRole as UserRole, eventId: event.id });
+    setIsRoleDialogOpen(false);
+    setSelectedRole("");
+  };
 
   return (
     <div className="p-6 bg-muted/30">
@@ -492,17 +625,115 @@ export function EventExpandedRow({
             </Card>
           )}
           {/* WhiteListed */}
-          {isEventWhitelisted && whiteListData && whiteListData.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Whitelisted Users ({whiteListData.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                  Whitelisted Users ({whitelistUserData?.length || 0})
+                </div>
+                {isAdminOrEventOffice && (
+                  <Dialog
+                    open={isSearchDialogOpen}
+                    onOpenChange={setIsSearchDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add User
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <DialogHeader>
+                        <DialogTitle>Add User to Whitelist</DialogTitle>
+                        <DialogDescription>
+                          Search for users by name or email to add them to this
+                          event's whitelist.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            Search User
+                          </label>
+                          <Input
+                            placeholder="Enter name or email..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                              setSearchQuery(e.target.value);
+                            }}
+                          />
+                        </div>
+
+                        {/* Search Results */}
+                        {isSearching && (
+                          <div className="flex items-center justify-center py-8">
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                              <p className="text-sm text-muted-foreground">
+                                Searching users...
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {!isSearching && searchResults.length > 0 && (
+                          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                            <label className="text-sm font-medium">
+                              Search Results ({searchResults.length})
+                            </label>
+                            {searchResults.map((user) => (
+                              <div
+                                key={user.id}
+                                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <User className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">
+                                      {user.firstName} {user.lastName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {user.email}
+                                    </p>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs mt-1"
+                                    >
+                                      {user.role}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleWhitelistUser(user.id)}
+                                >
+                                  Add
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {!isSearching && searchResults.length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            {searchQuery
+                              ? "No users found. Try a different search."
+                              : "No users available to add."}
+                          </p>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {whitelistUserData && whitelistUserData.length > 0 ? (
                 <div className="space-y-3">
-                  {(whiteListData as EventUser[]).map((user) => (
+                  {(whitelistUserData as EventUser[]).map((user) => (
                     <div
                       key={user.id}
                       className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
@@ -529,9 +760,13 @@ export function EventExpandedRow({
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No users whitelisted yet. Click "Add User" to get started.
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           {loadingRegistrations && (
             <Card>
@@ -700,8 +935,103 @@ export function EventExpandedRow({
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">WhiteList</CardTitle>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Whitelisted Roles ({whitelistRoleData?.length || 0})
+                </div>
+                {isAdminOrEventOffice && (
+                  <Dialog
+                    open={isRoleDialogOpen}
+                    onOpenChange={setIsRoleDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Role
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <DialogHeader>
+                        <DialogTitle>Add Role to Whitelist</DialogTitle>
+                        <DialogDescription>
+                          Select a role to whitelist all users with that role
+                          for this event.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            Select Role
+                          </label>
+                          <Select
+                            value={selectedRole}
+                            onValueChange={(value) => {
+                              setSelectedRole(value as UserRole);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={UserRole.STUDENT}>
+                                Student
+                              </SelectItem>
+                              <SelectItem value={UserRole.TA}>
+                                Teaching Assistant
+                              </SelectItem>
+                              <SelectItem value={UserRole.PROFESSOR}>
+                                Professor
+                              </SelectItem>
+                              <SelectItem value={UserRole.STAFF}>
+                                Staff
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {selectedRole && (
+                          <Button
+                            className="w-full"
+                            onClick={handleWhitelistRole}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Entire {selectedRole} Role to Whitelist
+                          </Button>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </CardTitle>
             </CardHeader>
+            <CardContent>
+              {whitelistRoleData && whitelistRoleData.length > 0 ? (
+                <div className="space-y-3">
+                  {(whitelistRoleData as string[]).map((role) => (
+                    <div
+                      key={role}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Users className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{role}</p>
+                          <p className="text-sm text-muted-foreground">
+                            All users with this role
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No roles whitelisted yet. Click "Add Role" to get started.
+                </p>
+              )}
+            </CardContent>
           </Card>
         </div>
       </div>

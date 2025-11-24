@@ -125,7 +125,7 @@ export function EventDetailsPage() {
     event.type === "WORKSHOP" &&
     eventCreatorId === user.id; // Compare user IDs, not names!
 
-  const isWhitelisted = trpc.events.checkUserWhitelisted.useQuery(
+  const isUserWhitelisted = trpc.events.checkUserWhitelisted.useQuery(
     {
       eventId: id!,
       userId: user?.id || "",
@@ -134,6 +134,19 @@ export function EventDetailsPage() {
       enabled: !!id && !!user,
     }
   );
+
+  const isRoleWhitelisted = trpc.events.checkRoleWhitelisted.useQuery(
+    {
+      eventId: id!,
+      role: user?.role!,
+    },
+    {
+      enabled: !!id && !!user && !!user.role,
+    }
+  );
+
+  const isWhitelisted =
+    isRoleWhitelisted.data || isUserWhitelisted.data ? true : false;
 
   // Debug logging
   if (user?.role === "PROFESSOR" && event?.type === "WORKSHOP") {
