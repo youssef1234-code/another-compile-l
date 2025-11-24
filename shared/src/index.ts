@@ -1004,6 +1004,7 @@ export interface Event {
   rejectionReason?: string;
   revisionNotes?: string;
   // Whitelist fields
+  whitelistedUsers?: string[];
   whitelistedRoles?: string[];
 }
 

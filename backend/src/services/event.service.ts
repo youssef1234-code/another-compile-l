@@ -1332,7 +1332,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     if (!event) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
     }
-    return (event.whitelistedRoles ?? []) as UserRole[];
+    return event.whitelistedRoles ?? [];
   }
 }
 

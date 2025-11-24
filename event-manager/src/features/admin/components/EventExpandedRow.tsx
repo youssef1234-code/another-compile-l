@@ -130,6 +130,26 @@ export function EventExpandedRow({
     },
   });
 
+  const removeWhitelistUser = trpc.events.removeWhiteListUser.useMutation({
+    onSuccess: () => {
+      toast.success("User removed from whitelist successfully");
+      trpcUtils.events.getWhitelistUsers.invalidate({ eventId: event.id });
+    },
+    onError: (error) => {
+      toast.error(`Error removing user from whitelist: ${error.message}`);
+    },
+  });
+
+  const removeWhitelistRole = trpc.events.removeWhitelistRole.useMutation({
+    onSuccess: () => {
+      toast.success("Role removed from whitelist successfully");
+      trpcUtils.events.getWhitelistRoles.invalidate({ eventId: event.id });
+    },
+    onError: (error) => {
+      toast.error(`Error removing role from whitelist: ${error.message}`);
+    },
+  });
+
   // Check if current user is admin/event office
   const isAdminOrEventOffice =
     user?.role === UserRole.ADMIN || user?.role === UserRole.EVENT_OFFICE;
@@ -225,14 +245,20 @@ export function EventExpandedRow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, isSearchDialogOpen]);
 
-  // Dummy function to add user to whitelist
+  // Function to add user to whitelist
   const handleWhitelistUser = (userId: string) => {
-    // TODO: Implement actual add user to whitelist logic
     console.log("Adding user to whitelist:", {
       userId,
       eventId: event.id,
     });
-    whiteListUser.mutate({ userId, eventId: event.id });
+    whiteListUser.mutate(
+      { userId, eventId: event.id },
+      {
+        onSuccess: () => {
+          trpcUtils.events.getWhitelistUsers.invalidate({ eventId: event.id });
+        },
+      }
+    );
     setIsSearchDialogOpen(false);
     setSearchQuery("");
     setSearchResults([]);
@@ -248,9 +274,26 @@ export function EventExpandedRow({
       eventId: event.id,
     });
 
-    whiteListRole.mutate({ role: selectedRole as UserRole, eventId: event.id });
+    whiteListRole.mutate(
+      { role: selectedRole as UserRole, eventId: event.id },
+      {
+        onSuccess: () => {
+          trpcUtils.events.getWhitelistRoles.invalidate({ eventId: event.id });
+        },
+      }
+    );
     setIsRoleDialogOpen(false);
     setSelectedRole("");
+  };
+
+  // Function to remove user from whitelist
+  const handleRemoveWhitelistUser = (userId: string) => {
+    removeWhitelistUser.mutate({ userId, eventId: event.id });
+  };
+
+  // Function to remove role from whitelist
+  const handleRemoveWhitelistRole = (role: string) => {
+    removeWhitelistRole.mutate({ role: role as UserRole, eventId: event.id });
   };
 
   return (
@@ -757,6 +800,17 @@ export function EventExpandedRow({
                           </div>
                         </div>
                       </div>
+                      {isAdminOrEventOffice && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleRemoveWhitelistUser(user.id)}
+                          disabled={removeWhitelistUser.isPending}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1023,6 +1077,17 @@ export function EventExpandedRow({
                           </p>
                         </div>
                       </div>
+                      {isAdminOrEventOffice && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleRemoveWhitelistRole(role)}
+                          disabled={removeWhitelistRole.isPending}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -125,7 +125,7 @@ export function EventDetailsPage() {
     event.type === "WORKSHOP" &&
     eventCreatorId === user.id; // Compare user IDs, not names!
 
-  const isUserWhitelisted = trpc.events.checkUserWhitelisted.useQuery(
+  const checkUserWhitelisted = trpc.events.checkUserWhitelisted.useQuery(
     {
       eventId: id!,
       userId: user?.id || "",
@@ -135,7 +135,7 @@ export function EventDetailsPage() {
     }
   );
 
-  const isRoleWhitelisted = trpc.events.checkRoleWhitelisted.useQuery(
+  const checkRoleWhitelisted = trpc.events.checkRoleWhitelisted.useQuery(
     {
       eventId: id!,
       role: user?.role!,
@@ -144,9 +144,6 @@ export function EventDetailsPage() {
       enabled: !!id && !!user && !!user.role,
     }
   );
-
-  const isWhitelisted =
-    isRoleWhitelisted.data || isUserWhitelisted.data ? true : false;
 
   // Debug logging
   if (user?.role === "PROFESSOR" && event?.type === "WORKSHOP") {
@@ -233,7 +230,7 @@ export function EventDetailsPage() {
     !isFull &&
     !isRegistered &&
     !isProfessorOwned &&
-    !isWhitelisted; // Professors cannot register for their own workshops
+    (checkRoleWhitelisted.data || checkUserWhitelisted.data);
 
   const capacityPercentage = event.capacity
     ? (event.registeredCount / event.capacity) * 100
@@ -636,9 +633,12 @@ export function EventDetailsPage() {
                           ? "Event is full"
                           : registrationClosed
                           ? "Registration closed"
-                          : !isWhitelisted
-                          ? "Registration not available"
-                          : " You are not Whitelisted for this event"}
+                          : !(
+                              checkUserWhitelisted.data ||
+                              checkRoleWhitelisted.data
+                            )
+                          ? " You are not Whitelisted for this event"
+                          : "Registration not available"}
                       </p>
                     </div>
                   </CardContent>

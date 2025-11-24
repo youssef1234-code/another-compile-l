@@ -358,8 +358,10 @@ export function EventsPage() {
     return ids;
   }, [myRegistrationsData]);
 
-  // Display events based on active tab
+  // Display events based on active tab with whitelist filtering
   const displayedEvents = useMemo(() => {
+    let events: Event[] = [];
+
     if (activeTab === "registrations") {
       const registrations = registrationsData?.registrations as
         | PopulatedRegistration[]
@@ -367,14 +369,39 @@ export function EventsPage() {
       if (!registrations) return [];
 
       // Extract populated events from registrations
-      return registrations
+      events = registrations
         .map((reg) => reg.event)
         .filter((event): event is Event => !!event);
+    } else {
+      // Browse tab - get events from backend
+      events = browseData?.events || [];
     }
 
-    // Browse tab - return what backend gives us
-    return browseData?.events || [];
-  }, [browseData, registrationsData, activeTab]);
+    // Filter events based on whitelist status
+    if (!user) return events;
+
+    return events.filter((event) => {
+      // Type assertion to access whitelist fields
+      const eventWithWhitelist = event as Event & {
+        whitelistedUsers?: string[];
+        whitelistedRoles?: string[];
+      };
+
+      const whitelistedUsers = eventWithWhitelist.whitelistedUsers || [];
+      const whitelistedRoles = eventWithWhitelist.whitelistedRoles || [];
+
+      // If both arrays are empty, event is not whitelisted (show to everyone)
+      if (whitelistedUsers.length === 0 && whitelistedRoles.length === 0) {
+        return true;
+      }
+
+      // Event is whitelisted, check if user has access
+      const isUserWhitelisted = whitelistedUsers.includes(user.id);
+      const isRoleWhitelisted = whitelistedRoles.includes(user.role);
+
+      return isUserWhitelisted || isRoleWhitelisted;
+    });
+  }, [browseData, registrationsData, activeTab, user]);
 
   const totalPages = activeTab === "browse" ? browseData?.totalPages || 1 : 1;
   const totalEvents =
