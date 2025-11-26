@@ -88,6 +88,9 @@ import { WalletPage } from "@/features/wallet/pages";
 // Profile
 import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 
+// Reports
+import { EventsReportPage } from "@/features/reports/EventsReportPage";
+
 // Protected Route Component
 import {
   ProtectedRoute,
@@ -231,18 +234,18 @@ export const router = createBrowserRouter([
       //   element: <PaymentResultPage />,
       // },
       // payments
-{
-  path: "/checkout/:registrationId",
-  element: <PaymentPage />, // requires auth wrapper if all app is protected
-},
-{
-  path: ROUTES.PAY_SUCCESS,
-  element: <PaymentSuccessPage />,
-},
-{
-  path: ROUTES.PAY_INSUFFICIENT,
-  element: <InsufficientFundsPage />,
-},
+      {
+        path: "/checkout/:registrationId",
+        element: <PaymentPage />, // requires auth wrapper if all app is protected
+      },
+      {
+        path: ROUTES.PAY_SUCCESS,
+        element: <PaymentSuccessPage />,
+      },
+      {
+        path: ROUTES.PAY_INSUFFICIENT,
+        element: <InsufficientFundsPage />,
+      },
 
       // Vendor Routes
       {
@@ -391,6 +394,23 @@ export const router = createBrowserRouter([
           </EventOfficeRoute>
         ),
       },
+
+      {
+        path: ROUTES.EVENTS_REPORTS,
+        element: (
+          <EventOfficeRoute>
+            <EventsReportPage />
+          </EventOfficeRoute>
+        ),
+      },
+      /* {
+        path: ROUTES.SALES_REPORTS,
+        element: (
+          <EventOfficeRoute>
+            <SalesReportsPage />
+          </EventOfficeRoute>
+        ),
+      }, */
 
       // Wallet
       {

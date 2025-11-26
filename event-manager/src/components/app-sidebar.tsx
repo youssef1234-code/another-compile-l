@@ -85,7 +85,7 @@ const navigationConfig: NavItem[] = [
     icon: Calendar,
     url: ROUTES.EVENTS,
     items: [
-      { title: "Browse Events", url: ROUTES.EVENTS, icon: Calendar,roles:["STUDENT", "STAFF", "TA", "PROFESSOR","ADMIN","EVENT_OFFICE"] },
+      { title: "Browse Events", url: ROUTES.EVENTS, icon: Calendar, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "ADMIN", "EVENT_OFFICE"] },
       { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: Settings, roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"] },
       { title: "Favorites", url: ROUTES.FAVORITES, icon: Heart, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
       // { title: "Create Trip", url: ROUTES.CREATE_TRIP, icon: MapPin, roles: ["EVENT_OFFICE"] },
@@ -149,8 +149,10 @@ const navigationConfig: NavItem[] = [
     icon: Dumbbell,
     url: ROUTES.GYM_SCHEDULE,
     items: [
-      { title: "Gym Schedule", url: ROUTES.GYM_SCHEDULE, icon: Calendar , 
-        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR","EVENT_OFFICE","ADMIN"] },
+      {
+        title: "Gym Schedule", url: ROUTES.GYM_SCHEDULE, icon: Calendar,
+        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "EVENT_OFFICE", "ADMIN"]
+      },
       {
         title: "My Sessions",
         url: ROUTES.MY_SESSIONS,
@@ -196,8 +198,25 @@ const navigationConfig: NavItem[] = [
     items: [
       { title: "Platform Setup", url: ROUTES.PLATFORM_SETUP, icon: LayoutGrid },
       { title: "Vendor Polls", url: ROUTES.VENDOR_POLLS, icon: Vote },
-      { title: "Reports", url: ROUTES.EVENT_OFFICE_REPORTS, icon: BarChart3 },
       { title: "QR Codes", url: ROUTES.QR_CODES, icon: Package },
+    ],
+  },
+  {
+    title: "Reports",
+    url: ROUTES.EVENT_OFFICE_REPORTS,
+    icon: BarChart3,
+    roles: ["EVENT_OFFICE", "ADMIN"],
+    items: [
+      {
+        title: "Events Report",
+        url: ROUTES.EVENTS_REPORTS,
+        icon: FileText,
+      },
+      {
+        title: "Sales Report",
+        url: ROUTES.SALES_REPORTS,
+        icon: CreditCard,
+      },
     ],
   },
   {
@@ -252,12 +271,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     >
       <SidebarHeader className="p-2 pb-4 overflow-hidden">
         <Link to={ROUTES.DASHBOARD} className="block">
-          <img 
+          <img
             src={state === "collapsed" ? "/favicon.png" : "/logo.png"}
-            alt="Another Compile L" 
-            className={`w-full h-auto max-h-12 object-contain transition-transform duration-300 ${
-              state === "collapsed" ? "scale-100" : "scale-320"
-           }`}
+            alt="Another Compile L"
+            className={`w-full h-auto max-h-12 object-contain transition-transform duration-300 ${state === "collapsed" ? "scale-100" : "scale-320"
+              }`}
           />
         </Link>
       </SidebarHeader>
