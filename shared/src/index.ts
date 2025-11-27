@@ -848,7 +848,9 @@ export const PaymentStatus = {
 export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
 
 
-
+export const vendorInitCardInput = 
+z.object({ applicationId: z.string().min(1) });
+export type VendorInitCardInput = z.infer<typeof vendorInitCardInput>;
 
 // this is to track wallet transaction types without introducing negatives so can decide on the sign based on this type:
 
@@ -1163,6 +1165,9 @@ export interface Event {
   revisionNotes?: string;
 }
 
+export type VendorPaymentStatus = "FAILED" | "PENDING" | "PAID";
+
+
 export interface VendorApplication {
   id: string;
   companyName: string;
@@ -1181,6 +1186,14 @@ export interface VendorApplication {
 
   status: VendorApprovalStatus;
   rejectionReason?: string;
+
+   // Payment fields (NEW)
+  feeMinor?: number;          // integer cents
+  feeCurrency?: "EGP" | "USD";
+  paymentStatus?: VendorPaymentStatus; // UNPAID | PENDING | PAID
+  acceptedAt?: string;
+  paymentDueAt?: string;      // acceptedAt + 3 days
+  paidAt?: string | null;
 }
 export interface Registration {
   id: string;

@@ -90,6 +90,7 @@ import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 
 // Reports
 import { EventsReportPage } from "@/features/reports/EventsReportPage";
+import { SalesReportPage } from "@/features/reports/SalesReportPage";
 
 // Protected Route Component
 import {
@@ -235,8 +236,12 @@ export const router = createBrowserRouter([
       // },
       // payments
       {
-        path: "/checkout/:registrationId",
-        element: <PaymentPage />, // requires auth wrapper if all app is protected
+        path: ROUTES.VENDOR_CHECKOUT,
+        element: <PaymentPage isVendor={true} />, // requires auth wrapper if all app is protected
+      },
+      {
+        path: ROUTES.CHECKOUT_PAGE,
+        element: <PaymentPage isVendor={false} />, 
       },
       {
         path: ROUTES.PAY_SUCCESS,
@@ -403,14 +408,14 @@ export const router = createBrowserRouter([
           </EventOfficeRoute>
         ),
       },
-      /* {
+      {
         path: ROUTES.SALES_REPORTS,
         element: (
           <EventOfficeRoute>
-            <SalesReportsPage />
+            <SalesReportPage />
           </EventOfficeRoute>
         ),
-      }, */
+      },
 
       // Wallet
       {

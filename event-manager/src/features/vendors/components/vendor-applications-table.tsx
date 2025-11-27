@@ -26,6 +26,7 @@ interface VendorApplicationsTableProps {
   eventTypeCounts: Record<string, number>;
   boothSizeCounts: Record<string, number>;
   isSearching?: boolean;
+  onPayVendorFee?: (app: VendorApplication) => void; 
 }
 
 export function VendorApplicationsTable({
@@ -35,6 +36,7 @@ export function VendorApplicationsTable({
   eventTypeCounts,
   boothSizeCounts,
   isSearching = false,
+  onPayVendorFee = (app: VendorApplication) => {console.log("Pay vendor fee clicked on", app);}, 
 }: VendorApplicationsTableProps) {
   // Toggle between advanced and simple filters
   const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
@@ -60,8 +62,9 @@ export function VendorApplicationsTable({
         statusCounts,
         eventTypeCounts,
         boothSizeCounts,
+        onPayVendorFee,
       }),
-    [statusCounts, eventTypeCounts, boothSizeCounts]
+    [statusCounts, eventTypeCounts, boothSizeCounts,onPayVendorFee]
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({
@@ -77,7 +80,7 @@ export function VendorApplicationsTable({
     getRowCanExpand: () => true,
     shallow: false,
     clearOnDefault: true,
-  });
+    });
 
   return (
     <DataTable 

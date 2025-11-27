@@ -8,11 +8,45 @@ import { type IVendorApplication } from "../models/vendor-application.model";
 import { CreateApplicationSchema } from "@event-manager/shared";
 import mongoose from "mongoose";
 import { userRepository } from "../repositories/user.repository";
+import { computeVendorFee } from "./vendor-pricing.service";
+import { DateTime } from "luxon";
+import { TRPCError } from "@trpc/server/unstable-core-do-not-import";
+
+
+const VENDOR_PAY_DEADLINE_DAYS = 3;
+
+  export async function  assertVendorAppPayable(applicationId: string, vendorUserId: string) {
+  const app = await vendorApplicationRepository.findById(applicationId);
+  if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+
+  if (String(app.createdBy) !== String(vendorUserId)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Not your application" });
+  }
+  if (app.status !== "APPROVED") {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Application is not approved" });
+  }
+  if (app.paymentStatus === "PAID") {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Fee already paid" });
+  }
+  if (!app.paymentAmount || !app.paymentCurrency) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Fee not set yet" });
+  }
+  const now = new Date();
+  if (app.paymentDueAt && app.paymentDueAt < now) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Payment deadline passed" });
+  }
+  return app;
+}
+
+
 
 export class VendorApplicationService extends BaseService<
   IVendorApplication,
   VendorApplicationRepository
 > {
+  
+
+
   constructor(repository: VendorApplicationRepository) {
     super(repository);
   }
@@ -293,6 +327,31 @@ export class VendorApplicationService extends BaseService<
     if (!updated) {
       throw new ServiceError("INTERNAL_ERROR", "Failed to approve application", 500);
     }
+
+
+    const fee = computeVendorFee({
+  type: application.type as "BAZAAR" | "PLATFORM",
+  boothSize: application.boothSize as "TWO_BY_TWO" | "FOUR_BY_FOUR",
+  location: application.location ?? 0,
+  duration: application.duration ?? undefined,
+});
+
+    const acceptedAt = new Date();
+    const paymentDueAt = DateTime.fromJSDate(acceptedAt).plus({ days: VENDOR_PAY_DEADLINE_DAYS }).toJSDate();
+
+    const updatedWithPayment = await this.repository.markAcceptedWithFee(
+      applicationId,
+      {
+        paymentAmount: fee.paymentAmount,
+        paymentCurrency: fee.paymentCurrency,
+        acceptedAt,
+        paymentDueAt,
+      }
+    );
+
+    if (!updatedWithPayment) {
+      throw new ServiceError("INTERNAL_ERROR", "Failed to approve application", 500);
+    }
     
     // Requirement #63: Notify vendor about application approval
     const { notificationService } = await import('./notification.service.js');
@@ -451,7 +510,25 @@ export class VendorApplicationService extends BaseService<
     // Allow deletion of PENDING or REJECTED applications
     // Allow deletion of BAZAAR applications (they don't reserve physical space)
   }
+
+   async getApplicationForVendor(
+    applicationId: string,
+    vendorId: string
+  ): Promise<IVendorApplication> {
+    const app = await this.repository.findById(applicationId);
+    if (!app) {
+      throw new ServiceError("NOT_FOUND", "Application not found", 404);
+    }
+
+    if (String(app.createdBy) !== String(vendorId)) {
+      throw new ServiceError("FORBIDDEN", "Not your application", 403);
+    }
+
+    return app;
+  }
 }
+
+
 export const vendorApplicationService = new VendorApplicationService(
   vendorApplicationRepository,
 );
