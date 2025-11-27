@@ -5,45 +5,18 @@
  * Follows AdminUsersPage pattern with inline editing, filters, sorting
  */
 
+import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/lib/design-system";
+import { cn } from "@/lib/utils";
 import type { Event } from "@event-manager/shared";
+import { UserRole } from "@event-manager/shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
     Calendar,
     MapPin,
-    Users,
-    MoreHorizontal,
-    Trash2,
-    Eye,
-    Edit,
-    Archive,
-    CheckCircle2,
-    XCircle,
-    Clock,
-    ChevronRight,
-    ChevronDown,
-    Send,
+    Users
 } from "lucide-react";
-import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import { InlineEditCell } from "@/components/generic";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { formatDate } from "@/lib/design-system";
-import { cn } from "@/lib/utils";
-import { UserRole } from "@event-manager/shared";
 
 interface GetEventsTableColumnsProps {
     typeCounts: Record<string, number>;
@@ -134,25 +107,7 @@ export function getEventsTableColumns({
             ),
             cell: ({ row }) => {
                 const event = row.original;
-                const isWorkshop = event.type === 'WORKSHOP';
-                const isAdminOrEventOffice = userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE;
-                const isRejected = event.status === 'REJECTED';
-                // Admins cannot inline edit ANY event, Event Office cannot edit workshops
-                const canInlineEdit = onUpdateEvent
-                    && userRole !== UserRole.ADMIN
-                    && !(isWorkshop && isAdminOrEventOffice)
-                    && !(isWorkshop && isRejected);
-
-                return canInlineEdit ? (
-                    <InlineEditCell
-                        value={event.name}
-                        onSave={(newValue) => onUpdateEvent(event.id, 'name', newValue)}
-                        validate={(value) => {
-                            if (value.length < 3) return 'Name too short';
-                            return null;
-                        }}
-                    />
-                ) : (
+                return (
                     <div className="flex items-center gap-2">
                         <span className="font-medium">{event.name}</span>
                     </div>
