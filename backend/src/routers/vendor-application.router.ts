@@ -171,6 +171,16 @@ const applicationRoutes = {
         userId,
       });
     }),
+
+  getApplication: protectedProcedure
+    .input(z.object({ applicationId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const vendorId = (ctx.user!._id as any).toString();
+      return vendorApplicationService.getApplicationForVendor(
+        input.applicationId,
+        vendorId
+      );
+    }),
 };
 
 export const vendorApplicationRouter = router(applicationRoutes);
