@@ -1,8 +1,10 @@
-import { protectedProcedure, router, eventsOfficeProcedure } from "../trpc/trpc";
+import { protectedProcedure, router, eventsOfficeProcedure, vendorProcedure } from "../trpc/trpc";
+
 import {
   CardPaymentInitInput, WalletPaymentInput, WalletTopUpInitInput,
   RefundToWalletInput, PaginationSchema,
-  PaymentStatus
+  PaymentStatus,
+  vendorInitCardInput
 } from "@event-manager/shared";
 import { paymentService } from "../services/payment.service";
 import { TRPCError } from "@trpc/server";
@@ -28,6 +30,12 @@ export const paymentRouter = router({
     .input(CardPaymentInitInput)
     .mutation(async ({ input, ctx }) => {
       return paymentService.initCardPayment((ctx.user!._id as any).toString(), input);
+    }),
+
+  initVendorCard: protectedProcedure
+    .input(vendorInitCardInput)
+    .mutation(async ({ input, ctx }) => {
+      return paymentService.initVendorCard(String(ctx.user!._id), { applicationId: input.applicationId });
     }),
 
   // 2) Pay using wallet

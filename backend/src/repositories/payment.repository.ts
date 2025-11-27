@@ -60,7 +60,7 @@ findByStripePI(piId: string, opts?: { session?: ClientSession }) {
     .session(opts?.session ?? null);
 }
 
-findById2(id: string, opts?: { session?: ClientSession; lean?: boolean }) {
+findByIdForTransaction(id: string, opts?: { session?: ClientSession; lean?: boolean }) {
   const q = this.model.findById(id)
     .select({ _id: 1, amountMinor: 1, currency: 1, event: 1, user: 1, status: 1 });
   if (opts?.session) q.session(opts.session);

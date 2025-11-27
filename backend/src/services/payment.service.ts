@@ -16,6 +16,8 @@ import { userRepository } from "../repositories/user.repository";
 import { mailService } from "./mail.service";
 import { eventRepository } from "../repositories/event.repository";
 import { registrationRepository } from "../repositories/registration.repository";
+import { assertVendorAppPayable } from "../services/vendor-application.service";
+import { vendorApplicationRepository } from "../repositories/vendor-application.repository";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
 const DEFAULT_CURRENCY = (process.env.CURRENCY ?? "EGP") as "EGP" | "USD";
@@ -258,40 +260,95 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     }
   }
 
+  async initVendorCard(userId: string, input: { applicationId: string }) {
+    // guard
+    const app = await assertVendorAppPayable(input.applicationId, userId);
 
+<<<<<<< HEAD
   async handleStripeWebhook(evt: Stripe.Event) {
+=======
+    // create local payment row (PENDING)
+    const pay = await paymentRepository.create({
+      user: userId,
+      method: PaymentMethod.STRIPE_CARD,
+      status: PaymentStatus.PENDING,
+      purpose: "VENDOR_FEE",
+      amountMinor: app.paymentAmount!,
+      currency: app.paymentCurrency!,
+      vendorApplication: (app._id as string),
+    });
 
-    try {
-      console.log("Stripe webhook received:", evt.type);
+    // create Stripe PI
+    const pi = await stripe.paymentIntents.create({
+      amount: app.paymentAmount!,                                 // minor
+      currency: app.paymentCurrency!.toLowerCase(),
+      automatic_payment_methods: { enabled: true },
+      metadata: {
+        purpose: "VENDOR_FEE",
+        userId,
+        applicationId: String(app._id),
+        paymentId: String(pay._id),
+      },
+    });
 
-      const piObj = evt.data.object as Stripe.PaymentIntent;
-      const piId = piObj?.id;
+    await paymentRepository.update(String(pay._id), {
+      stripePaymentIntentId: pi.id,
+      stripeClientSecret: pi.client_secret,
+    });
 
-      const terminalFailureEvents = new Set([
-        "payment_intent.payment_failed",
-        "payment_intent.canceled",
-        "payment_intent.processing_failed",
-        "payment_intent.requires_payment_method", // treat as failure for our flow if desired
-      ]);
+    return {
+      paymentId: String(pay._id),
+      clientSecret: pi.client_secret!,
+      status: pay.status,
+    };
+  }
 
-      if (terminalFailureEvents.has(evt.type)) {
-        if (!piId) {
-          console.warn("Terminal failure event without PI id", evt.type);
-          return { ok: true };
-        }
-        const p = await paymentRepository.findByStripePI(piId);
-        if (p) {
+// payment.service.ts (or wherever your webhook lives)
+async handleStripeWebhook(evt: Stripe.Event) {
+  try {
+    console.log("Stripe webhook received:", evt.type);
+>>>>>>> d525cef9c645d37322b10c7df4a4c1158d95df90
+
+    // Always parse PI + metadata up-front (we need it for both failure/success)
+    const piObj = evt.data.object as Stripe.PaymentIntent;
+    const piId  = piObj?.id;
+    const meta  = (piObj?.metadata || {}) as Record<string, string | undefined>;
+    const purpose = meta.purpose as ("EVENT_PAYMENT" | "WALLET_TOPUP" | "VENDOR_FEE" | undefined);
+    const userId  = meta.userId;
+    const eventId = meta.eventId;
+    const registrationId  = meta.registrationId;
+    const applicationId   = meta.applicationId; // for vendor flow
+    const paymentIdMeta   = meta.paymentId;     // optional shortcut
+
+    // -----------------------------------------------------------------------
+    // 1) Handle terminal failures (mark Payment=FAILED; optionally mark App=FAILED)
+    // -----------------------------------------------------------------------
+    const terminalFailureEvents = new Set([
+      "payment_intent.payment_failed",
+      "payment_intent.canceled",
+      "payment_intent.processing_failed",
+      "payment_intent.requires_payment_method", // treat as failure for our flow
+    ]);
+
+    if (terminalFailureEvents.has(evt.type)) {
+      if (!piId) {
+        console.warn("Terminal failure event without PI id", evt.type);
+        return { ok: true };
+      }
+      const p = paymentIdMeta
+        ? await paymentRepository.findById(paymentIdMeta)
+        : await paymentRepository.findByStripePI(piId);
+
+      if (p) {
+        if (p.status !== PaymentStatus.SUCCEEDED) {
           await paymentRepository.update(
             (p._id as any).toString(),
             { status: PaymentStatus.FAILED },
           );
           console.log("Marked local payment as FAILED for PI:", piId, "event:", evt.type);
-        } else {
-          console.warn("No local payment found to mark FAILED for PI:", piId);
         }
-        return { ok: true };
-      }
 
+<<<<<<< HEAD
       // Proceed only for succeeded intents; ignore other non-terminal events
       if (evt.type !== "payment_intent.succeeded") {
         console.log("Ignoring non-terminal stripe event:", evt.type);
@@ -435,13 +492,173 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
         });
       }
 
+=======
+        // Optional: if this was a vendor fee, also reflect failure on the application
+        if (purpose === "VENDOR_FEE" && applicationId) {
+          const { vendorApplicationRepository } = await import("../repositories/vendor-application.repository");
+          await vendorApplicationRepository.failPayment(applicationId);
+        }
+      } else {
+        console.warn("No local payment found to mark FAILED for PI:", piId);
+      }
+>>>>>>> d525cef9c645d37322b10c7df4a4c1158d95df90
       return { ok: true };
-    } catch (e) {
-      console.error("Webhook outer error", e);
-      // Return ok so Stripe doesn't retry forever if this is non-recoverable
-      return { ok: false };
     }
+
+    // -----------------------------------------------------------------------
+    // 2) Ignore non-terminal non-success events
+    // -----------------------------------------------------------------------
+    if (evt.type !== "payment_intent.succeeded") {
+      console.log("Ignoring non-terminal stripe event:", evt.type);
+      return { ok: true };
+    }
+
+    if (!userId) {
+      console.warn("PI missing userId metadata:", piObj.id);
+      return { ignored: true };
+    }
+    console.log(`Processing succeeded PI ${piObj.id} for user ${userId}, purpose=${purpose}`);
+
+    // -----------------------------------------------------------------------
+    // 3) Success path (single transaction)
+    // -----------------------------------------------------------------------
+    const session = await startSession();
+    let paymentDoc: any = null;
+    let user: any = null;
+    let event: any = null;
+    let app: any  = null; // vendor application (for VENDOR_FEE)
+
+    try {
+      await session.withTransaction(async () => {
+        // Load the user (mutations later may require existence)
+        user = await userRepository.findById(userId);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+
+        // Find the local payment row created at init
+        const p = paymentIdMeta
+          ? await paymentRepository.findByIdForTransaction(paymentIdMeta, { session })
+          : await paymentRepository.findByStripePI(piObj.id, { session });
+
+        if (!p) {
+          console.warn("No local payment row for PI:", piObj.id);
+          return; // nothing to mutate; commit nothing
+        }
+
+        // Idempotency
+        if (p.status === PaymentStatus.SUCCEEDED) {
+          paymentDoc = p.toObject?.() ?? p;
+          return;
+        }
+
+        console.log(`Found local payment ${p._id} with status ${p.status}`);
+
+        // Common: mark local Payment as SUCCEEDED
+        const updated = await paymentRepository.update(
+          String(p._id),
+          { status: PaymentStatus.SUCCEEDED },
+          session
+        );
+        paymentDoc = updated?.toObject ? updated.toObject() : updated;
+
+        // Purpose-specific effects
+        if (purpose === "WALLET_TOPUP") {
+          await walletRepository.createWithSession({
+            user: userId,
+            type: WalletTxnType.CREDIT_TOPUP,
+            amountMinor: piObj.amount_received ?? piObj.amount ?? 0,
+            currency: (piObj.currency?.toUpperCase() as any) ?? DEFAULT_CURRENCY,
+            reference: { paymentId: p._id as any, note: "Stripe top-up" },
+          }, session);
+        }
+
+        if (purpose === "EVENT_PAYMENT") {
+          if (!eventId || !registrationId) {
+            console.log("EVENT_PAYMENT missing eventId/registrationId for PI:", piObj.id);
+            // we've already marked payment SUCCEEDED; if you prefer, you could flip to FAILED here.
+            return;
+          }
+          const reg = await registrationRepository.findById(registrationId);
+          event = await eventRepository.findById(eventId);
+          if (!reg || !reg.isActive) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Registration missing' });
+          if (!event) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event missing' });
+
+          const now = new Date();
+          if (reg.status !== 'PENDING' || (reg.holdUntil && reg.holdUntil <= now)) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Hold expired' });
+          }
+          if (event.capacity) {
+            const used = await registrationRepository.countActiveForCapacity(eventId, now);
+            if (used >= event.capacity) {
+              throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event became full' });
+            }
+          }
+
+          await registrationRepository.update(registrationId, {
+            status: RegistrationStatus.CONFIRMED,
+            paymentStatus: PaymentStatus.SUCCEEDED,
+            paymentAmount: piObj.amount_received ?? piObj.amount ?? 0,
+            holdUntil: null,
+          }, session);
+        }
+
+        if (purpose === "VENDOR_FEE") {
+          if (!applicationId) {
+            console.warn("VENDOR_FEE without applicationId in metadata for PI:", piObj.id);
+            return;
+          }
+          const { vendorApplicationRepository } = await import("../repositories/vendor-application.repository");
+          // mark vendor application as paid
+          const updatedApp = await vendorApplicationRepository.markPaid(applicationId, new Date(), session);
+          app = updatedApp?.toObject?.() ?? updatedApp;
+
+          // (Optional) Load bazaar event for email context
+          if (app?.bazaarId) {
+            event = await eventRepository.findById(String(app.bazaarId));
+          }
+        }
+      }); // end withTransaction
+    } finally {
+      await session.endSession();
+    }
+
+    console.log("Stripe webhook processing completed inside transaction");
+
+    // -----------------------------------------------------------------------
+    // 4) Send receipt email (after the tx commits)
+    // -----------------------------------------------------------------------
+    if (!user || !paymentDoc) {
+      console.warn("Missing user or payment doc for email, skipping");
+      return { ok: true };
+    }
+
+    // Resolve event for email if not already present
+    if (!event && paymentDoc.event) {
+      event = await eventRepository.findById((paymentDoc.event as any).toString());
+    }
+
+    const eventNameForEmail =
+      purpose === "WALLET_TOPUP"
+        ? "Wallet Top-up"
+        : purpose === "VENDOR_FEE"
+          ? (event?.name ? `${event.name} — Vendor Fee` : "Vendor Fee")
+          : (event?.name ?? "Event");
+
+    await mailService.sendPaymentReceiptEmail(user.email, {
+      name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email,
+      eventName: eventNameForEmail,
+      amount: (paymentDoc.amountMinor ?? 0) / 100,            // major for email
+      currency: paymentDoc.currency,
+      receiptId: (paymentDoc._id as any)?.toString() ?? 'unknown',
+      paymentDate: new Date(),
+    });
+
+    return { ok: true };
+  } catch (e) {
+    console.error("Webhook outer error", e);
+    // Return ok so Stripe doesn't retry forever if this is non-recoverable
+    return { ok: false };
   }
+}
 
   // Queries
   async getMyPayments(userId: string, page: number, limit: number) {

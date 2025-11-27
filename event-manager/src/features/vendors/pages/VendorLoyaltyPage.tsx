@@ -89,24 +89,9 @@ export function VendorLoyaltyPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 backdrop-blur-sm">
-            <Sparkles className="h-8 w-8 text-amber-500" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">My Loyalty Program</h1>
-            <p className="text-muted-foreground mt-1">
-              Offer exclusive discounts to the GUC community
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="space-y-6">
+    <>
+      {/* Content with constrained width */}
+      <div className="mx-auto max-w-5xl space-y-6 mt-6">
         {isLoadingRequests ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -140,13 +125,19 @@ export function VendorLoyaltyPage() {
                 </AlertDescription>
               </Alert>
             )}
+          </>
+        )}
+      </div>
 
-            {/* Full Application History */}
-            {vendorRequests && vendorRequests.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Application History</h3>
-                <div className="grid gap-4">
-                  {(vendorRequests as any[]).map((request: any, index: number) => {
+      {/* Full Width Application History */}
+      {!isLoadingRequests && vendorRequests && vendorRequests.length > 0 && (
+        <div className="w-full mt-8">
+          <div className="px-4 mb-3">
+            <h3 className="text-lg font-semibold">Application History</h3>
+          </div>
+          <div className="px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {(vendorRequests as any[]).map((request: any, index: number) => {
                     const getStatusIcon = () => {
                       switch (request.status) {
                         case 'cancelled':
@@ -183,10 +174,10 @@ export function VendorLoyaltyPage() {
                     return (
                       <div
                         key={request.id}
-                        className={`p-4 rounded-lg border space-y-3 ${
+                        className={`p-4 rounded-lg border space-y-3 bg-card ${
                           isCurrent 
-                            ? 'bg-primary/5 border-primary/50' 
-                            : 'bg-muted/30'
+                            ? 'border-primary/50 shadow-sm' 
+                            : 'border-border'
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -202,7 +193,7 @@ export function VendorLoyaltyPage() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-1 gap-3 text-sm">
                           <div>
                             <span className="text-muted-foreground">Discount:</span>{' '}
                             <span className="font-medium">{request.discountRate}%</span>
@@ -222,12 +213,10 @@ export function VendorLoyaltyPage() {
                       </div>
                     );
                   })}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

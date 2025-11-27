@@ -19,9 +19,10 @@ export interface IPayment extends IBaseDocument {
   // Stripe-specific
   stripePaymentIntentId?: string;
   stripeClientSecret?: string;
+  vendorApplication?: string;
+  
 
-  // Optional: purpose for card-only top-ups
-  purpose?: "EVENT_PAYMENT" | "WALLET_TOPUP";
+  purpose?: "EVENT_PAYMENT" | "WALLET_TOPUP" | "VENDOR_FEE";
 
 }
 
@@ -39,6 +40,8 @@ const PaymentSchema = createBaseSchema<IPayment>(
 
     stripePaymentIntentId: { type: String },
     stripeClientSecret: { type: String },
+    vendorApplication: { type: String, ref: "VendorApplication" },
+
 
     purpose: { type: String }, // "EVENT_PAYMENT" | "WALLET_TOPUP"
   },

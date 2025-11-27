@@ -236,8 +236,12 @@ export const router = createBrowserRouter([
       // },
       // payments
       {
-        path: "/checkout/:registrationId",
-        element: <PaymentPage />, // requires auth wrapper if all app is protected
+        path: ROUTES.VENDOR_CHECKOUT,
+        element: <PaymentPage isVendor={true} />, // requires auth wrapper if all app is protected
+      },
+      {
+        path: ROUTES.CHECKOUT_PAGE,
+        element: <PaymentPage isVendor={false} />, 
       },
       {
         path: ROUTES.PAY_SUCCESS,
