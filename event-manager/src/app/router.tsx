@@ -90,6 +90,7 @@ import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 
 // Reports
 import { EventsReportPage } from "@/features/reports/EventsReportPage";
+import { SalesReportPage } from "@/features/reports/SalesReportPage";
 
 // Protected Route Component
 import {
@@ -403,14 +404,14 @@ export const router = createBrowserRouter([
           </EventOfficeRoute>
         ),
       },
-      /* {
+      {
         path: ROUTES.SALES_REPORTS,
         element: (
           <EventOfficeRoute>
-            <SalesReportsPage />
+            <SalesReportPage />
           </EventOfficeRoute>
         ),
-      }, */
+      },
 
       // Wallet
       {

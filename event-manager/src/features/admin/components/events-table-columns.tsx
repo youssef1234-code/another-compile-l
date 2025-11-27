@@ -7,12 +7,12 @@
 
 import type { Event } from "@event-manager/shared";
 import type { ColumnDef } from "@tanstack/react-table";
-import { 
-  Calendar, 
-  MapPin, 
-  Users, 
-  MoreHorizontal, 
-  Trash2, 
+import {
+  Calendar,
+  MapPin,
+  Users,
+  MoreHorizontal,
+  Trash2,
   Eye,
   Edit,
   Archive,
@@ -87,69 +87,13 @@ function EventTypeBadge({ type }: { type: string }) {
   );
 }
 
-// Event Status Badge Component
-function EventStatusBadge({ status, rejectionReason }: { status: string; rejectionReason?: string }) {
-  const colors: Record<string, string> = {
-    PUBLISHED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
-    DRAFT: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-800",
-    PENDING: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
-    PENDING_APPROVAL: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
-    APPROVED: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
-    REJECTED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
-    NEEDS_EDITS: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
-    CANCELLED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
-  };
 
-  const labels: Record<string, string> = {
-    PUBLISHED: "Published",
-    DRAFT: "Draft",
-    PENDING: "Pending",
-    PENDING_APPROVAL: "Pending Approval",
-    APPROVED: "Approved",
-    REJECTED: "Rejected",
-    NEEDS_EDITS: "Needs Edits",
-    CANCELLED: "Cancelled",
-  };
-
-  const badge = (
-    <Badge variant="outline" className={cn("font-medium", colors[status])}>
-      {labels[status] || status}
-    </Badge>
-  );
-
-  // Show tooltip for rejected status with rejection reason
-  if (status === 'REJECTED' && rejectionReason) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {badge}
-          </TooltipTrigger>
-          <TooltipContent className="max-w-xs">
-            <p className="font-semibold mb-1">Rejection Reason:</p>
-            <p className="text-sm">{rejectionReason}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
-  return badge;
-}
 
 export function getEventsTableColumns({
   typeCounts,
   statusCounts,
   userRole,
   onUpdateEvent,
-  onViewDetails,
-  onEditEvent,
-  onArchiveEvent,
-  onDeleteEvent,
-  onPublishEvent,
-  onApproveWorkshop,
-  onRejectWorkshop,
-  onNeedsEdits,
 }: GetEventsTableColumnsProps): ColumnDef<Event>[] {
   // Define all type options
   const allTypeOptions = [
@@ -176,52 +120,6 @@ export function getEventsTableColumns({
 
   return [
     {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-          className="translate-y-0.5"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-          className="translate-y-0.5"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-      size: 40,
-    },
-    {
-      id: "expand",
-      header: () => null,
-      cell: ({ row }) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => row.toggleExpanded()}
-          className="p-0 h-8 w-8"
-        >
-          {row.getIsExpanded() ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </Button>
-      ),
-      enableSorting: false,
-      enableHiding: false,
-      size: 40,
-    },
-    {
       id: "name",
       accessorKey: "name",
       header: ({ column }) => (
@@ -233,11 +131,11 @@ export function getEventsTableColumns({
         const isAdminOrEventOffice = userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE;
         const isRejected = event.status === 'REJECTED';
         // Admins cannot inline edit ANY event, Event Office cannot edit workshops
-        const canInlineEdit = onUpdateEvent 
+        const canInlineEdit = onUpdateEvent
           && userRole !== UserRole.ADMIN
-          && !(isWorkshop && isAdminOrEventOffice) 
+          && !(isWorkshop && isAdminOrEventOffice)
           && !(isWorkshop && isRejected);
-        
+
         return canInlineEdit ? (
           <InlineEditCell
             value={event.name}
@@ -277,35 +175,6 @@ export function getEventsTableColumns({
         label: "Type",
         variant: "multiSelect" as const,
         options: typeOptions,
-      },
-      size: 130,
-    },
-    {
-      id: "status",
-      accessorKey: "status",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
-      ),
-      cell: ({ row }) => {
-        const event = row.original;
-        return <EventStatusBadge status={row.getValue("status")} rejectionReason={event.rejectionReason} />;
-      },
-      enableColumnFilter: true,
-      filterFn: (row, id, value) => {
-        return Array.isArray(value) && value.includes(row.getValue(id));
-      },
-      meta: {
-        label: "Status",
-        variant: "multiSelect" as const,
-        options: [
-          { label: "Published", value: "PUBLISHED", count: statusCounts.PUBLISHED, icon: CheckCircle2 },
-          { label: "Draft", value: "DRAFT", count: statusCounts.DRAFT, icon: Clock },
-          { label: "Pending", value: "PENDING", count: statusCounts.PENDING, icon: Clock },
-          { label: "Pending Approval", value: "PENDING_APPROVAL", count: statusCounts.PENDING_APPROVAL, icon: Clock },
-          { label: "Approved", value: "APPROVED", count: statusCounts.APPROVED, icon: CheckCircle2 },
-          { label: "Rejected", value: "REJECTED", count: statusCounts.REJECTED, icon: XCircle },
-          { label: "Needs Edits", value: "NEEDS_EDITS", count: statusCounts.NEEDS_EDITS, icon: Edit },
-        ],
       },
       size: 130,
     },
@@ -403,13 +272,13 @@ export function getEventsTableColumns({
         // Custom filter to exclude null/undefined/empty values
         const event = row.original;
         const faculty = row.getValue(id) as string | undefined;
-        
+
         // If no filter is selected, show all
         if (!value || value.length === 0) return true;
-        
+
         // Only show workshops when filtering by faculty
         if (event.type !== 'WORKSHOP') return false;
-        
+
         // Only include rows that have a non-empty faculty value AND it matches the filter
         return faculty && faculty.trim() !== '' ? value.includes(faculty) : false;
       },
@@ -506,123 +375,6 @@ export function getEventsTableColumns({
         operators: ["gt", "lt", "gte", "lte", "eq"],
       },
       size: 100,
-    },
-    {
-      id: "createdAt",
-      accessorKey: "createdAt",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Created" />
-      ),
-      cell: ({ row }) => {
-        const date = row.getValue("createdAt") as Date;
-        return <span className="text-sm text-muted-foreground">{formatDate(date)}</span>;
-      },
-      enableColumnFilter: true,
-      meta: {
-        label: "Created Date",
-        variant: "dateRange" as const,
-        operators: ["gt", "lt", "gte", "lte", "isBetween"],
-      },
-      size: 130,
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        const event = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[200px]">
-              {onViewDetails && (
-                <DropdownMenuItem onClick={() => onViewDetails(event.id)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
-              )}
-              {/* Only show edit for:
-                  - Workshops: professors only (not admins, not event office, not rejected)
-                  - Non-workshops: Event Office only (Admins cannot edit ANY events) */}
-              {onEditEvent 
-                && userRole !== UserRole.ADMIN
-                && !(event.type === 'WORKSHOP' && (userRole === UserRole.EVENT_OFFICE))
-                && !(event.type === 'WORKSHOP' && event.status === 'REJECTED')
-                && (
-                <DropdownMenuItem onClick={() => onEditEvent(event.id)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Event
-                </DropdownMenuItem>
-              )}
-              {onPublishEvent && event.status === 'DRAFT' && (
-                <DropdownMenuItem onClick={() => onPublishEvent(event.id)}>
-                  <Send className="mr-2 h-4 w-4" />
-                  Publish
-                </DropdownMenuItem>
-              )}
-              
-              {/* Workshop Approval Actions - For PENDING_APPROVAL or NEEDS_EDITS workshops and Event Office/Admin */}
-              {event.type === 'WORKSHOP' && (event.status === 'PENDING_APPROVAL' || event.status === 'NEEDS_EDITS') && (userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE) && (
-                <>
-                  {onApproveWorkshop && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => onApproveWorkshop(event.id)}
-                        className="text-green-600 focus:text-green-600"
-                      >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Approve Workshop
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {onNeedsEdits && event.status === 'PENDING_APPROVAL' && (
-                    <DropdownMenuItem onClick={() => onNeedsEdits(event.id)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Request Edits
-                    </DropdownMenuItem>
-                  )}
-                  {onRejectWorkshop && (
-                    <DropdownMenuItem
-                      onClick={() => onRejectWorkshop(event.id)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Reject Workshop
-                    </DropdownMenuItem>
-                  )}
-                </>
-              )}
-
-              {/* Archive and Delete - professors can do this on workshops, admin/event office on non-workshops */}
-              {onArchiveEvent && !((userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE) && event.type === 'WORKSHOP') && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => onArchiveEvent(event.id)}>
-                    <Archive className="mr-2 h-4 w-4" />
-                    Archive
-                  </DropdownMenuItem>
-                </>
-              )}
-              {onDeleteEvent && !((userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE) && event.type === 'WORKSHOP') && (
-                <DropdownMenuItem
-                  onClick={() => onDeleteEvent(event.id)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-      enableSorting: false,
-      enableHiding: false,
-      size: 60,
     },
   ];
 }

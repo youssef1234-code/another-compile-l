@@ -17,6 +17,7 @@ import { Event } from "../models/event.model";
 import { Registration } from "../models/registration.model";
 import { Court } from "../models/court.model";
 import { CourtReservation } from "../models/court-reservation.model";
+import { Payment } from "../models/payment.model";
 import { hashPassword } from "../utils/auth.util";
 import { config } from "./env";
 
@@ -450,6 +451,8 @@ export async function seedComprehensiveData(): Promise<void> {
       (e) => e.status === "PUBLISHED",
     );
 
+    let paymentCount = 0;
+
     for (const student of students) {
       // Register each student for 2-3 random events
       const eventsToRegister = publishedEvents
@@ -463,13 +466,33 @@ export async function seedComprehensiveData(): Promise<void> {
         });
 
         if (!existingReg) {
-          await Registration.create({
+          const registration = await Registration.create({
             user: student._id,
             event: event._id,
             status: "CONFIRMED",
             registeredAt: new Date(),
           } as any);
           console.log(`  ✓ Registered ${student.firstName} for ${event.name}`);
+
+          // Create payment if event is not free
+          if (event.price && event.price > 0) {
+            const paymentMethod = Math.random() > 0.5 ? "STRIPE_CARD" : "WALLET";
+
+            await Payment.create({
+              user: student._id,
+              registration: registration._id,
+              event: event._id,
+              method: paymentMethod,
+              status: "SUCCEEDED",
+              amountMinor: event.price, // Convert to minor units (cents)
+              currency: "EGP",
+              purpose: "EVENT_PAYMENT",
+              createdAt: new Date(),
+            });
+
+            paymentCount++;
+            console.log(`    💳 Created ${paymentMethod} payment of ${event.price} EGP`);
+          }
         }
       }
     }
@@ -509,23 +532,23 @@ export async function seedComprehensiveData(): Promise<void> {
       // For each court, create 2-4 random reservations per day
       for (const court of courts) {
         const reservationsPerDay = Math.floor(Math.random() * 3) + 2; // 2-4 reservations
-        
+
         // Shuffle time slots and pick some
         const shuffledSlots = [...reservationTimeSlots].sort(() => 0.5 - Math.random());
         const selectedSlots = shuffledSlots.slice(0, reservationsPerDay);
 
         for (const timeSlot of selectedSlots) {
           const randomStudent = studentUsers[Math.floor(Math.random() * studentUsers.length)];
-          
+
           // Create date for this reservation
           const reservationDate = new Date();
           reservationDate.setDate(reservationDate.getDate() + dayOffset);
           reservationDate.setHours(timeSlot.hour, timeSlot.minute, 0, 0);
-          
+
           // Duration: 60 or 90 minutes
           const durationMinutes = Math.random() > 0.5 ? 60 : 90;
           const endDate = new Date(reservationDate.getTime() + durationMinutes * 60 * 1000);
-          
+
           // Derive studentGucId from available fields
           const derivedStudentGucId =
             (randomStudent as any).studentId ||
@@ -550,9 +573,9 @@ export async function seedComprehensiveData(): Promise<void> {
               duration: durationMinutes,
               status: "BOOKED",
             } as any);
-            
+
             reservationCount++;
-            
+
             if (reservationCount <= 5) {
               console.log(
                 `  ✓ Created reservation for ${randomStudent.firstName} at ${court.name} on ${reservationDate.toLocaleDateString()} at ${timeSlot.hour}:00`,
@@ -571,6 +594,7 @@ export async function seedComprehensiveData(): Promise<void> {
     console.log(`   Events: ${createdEvents.length}`);
     console.log(`   Courts: ${courts.length}`);
     console.log(`   Court Reservations: ${reservationCount}`);
+    console.log(`   Payments: ${paymentCount}`);
     console.log("\n🔐 Sample Credentials:");
     console.log("   Student: john.doe@student.guc.edu.eg / Password123!");
     console.log("   Professor: prof.brown@prof.guc.edu.eg / Password123!");
