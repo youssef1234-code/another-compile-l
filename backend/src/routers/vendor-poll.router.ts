@@ -11,15 +11,15 @@ import {
   eventsOfficeProcedure,
   router,
   protectedProcedure,
-} from "../trpc/trpc";
-import { vendorPollService } from "../services/vendor-poll.service";
+} from '../trpc/trpc';
+import { vendorPollService } from '../services/vendor-poll.service';
 import {
   CreateVendorPollSchema,
   VoteOnPollSchema,
   ResolvePollSchema,
   PollFilterSchema,
-} from "@event-manager/shared";
-import { z } from "zod";
+} from '@event-manager/shared';
+import { z } from 'zod';
 
 const pollRoutes = {
   /**

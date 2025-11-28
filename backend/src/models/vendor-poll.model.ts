@@ -7,8 +7,8 @@
  * @module models/vendor-poll.model
  */
 
-import mongoose, { Schema } from "mongoose";
-import { type IBaseDocument, createBaseSchema } from "./base.model";
+import mongoose, { Schema } from 'mongoose';
+import { type IBaseDocument, createBaseSchema } from './base.model';
 
 export interface IVote {
   voterId: mongoose.Types.ObjectId;
@@ -24,7 +24,7 @@ export interface IVendorPoll extends IBaseDocument {
   duration: number; // in weeks
   conflictingApplications: mongoose.Types.ObjectId[]; // Vendor application IDs
   votes: IVote[];
-  status: "ACTIVE" | "RESOLVED" | "CANCELLED";
+  status: 'ACTIVE' | 'RESOLVED' | 'CANCELLED';
   resolvedApplicationId?: mongoose.Types.ObjectId; // Winner of the poll
   resolvedAt?: Date;
   resolvedBy?: mongoose.Types.ObjectId; // Admin/Events Office who resolved
@@ -35,12 +35,12 @@ const voteSchema = new Schema<IVote>(
   {
     voterId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     applicationId: {
       type: Schema.Types.ObjectId,
-      ref: "VendorApplication",
+      ref: 'VendorApplication',
       required: true,
     },
     votedAt: {
@@ -77,25 +77,25 @@ const vendorPollSchema = createBaseSchema<IVendorPoll>(
     conflictingApplications: [
       {
         type: Schema.Types.ObjectId,
-        ref: "VendorApplication",
+        ref: 'VendorApplication',
       },
     ],
     votes: [voteSchema],
     status: {
       type: String,
-      enum: ["ACTIVE", "RESOLVED", "CANCELLED"],
-      default: "ACTIVE",
+      enum: ['ACTIVE', 'RESOLVED', 'CANCELLED'],
+      default: 'ACTIVE',
       required: true,
       index: true,
     },
     resolvedApplicationId: {
       type: Schema.Types.ObjectId,
-      ref: "VendorApplication",
+      ref: 'VendorApplication',
     },
     resolvedAt: Date,
     resolvedBy: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
     },
     description: String,
   },
@@ -118,6 +118,6 @@ vendorPollSchema.index({ status: 1, createdAt: -1 });
 vendorPollSchema.index({ boothLocationId: 1, startDate: 1, endDate: 1 });
 
 export const VendorPoll = mongoose.model<IVendorPoll>(
-  "VendorPoll",
+  'VendorPoll',
   vendorPollSchema
 );

@@ -6,10 +6,10 @@
  * @module repositories/vendor-poll.repository
  */
 
-import { BaseRepository } from "./base.repository.js";
-import type { IVendorPoll, IVote } from "../models/vendor-poll.model.js";
-import { VendorPoll } from "../models/vendor-poll.model.js";
-import mongoose from "mongoose";
+import { BaseRepository } from './base.repository.js';
+import type { IVendorPoll, IVote } from '../models/vendor-poll.model.js';
+import { VendorPoll } from '../models/vendor-poll.model.js';
+import mongoose from 'mongoose';
 
 export class VendorPollRepository extends BaseRepository<IVendorPoll> {
   constructor() {
@@ -27,15 +27,15 @@ export class VendorPollRepository extends BaseRepository<IVendorPoll> {
 
     const [polls, total] = await Promise.all([
       this.model
-        .find({ status: "ACTIVE" })
+        .find({ status: 'ACTIVE' })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("conflictingApplications")
-        .populate("votes.voterId", "firstName lastName email role")
+        .populate('conflictingApplications')
+        .populate('votes.voterId', 'firstName lastName email role')
         .lean()
         .exec() as any,
-      this.model.countDocuments({ status: "ACTIVE" }),
+      this.model.countDocuments({ status: 'ACTIVE' }),
     ]);
 
     return { polls, total };
@@ -54,9 +54,9 @@ export class VendorPollRepository extends BaseRepository<IVendorPoll> {
         boothLocationId,
         startDate,
         endDate,
-        status: "ACTIVE",
+        status: 'ACTIVE',
       })
-      .populate("conflictingApplications")
+      .populate('conflictingApplications')
       .lean()
       .exec() as any;
   }
@@ -104,20 +104,20 @@ export class VendorPollRepository extends BaseRepository<IVendorPoll> {
         .findOneAndUpdate(
           {
             _id: pollId,
-            "votes.voterId": new mongoose.Types.ObjectId(voterId),
+            'votes.voterId': new mongoose.Types.ObjectId(voterId),
           },
           {
             $set: {
-              "votes.$.applicationId": new mongoose.Types.ObjectId(
+              'votes.$.applicationId': new mongoose.Types.ObjectId(
                 applicationId
               ),
-              "votes.$.votedAt": new Date(),
+              'votes.$.votedAt': new Date(),
             },
           },
           { new: true }
         )
-        .populate("conflictingApplications")
-        .populate("votes.voterId", "firstName lastName email role")
+        .populate('conflictingApplications')
+        .populate('votes.voterId', 'firstName lastName email role')
         .lean()
         .exec() as any;
     } else {
@@ -130,8 +130,8 @@ export class VendorPollRepository extends BaseRepository<IVendorPoll> {
 
       return this.model
         .findByIdAndUpdate(pollId, { $push: { votes: vote } }, { new: true })
-        .populate("conflictingApplications")
-        .populate("votes.voterId", "firstName lastName email role")
+        .populate('conflictingApplications')
+        .populate('votes.voterId', 'firstName lastName email role')
         .lean()
         .exec() as any;
     }
@@ -150,7 +150,7 @@ export class VendorPollRepository extends BaseRepository<IVendorPoll> {
         pollId,
         {
           $set: {
-            status: "RESOLVED",
+            status: 'RESOLVED',
             resolvedApplicationId: new mongoose.Types.ObjectId(
               resolvedApplicationId
             ),
@@ -160,9 +160,9 @@ export class VendorPollRepository extends BaseRepository<IVendorPoll> {
         },
         { new: true }
       )
-      .populate("conflictingApplications")
-      .populate("votes.voterId", "firstName lastName email role")
-      .populate("resolvedBy", "firstName lastName email role")
+      .populate('conflictingApplications')
+      .populate('votes.voterId', 'firstName lastName email role')
+      .populate('resolvedBy', 'firstName lastName email role')
       .lean()
       .exec() as any;
   }
@@ -174,7 +174,7 @@ export class VendorPollRepository extends BaseRepository<IVendorPoll> {
     return this.model
       .findByIdAndUpdate(
         pollId,
-        { $set: { status: "CANCELLED" } },
+        { $set: { status: 'CANCELLED' } },
         { new: true }
       )
       .lean()
@@ -189,26 +189,26 @@ export class VendorPollRepository extends BaseRepository<IVendorPoll> {
       { $match: { _id: new mongoose.Types.ObjectId(pollId) } },
       {
         $lookup: {
-          from: "vendorapplications",
-          localField: "conflictingApplications",
-          foreignField: "_id",
-          as: "applications",
+          from: 'vendorapplications',
+          localField: 'conflictingApplications',
+          foreignField: '_id',
+          as: 'applications',
         },
       },
       {
         $addFields: {
           voteCounts: {
             $map: {
-              input: "$conflictingApplications",
-              as: "appId",
+              input: '$conflictingApplications',
+              as: 'appId',
               in: {
-                applicationId: "$$appId",
+                applicationId: '$$appId',
                 count: {
                   $size: {
                     $filter: {
-                      input: "$votes",
-                      as: "vote",
-                      cond: { $eq: ["$$vote.applicationId", "$$appId"] },
+                      input: '$votes',
+                      as: 'vote',
+                      cond: { $eq: ['$$vote.applicationId', '$$appId'] },
                     },
                   },
                 },
@@ -228,7 +228,7 @@ export class VendorPollRepository extends BaseRepository<IVendorPoll> {
   async getAllPolls(
     page: number = 1,
     limit: number = 20,
-    status?: "ACTIVE" | "RESOLVED" | "CANCELLED"
+    status?: 'ACTIVE' | 'RESOLVED' | 'CANCELLED'
   ): Promise<{ polls: IVendorPoll[]; total: number }> {
     const skip = (page - 1) * limit;
     const filter = status ? { status } : {};
@@ -239,9 +239,9 @@ export class VendorPollRepository extends BaseRepository<IVendorPoll> {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("conflictingApplications")
-        .populate("votes.voterId", "firstName lastName email role")
-        .populate("resolvedBy", "firstName lastName email role")
+        .populate('conflictingApplications')
+        .populate('votes.voterId', 'firstName lastName email role')
+        .populate('resolvedBy', 'firstName lastName email role')
         .lean()
         .exec() as any,
       this.model.countDocuments(filter),

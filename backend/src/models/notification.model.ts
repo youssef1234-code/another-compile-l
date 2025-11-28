@@ -4,9 +4,9 @@
  * @module models/notification.model
  */
 
-import mongoose, { Schema } from "mongoose";
-import { NotificationType } from "@event-manager/shared";
-import { IBaseDocument, createBaseSchema } from "./base.model";
+import mongoose, { Schema } from 'mongoose';
+import { NotificationType } from '@event-manager/shared';
+import { IBaseDocument, createBaseSchema } from './base.model';
 
 export interface INotification extends IBaseDocument {
   user: mongoose.Types.ObjectId;
@@ -21,29 +21,29 @@ const notificationSchema = createBaseSchema<INotification>(
   {
     user: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     type: {
       type: String,
       enum: [
-        "INFO",
-        "SUCCESS",
-        "WARNING",
-        "ERROR",
-        "EVENT_REMINDER",
-        "REGISTRATION_CONFIRMED",
-        "ROLE_VERIFIED",
-        "NEW_EVENT",
-        "WORKSHOP_STATUS_UPDATE",
-        "WORKSHOP_PENDING",
-        "VENDOR_REQUEST_UPDATE",
-        "VENDOR_PENDING",
-        "VENDOR_POLL_CREATED",
-        "COMMENT_DELETED_WARNING",
-        "GYM_SESSION_UPDATE",
-        "NEW_LOYALTY_PARTNER",
-        "GENERAL",
+        'INFO',
+        'SUCCESS',
+        'WARNING',
+        'ERROR',
+        'EVENT_REMINDER',
+        'REGISTRATION_CONFIRMED',
+        'ROLE_VERIFIED',
+        'NEW_EVENT',
+        'WORKSHOP_STATUS_UPDATE',
+        'WORKSHOP_PENDING',
+        'VENDOR_REQUEST_UPDATE',
+        'VENDOR_PENDING',
+        'VENDOR_POLL_CREATED',
+        'COMMENT_DELETED_WARNING',
+        'GYM_SESSION_UPDATE',
+        'NEW_LOYALTY_PARTNER',
+        'GENERAL',
       ],
       required: true,
     },
@@ -77,6 +77,6 @@ notificationSchema.index({ user: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, isRead: 1 });
 
 export const Notification = mongoose.model<INotification>(
-  "Notification",
+  'Notification',
   notificationSchema
 );

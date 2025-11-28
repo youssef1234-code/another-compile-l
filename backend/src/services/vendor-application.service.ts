@@ -1,13 +1,13 @@
 import {
   VendorApplicationRepository,
   vendorApplicationRepository,
-} from "../repositories/vendor-application.repository";
-import { BaseService } from "./base.service";
-import { ServiceError } from "../errors/errors";
-import { type IVendorApplication } from "../models/vendor-application.model";
-import { CreateApplicationSchema } from "@event-manager/shared";
-import mongoose from "mongoose";
-import { userRepository } from "../repositories/user.repository";
+} from '../repositories/vendor-application.repository';
+import { BaseService } from './base.service';
+import { ServiceError } from '../errors/errors';
+import { type IVendorApplication } from '../models/vendor-application.model';
+import { CreateApplicationSchema } from '@event-manager/shared';
+import mongoose from 'mongoose';
+import { userRepository } from '../repositories/user.repository';
 
 export class VendorApplicationService extends BaseService<
   IVendorApplication,
@@ -18,7 +18,7 @@ export class VendorApplicationService extends BaseService<
   }
 
   protected getEntityName(): string {
-    return "VendorApplication";
+    return 'VendorApplication';
   }
 
   async createApplication(
@@ -36,8 +36,8 @@ export class VendorApplicationService extends BaseService<
 
       if (existing) {
         throw new ServiceError(
-          "CONFLICT",
-          "You have already applied to this bazaar",
+          'CONFLICT',
+          'You have already applied to this bazaar',
           409
         );
       }
@@ -46,7 +46,7 @@ export class VendorApplicationService extends BaseService<
     // Check for booth availability for PLATFORM applications
     // Requirement #82: Create polls when multiple vendors request same booth during overlapping durations
     if (
-      data.type === "PLATFORM" &&
+      data.type === 'PLATFORM' &&
       data.boothLocationId &&
       data.startDate &&
       data.duration
@@ -59,7 +59,7 @@ export class VendorApplicationService extends BaseService<
       const conflictingApplications = await this.repository.findAll(
         {
           boothLocationId: data.boothLocationId,
-          status: "PENDING",
+          status: 'PENDING',
           startDate: { $ne: null },
           duration: { $ne: null },
         } as any,
@@ -83,7 +83,7 @@ export class VendorApplicationService extends BaseService<
       const approvedApplications = await this.repository.findAll(
         {
           boothLocationId: data.boothLocationId,
-          status: "APPROVED",
+          status: 'APPROVED',
           startDate: { $ne: null },
           duration: { $ne: null },
         } as any,
@@ -98,10 +98,10 @@ export class VendorApplicationService extends BaseService<
 
           if (requestedStart < existingEnd && existingStart < requestedEnd) {
             throw new ServiceError(
-              "CONFLICT",
+              'CONFLICT',
               `This booth is already reserved from ${existingStart.toLocaleDateString()} to ${existingEnd.toLocaleDateString()} (${
                 app.duration
-              } week${app.duration > 1 ? "s" : ""})`,
+              } week${app.duration > 1 ? 's' : ''})`,
               409
             );
           }
@@ -126,7 +126,7 @@ export class VendorApplicationService extends BaseService<
 
         // Check if poll already exists for this booth and time period
         const { vendorPollRepository } = await import(
-          "../repositories/vendor-poll.repository.js"
+          '../repositories/vendor-poll.repository.js'
         );
         const existingPoll =
           await vendorPollRepository.findPollByBoothAndDateRange(
@@ -144,7 +144,7 @@ export class VendorApplicationService extends BaseService<
         } else {
           // Create a new poll with all conflicting applications
           const { vendorPollService } = await import(
-            "./vendor-poll.service.js"
+            './vendor-poll.service.js'
           );
           const allApplicationIds = [
             ...overlappingApps.map((app) => String(app._id)),
@@ -165,7 +165,7 @@ export class VendorApplicationService extends BaseService<
 
           // Notify Events Office about new poll
           const { notificationService } = await import(
-            "./notification.service.js"
+            './notification.service.js'
           );
           await notificationService.notifyVendorPollCreated(
             String(poll._id),
@@ -176,12 +176,12 @@ export class VendorApplicationService extends BaseService<
 
         // Still notify about the pending request
         const { notificationService } = await import(
-          "./notification.service.js"
+          './notification.service.js'
         );
         await notificationService.notifyPendingVendorRequest(
           String(doc._id),
-          vendor?.companyName || "Unknown Vendor",
-          "booth setup (poll created)"
+          vendor?.companyName || 'Unknown Vendor',
+          'booth setup (poll created)'
         );
 
         return doc;
@@ -203,11 +203,11 @@ export class VendorApplicationService extends BaseService<
     const doc = await this.repository.create(enrichedData);
 
     // Requirement #74: Notify Events Office/Admin about pending vendor request
-    const { notificationService } = await import("./notification.service.js");
+    const { notificationService } = await import('./notification.service.js');
     await notificationService.notifyPendingVendorRequest(
       String(doc._id),
-      vendor?.companyName || "Unknown Vendor",
-      data.type === "BAZAAR" ? "bazaar participation" : "booth setup"
+      vendor?.companyName || 'Unknown Vendor',
+      data.type === 'BAZAAR' ? 'bazaar participation' : 'booth setup'
     );
 
     return doc;
@@ -226,7 +226,7 @@ export class VendorApplicationService extends BaseService<
       boothSize?: string;
       duration?: number;
       sortBy?: string;
-      sortOrder?: "asc" | "desc";
+      sortOrder?: 'asc' | 'desc';
     } = {},
     vendorId: string
   ): Promise<{ applications: IVendorApplication[]; total: number }> {
@@ -259,7 +259,7 @@ export class VendorApplicationService extends BaseService<
   ): Promise<IVendorApplication[]> {
     // Check if any platform applications need booth labels
     const needsEnrichment = applications.some(
-      (app) => app.type === "PLATFORM" && app.boothLocationId && !app.boothLabel
+      (app) => app.type === 'PLATFORM' && app.boothLocationId && !app.boothLabel
     );
 
     if (!needsEnrichment) {
@@ -267,7 +267,7 @@ export class VendorApplicationService extends BaseService<
     }
 
     try {
-      const { platformMapService } = await import("./platform-map.service");
+      const { platformMapService } = await import('./platform-map.service');
       const platform = await platformMapService.getActivePlatformMap();
 
       // Create a map of boothId -> label for quick lookup
@@ -281,7 +281,7 @@ export class VendorApplicationService extends BaseService<
 
       // Enrich applications with booth labels
       return applications.map((app) => {
-        if (app.type === "PLATFORM" && app.boothLocationId && !app.boothLabel) {
+        if (app.type === 'PLATFORM' && app.boothLocationId && !app.boothLabel) {
           const label = boothLabelMap.get(app.boothLocationId);
           if (label) {
             (app as any).boothLabel = label;
@@ -290,7 +290,7 @@ export class VendorApplicationService extends BaseService<
         return app;
       });
     } catch (error) {
-      console.error("Failed to enrich applications with booth labels:", error);
+      console.error('Failed to enrich applications with booth labels:', error);
       return applications;
     }
   }
@@ -335,7 +335,7 @@ export class VendorApplicationService extends BaseService<
       const vendor = await userRepository.findById(vendorId);
       // Only filter by vendorId if they are actually a VENDOR
       // Admins and Event Office should see all applications
-      if (vendor?.role === "VENDOR") {
+      if (vendor?.role === 'VENDOR') {
         filter.createdBy = vendorId;
       }
     }
@@ -355,17 +355,17 @@ export class VendorApplicationService extends BaseService<
 
     applications.forEach((app) => {
       // Status counts
-      if (app.status === "PENDING") stats.pending++;
-      if (app.status === "APPROVED") stats.approved++;
-      if (app.status === "REJECTED") stats.rejected++;
+      if (app.status === 'PENDING') stats.pending++;
+      if (app.status === 'APPROVED') stats.approved++;
+      if (app.status === 'REJECTED') stats.rejected++;
 
       // Type counts
-      if (app.type === "BAZAAR") stats.byType.BAZAAR++;
-      if (app.type === "PLATFORM") stats.byType.PLATFORM++;
+      if (app.type === 'BAZAAR') stats.byType.BAZAAR++;
+      if (app.type === 'PLATFORM') stats.byType.PLATFORM++;
 
       // Booth size counts
-      if (app.boothSize === "TWO_BY_TWO") stats.byBoothSize.TWO_BY_TWO++;
-      if (app.boothSize === "FOUR_BY_FOUR") stats.byBoothSize.FOUR_BY_FOUR++;
+      if (app.boothSize === 'TWO_BY_TWO') stats.byBoothSize.TWO_BY_TWO++;
+      if (app.boothSize === 'FOUR_BY_FOUR') stats.byBoothSize.FOUR_BY_FOUR++;
     });
 
     return stats;
@@ -379,20 +379,20 @@ export class VendorApplicationService extends BaseService<
     const application = await this.repository.findById(applicationId);
 
     if (!application) {
-      throw new ServiceError("NOT_FOUND", "Application not found", 404);
+      throw new ServiceError('NOT_FOUND', 'Application not found', 404);
     }
 
-    if (application.status !== "PENDING") {
+    if (application.status !== 'PENDING') {
       throw new ServiceError(
-        "BAD_REQUEST",
-        "Only pending applications can be approved",
+        'BAD_REQUEST',
+        'Only pending applications can be approved',
         400
       );
     }
 
     // If this is a platform booth application with a booth location, mark the booth as occupied
-    if (application.type === "PLATFORM" && application.boothLocationId) {
-      const { platformMapService } = await import("./platform-map.service");
+    if (application.type === 'PLATFORM' && application.boothLocationId) {
+      const { platformMapService } = await import('./platform-map.service');
       const platform = await platformMapService.getActivePlatformMap();
 
       const booth = platform.booths.find(
@@ -409,35 +409,35 @@ export class VendorApplicationService extends BaseService<
     }
 
     const updated = await this.repository.update(applicationId, {
-      status: "APPROVED" as any,
+      status: 'APPROVED' as any,
       updatedAt: new Date(),
     });
 
     if (!updated) {
       throw new ServiceError(
-        "INTERNAL_ERROR",
-        "Failed to approve application",
+        'INTERNAL_ERROR',
+        'Failed to approve application',
         500
       );
     }
 
     // Requirement #63: Notify vendor about application approval
-    const { notificationService } = await import("./notification.service.js");
+    const { notificationService } = await import('./notification.service.js');
     await notificationService.notifyVendorRequestStatus(
       String(application.createdBy),
       applicationId,
-      application.type === "BAZAAR" ? "bazaar participation" : "booth setup",
-      "ACCEPTED"
+      application.type === 'BAZAAR' ? 'bazaar participation' : 'booth setup',
+      'ACCEPTED'
     );
 
     // Add vendor to event's vendors array if this is a BAZAAR event
-    if (application.type === "BAZAAR" && application.bazaarId) {
+    if (application.type === 'BAZAAR' && application.bazaarId) {
       console.log(
         `🎯 Linking vendor to bazaar event. Application ID: ${applicationId}, Bazaar ID: ${application.bazaarId}`
       );
 
       const { eventRepository } = await import(
-        "../repositories/event.repository"
+        '../repositories/event.repository'
       );
       const event = await eventRepository.findById(
         application.bazaarId.toString()
@@ -449,7 +449,7 @@ export class VendorApplicationService extends BaseService<
         currentVendors: event?.vendors?.length || 0,
       });
 
-      if (event && event.type === "BAZAAR") {
+      if (event && event.type === 'BAZAAR') {
         // Add vendor to event's vendors array if not already added
         const vendors = event.vendors || [];
         const vendorId = application.createdBy;
@@ -493,38 +493,38 @@ export class VendorApplicationService extends BaseService<
     const application = await this.repository.findById(applicationId);
 
     if (!application) {
-      throw new ServiceError("NOT_FOUND", "Application not found", 404);
+      throw new ServiceError('NOT_FOUND', 'Application not found', 404);
     }
 
-    if (application.status !== "PENDING") {
+    if (application.status !== 'PENDING') {
       throw new ServiceError(
-        "BAD_REQUEST",
-        "Only pending applications can be rejected",
+        'BAD_REQUEST',
+        'Only pending applications can be rejected',
         400
       );
     }
 
     const updated = await this.repository.update(applicationId, {
-      status: "REJECTED" as any,
+      status: 'REJECTED' as any,
       rejectionReason: reason,
       updatedAt: new Date(),
     });
 
     if (!updated) {
       throw new ServiceError(
-        "INTERNAL_ERROR",
-        "Failed to reject application",
+        'INTERNAL_ERROR',
+        'Failed to reject application',
         500
       );
     }
 
     // Requirement #63: Notify vendor about application rejection
-    const { notificationService } = await import("./notification.service.js");
+    const { notificationService } = await import('./notification.service.js');
     await notificationService.notifyVendorRequestStatus(
       String(application.createdBy),
       applicationId,
-      application.type === "BAZAAR" ? "bazaar participation" : "booth setup",
-      "REJECTED"
+      application.type === 'BAZAAR' ? 'bazaar participation' : 'booth setup',
+      'REJECTED'
     );
 
     return updated;
@@ -541,43 +541,43 @@ export class VendorApplicationService extends BaseService<
     const application = await this.repository.findById(applicationId);
 
     if (!application) {
-      throw new ServiceError("NOT_FOUND", "Application not found", 404);
+      throw new ServiceError('NOT_FOUND', 'Application not found', 404);
     }
 
     // Verify ownership
     if (String(application.createdBy) !== vendorId) {
       throw new ServiceError(
-        "FORBIDDEN",
-        "You can only cancel your own applications",
+        'FORBIDDEN',
+        'You can only cancel your own applications',
         403
       );
     }
 
     // Check if payment has been made
-    if (application.paymentStatus === "PAID") {
+    if (application.paymentStatus === 'PAID') {
       throw new ServiceError(
-        "FORBIDDEN",
-        "Cannot cancel application after payment has been made. Please contact Events Office for refund assistance.",
+        'FORBIDDEN',
+        'Cannot cancel application after payment has been made. Please contact Events Office for refund assistance.',
         403
       );
     }
 
     // Check if already approved (additional safety for platform booths)
-    if (application.status === "APPROVED" && application.type === "PLATFORM") {
+    if (application.status === 'APPROVED' && application.type === 'PLATFORM') {
       throw new ServiceError(
-        "FORBIDDEN",
-        "Cannot cancel approved platform booth reservations. Please contact Events Office.",
+        'FORBIDDEN',
+        'Cannot cancel approved platform booth reservations. Please contact Events Office.',
         403
       );
     }
 
     // Mark as cancelled instead of deleting
     await this.repository.update(applicationId, {
-      status: "CANCELLED" as any,
+      status: 'CANCELLED' as any,
       updatedAt: new Date(),
     });
 
-    return { message: "Application cancelled successfully" };
+    return { message: 'Application cancelled successfully' };
   }
 
   /**
@@ -590,22 +590,22 @@ export class VendorApplicationService extends BaseService<
   ): Promise<void> {
     // Prevent deletion of approved PLATFORM applications with booth reservations
     if (
-      existing.type === "PLATFORM" &&
-      existing.status === "APPROVED" &&
+      existing.type === 'PLATFORM' &&
+      existing.status === 'APPROVED' &&
       existing.boothLocationId
     ) {
       throw new ServiceError(
-        "FORBIDDEN",
-        "Cannot delete an approved platform booth reservation. Please contact an administrator if you need to cancel this booking.",
+        'FORBIDDEN',
+        'Cannot delete an approved platform booth reservation. Please contact an administrator if you need to cancel this booking.',
         403
       );
     }
 
     // Check payment status
-    if (existing.paymentStatus === "PAID") {
+    if (existing.paymentStatus === 'PAID') {
       throw new ServiceError(
-        "FORBIDDEN",
-        "Cannot delete applications with completed payments. Please use the cancel option or contact Events Office.",
+        'FORBIDDEN',
+        'Cannot delete applications with completed payments. Please use the cancel option or contact Events Office.',
         403
       );
     }

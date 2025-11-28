@@ -6,11 +6,11 @@
  * @module services/notification.service
  */
 
-import { BaseService } from "./base.service.js";
-import { notificationRepository } from "../repositories/notification.repository.js";
-import type { INotification } from "../models/notification.model.js";
-import type { UserRole } from "@event-manager/shared";
-import { TRPCError } from "@trpc/server";
+import { BaseService } from './base.service.js';
+import { notificationRepository } from '../repositories/notification.repository.js';
+import type { INotification } from '../models/notification.model.js';
+import type { UserRole } from '@event-manager/shared';
+import { TRPCError } from '@trpc/server';
 
 export class NotificationService extends BaseService<
   INotification,
@@ -21,7 +21,7 @@ export class NotificationService extends BaseService<
   }
 
   protected getEntityName(): string {
-    return "Notification";
+    return 'Notification';
   }
 
   /**
@@ -56,8 +56,8 @@ export class NotificationService extends BaseService<
     const success = await this.repository.markAsRead(notificationId, userId);
     if (!success) {
       throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Notification not found or does not belong to user",
+        code: 'NOT_FOUND',
+        message: 'Notification not found or does not belong to user',
       });
     }
     return true;
@@ -83,8 +83,8 @@ export class NotificationService extends BaseService<
     );
     if (!success) {
       throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Notification not found or does not belong to user",
+        code: 'NOT_FOUND',
+        message: 'Notification not found or does not belong to user',
       });
     }
     return true;
@@ -102,7 +102,7 @@ export class NotificationService extends BaseService<
    */
   async notifyUser(
     userId: string,
-    type: INotification["type"],
+    type: INotification['type'],
     title: string,
     message: string,
     relatedEntityId?: string
@@ -121,7 +121,7 @@ export class NotificationService extends BaseService<
    */
   async notifyUsers(
     userIds: string[],
-    type: INotification["type"],
+    type: INotification['type'],
     title: string,
     message: string,
     relatedEntityId?: string
@@ -141,7 +141,7 @@ export class NotificationService extends BaseService<
    */
   async notifyUsersByRole(
     userRole: UserRole | UserRole[],
-    type: INotification["type"],
+    type: INotification['type'],
     title: string,
     message: string,
     relatedEntityId?: string
@@ -159,7 +159,7 @@ export class NotificationService extends BaseService<
    * Create notifications for all users
    */
   async notifyAllUsers(
-    type: INotification["type"],
+    type: INotification['type'],
     title: string,
     message: string,
     relatedEntityId?: string
@@ -178,17 +178,17 @@ export class NotificationService extends BaseService<
    */
   async notifyNewEvent(eventId: string, eventTitle: string, eventType: string) {
     const roles: UserRole[] = [
-      "STUDENT",
-      "STAFF",
-      "TA",
-      "PROFESSOR",
-      "EVENT_OFFICE",
+      'STUDENT',
+      'STAFF',
+      'TA',
+      'PROFESSOR',
+      'EVENT_OFFICE',
     ];
     return this.notifyUsersByRole(
       roles,
-      "NEW_EVENT",
-      "New Event Added! 🎉",
-      `A new ${eventType.toLowerCase()} has been added: "${eventTitle}". Check it out now!`,
+      'NEW_EVENT',
+      'New Event Added! 🎉',
+      `A new ${eventType.toLowerCase()} has been added: '${eventTitle}'. Check it out now!`,
       eventId
     );
   }
@@ -201,16 +201,16 @@ export class NotificationService extends BaseService<
     userIds: string[],
     eventId: string,
     eventTitle: string,
-    timeframe: "1_DAY" | "1_HOUR"
+    timeframe: '1_DAY' | '1_HOUR'
   ) {
     const message =
-      timeframe === "1_DAY"
-        ? `Reminder: "${eventTitle}" is happening tomorrow! Don't forget to attend.`
-        : `Reminder: "${eventTitle}" is starting in 1 hour! Get ready!`;
+      timeframe === '1_DAY'
+        ? `Reminder: '${eventTitle}' is happening tomorrow! Don't forget to attend.`
+        : `Reminder: '${eventTitle}' is starting in 1 hour! Get ready!`;
 
     return this.notifyUsers(
       userIds,
-      "EVENT_REMINDER",
+      'EVENT_REMINDER',
       `Event Reminder ⏰`,
       message,
       eventId
@@ -225,22 +225,22 @@ export class NotificationService extends BaseService<
     professorId: string,
     workshopId: string,
     workshopTitle: string,
-    status: "ACCEPTED" | "REJECTED",
+    status: 'ACCEPTED' | 'REJECTED',
     rejectionReason?: string
   ) {
     const title =
-      status === "ACCEPTED" ? "✅ Workshop Accepted!" : "❌ Workshop Rejected";
+      status === 'ACCEPTED' ? '✅ Workshop Accepted!' : '❌ Workshop Rejected';
 
     const message =
-      status === "ACCEPTED"
-        ? `Your workshop "${workshopTitle}" has been accepted and is now live!`
-        : `Your workshop "${workshopTitle}" has been rejected. ${
-            rejectionReason || "Please review and resubmit."
+      status === 'ACCEPTED'
+        ? `Your workshop '${workshopTitle}' has been accepted and is now live!`
+        : `Your workshop '${workshopTitle}' has been rejected. ${
+            rejectionReason || 'Please review and resubmit.'
           }`;
 
     return this.notifyUser(
       professorId,
-      "WORKSHOP_STATUS_UPDATE",
+      'WORKSHOP_STATUS_UPDATE',
       title,
       message,
       workshopId
@@ -257,10 +257,10 @@ export class NotificationService extends BaseService<
     professorName: string
   ) {
     return this.notifyUsersByRole(
-      "EVENT_OFFICE",
-      "WORKSHOP_PENDING",
-      "📝 New Workshop Submission",
-      `Professor ${professorName} has submitted a new workshop: "${workshopTitle}". Please review it.`,
+      'EVENT_OFFICE',
+      'WORKSHOP_PENDING',
+      '📝 New Workshop Submission',
+      `Professor ${professorName} has submitted a new workshop: '${workshopTitle}'. Please review it.`,
       workshopId
     );
   }
@@ -273,19 +273,19 @@ export class NotificationService extends BaseService<
     vendorId: string,
     requestId: string,
     requestType: string,
-    status: "ACCEPTED" | "REJECTED"
+    status: 'ACCEPTED' | 'REJECTED'
   ) {
     const title =
-      status === "ACCEPTED" ? "✅ Request Accepted!" : "❌ Request Rejected";
+      status === 'ACCEPTED' ? '✅ Request Accepted!' : '❌ Request Rejected';
 
     const message =
-      status === "ACCEPTED"
+      status === 'ACCEPTED'
         ? `Your ${requestType} request has been accepted! Please proceed with payment.`
         : `Your ${requestType} request has been rejected. Please contact us for more information.`;
 
     return this.notifyUser(
       vendorId,
-      "VENDOR_REQUEST_UPDATE",
+      'VENDOR_REQUEST_UPDATE',
       title,
       message,
       requestId
@@ -303,9 +303,9 @@ export class NotificationService extends BaseService<
   ) {
     return this.notifyUser(
       userId,
-      "COMMENT_DELETED_WARNING",
-      "⚠️ Comment Removed",
-      `Your comment on "${eventTitle}" has been removed for being inappropriate. Reason: ${reason}. Please follow community guidelines.`,
+      'COMMENT_DELETED_WARNING',
+      '⚠️ Comment Removed',
+      `Your comment on '${eventTitle}' has been removed for being inappropriate. Reason: ${reason}. Please follow community guidelines.`,
       undefined
     );
   }
@@ -318,24 +318,24 @@ export class NotificationService extends BaseService<
     userIds: string[],
     sessionId: string,
     sessionTitle: string,
-    updateType: "CANCELLED" | "EDITED",
+    updateType: 'CANCELLED' | 'EDITED',
     details?: string
   ) {
     const title =
-      updateType === "CANCELLED"
-        ? "❌ Gym Session Cancelled"
-        : "📝 Gym Session Updated";
+      updateType === 'CANCELLED'
+        ? '❌ Gym Session Cancelled'
+        : '📝 Gym Session Updated';
 
     const message =
-      updateType === "CANCELLED"
-        ? `The gym session "${sessionTitle}" has been cancelled. We apologize for the inconvenience.`
-        : `The gym session "${sessionTitle}" has been updated. ${
-            details || "Please check the new details."
+      updateType === 'CANCELLED'
+        ? `The gym session '${sessionTitle}' has been cancelled. We apologize for the inconvenience.`
+        : `The gym session '${sessionTitle}' has been updated. ${
+            details || 'Please check the new details.'
           }`;
 
     return this.notifyUsers(
       userIds,
-      "GYM_SESSION_UPDATE",
+      'GYM_SESSION_UPDATE',
       title,
       message,
       sessionId
@@ -351,15 +351,15 @@ export class NotificationService extends BaseService<
     discountRate: number,
     promoCode?: string
   ) {
-    const roles: UserRole[] = ["STUDENT", "STAFF", "TA", "PROFESSOR"];
-    const message = `New partner "${vendorName}" joined the GUC Loyalty Program! Enjoy ${discountRate}% discount${
-      promoCode ? ` with code: ${promoCode}` : ""
+    const roles: UserRole[] = ['STUDENT', 'STAFF', 'TA', 'PROFESSOR'];
+    const message = `New partner '${vendorName}' joined the GUC Loyalty Program! Enjoy ${discountRate}% discount${
+      promoCode ? ` with code: ${promoCode}` : ''
     }.`;
 
     return this.notifyUsersByRole(
       roles,
-      "NEW_LOYALTY_PARTNER",
-      "🎁 New Loyalty Partner!",
+      'NEW_LOYALTY_PARTNER',
+      '🎁 New Loyalty Partner!',
       message,
       undefined
     );
@@ -374,12 +374,12 @@ export class NotificationService extends BaseService<
     vendorName: string,
     requestType: string
   ) {
-    const roles: UserRole[] = ["EVENT_OFFICE", "ADMIN"];
+    const roles: UserRole[] = ['EVENT_OFFICE', 'ADMIN'];
     return this.notifyUsersByRole(
       roles,
-      "VENDOR_PENDING",
-      "📋 Pending Vendor Request",
-      `Vendor "${vendorName}" has submitted a ${requestType} request. Please review it.`,
+      'VENDOR_PENDING',
+      '📋 Pending Vendor Request',
+      `Vendor '${vendorName}' has submitted a ${requestType} request. Please review it.`,
       requestId
     );
   }
@@ -393,11 +393,11 @@ export class NotificationService extends BaseService<
     boothLabel: string,
     vendorCount: number
   ) {
-    const roles: UserRole[] = ["EVENT_OFFICE"];
+    const roles: UserRole[] = ['EVENT_OFFICE'];
     return this.notifyUsersByRole(
       roles,
-      "VENDOR_POLL_CREATED",
-      "🗳️ Vendor Poll Created",
+      'VENDOR_POLL_CREATED',
+      '🗳️ Vendor Poll Created',
       `A poll has been created for booth ${boothLabel} with ${vendorCount} conflicting vendor applications. Please cast your vote.`,
       pollId
     );

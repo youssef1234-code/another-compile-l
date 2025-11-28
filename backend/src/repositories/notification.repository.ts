@@ -6,11 +6,11 @@
  * @module repositories/notification.repository
  */
 
-import { BaseRepository } from "./base.repository.js";
-import type { INotification } from "../models/notification.model.js";
-import { Notification } from "../models/notification.model.js";
-import type { UserRole } from "@event-manager/shared";
-import mongoose from "mongoose";
+import { BaseRepository } from './base.repository.js';
+import type { INotification } from '../models/notification.model.js';
+import { Notification } from '../models/notification.model.js';
+import type { UserRole } from '@event-manager/shared';
+import mongoose from 'mongoose';
 
 export class NotificationRepository extends BaseRepository<INotification> {
   constructor() {
@@ -116,7 +116,7 @@ export class NotificationRepository extends BaseRepository<INotification> {
    */
   async createForUser(
     userId: string,
-    type: INotification["type"],
+    type: INotification['type'],
     title: string,
     message: string,
     relatedEntityId?: string
@@ -138,7 +138,7 @@ export class NotificationRepository extends BaseRepository<INotification> {
    */
   async createForUsers(
     userIds: string[],
-    type: INotification["type"],
+    type: INotification['type'],
     title: string,
     message: string,
     relatedEntityId?: string
@@ -161,13 +161,13 @@ export class NotificationRepository extends BaseRepository<INotification> {
    */
   async createForUsersByRole(
     userRole: UserRole | UserRole[],
-    type: INotification["type"],
+    type: INotification['type'],
     title: string,
     message: string,
     relatedEntityId?: string
   ): Promise<number> {
     // Import User model dynamically to avoid circular dependency
-    const { User } = await import("../models/user.model.js");
+    const { User } = await import('../models/user.model.js');
 
     const roles = Array.isArray(userRole) ? userRole : [userRole];
 
@@ -177,7 +177,7 @@ export class NotificationRepository extends BaseRepository<INotification> {
       isVerified: true,
       isBlocked: false,
     })
-      .select("_id")
+      .select('_id')
       .lean()
       .exec();
 
@@ -189,19 +189,19 @@ export class NotificationRepository extends BaseRepository<INotification> {
    * Create notifications for all users
    */
   async createForAllUsers(
-    type: INotification["type"],
+    type: INotification['type'],
     title: string,
     message: string,
     relatedEntityId?: string
   ): Promise<number> {
     // Import User model dynamically to avoid circular dependency
-    const { User } = await import("../models/user.model.js");
+    const { User } = await import('../models/user.model.js');
 
     const users = await User.find({
       isVerified: true,
       isBlocked: false,
     })
-      .select("_id")
+      .select('_id')
       .lean()
       .exec();
 

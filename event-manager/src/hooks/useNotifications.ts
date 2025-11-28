@@ -7,8 +7,8 @@
  * @module hooks/useNotifications
  */
 
-import { useEffect, useCallback } from "react";
-import { trpc } from "@/lib/trpc";
+import { useEffect, useCallback } from 'react';
+import { trpc } from '@/lib/trpc';
 
 const POLLING_INTERVAL = 30000; // 30 seconds
 
@@ -276,10 +276,10 @@ export function useNotificationHistory(page: number = 1, limit: number = 20) {
 export function useNotificationSound() {
   const playSound = useCallback(() => {
     // Only play if user has interacted with the page
-    if (typeof Audio !== "undefined") {
+    if (typeof Audio !== 'undefined') {
       try {
         // Use a subtle notification sound
-        const audio = new Audio("/notification.mp3");
+        const audio = new Audio('/notification.mp3');
         audio.volume = 0.3;
         audio.play().catch(() => {
           // Silently fail if autoplay is blocked
@@ -299,20 +299,20 @@ export function useNotificationSound() {
 export function useBrowserNotifications() {
   useEffect(() => {
     // Request permission on mount if not already granted
-    if ("Notification" in window && Notification.permission === "default") {
+    if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, []);
 
   const showBrowserNotification = useCallback(
     (title: string, message: string) => {
-      if ("Notification" in window && Notification.permission === "granted") {
+      if ('Notification' in window && Notification.permission === 'granted') {
         try {
           new Notification(title, {
             body: message,
-            icon: "/favicon.ico",
-            badge: "/favicon.ico",
-            tag: "guc-event-notification",
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: 'guc-event-notification',
             requireInteraction: false,
           });
         } catch (error) {
@@ -336,7 +336,7 @@ export function useNotificationSystem() {
 
   // Track previous unread count to detect new notifications
   useEffect(() => {
-    const prevCount = sessionStorage.getItem("prevUnreadCount");
+    const prevCount = sessionStorage.getItem('prevUnreadCount');
     const currentCount = notifications.unreadCount;
 
     if (prevCount !== null && currentCount > parseInt(prevCount, 10)) {
@@ -350,7 +350,7 @@ export function useNotificationSystem() {
       }
     }
 
-    sessionStorage.setItem("prevUnreadCount", currentCount.toString());
+    sessionStorage.setItem('prevUnreadCount', currentCount.toString());
   }, [
     notifications.unreadCount,
     notifications.unreadNotifications,
