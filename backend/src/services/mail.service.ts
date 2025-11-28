@@ -1019,6 +1019,275 @@ export class MailgunService extends BaseMailService {
       return false;
     }
   }
+
+
+
+  async sendVendorApplicationStatusEmail(
+    to: string,
+    data: {
+      vendorName: string;
+      status: "approved" | "rejected";
+      eventName: string;
+      applicationId: string;
+      rejectionReason?: string;
+    }
+  ): Promise<void> {
+    const isApproved = data.status === "approved";
+    const subject = `Vendor Application ${
+      isApproved ? "Approved" : "Rejected"
+    } - ${data.eventName}`;
+
+    const html = isApproved
+      ? this.generateVendorApprovalEmailHTML(data)
+      : this.generateVendorRejectionEmailHTML(data);
+
+    this.saveEmailToLogs(
+      `vendor-application-${data.status}`,
+      to,
+      subject,
+      html
+    );
+
+    await this.sendMail({
+      to,
+      subject,
+      html,
+    });
+
+    console.log(`📧 ✓ Vendor ${data.status} email sent to ${to}`);
+  }
+
+  /**
+   * Generate vendor application approval email HTML
+   */
+  protected generateVendorApprovalEmailHTML(data: {
+    vendorName: string;
+    eventName: string;
+    applicationId: string;
+  }): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px 12px 0 0;">
+                      <div style="width: 80px; height: 80px; margin: 0 auto 20px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <h1 style="margin: 0; font-size: 48px; color: #ffffff;">✓</h1>
+                      </div>
+                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
+                        Application Approved!
+                      </h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 48px 40px;">
+                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        Dear ${data.vendorName},
+                      </p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Congratulations! Your vendor application for <strong style="color: #10b981;">${
+                          data.eventName
+                        }</strong> has been approved.
+                      </p>
+                      
+                      <!-- Success Box -->
+                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid #10b981; border-radius: 8px;">
+                        <p style="margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #065f46;">
+                          🎉 You're all set!
+                        </p>
+                        <p style="margin: 0; font-size: 14px; color: #047857;">
+                          <strong>Application ID:</strong> ${data.applicationId}
+                        </p>
+                      </div>
+                      
+                      <!-- Next Steps -->
+                      <h3 style="margin: 32px 0 16px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        📋 Next Steps:
+                      </h3>
+                      <ul style="margin: 0 0 24px; padding-left: 24px; font-size: 15px; line-height: 1.8; color: #4b5563;">
+                        <li>You will receive your vendor QR badges in a separate email</li>
+                        <li>Print and display the QR codes at your booth</li>
+                        <li>Attendees can scan the codes to learn more about your offerings</li>
+                        <li>Set up your booth according to the event guidelines</li>
+                        <li>Arrive early on event day for setup</li>
+                      </ul>
+                      
+                      <!-- Important Info -->
+                      <div style="margin: 32px 0; padding: 24px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #92400e;">
+                          ⚠️ Important Information
+                        </p>
+                        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #78350f;">
+                          Please review the vendor guidelines and event schedule. Contact the events team if you have any questions about booth setup or requirements.
+                        </p>
+                      </div>
+                      
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        We're excited to have you as part of this event and look forward to your participation!
+                      </p>
+                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Best regards,<br>
+                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                      </p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
+                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        This is an automated email. For support, please contact the events team.
+                      </p>
+                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
+                        &copy; ${new Date().getFullYear()} German University in Cairo - Event Management System
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Generate vendor application rejection email HTML
+   */
+  protected generateVendorRejectionEmailHTML(data: {
+    vendorName: string;
+    eventName: string;
+    applicationId: string;
+    rejectionReason?: string;
+  }): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px 12px 0 0;">
+                      <div style="width: 80px; height: 80px; margin: 0 auto 20px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <h1 style="margin: 0; font-size: 48px; color: #ffffff;">✕</h1>
+                      </div>
+                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
+                        Application Status Update
+                      </h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 48px 40px;">
+                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        Dear ${data.vendorName},
+                      </p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Thank you for your interest in participating as a vendor for <strong style="color: #1f2937;">${
+                          data.eventName
+                        }</strong>.
+                      </p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        After careful consideration, we regret to inform you that your vendor application has not been approved at this time.
+                      </p>
+                      
+                      <!-- Application Info -->
+                      <div style="margin: 32px 0; padding: 24px; background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #991b1b;">
+                          Application Details
+                        </p>
+                        <p style="margin: 0; font-size: 13px; color: #7f1d1d;">
+                          <strong>Application ID:</strong> ${
+                            data.applicationId
+                          }<br>
+                          <strong>Event:</strong> ${data.eventName}
+                        </p>
+                      </div>
+                      
+                      ${
+                        data.rejectionReason
+                          ? `
+                      <!-- Rejection Reason -->
+                      <div style="margin: 32px 0; padding: 24px; background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 8px;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #92400e;">
+                          Reason for Decision
+                        </p>
+                        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #78350f;">
+                          ${data.rejectionReason}
+                        </p>
+                      </div>
+                      `
+                          : ""
+                      }
+                      
+                      <!-- Future Opportunities -->
+                      <h3 style="margin: 32px 0 16px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        📅 Future Opportunities
+                      </h3>
+                      <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #4b5563;">
+                        We encourage you to apply for future events. Each application is evaluated independently based on the specific event requirements and available space.
+                      </p>
+                      
+                      <!-- Support Info -->
+                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left: 4px solid #3b82f6; border-radius: 8px;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #1e3a8a;">
+                          💬 Questions?
+                        </p>
+                        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #1e40af;">
+                          If you have any questions about this decision or would like feedback on your application, please feel free to contact our events team.
+                        </p>
+                      </div>
+                      
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Thank you for your interest in our event, and we hope to work with you in the future.
+                      </p>
+                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Best regards,<br>
+                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                      </p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
+                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        This is an automated email. For support, please contact the events team.
+                      </p>
+                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
+                        &copy; ${new Date().getFullYear()} German University in Cairo - Event Management System
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+  }
+  
 }
 
 /**

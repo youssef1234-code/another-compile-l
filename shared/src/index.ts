@@ -713,6 +713,7 @@ export type RegistrationForEventResponse = z.infer<typeof RegistrationForEventRe
 export const CreateApplicationSchema = z.object({
   names: z.array(z.string()).min(1).max(5),
   emails: z.array(z.string().email()).min(1).max(5),
+    idPictures: z.array(z.string()).min(1).max(5),
 
   type: z.enum(["BAZAAR", "PLATFORM"]),
   boothSize: z.enum(["TWO_BY_TWO", "FOUR_BY_FOUR"]),
@@ -1175,6 +1176,7 @@ export interface VendorApplication {
   companyName: string;
   names: string[];
   emails: string[];
+  idPictures: string[];
 
   type: ApplicationType;
   boothSize: BoothSize;

@@ -18,6 +18,7 @@ export interface IVendorApplication extends IBaseDocument {
   companyName: string;
   names: string[];
   emails: string[];
+  idPictures: string[];
   paymentMethod?: string;
   paymentStatus?: "PENDING" | "PAID" | "FAILED";
 
@@ -61,6 +62,16 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
           return v && v.length >= 1 && v.length <= 5;
         },
         message: "Must be between 1 and 5 emails",
+      },
+      required: true,
+    },
+    idPictures: {
+      type: [String],
+      validate: {
+        validator: function (v) {
+          return v && v.length >= 1 && v.length <= 5;
+        },
+        message: "Must be between 1 and 5 ID pictures",
       },
       required: true,
     },

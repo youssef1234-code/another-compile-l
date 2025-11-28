@@ -44,10 +44,12 @@ import { getBazaarsTableColumns } from "../components/bazaars-table-columns";
 import { formatDate } from "@/lib/design-system";
 import type { Event } from "@event-manager/shared";
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface Attendee {
   name: string;
   email: string;
+  idPicture: string;
 }
 
 // Expandable Row Component
@@ -121,7 +123,7 @@ export function BazaarsListPage() {
   const [isPending, startTransition] = useTransition();
   const [selectedBazaar, setSelectedBazaar] = useState<Event | null>(null);
   const [showDialog, setShowDialog] = useState(false);
-  const [attendees, setAttendees] = useState<Attendee[]>([{ name: "", email: "" }]);
+  const [attendees, setAttendees] = useState<Attendee[]>([{ name: "", email: "", idPicture: "" }]);
   const [boothSize, setBoothSize] = useState<"TWO_BY_TWO" | "FOUR_BY_FOUR">("TWO_BY_TWO");
 
   useEffect(() => {
@@ -218,7 +220,7 @@ export function BazaarsListPage() {
 
   const handleAddAttendee = () => {
     if (attendees.length < 5) {
-      setAttendees([...attendees, { name: "", email: "" }]);
+      setAttendees([...attendees, { name: "", email: "", idPicture: "" }]);
     } else {
       toast.error("Maximum 5 attendees allowed");
     }
@@ -232,7 +234,7 @@ export function BazaarsListPage() {
 
   const handleUpdateAttendee = (
     index: number,
-    field: "name" | "email",
+    field: "name" | "email" | "idPicture",
     value: string
   ) => {
     const updated = [...attendees];
@@ -252,8 +254,8 @@ export function BazaarsListPage() {
       return;
     }
 
-    if (attendees.some((a) => !a.name || !a.email)) {
-      toast.error("All attendees must have a name and email");
+    if (attendees.some((a) => !a.name || !a.email || !a.idPicture)) {
+      toast.error("All attendees must have a name, email, and ID picture");
       return;
     }
 
@@ -270,13 +272,14 @@ export function BazaarsListPage() {
       startDate: selectedBazaar.startDate,
       names: attendees.map((a) => a.name),
       emails: attendees.map((a) => a.email),
+      idPictures: attendees.map((a) => a.idPicture),
       boothSize,
       status: "PENDING",
     });
   };
 
   const resetForm = () => {
-    setAttendees([{ name: "", email: "" }]);
+    setAttendees([{ name: "", email: "" , idPicture: "" }]);
     setBoothSize("TWO_BY_TWO");
     setSelectedBazaar(null);
   };
@@ -417,6 +420,14 @@ export function BazaarsListPage() {
                             value={attendee.email}
                             onChange={(e) =>
                               handleUpdateAttendee(index, "email", e.target.value)
+                            }
+                          />
+                        </div>
+                            <div className="space-y-2">
+                          <Label htmlFor={`email-${index}`}>ID/Passport</Label>
+                          <ImageUpload
+                            onChange={(e) =>
+                              handleUpdateAttendee(index, "idPicture", e)
                             }
                           />
                         </div>

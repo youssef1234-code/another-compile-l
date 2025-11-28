@@ -8,6 +8,7 @@ import { type IVendorApplication } from "../models/vendor-application.model";
 import { CreateApplicationSchema } from "@event-manager/shared";
 import mongoose from "mongoose";
 import { userRepository } from "../repositories/user.repository";
+import { mailService } from "./mail.service";
 import { computeVendorFee } from "./vendor-pricing.service";
 import { DateTime } from "luxon";
 import { TRPCError } from "@trpc/server/unstable-core-do-not-import";
@@ -294,6 +295,9 @@ export class VendorApplicationService extends BaseService<
    */
   async approveApplication(applicationId: string): Promise<IVendorApplication> {
     const application = await this.repository.findById(applicationId);
+    const vendor = await userRepository.findById(
+      application?.createdBy?.toString() || ""
+    );
     
     if (!application) {
       throw new ServiceError("NOT_FOUND", "Application not found", 404);
@@ -355,6 +359,13 @@ export class VendorApplicationService extends BaseService<
     
     // Requirement #63: Notify vendor about application approval
     const { notificationService } = await import('./notification.service.js');
+      mailService.sendVendorApplicationStatusEmail(vendor?.email || "", {
+      vendorName: application.companyName,
+      status: "approved",
+      applicationId: applicationId,
+      eventName:
+      application.type === "BAZAAR" ? "bazaar participation" : "booth setup",
+    });
     await notificationService.notifyVendorRequestStatus(
       String(application.createdBy),
       applicationId,
@@ -410,6 +421,9 @@ export class VendorApplicationService extends BaseService<
     reason: string,
   ): Promise<IVendorApplication> {
     const application = await this.repository.findById(applicationId);
+    const vendor = await userRepository.findById(
+      application?.createdBy?.toString() || ""
+    );
     
     if (!application) {
       throw new ServiceError("NOT_FOUND", "Application not found", 404);
@@ -431,6 +445,14 @@ export class VendorApplicationService extends BaseService<
     
     // Requirement #63: Notify vendor about application rejection
     const { notificationService } = await import('./notification.service.js');
+    mailService.sendVendorApplicationStatusEmail(vendor?.email || "", {
+      vendorName: application.companyName,
+      status: "rejected",
+      applicationId: applicationId,
+      rejectionReason: reason,
+      eventName:
+        application.type === "BAZAAR" ? "bazaar participation" : "booth setup",
+    });
     await notificationService.notifyVendorRequestStatus(
       String(application.createdBy),
       applicationId,
