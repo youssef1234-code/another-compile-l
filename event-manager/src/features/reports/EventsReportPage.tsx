@@ -1,52 +1,61 @@
 import { Card } from "@/components/ui/card";
-import { useQueryState, parseAsString, parseAsArrayOf } from "nuqs";
-import { useMemo, useState } from "react";
-import { Users, Calendar, GraduationCap, LineChart } from "lucide-react";
+import { useQueryState, parseAsString, parseAsArrayOf, parseAsInteger } from "nuqs";
+import { useEffect, useMemo, useState } from "react";
+import { Users, Calendar, GraduationCap, LineChart, ListIcon, CalendarIcon } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import NumberFlow from "@number-flow/react";
-import { EventsTable } from '@/features/admin/components/events-table';
-import { EventFilters, type EventFiltersState } from "@/features/events/components/EventFilters";
+import { ReportFilters, type ReportFiltersState } from "./components/report-filters";
 import { Pie, PieChart, Cell, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Tabs, TabsContent, TabsList, TabsTrigger, } from "@/components/ui/tabs"
+import { EventsReportsTable } from "./components/EventAttendeeTable";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function EventsReportPage() {
     const [search, setSearch] = useQueryState("search", parseAsString.withDefault(""));
     const [typeFilter, setTypeFilter] = useQueryState("type", parseAsArrayOf(parseAsString, ",").withDefault([]));
-    const [locationFilter, setLocationFilter] = useQueryState("location", parseAsString.withDefault(""));
-    const [dateRange, setDateRange] = useQueryState("dateRange", parseAsString.withDefault(""));
     const [dateFrom, setDateFrom] = useQueryState("dateFrom", parseAsString.withDefault(""));
     const [dateTo, setDateTo] = useQueryState("dateTo", parseAsString.withDefault(""));
     const [maxPrice, setMaxPrice] = useQueryState("maxPrice", parseAsString.withDefault(""));
-    const [showFreeOnly, setShowFreeOnly] = useQueryState("showFreeOnly", parseAsString.withDefault(""));
+    const [view, setView] = useState<"STATISTICS" | "TABLE">("STATISTICS");
     const [searchInput, setSearchInput] = useState(search);
+    const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+    const [perPage] = useQueryState("perPage", parseAsInteger.withDefault(24));
 
-    // Sync filters state for EventFilters component
-    const filtersState = useMemo((): EventFiltersState => ({
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchInput !== search) {
+                setSearch(searchInput);
+                setPage(1);
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchInput, search, setSearch, setPage]);
+
+    // Sync filters state for ReportFilters component
+    const filtersState = useMemo((): ReportFiltersState => ({
         search: search,
         types: typeFilter,
-        location: (locationFilter as 'ON_CAMPUS' | 'OFF_CAMPUS') || undefined,
-        dateRange: (dateRange as 'upcoming' | 'this_week' | 'this_month' | 'custom') || undefined,
         dateFrom: dateFrom ? new Date(dateFrom) : undefined,
         dateTo: dateTo ? new Date(dateTo) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
-        showFreeOnly: showFreeOnly === 'true',
-    }), [search, typeFilter, locationFilter, dateRange, dateFrom, dateTo, maxPrice, showFreeOnly]);
+    }), [search, typeFilter, dateFrom, dateTo, maxPrice]);
+
+    const maxDate = new Date();
 
     // Build filters for API from filtersState
     const filters = useMemo(() => {
         const result: Record<string, string[]> = {};
         if (filtersState.types.length > 0) result.type = filtersState.types;
-        if (filtersState.location) result.location = [filtersState.location];
         if (filtersState.dateFrom) result.startDateFrom = [filtersState.dateFrom.toISOString()];
-        if (filtersState.dateTo) result.endDateTo = [filtersState.dateTo.toISOString()];
+        if (filtersState.dateTo) result.startDateTo = [filtersState.dateTo.toISOString()];
+        else result.startDateTo = [maxDate.toISOString()];
         if (filtersState.maxPrice !== undefined) result.maxPrice = [String(filtersState.maxPrice)];
+        result.status = ["PUBLISHED"];
 
-        console.log("Search Input:", searchInput);
         return result;
     }, [filtersState]);
 
-    console.log("Applied Filters:", filters);
 
     const { data } = trpc.events.getAllEvents.useQuery(
         {
@@ -60,7 +69,7 @@ export function EventsReportPage() {
         }
     );
 
-    console.log("Events Report Data:", data?.events);
+    console.log("Sales Data:", data?.events);
 
     const numberOfEvents = data?.total || 0;
     const numberOfAttendees = data?.events.reduce((total, event) => total + (event.registeredCount || 0), 0) || 0;
@@ -121,24 +130,18 @@ export function EventsReportPage() {
     const handleResetFilters = () => {
         setSearch('');
         setTypeFilter([]);
-        setLocationFilter('');
-        setDateRange('');
         setDateFrom('');
         setDateTo('');
         setMaxPrice('');
-        setShowFreeOnly('');
         setSearchInput('');
     };
 
-    const handleFiltersChange = (newFilters: EventFiltersState) => {
+    const handleFiltersChange = (newFilters: ReportFiltersState) => {
         setSearch(newFilters.search);
         setTypeFilter(newFilters.types);
-        setLocationFilter(newFilters.location || '');
-        setDateRange(newFilters.dateRange || '');
         setDateFrom(newFilters.dateFrom ? newFilters.dateFrom.toISOString() : '');
         setDateTo(newFilters.dateTo ? newFilters.dateTo.toISOString() : '');
         setMaxPrice(newFilters.maxPrice ? String(newFilters.maxPrice) : '');
-        setShowFreeOnly(newFilters.showFreeOnly ? 'true' : '');
         setSearchInput(newFilters.search);
     };
 
@@ -149,34 +152,53 @@ export function EventsReportPage() {
     return (
         <div className='flex flex-col gap-6 p-6'>
             {/* Filters */}
-            <EventFilters
+            <ReportFilters
                 filters={filtersState}
                 onChange={handleFiltersChange}
                 onReset={handleResetFilters}
-                searchInput={search}
-                onSearchInputChange={setSearch}
-                isSearching={false}
-                hidePrice={true}
+                searchInput={searchInput}
+                onSearchInputChange={setSearchInput}
+                isSearching={searchInput !== search}
             />
+            <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setView("STATISTICS")}
+                    className={cn(
+                        'gap-2 transition-all',
+                        view === "STATISTICS"
+                            ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                            : 'hover:bg-muted text-muted-foreground'
+                    )}
+                >
+                    <LineChart className="h-4 w-4" /> Statistics
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setView("TABLE")}
+                    className={cn(
+                        'gap-2 transition-all',
+                        view === "TABLE"
+                            ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                            : 'hover:bg-muted text-muted-foreground'
+                    )}
+                >
+                    <Calendar className="h-4 w-4" /> Events List
+                </Button>
+            </div>
 
-            <Tabs defaultValue="stats">
-                <TabsList>
-                    <TabsTrigger value="stats" ><LineChart />Statistics</TabsTrigger>
-                    <TabsTrigger value="events"><Calendar />Events List</TabsTrigger>
-                </TabsList>
+            {view === "TABLE" ? (
+                <EventsReportsTable
+                    data={data ? data.events : []}
+                    pageCount={pageCount}
 
-                <TabsContent value="events">
-                    <EventsTable
-                        data={data ? data.events : []}
-                        pageCount={pageCount}
-
-
-                    />
-                </TabsContent>
-                <TabsContent value="stats" className="flex flex-col gap-6">
+                />
+            ) : (
+                <div className="flex flex-col gap-6">
                     {/* Stats Cards */}
                     <div className='grid gap-6 md:grid-cols-3'>
-
                         <Card className='flex gap-3 p-4'>
                             <div className='w-12 p-2 rounded-md text-[var(--stat-icon-info-fg)] bg-[var(--stat-icon-info-bg)] border-[var(--stat-icon-info-border)]'>
                                 <Calendar className='h-7 w-7' />
@@ -299,7 +321,6 @@ export function EventsReportPage() {
                                             cx="50%"
                                             cy="45%"
                                             outerRadius={100}
-
                                         >
                                             {eventTypeData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -314,8 +335,8 @@ export function EventsReportPage() {
                             )}
                         </Card>
                     </div>
-                </TabsContent>
-            </Tabs>
-        </div>
+                </div>
+            )}
+        </div >
     );
 }

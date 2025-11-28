@@ -63,17 +63,7 @@ function EventTypeBadge({ type }: { type: string }) {
 
 export function getEventsTableColumns({
     typeCounts,
-    statusCounts,
     userRole,
-    onUpdateEvent,
-    onViewDetails,
-    onEditEvent,
-    onArchiveEvent,
-    onDeleteEvent,
-    onPublishEvent,
-    onApproveWorkshop,
-    onRejectWorkshop,
-    onNeedsEdits,
 }: GetEventsTableColumnsProps): ColumnDef<Event>[] {
     // Define all type options
     const allTypeOptions = [
@@ -327,6 +317,30 @@ export function getEventsTableColumns({
                 operators: ["gt", "lt", "gte", "lte", "eq"],
             },
             size: 100,
+        },
+        {
+            id: "totalSales",
+            accessorKey: "totalSales",
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Total Sales" />
+            ),
+            cell: ({ row }) => {
+                const price = row.getValue("price") as number;
+                const registeredCount = row.getValue("registeredCount") as number;
+                const totalSales = price * (registeredCount || 0);
+                return (
+                    <span className="font-mono text-sm font-semibold">
+                        {totalSales > 0 ? `${totalSales.toLocaleString()} EGP` : "-"}
+                    </span>
+                );
+            },
+            enableColumnFilter: true,
+            meta: {
+                label: "Total Sales",
+                variant: "range" as const,
+                operators: ["gt", "lt", "gte", "lte", "eq"],
+            },
+            size: 130,
         },
     ];
 }

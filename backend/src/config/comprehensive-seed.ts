@@ -273,6 +273,62 @@ const sampleEvents = [
     status: "PUBLISHED",
     tags: ["Trip", "Adventure", "Nature"],
   },
+  {
+    name: "Red Sea Diving Expedition",
+    type: "TRIP",
+    description: "Explore the underwater wonders of the Red Sea",
+    location: "Hurghada, Egypt",
+    date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
+    startDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000), // 13 days ago
+    registrationDeadline: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
+    capacity: 30,
+    price: 1500,
+    status: "PUBLISHED",
+    tags: ["Trip", "Diving", "Adventure", "Red Sea"],
+  },
+  {
+    name: "Luxor Historical Tour",
+    type: "TRIP",
+    description: "Discover ancient Egyptian temples and tombs in Luxor",
+    location: "Luxor, Egypt",
+    date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000), // 28 days ago
+    registrationDeadline: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
+    capacity: 50,
+    price: 800,
+    status: "PUBLISHED",
+    tags: ["Trip", "History", "Culture", "Ancient Egypt"],
+  },
+  {
+    name: "Dahab Relaxation Retreat",
+    type: "TRIP",
+    description: "Unwind in the peaceful coastal town of Dahab",
+    location: "Dahab, Egypt",
+    date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // 45 days ago
+    startDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 42 * 24 * 60 * 60 * 1000), // 42 days ago
+    registrationDeadline: new Date(Date.now() - 55 * 24 * 60 * 60 * 1000),
+    capacity: 35,
+    price: 950,
+    status: "PUBLISHED",
+    tags: ["Trip", "Relaxation", "Beach", "Snorkeling"],
+  },
+  {
+    name: "White Desert Camping",
+    type: "TRIP",
+    description: "Camp under the stars in Egypt's stunning White Desert",
+    location: "White Desert, Egypt",
+    date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // 60 days ago
+    startDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 58 * 24 * 60 * 60 * 1000), // 58 days ago
+    registrationDeadline: new Date(Date.now() - 70 * 24 * 60 * 60 * 1000),
+    capacity: 25,
+    price: 1100,
+    status: "PUBLISHED",
+    tags: ["Trip", "Camping", "Desert", "Adventure"],
+  },
   // Bazaars
   {
     name: "Spring Tech Bazaar",

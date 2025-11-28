@@ -47,12 +47,12 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     ]);
     if (!reg) throw new TRPCError({ code: "NOT_FOUND", message: "Registration not found" });
     if (!event) throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
-    
+
     // Double-check event is not free
     if (!event.price || event.price === 0) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "This is a free event. No payment required." });
     }
-    
+
     if ((reg.user as any)?.toString?.() !== userId) {
       throw new TRPCError({ code: "FORBIDDEN", message: "Registration does not belong to you" });
     }
@@ -60,7 +60,7 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     const latest = await paymentRepository.findLatestForRegistration(registrationId);
     // 1) If already paid by wallet or card -> stop
 
-    console.log(`Creating new Stripe PaymentIntent for user ${userId}, event ${eventId}, registration ${registrationId}`);  
+    console.log(`Creating new Stripe PaymentIntent for user ${userId}, event ${eventId}, registration ${registrationId}`);
 
     if (latest) {
       if (latest.status === PaymentStatus.SUCCEEDED) {
@@ -85,7 +85,7 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
         await paymentRepository.update((latest._id as any).toString(), { status: PaymentStatus.FAILED });
       }
     }
-    console.log(`Creating new Stripe PaymentIntent for user ${userId}, event ${eventId}, registration ${registrationId}`);  
+    console.log(`Creating new Stripe PaymentIntent for user ${userId}, event ${eventId}, registration ${registrationId}`);
     // Create PaymentIntent
     const pi = await stripe.paymentIntents.create({
       amount: amountMinor,
@@ -139,12 +139,12 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
     if (!event) throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
     if (!reg) throw new TRPCError({ code: "NOT_FOUND", message: "Registration not found" });
-    
+
     // Double-check event is not free
     if (!event.price || event.price === 0) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "This is a free event. No payment required." });
     }
-    
+
     if ((reg.user as any).toString() !== userId) {
       throw new TRPCError({ code: "FORBIDDEN", message: "Registration does not belong to you" });
     }
@@ -637,6 +637,11 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
         filter.method = { $in: params.filters.method };
       }
 
+      // Purpose filter
+      if (params.filters.purpose && params.filters.purpose.length > 0) {
+        filter.purpose = { $in: params.filters.purpose };
+      }
+
       // Date filters
       if (params.filters.createdFrom && params.filters.createdFrom.length > 0) {
         filter.createdAt = filter.createdAt || {};
@@ -659,8 +664,16 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
 
     const total = await paymentRepository.count(filter);
 
+    // Filter by event type if specified (post-query filter since event is populated)
+    let filteredPayments = payments;
+    if (params.filters?.type && params.filters.type.length > 0) {
+      filteredPayments = payments.filter((payment: any) =>
+        payment.event && params.filters!.type!.includes(payment.event.type)
+      );
+    }
+
     // Format payments for response
-    const formattedPayments = payments.map((payment: any) => ({
+    const formattedPayments = filteredPayments.map((payment: any) => ({
       id: payment._id.toString(),
       user: payment.user ? {
         id: payment.user._id?.toString(),
