@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
@@ -13,6 +13,7 @@ import { CardCheckoutForm } from "../components/CardCheckoutForm";
 import { ROUTES } from "@/lib/constants";
 import { useTheme } from "@/hooks/useTheme";
 import { usePageMeta } from '@/components/layout/page-meta-context';
+
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!);
 
 function getStripeAppearance(theme: string | undefined) {
@@ -42,21 +43,22 @@ function getStripeAppearance(theme: string | undefined) {
   } as const;
 }
 
-
-
 export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }) {
   const params = useParams<{ registrationId?: string; applicationId?: string }>();
   const registrationId = params.registrationId ?? undefined;
   const applicationId = params.applicationId ?? undefined;
+  console.log("PaymentPage params:", { registrationId, applicationId, isVendor });
 
   const { setPageMeta } = usePageMeta();
 
-  setPageMeta({
-    title: isVendor ? "Vendor Payment" : "Event Payment",
-    description: isVendor
-      ? "Complete your vendor participation fee payment."
-      : "Complete your event registration payment.",
-  });
+  useEffect(() => {
+    setPageMeta({
+      title: isVendor ? "Vendor Payment" : "Event Payment",
+      description: isVendor
+        ? "Complete your vendor participation fee payment."
+        : "Complete your event registration payment.",
+    });
+  }, [setPageMeta, isVendor]);
 
   const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
@@ -68,7 +70,13 @@ export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }
   const amountMinorFromUrl = Number(search.get("amountMinor") ?? 0);
   const currencyFromUrl = (search.get("currency") ?? "EGP") as "EGP" | "USD";
 
-  // For non-vendor: show event info
+  // For non-vendor: fetch event details to get name and validate
+  const eventQ = trpc.events.getEventById.useQuery(
+    { id: eventId ?? "" },
+    { enabled: !!eventId && !isVendor }
+  );
+
+  // For non-vendor: show registration info
   const regQ = trpc.registrations.getMyRegistrationForEvent.useQuery(
     { eventId: eventId ?? "" },
     { enabled: !!eventId && !isVendor }
@@ -80,17 +88,39 @@ export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }
     { enabled: isVendor && !!applicationId }
   );
 
+  // Debug: Log vendor application data
+  useEffect(() => {
+    if (isVendor && vendorAppQ.data) {
+      console.log("Vendor application data:", vendorAppQ.data);
+    }
+  }, [isVendor, vendorAppQ.data]);
+
+  // Compute display values - paymentAmount is already in minor units from backend
   const displayAmountMinor = isVendor
-    ? (vendorAppQ.data as any)?.paymentAmount ?? 0
+    ? (vendorAppQ.data?.paymentAmount ?? 0)
     : amountMinorFromUrl;
 
   const displayCurrency = (isVendor
-    ? (vendorAppQ.data as any)?.paymentCurrency
+    ? (vendorAppQ.data?.paymentCurrency ?? "EGP")
     : currencyFromUrl) as "EGP" | "USD";
 
+  // For vendor PLATFORM applications, show booth info; for BAZAAR, show bazaar name
   const displayTitle = isVendor
-    ? (vendorAppQ.data as any)?.bazaarName ?? "Vendor participation fee"
-    : regQ.data?.eventId ?? "Event";
+    ? (vendorAppQ.data?.type === "BAZAAR" 
+        ? (vendorAppQ.data?.bazaarName ?? "Bazaar participation fee")
+        : (vendorAppQ.data?.boothLabel ?? "Platform booth fee"))
+    : (eventQ.data?.name ?? "Event");
+
+  // Check if this is a free event (should not be on payment page)
+  const isFreeEvent = !isVendor && amountMinorFromUrl === 0;
+
+  // Redirect free events away from payment page
+  useEffect(() => {
+    if (isFreeEvent && eventId) {
+      toast.error("This is a free event. No payment required.");
+      navigate(ROUTES.EVENT_DETAILS.replace(":id", eventId));
+    }
+  }, [isFreeEvent, eventId, navigate]);
 
   const [clientSecret, setClientSecret] = useState<string | null>(search.get("cs"));
 
@@ -149,10 +179,24 @@ export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }
       return;
     }
 
-    if (!registrationId || !eventId || !amountMinorFromUrl || !currencyFromUrl) {
+    // Validate required fields for event payment
+    if (!registrationId || !eventId) {
       toast.error("Missing payment session data. Go back and start again.");
       return;
     }
+
+    // Check for free event
+    if (amountMinorFromUrl === 0) {
+      toast.error("This is a free event. No payment required.");
+      navigate(ROUTES.EVENT_DETAILS.replace(":id", eventId));
+      return;
+    }
+
+    if (!currencyFromUrl) {
+      toast.error("Missing currency information. Go back and start again.");
+      return;
+    }
+
     initCard.mutate({
       registrationId,
       eventId,
@@ -163,10 +207,24 @@ export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }
 
   const handleWallet = () => {
     if (isVendor) return;
-    if (!registrationId || !eventId || !amountMinorFromUrl || !currencyFromUrl) {
+
+    if (!registrationId || !eventId) {
       toast.error("Missing payment session data. Go back and start again.");
       return;
     }
+
+    // Check for free event
+    if (amountMinorFromUrl === 0) {
+      toast.error("This is a free event. No payment required.");
+      navigate(ROUTES.EVENT_DETAILS.replace(":id", eventId));
+      return;
+    }
+
+    if (!currencyFromUrl) {
+      toast.error("Missing currency information. Go back and start again.");
+      return;
+    }
+
     payWallet.mutate({
       registrationId,
       eventId,
@@ -174,6 +232,44 @@ export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }
       currency: currencyFromUrl,
     });
   };
+
+  // Don't render payment UI for free events
+  if (isFreeEvent) {
+    return null;
+  }
+
+  // Show loading state while fetching vendor application data
+  if (isVendor && vendorAppQ.isLoading) {
+    return (
+      <div className="max-w-2xl max-h-screen flex items-center justify-center mx-auto">
+        <div className="container max-w-3xl py-6 space-y-6">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">Loading payment details...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if vendor application not found or has no payment amount
+  if (isVendor && vendorAppQ.data && !vendorAppQ.data.paymentAmount) {
+    return (
+      <div className="max-w-2xl max-h-screen flex items-center justify-center mx-auto">
+        <div className="container max-w-3xl py-6 space-y-6">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-destructive">Payment amount not set for this application.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Please wait for your application to be approved with a fee.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl max-h-screen flex items-center justify-center mx-auto">
@@ -242,24 +338,23 @@ export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }
                           appearance: getStripeAppearance(resolvedTheme),
                         }}
                       >
-                       <CardCheckoutForm
-                        afterSuccess={(pid) =>
-                          navigate(
-                            isVendor
-                              ? `${ROUTES.PAY_SUCCESS}?pid=${pid}&vendor=1`
-                              : `${ROUTES.PAY_SUCCESS}?pid=${pid}`
-                          )
-                        }
-                        afterFailure={(msg) => {
-                          toast.error(msg);
-                          if (!isVendor) {
-                            navigate(ROUTES.EVENT_DETAILS.replace(":id", regQ.data?.eventId ?? ""));
-                          } else {
-                            navigate(ROUTES.VENDOR_APPLICATIONS); // or whatever your vendor home is
+                        <CardCheckoutForm
+                          afterSuccess={(pid) =>
+                            navigate(
+                              isVendor
+                                ? `${ROUTES.PAY_SUCCESS}?pid=${pid}&vendor=1`
+                                : `${ROUTES.PAY_SUCCESS}?pid=${pid}`
+                            )
                           }
-                        }}
-                      />
-
+                          afterFailure={(msg) => {
+                            toast.error(msg);
+                            if (!isVendor && eventId) {
+                              navigate(ROUTES.EVENT_DETAILS.replace(":id", eventId));
+                            } else {
+                              navigate(ROUTES.VENDOR_APPLICATIONS);
+                            }
+                          }}
+                        />
                       </Elements>
                     )}
                   </div>

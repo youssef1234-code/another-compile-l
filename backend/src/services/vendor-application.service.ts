@@ -516,6 +516,7 @@ export class VendorApplicationService extends BaseService<
     vendorId: string
   ): Promise<IVendorApplication> {
     const app = await this.repository.findById(applicationId);
+    console.log(`🔍 Fetched application:`, { applicationId, vendorId, appId: app?._id, paymentAmount: app?.paymentAmount });
     if (!app) {
       throw new ServiceError("NOT_FOUND", "Application not found", 404);
     }

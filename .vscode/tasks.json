@@ -4,13 +4,13 @@
     {
       "label": "Build Shared",
       "type": "shell",
-      "command": "cd shared && npm run build",
+      "command": "cd shared ; npm run build",
       "problemMatcher": []
     },
     {
       "label": "Start Backend",
       "type": "shell",
-      "command": "cd backend && npm run dev",
+      "command": "cd backend ; npm run dev",
       "isBackground": true,
       "dependsOn": "Build Shared",
       "problemMatcher": {
@@ -35,7 +35,7 @@
     {
       "label": "Start Frontend",
       "type": "shell",
-      "command": "cd event-manager && npm run dev",
+      "command": "cd event-manager ; npm run dev",
       "isBackground": true,
       "dependsOn": "Build Shared",
       "problemMatcher": {
@@ -72,13 +72,13 @@
     {
       "label": "Install Backend Dependencies",
       "type": "shell",
-      "command": "cd backend && npm install",
+      "command": "cd backend ; npm install",
       "problemMatcher": []
     },
     {
       "label": "Install Frontend Dependencies",
       "type": "shell",
-      "command": "cd event-manager && npm install",
+      "command": "cd event-manager ; npm install",
       "problemMatcher": []
     },
     {

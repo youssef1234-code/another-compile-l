@@ -17,7 +17,6 @@ import { CheckCircle2, XCircle, Clock, Package } from "lucide-react";
 import { VendorApplicationsTable } from "../components/vendor-applications-table";
 import type { VendorApplication } from "@event-manager/shared";
 import { usePageMeta } from '@/components/layout/page-meta-context';
-import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
 type SortState = Array<{ id: string; desc: boolean }>;
@@ -138,26 +137,10 @@ export function VendorApplicationsPage() {
 
 const navigate = useNavigate();
 
-  // init vendor card fee
-  const initVendorFee = trpc.payments.initVendorCard.useMutation({
-    onSuccess: (res) => {
-      // res: { paymentId, clientSecret, status }
-      if (!res?.clientSecret || !res?.paymentId) {
-        toast.error("Payment session could not be created. Please try again.");
-        return;
-      }
-      
-      // Navigate to your card checkout page for vendors
-      navigate(`/checkout/vendor/${res.paymentId}?cs=${encodeURIComponent(res.clientSecret)}`);
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to initialize payment");
-    },
-  });
-
+  // Navigate to vendor payment page - payment initialization happens there
   const handlePayVendorFee = (app: VendorApplication) => {
-    // We only need the applicationId — pricing is computed server-side
-    initVendorFee.mutate({ applicationId: app.id });
+    // Navigate to payment page with applicationId - payment init happens on that page
+    navigate(`/checkout/vendor/${app.id}`);
   };
 
 

@@ -217,6 +217,7 @@ async cancelWithRefund(userId: string, registrationId: string) {
 }
 
 
+
 async registerForEvent(userId: string, eventId: string) {
   const event = await eventService.getEventById(eventId);
   if (!event || !event.isActive) {
@@ -231,6 +232,9 @@ async registerForEvent(userId: string, eventId: string) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Registration deadline passed' });
   }
 
+  // Check if event is free
+  const isFreeEvent = !event.price || event.price === 0;
+
   // Latest registration for audit continuity
   const existing = await registrationRepository.findLatestByUserAndEvent(userId, eventId);
 
@@ -239,8 +243,8 @@ async registerForEvent(userId: string, eventId: string) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'You are already registered for this event' });
   }
 
-  // If a live hold exists, do not create/renew
-  if (existing?.isActive &&
+  // If a live hold exists, do not create/renew (only for paid events)
+  if (!isFreeEvent && existing?.isActive &&
       existing.status === 'PENDING' &&
       existing.holdUntil &&
       existing.holdUntil > now) {
@@ -255,6 +259,39 @@ async registerForEvent(userId: string, eventId: string) {
     }
   }
 
+  // For free events, immediately confirm registration
+  if (isFreeEvent) {
+    // Prefer reviving a previous doc for continuity (if any)
+    if (existing && existing.status !== 'CONFIRMED') {
+      const confirmed = await registrationRepository.update(existing._id as any, {
+        status: RegistrationStatus.CONFIRMED,
+        paymentStatus: PaymentStatus.SUCCEEDED, // No payment needed
+        paymentAmount: 0,
+        holdUntil: null,
+        isActive: true,
+        registeredAt: now,
+      });
+      return confirmed!;
+    }
+
+    // Create a new confirmed registration
+    const created = await registrationRepository.create({
+      user: new mongoose.Types.ObjectId(userId),
+      event: new mongoose.Types.ObjectId(eventId),
+      status: RegistrationStatus.CONFIRMED,
+      paymentStatus: PaymentStatus.SUCCEEDED, // No payment needed
+      paymentAmount: 0,
+      holdUntil: null,
+      registeredAt: now,
+      certificateIssued: false,
+      attended: false,
+      isActive: true,
+    });
+
+    return created;
+  }
+
+  // For paid events, create a pending registration with hold
   const holdUntil = new Date(Date.now() + HOLD_MINUTES * 60_000);
 
   // Prefer reviving a previous doc for continuity (if any)
@@ -294,6 +331,7 @@ async registerForEvent(userId: string, eventId: string) {
 
   return created;
 }
+
 
   /**
    * Get registrations for a specific event (for event organizers)

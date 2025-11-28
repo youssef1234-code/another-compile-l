@@ -55,7 +55,7 @@ export const ROUTES = {
   LOYALTY_PROGRAM: "/vendors/loyalty",
   VENDOR_REQUESTS: "/vendors/requests",
   ALL_APPLICATIONS: "/vendors/all",
-  VENDOR_CHECKOUT : "/checkout/vendor/:registrationId",
+  VENDOR_CHECKOUT : "/checkout/vendor/:applicationId",
 
   // Gym & Sports
   GYM_SCHEDULE: "/gym/schedule",

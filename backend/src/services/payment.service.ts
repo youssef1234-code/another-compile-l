@@ -35,6 +35,11 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
   async initCardPayment(userId: string, input: CardPaymentInitInput) {
     const { eventId, registrationId, amountMinor, currency } = input;
 
+    // Prevent payment for free events
+    if (amountMinor === 0) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "This is a free event. No payment required." });
+    }
+
     // 0) Load & validate entities and ownership
     const [reg, event] = await Promise.all([
       registrationRepository.findById(registrationId),
@@ -42,12 +47,20 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     ]);
     if (!reg) throw new TRPCError({ code: "NOT_FOUND", message: "Registration not found" });
     if (!event) throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    
+    // Double-check event is not free
+    if (!event.price || event.price === 0) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "This is a free event. No payment required." });
+    }
+    
     if ((reg.user as any)?.toString?.() !== userId) {
       throw new TRPCError({ code: "FORBIDDEN", message: "Registration does not belong to you" });
     }
 
     const latest = await paymentRepository.findLatestForRegistration(registrationId);
     // 1) If already paid by wallet or card -> stop
+
+    console.log(`Creating new Stripe PaymentIntent for user ${userId}, event ${eventId}, registration ${registrationId}`);  
 
     if (latest) {
       if (latest.status === PaymentStatus.SUCCEEDED) {
@@ -72,6 +85,7 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
         await paymentRepository.update((latest._id as any).toString(), { status: PaymentStatus.FAILED });
       }
     }
+    console.log(`Creating new Stripe PaymentIntent for user ${userId}, event ${eventId}, registration ${registrationId}`);  
     // Create PaymentIntent
     const pi = await stripe.paymentIntents.create({
       amount: amountMinor,
@@ -111,6 +125,11 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
   async payWithWallet(userId: string, input: WalletPaymentInput) {
     const { amountMinor, currency, eventId, registrationId } = input;
 
+    // Prevent payment for free events
+    if (amountMinor === 0) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "This is a free event. No payment required." });
+    }
+
     // Load & validate (non-mutating reads can be outside)
     const [user, event, reg] = await Promise.all([
       userRepository.findById(userId),
@@ -120,6 +139,12 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
     if (!event) throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
     if (!reg) throw new TRPCError({ code: "NOT_FOUND", message: "Registration not found" });
+    
+    // Double-check event is not free
+    if (!event.price || event.price === 0) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "This is a free event. No payment required." });
+    }
+    
     if ((reg.user as any).toString() !== userId) {
       throw new TRPCError({ code: "FORBIDDEN", message: "Registration does not belong to you" });
     }
