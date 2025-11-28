@@ -337,6 +337,69 @@ export function AdminUsersPage() {
     }
   }, [updateUserMutation]);
 
+  const handleDownloadTaxCard = useCallback(
+    async (userId: string) => {
+      console.log(userId);
+      const user = data?.users.find((u: User) => u.id === userId);
+      console.log(user.taxCardUrl);
+      const fileId = user?.taxCardUrl;
+
+      if (!fileId) {
+        toast.error("No tax card found for this vendor");
+        return;
+      }
+            try {
+        const fileData = await utils.files.downloadFile.fetch({ fileId });
+
+        // Create a download link
+        const dataUrl = `data:${fileData.mimeType};base64,${fileData.data}`;
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = fileData.filename || `taxcard-${userId}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success("Tax card downloaded successfully");
+      } catch (error) {
+        const errorMessage = formatValidationErrors(error);
+        toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
+      }
+    },
+    [data?.users, utils]
+  );
+
+    const handleDownloadLogo = useCallback(
+    async (userId: string) => {
+      const user = data?.users.find((u: User) => u.id === userId);
+      const fileId = user?.logoUrl;
+
+      if (!fileId) {
+        toast.error("No logo found for this vendor");
+        return;
+      }
+
+      try {
+        const fileData = await utils.files.downloadFile.fetch({ fileId });
+
+        // Create a download link
+        const dataUrl = `data:${fileData.mimeType};base64,${fileData.data}`;
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = fileData.filename || `taxcard-${userId}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success("Tax card downloaded successfully");
+      } catch (error) {
+        const errorMessage = formatValidationErrors(error);
+        toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
+      }
+    },
+    [data?.users, utils]
+  );
+
   const handleVerifyRole = useCallback((userId: string) => {
     verifyRoleMutation.mutate({ userId });
   }, [verifyRoleMutation]);

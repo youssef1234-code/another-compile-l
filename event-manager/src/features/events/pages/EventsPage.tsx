@@ -853,6 +853,10 @@ function EventCardProduction({
     setIsFavoriting(false);
   };
 
+  const { data: isWhitelisted } = trpc.events.checkEventWhitelisted.useQuery(
+    { eventId: event.id },
+    { enabled: !!event.id }
+  );
   if (view === "list") {
     return (
       <Card
@@ -951,6 +955,11 @@ function EventCardProduction({
                 )}
               </span>
               {isFull && <Badge variant="destructive">Full</Badge>}
+              {isWhitelisted && (
+                <Badge className="bg-amber-500 text-white border-none">
+                  🔒 Whitelisted
+                </Badge>
+              )}
             </div>
           </div>
         </CardContent>
@@ -1024,6 +1033,11 @@ function EventCardProduction({
           {isFree && (
             <Badge className="bg-emerald-500 text-white border-none shadow-md">
               Free
+            </Badge>
+          )}
+          {isWhitelisted && (
+            <Badge className="bg-amber-500 text-white border-none shadow-md">
+              🔒 Whitelisted
             </Badge>
           )}
           <Button

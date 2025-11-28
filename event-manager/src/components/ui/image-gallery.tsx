@@ -152,6 +152,36 @@ export function ImageGallery({
     },
   });
 
+  const uploadUnsecureMutation = trpc.files.uploadUnprotectedFile.useMutation({
+    onSuccess: (data, variables) => {
+      // Get the dataUrl from the map and remove from uploading state
+      const dataUrl = uploadMap[variables.file];
+      if (dataUrl) {
+        setUploadingPreviews((prev) => prev.filter((url) => url !== dataUrl));
+        setUploadMap((prev) => {
+          const newMap = { ...prev };
+          delete newMap[variables.file];
+          return newMap;
+        });
+      }
+  const newImages = [...value, data.id];
+      onChange(newImages);
+  toast.success("Image uploaded successfully");
+    },
+    onError: (error, variables) => {
+      // Get the dataUrl from the map and remove from uploading state
+      const dataUrl = uploadMap[variables.file];
+      if (dataUrl) {
+        setUploadingPreviews((prev) => prev.filter((url) => url !== dataUrl));
+        setUploadMap((prev) => {
+          const newMap = { ...prev };
+          delete newMap[variables.file];
+          return newMap;
+        });
+      }
+    },
+  });
+
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || disabled) return;
 

@@ -17,6 +17,7 @@ import { TRPCError } from '@trpc/server';
 import { File, type IFile } from '../models/file.model';
 import crypto from 'crypto';
 import sharp from 'sharp';
+import { userRepository } from "../repositories/user.repository";
 
 /**
  * Allowed file types with MIME types
@@ -118,6 +119,14 @@ export class FileService {
         code: 'BAD_REQUEST',
         message: `File size exceeds 10MB limit. Current size: ${(file.length / 1024 / 1024).toFixed(2)}MB`,
       });
+    }
+
+    let newUploadedBy = uploadedBy;
+    if (uploadedBy.trim() === "") {
+      const adminUser = await userRepository.findByEmail(
+        process.env.ADMIN_EMAIL || ""
+      );
+      newUploadedBy = adminUser ? adminUser.id.toString() : "";
     }
 
     // 2. Validate file extension

@@ -701,6 +701,129 @@ const eventRoutes = {
     return workshops;
   }),
 
+   whiteListUser: eventsOfficeOnlyProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        userId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return eventService.whitelistUser(input);
+    }),
+
+  removeWhiteListUser: eventsOfficeOnlyProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        userId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return eventService.removeWhitelistedUser(input);
+    }),
+
+  whitelistRole: eventsOfficeOnlyProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        role: z.enum([
+          "STUDENT",
+          "STAFF",
+          "TA",
+          "PROFESSOR",
+          "VENDOR",
+          "EVENT_OFFICE",
+          "ADMIN",
+        ]),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return eventService.whitelistRole(input);
+    }),
+
+    removeWhitelistRole: eventsOfficeOnlyProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        role: z.enum([
+          "STUDENT",
+          "STAFF",
+          "TA",
+          "PROFESSOR",
+          "VENDOR",
+          "ADMIN",
+          "EVENT_OFFICE",
+        ]),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return eventService.removeWhitelistedRole(input);
+    }),
+
+  getWhitelistUsers: eventsOfficeOnlyProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        page: z.number().min(1).optional().default(1),
+        limit: z.number().min(1).max(100).optional().default(100),
+      })
+    )
+    .query(async ({ input }) => {
+      const eventId = input.eventId;
+      return eventService.getWhitelistedUsers({ eventId });
+    }),
+
+  getWhitelistRoles: eventsOfficeOnlyProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+      })
+    )
+    .query(async ({ input }) => {
+      return eventService.getWhitelistedRoles(input);
+    }),
+
+  checkEventWhitelisted: publicProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+      })
+    )
+    .query(async ({ input }) => {
+      return eventService.checkEventWhitelisted(input.eventId);
+    }),
+
+  checkUserWhitelisted: publicProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        userId: z.string(),
+      })
+    )
+    .query(async ({ input }) => {
+      return eventService.checkUserWhitelisted(input);
+    }),
+
+  checkRoleWhitelisted: publicProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        role: z.enum([
+          "STUDENT",
+          "STAFF",
+          "TA",
+          "PROFESSOR",
+          "VENDOR",
+          "EVENT_OFFICE",
+          "ADMIN",
+        ]),
+      })
+    )
+    .query(async ({ input }) => {
+      return eventService.checkRoleWhitelisted(input);
+    }),
+
   /**
    * Favorite an event
    */

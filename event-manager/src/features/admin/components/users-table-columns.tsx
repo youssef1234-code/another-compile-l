@@ -1,7 +1,7 @@
 
 import type { User } from "@event-manager/shared";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Shield, Mail, MoreHorizontal, UserX, Trash2, UserCheck, Users, CheckCircle, XCircle } from "lucide-react";
+import { Shield, Mail, MoreHorizontal, UserX, Trash2, UserCheck, Users, CheckCircle, XCircle, FileText, FileImage } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { InlineEditCell, RoleBadge, UserStatusBadge } from "@/components/generic";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,8 @@ interface GetUsersTableColumnsProps {
   onBlockUser?: (userId: string) => void;
   onUnblockUser?: (userId: string) => void;
   onDeleteUser?: (userId: string) => void;
+  onDownloadTaxCard?: (userId: string) => void;
+  onDownloadLogo?: (userId: string) => void;
 }
 
 export function getUsersTableColumns({
@@ -44,6 +46,8 @@ export function getUsersTableColumns({
   onBlockUser,
   onUnblockUser,
   onDeleteUser,
+  onDownloadTaxCard,
+  onDownloadLogo,
 }: GetUsersTableColumnsProps): ColumnDef<User>[] {
   return [
     {
@@ -412,7 +416,25 @@ export function getUsersTableColumns({
                   <DropdownMenuSeparator />
                 </>
               )}
-              <DropdownMenuItem 
+              {isVendor && (
+                <>
+                  <DropdownMenuItem
+                    className="text-blue-600 dark:text-blue-400"
+                    onClick={() => onDownloadTaxCard?.(user.id)}
+                  >
+                    <FileText className="mr-2 size-4" />
+                    Download Tax Card
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-blue-600 dark:text-blue-400"
+                    onClick={() => onDownloadLogo?.(user.id)}
+                  >
+                    <FileImage className="mr-2 size-4" />
+                    Download Logo
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuItem
                 className="text-yellow-600 dark:text-yellow-400"
                 onClick={() => {
                   if (user.isBlocked) {

@@ -1163,6 +1163,8 @@ export interface Event {
   status?: string;
   rejectionReason?: string;
   revisionNotes?: string;
+  whitelistedUsers?: string[];
+  whitelistedRoles?: string[];
 }
 
 export type VendorPaymentStatus = "FAILED" | "PENDING" | "PAID";

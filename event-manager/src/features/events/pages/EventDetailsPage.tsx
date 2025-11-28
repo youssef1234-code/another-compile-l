@@ -138,6 +138,26 @@ export function EventDetailsPage() {
     event.type === "WORKSHOP" &&
     eventCreatorId === user.id; // Compare user IDs, not names!
 
+    const checkUserWhitelisted = trpc.events.checkUserWhitelisted.useQuery(
+    {
+      eventId: id!,
+      userId: user?.id || "",
+    },
+    {
+      enabled: !!id && !!user,
+    }
+  );
+
+  const checkRoleWhitelisted = trpc.events.checkRoleWhitelisted.useQuery(
+    {
+      eventId: id!,
+      role: user?.role!,
+    },
+    {
+      enabled: !!id && !!user && !!user.role,
+    }
+  );
+
   // Debug logging
   if (user?.role === "PROFESSOR" && event?.type === "WORKSHOP") {
     console.log("🔍 Frontend Professor Workshop Check:", {

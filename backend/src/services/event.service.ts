@@ -14,9 +14,11 @@ import {
   EventStatus,
   GymSessionType,
   UpdateWorkshopSchema,
+  UserRole,
   type UpdateWorkshopInput,
 } from "@event-manager/shared";
 import { ServiceError } from "../errors/errors";
+import { IUser } from "../models/user.model";
 
 /**
  * Service Layer for Events
@@ -1280,13 +1282,119 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     return userRepository.getFavoriteEvents(userId, options);
   }
 
-  /**
-   * Check if event is favorited by user
-   */
-  async isFavorite(userId: string, eventId: string) {
+
+    async whitelistUser(input: {
+    eventId: string;
+    userId: string;
+  }): Promise<void> {
+    const { eventId, userId } = input;
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    if (!event.whitelistedUsers) {
+      event.whitelistedUsers = [];
+    }
+
+    await eventRepository.whitelistUser(userId, eventId);
+  }
+
+   async removeWhitelistedUser(input: {
+    eventId: string;
+    userId: string;
+  }): Promise<void> {
+    const { eventId, userId } = input;
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    await eventRepository.removeWhitelistedUser(userId, eventId);
+  }
+
+  
+  async whitelistRole(input: {
+    eventId: string;
+    role: UserRole;
+  }): Promise<void> {
+    const { eventId, role } = input;
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    await eventRepository.whitelistRole(role, eventId);
+  }
+
+
+  async removeWhitelistedRole(input: {
+    eventId: string;
+    role: UserRole;
+  }): Promise<void> {
+    const { eventId, role } = input;
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    await eventRepository.removeWhitelistedRole(role, eventId);
+  }
+
+    async checkRoleWhitelisted(data: {
+    eventId: string;
+    role: UserRole;
+  }): Promise<boolean> {
+    const event = await this.repository.findById(data.eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    return event.whitelistedRoles?.includes(data.role) ?? false;
+  }
+
+  async getWhitelistedUsers(input: { eventId: string }): Promise<IUser[]> {
+    const event = await this.repository.findById(input.eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    if (!event.whitelistedUsers) {
+      return [];
+    }
+    // turn event.whitelistedUsers to string array
+    const userIds = event.whitelistedUsers.map((id) => id.toString());
+    return userRepository.findByIds(userIds);
+  }
+
+  async checkEventWhitelisted(eventId: string): Promise<boolean> {
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    return (event.whitelistedUsers?.length ?? 0) > 0;
+  }
+
+  async checkUserWhitelisted(data: {
+    eventId: string;
+    userId: string;
+  }): Promise<boolean> {
+    const event = await this.repository.findById(data.eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    return (
+      event.whitelistedUsers?.some((id) => id.toString() === data.userId) ??
+      false
+    );
+  }
+
+  async getWhitelistedRoles(input: { eventId: string }): Promise<UserRole[]> {
+    const event = await this.repository.findById(input.eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    return (event.whitelistedRoles ?? []) as UserRole[];
+  }
+    async isFavorite(userId: string, eventId: string) {
     return userRepository.isFavorite(userId, eventId);
   }
 }
+
 
 // Singleton instance
 export const eventService = new EventService(eventRepository);

@@ -62,6 +62,18 @@ export function ImageUpload({
       setPreview(null);
     },
   });
+  const uploadUnsecureMutation = trpc.files.uploadUnprotectedFile.useMutation({
+    onSuccess: (data) => {
+      // Store file ID and keep preview
+      onChange(data.id);
+      toast.success("Image uploaded successfully!");
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
+      setPreview(null);
+    },
+  });
 
   const handleFileSelect = async (file: File) => {
     // Validate file type
@@ -87,15 +99,27 @@ export function ImageUpload({
     // Upload to server
     try {
       const base64 = await fileToBase64(file);
-      await uploadMutation.mutateAsync({
-        file: base64.split(',')[1], // Remove data:image/...;base64, prefix
-        filename: file.name,
-        mimeType: file.type,
-        entityType,
-        entityId,
-        isPublic: true,
-        skipCompression: false, // Let backend compress
-      });
+      if (entityType === "vendor") {
+        await uploadUnsecureMutation.mutateAsync({
+          file: base64.split(",")[1], // Remove data:image/...;base64, prefix
+          filename: file.name,
+          mimeType: file.type,
+          entityType,
+          entityId,
+          isPublic: true,
+          skipCompression: false, // Let backend compress
+        });
+      } else {
+        await uploadMutation.mutateAsync({
+          file: base64.split(",")[1], // Remove data:image/...;base64, prefix
+          filename: file.name,
+          mimeType: file.type,
+          entityType,
+          entityId,
+          isPublic: true,
+          skipCompression: false, // Let backend compress
+        });
+      }
     } catch (error) {
       console.error('Upload error:', error);
     }
