@@ -71,7 +71,7 @@ export function EventsReportsTable({
         columns,
         pageCount,
         initialState: {
-            sorting: [{ id: "startDate", desc: false }], // Upcoming events first
+            sorting: [{ id: "startDate", desc: true }], // Upcoming events first
             columnPinning: { right: ["actions"] },
         },
         queryKeys,

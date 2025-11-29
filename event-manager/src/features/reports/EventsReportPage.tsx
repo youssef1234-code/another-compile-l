@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
-import { useQueryState, parseAsString, parseAsArrayOf, parseAsInteger } from "nuqs";
+import { useQueryState, parseAsString, parseAsArrayOf, parseAsInteger, parseAsJson } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
-import { Users, Calendar, GraduationCap, LineChart, ListIcon, CalendarIcon } from "lucide-react";
+import { Users, Calendar, GraduationCap, LineChart } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import NumberFlow from "@number-flow/react";
 import { ReportFilters, type ReportFiltersState } from "./components/report-filters";
@@ -16,11 +16,21 @@ export function EventsReportPage() {
     const [typeFilter, setTypeFilter] = useQueryState("type", parseAsArrayOf(parseAsString, ",").withDefault([]));
     const [dateFrom, setDateFrom] = useQueryState("dateFrom", parseAsString.withDefault(""));
     const [dateTo, setDateTo] = useQueryState("dateTo", parseAsString.withDefault(""));
-    const [maxPrice, setMaxPrice] = useQueryState("maxPrice", parseAsString.withDefault(""));
     const [view, setView] = useState<"STATISTICS" | "TABLE">("STATISTICS");
     const [searchInput, setSearchInput] = useState(search);
     const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
     const [perPage] = useQueryState("perPage", parseAsInteger.withDefault(24));
+    const [sortState] = useQueryState('sort', parseAsJson<Array<{ id: string; desc: boolean }>>((v) => {
+        if (!v) return null;
+        if (typeof v === 'string') {
+            try {
+                return JSON.parse(v) as Array<{ id: string; desc: boolean }>;
+            } catch {
+                return null;
+            }
+        }
+        return v as Array<{ id: string; desc: boolean }>;
+    }).withDefault([]));
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -38,8 +48,7 @@ export function EventsReportPage() {
         types: typeFilter,
         dateFrom: dateFrom ? new Date(dateFrom) : undefined,
         dateTo: dateTo ? new Date(dateTo) : undefined,
-        maxPrice: maxPrice ? Number(maxPrice) : undefined,
-    }), [search, typeFilter, dateFrom, dateTo, maxPrice]);
+    }), [search, typeFilter, dateFrom, dateTo]);
 
     const maxDate = new Date();
 
@@ -50,17 +59,28 @@ export function EventsReportPage() {
         if (filtersState.dateFrom) result.startDateFrom = [filtersState.dateFrom.toISOString()];
         if (filtersState.dateTo) result.startDateTo = [filtersState.dateTo.toISOString()];
         else result.startDateTo = [maxDate.toISOString()];
-        if (filtersState.maxPrice !== undefined) result.maxPrice = [String(filtersState.maxPrice)];
         result.status = ["PUBLISHED"];
 
         return result;
     }, [filtersState]);
+
+    const parsedSort = useMemo(() => {
+        try {
+            if (Array.isArray(sortState)) {
+                return sortState as Array<{ id: string; desc: boolean }>;
+            }
+            return [{ id: "startDate", desc: false }];
+        } catch {
+            return [{ id: "startDate", desc: false }];
+        }
+    }, [sortState]);
 
 
     const { data } = trpc.events.getAllEvents.useQuery(
         {
             perPage: 1000,
             search: filtersState.search || undefined,
+            sort: parsedSort.length > 0 ? parsedSort : undefined,
             filters: Object.keys(filters).length > 0 ? filters : undefined,
         },
         {
@@ -132,7 +152,6 @@ export function EventsReportPage() {
         setTypeFilter([]);
         setDateFrom('');
         setDateTo('');
-        setMaxPrice('');
         setSearchInput('');
     };
 
@@ -141,7 +160,6 @@ export function EventsReportPage() {
         setTypeFilter(newFilters.types);
         setDateFrom(newFilters.dateFrom ? newFilters.dateFrom.toISOString() : '');
         setDateTo(newFilters.dateTo ? newFilters.dateTo.toISOString() : '');
-        setMaxPrice(newFilters.maxPrice ? String(newFilters.maxPrice) : '');
         setSearchInput(newFilters.search);
     };
 
@@ -160,33 +178,35 @@ export function EventsReportPage() {
                 onSearchInputChange={setSearchInput}
                 isSearching={searchInput !== search}
             />
-            <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setView("STATISTICS")}
-                    className={cn(
-                        'gap-2 transition-all',
-                        view === "STATISTICS"
-                            ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
-                            : 'hover:bg-muted text-muted-foreground'
-                    )}
-                >
-                    <LineChart className="h-4 w-4" /> Statistics
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setView("TABLE")}
-                    className={cn(
-                        'gap-2 transition-all',
-                        view === "TABLE"
-                            ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
-                            : 'hover:bg-muted text-muted-foreground'
-                    )}
-                >
-                    <Calendar className="h-4 w-4" /> Events List
-                </Button>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setView("STATISTICS")}
+                        className={cn(
+                            'gap-2 transition-all',
+                            view === "STATISTICS"
+                                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                                : 'hover:bg-muted text-muted-foreground'
+                        )}
+                    >
+                        <LineChart className="h-4 w-4" /> Statistics
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setView("TABLE")}
+                        className={cn(
+                            'gap-2 transition-all',
+                            view === "TABLE"
+                                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                                : 'hover:bg-muted text-muted-foreground'
+                        )}
+                    >
+                        <Calendar className="h-4 w-4" /> Events
+                    </Button>
+                </div>
             </div>
 
             {view === "TABLE" ? (

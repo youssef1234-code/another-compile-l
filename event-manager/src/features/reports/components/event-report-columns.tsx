@@ -177,17 +177,17 @@ export function getEventsTableColumns({
             size: 150,
         },
         {
-            id: "locationDetails",
-            accessorKey: "locationDetails",
+            id: "location",
+            accessorKey: "location",
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title="Location" />
             ),
             cell: ({ row }) => {
-                const location = row.getValue("locationDetails") as string;
+                const location = row.getValue("location") as string;
                 return (
                     <div className="flex items-center gap-2">
                         <MapPin className="size-4 text-muted-foreground" />
-                        <span className="truncate max-w-[150px]">{location || 'N/A'}</span>
+                        <span className="truncate ">{location || 'N/A'}</span>
                     </div>
                 );
             },
@@ -198,7 +198,7 @@ export function getEventsTableColumns({
                 variant: "text" as const,
                 operators: ["iLike", "eq", "ne"],
             },
-            size: 180,
+            size: 130,
         },
         {
             id: "professorName",
@@ -222,7 +222,7 @@ export function getEventsTableColumns({
                 variant: "text" as const,
                 operators: ["iLike", "eq", "ne"],
             },
-            size: 150,
+            size: 130,
         },
         {
             id: "faculty",
@@ -293,6 +293,7 @@ export function getEventsTableColumns({
                 label: "Registrations",
                 variant: "range" as const,
                 operators: ["gt", "lt", "gte", "lte", "eq", "ne"],
+
             },
             size: 130,
         },
@@ -306,7 +307,7 @@ export function getEventsTableColumns({
                 const price = row.getValue("price") as number;
                 return (
                     <span className="font-mono text-sm">
-                        {price > 0 ? `${price} EGP` : "Free"}
+                        {price > 0 ? `${price.toLocaleString()} EGP` : "Free"}
                     </span>
                 );
             },
@@ -325,12 +326,10 @@ export function getEventsTableColumns({
                 <DataTableColumnHeader column={column} title="Total Sales" />
             ),
             cell: ({ row }) => {
-                const price = row.getValue("price") as number;
-                const registeredCount = row.getValue("registeredCount") as number;
-                const totalSales = price * (registeredCount || 0);
+                const totalSales = row.getValue("totalSales") as number;
                 return (
-                    <span className="font-mono text-sm font-semibold">
-                        {totalSales > 0 ? `${totalSales.toLocaleString()} EGP` : "-"}
+                    <span className="font-mono text-sm">
+                        {totalSales > 0 ? `${totalSales.toLocaleString()} EGP` : "0 EGP"}
                     </span>
                 );
             },
@@ -341,6 +340,7 @@ export function getEventsTableColumns({
                 operators: ["gt", "lt", "gte", "lte", "eq"],
             },
             size: 130,
+
         },
     ];
 }

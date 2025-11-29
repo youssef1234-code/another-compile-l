@@ -329,6 +329,110 @@ const sampleEvents = [
     status: "PUBLISHED",
     tags: ["Trip", "Camping", "Desert", "Adventure"],
   },
+  {
+    name: "Advanced Blockchain Workshop",
+    type: "WORKSHOP",
+    description: "Deep dive into blockchain technology and smart contracts",
+    location: "GUC Cairo - C3.105",
+    date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+    startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000), // 9 days ago
+    registrationDeadline: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+    capacity: 40,
+    price: 500,
+    status: "PUBLISHED",
+    tags: ["Workshop", "Blockchain", "Technology", "Cryptocurrency"],
+    fullAgenda: "Introduction to blockchain, smart contracts, DeFi applications",
+    faculty: "MET",
+    requiredBudget: 4500,
+    fundingSource: "GUC",
+  },
+  {
+    name: "Professional Photography Workshop",
+    type: "WORKSHOP",
+    description: "Master the art of professional photography",
+    location: "GUC Cairo - Media Lab",
+    date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
+    startDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000), // 19 days ago
+    registrationDeadline: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    capacity: 30,
+    price: 350,
+    status: "PUBLISHED",
+    tags: ["Workshop", "Photography", "Arts", "Media"],
+    fullAgenda: "Camera basics, composition, lighting techniques, post-processing",
+    faculty: "ARTS",
+    requiredBudget: 3500,
+    fundingSource: "EXTERNAL",
+  },
+  {
+    name: "Cybersecurity Bootcamp",
+    type: "WORKSHOP",
+    description: "Learn ethical hacking and network security fundamentals",
+    location: "GUC Cairo - C7.205",
+    date: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000), // 35 days ago
+    startDate: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 33 * 24 * 60 * 60 * 1000), // 33 days ago
+    registrationDeadline: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
+    capacity: 35,
+    price: 600,
+    status: "PUBLISHED",
+    tags: ["Workshop", "Cybersecurity", "Technology", "Ethical Hacking"],
+    fullAgenda: "Network security, penetration testing, secure coding practices",
+    faculty: "MET",
+    requiredBudget: 5500,
+    fundingSource: "GUC",
+  },
+  {
+    name: "UX/UI Design Masterclass",
+    type: "WORKSHOP",
+    description: "Create stunning user experiences and interfaces",
+    location: "GUC Cairo - Design Studio",
+    date: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000), // 50 days ago
+    startDate: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 49 * 24 * 60 * 60 * 1000), // 49 days ago
+    registrationDeadline: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+    capacity: 25,
+    price: 450,
+    status: "PUBLISHED",
+    tags: ["Workshop", "Design", "UX", "UI", "Technology"],
+    fullAgenda: "Design thinking, wireframing, prototyping, user testing",
+    faculty: "ARTS",
+    requiredBudget: 4000,
+    fundingSource: "EXTERNAL",
+  },
+  {
+    name: "Entrepreneurship Summit 2024",
+    type: "CONFERENCE",
+    description: "Connect with entrepreneurs and learn startup strategies",
+    location: "GUC Cairo - Conference Hall",
+    date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), // 25 days ago
+    startDate: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 24 * 24 * 60 * 60 * 1000), // 24 days ago
+    registrationDeadline: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000),
+    capacity: 100,
+    price: 300,
+    status: "PUBLISHED",
+    tags: ["Conference", "Entrepreneurship", "Business", "Startups"],
+    fullAgenda: "Keynote speakers, pitch competitions, networking sessions, workshops",
+    websiteUrl: "https://entrepreneurship-summit.guc.edu.eg",
+    requiredBudget: 20000,
+    fundingSource: "EXTERNAL",
+  },
+  {
+    name: "Tech Innovation Bazaar",
+    type: "BAZAAR",
+    description: "Showcase cutting-edge technology and innovation products",
+    location: "GUC Campus - Innovation Hub",
+    date: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000), // 40 days ago
+    startDate: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 39 * 24 * 60 * 60 * 1000), // 39 days ago
+    registrationDeadline: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000),
+    capacity: 80,
+    price: 200,
+    status: "PUBLISHED",
+    tags: ["Bazaar", "Technology", "Innovation", "Startups"],
+  },
   // Bazaars
   {
     name: "Spring Tech Bazaar",
@@ -534,6 +638,12 @@ export async function seedComprehensiveData(): Promise<void> {
           if (event.price && event.price > 0) {
             const paymentMethod = Math.random() > 0.5 ? "STRIPE_CARD" : "WALLET";
 
+            // Generate random date within the past month
+            const now = new Date();
+            const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const randomTimestamp = oneMonthAgo.getTime() + Math.random() * (now.getTime() - oneMonthAgo.getTime());
+            const randomDate = new Date(randomTimestamp);
+
             await Payment.create({
               user: student._id,
               registration: registration._id,
@@ -543,7 +653,7 @@ export async function seedComprehensiveData(): Promise<void> {
               amountMinor: event.price, // Convert to minor units (cents)
               currency: "EGP",
               purpose: "EVENT_PAYMENT",
-              createdAt: new Date(),
+              createdAt: randomDate,
             });
 
             paymentCount++;

@@ -17,7 +17,6 @@ import { mailService } from "./mail.service";
 import { eventRepository } from "../repositories/event.repository";
 import { registrationRepository } from "../repositories/registration.repository";
 import { assertVendorAppPayable } from "../services/vendor-application.service";
-import { vendorApplicationRepository } from "../repositories/vendor-application.repository";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
 const DEFAULT_CURRENCY = (process.env.CURRENCY ?? "EGP") as "EGP" | "USD";
@@ -662,13 +661,31 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
       populate: ['user', 'event'],
     });
 
-    const total = await paymentRepository.count(filter);
 
-    // Filter by event type if specified (post-query filter since event is populated)
+
+    // Filter by event properties if specified (post-query filter since event is populated)
     let filteredPayments = payments;
+
+    // Filter by event type
     if (params.filters?.type && params.filters.type.length > 0) {
-      filteredPayments = payments.filter((payment: any) =>
+      filteredPayments = filteredPayments.filter((payment: any) =>
         payment.event && params.filters!.type!.includes(payment.event.type)
+      );
+    }
+
+    // Filter by event start date from
+    if (params.filters?.startDateFrom && params.filters.startDateFrom.length > 0) {
+      const startFrom = new Date(params.filters.startDateFrom[0]);
+      filteredPayments = filteredPayments.filter((payment: any) =>
+        payment.event && payment.event.startDate && new Date(payment.event.startDate) >= startFrom
+      );
+    }
+
+    // Filter by event start date to
+    if (params.filters?.startDateTo && params.filters.startDateTo.length > 0) {
+      const startTo = new Date(params.filters.startDateTo[0]);
+      filteredPayments = filteredPayments.filter((payment: any) =>
+        payment.event && payment.event.startDate && new Date(payment.event.startDate) <= startTo
       );
     }
 
@@ -696,6 +713,8 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
       createdAt: payment.createdAt,
       updatedAt: payment.updatedAt,
     }));
+
+    const total = formattedPayments.length;
 
     return {
       payments: formattedPayments,

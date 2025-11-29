@@ -493,13 +493,26 @@ export class EventService extends BaseService<IEvent, EventRepository> {
           }
         }
 
+        // Calculate total sales
+        const totalSales = registeredCount * (event.price || 0);
+
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
           vendors: vendorDetails,
         };
       })
     );
+
+    if (data.sort?.[0]?.id === "totalSales" && data.sort?.[0]?.desc)
+      formattedEvents.sort((a, b) => b.totalSales - a.totalSales)
+    else if (data.sort?.[0]?.id === "totalSales" && !data.sort?.[0]?.desc)
+      formattedEvents.sort((a, b) => a.totalSales - b.totalSales)
+    else if (data.sort?.[0]?.id === "registeredCount" && data.sort?.[0]?.desc)
+      formattedEvents.sort((a, b) => b.registeredCount - a.registeredCount)
+    else if (data.sort?.[0]?.id === "registeredCount" && !data.sort?.[0]?.desc)
+      formattedEvents.sort((a, b) => a.registeredCount - b.registeredCount)
 
     return {
       events: formattedEvents,
@@ -1283,7 +1296,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   }
 
 
-    async whitelistUser(input: {
+  async whitelistUser(input: {
     eventId: string;
     userId: string;
   }): Promise<void> {
@@ -1299,7 +1312,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     await eventRepository.whitelistUser(userId, eventId);
   }
 
-   async removeWhitelistedUser(input: {
+  async removeWhitelistedUser(input: {
     eventId: string;
     userId: string;
   }): Promise<void> {
@@ -1311,7 +1324,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     await eventRepository.removeWhitelistedUser(userId, eventId);
   }
 
-  
+
   async whitelistRole(input: {
     eventId: string;
     role: UserRole;
@@ -1337,7 +1350,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     await eventRepository.removeWhitelistedRole(role, eventId);
   }
 
-    async checkRoleWhitelisted(data: {
+  async checkRoleWhitelisted(data: {
     eventId: string;
     role: UserRole;
   }): Promise<boolean> {
@@ -1390,7 +1403,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     }
     return (event.whitelistedRoles ?? []) as UserRole[];
   }
-    async isFavorite(userId: string, eventId: string) {
+  async isFavorite(userId: string, eventId: string) {
     return userRepository.isFavorite(userId, eventId);
   }
 }
