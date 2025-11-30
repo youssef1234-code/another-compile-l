@@ -1,10 +1,12 @@
-import { ChevronsUpDown, LogOut, Wallet, User, Bell, Sun, Moon, Monitor } from "lucide-react"
+import { ChevronsUpDown, LogOut, Wallet, User, Bell, Sun, Moon, Monitor, Loader2 } from "lucide-react"
 import { Link } from "react-router-dom"
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
+import { trpc } from "@/lib/trpc"
+import { useAuthStore } from "@/store/authStore"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +42,18 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
+  const { user: authUser } = useAuthStore()
+  
+  // Fetch wallet balance for students, staff, TAs, and professors
+  const canHaveWallet = authUser?.role && ['STUDENT', 'STAFF', 'TA', 'PROFESSOR'].includes(authUser.role)
+  const { data: walletData, isLoading: isWalletLoading } = trpc.payments.myWallet.useQuery(
+    { page: 1, limit: 1 },
+    { enabled: canHaveWallet, staleTime: 30000 } // Cache for 30s
+  )
+  
+  const balance = walletData?.balance?.balanceMinor ?? 0
+  const currency = walletData?.balance?.currency ?? 'EGP'
+  const balanceDisplay = `${(balance / 100).toFixed(2)} ${currency}`
 
   return (
     <SidebarMenu>
@@ -100,12 +114,23 @@ export function NavUser({
                 Profile
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="cursor-pointer">
-              <Link to={ROUTES.WALLET}>
-                <Wallet className="mr-2 size-4" />
-                Wallet
-              </Link>
-            </DropdownMenuItem>
+            {canHaveWallet && (
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link to={ROUTES.WALLET} className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Wallet className="mr-2 size-4" />
+                    <span>Wallet</span>
+                  </div>
+                  {isWalletLoading ? (
+                    <Loader2 className="size-3 animate-spin text-muted-foreground" />
+                  ) : (
+                    <span className="text-xs font-semibold text-primary ml-auto">
+                      {balanceDisplay}
+                    </span>
+                  )}
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild className="cursor-pointer">
               <Link to={ROUTES.NOTIFICATIONS}>
                 <Bell className="mr-2 size-4" />

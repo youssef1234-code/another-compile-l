@@ -22,7 +22,16 @@ export function GymSchedulePage(){
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth()+1);
-  const [view, setView] = useState<"TABLE" | "CALENDAR">("TABLE");
+  
+  const { user } = useAuthStore();
+  // Only Events Office can create/edit sessions (Admin excluded)
+  const canManage = user?.role === UserRole.EVENT_OFFICE;
+  // Only Admin and Events Office can see table view - others get calendar only
+  const canSeeTableView = user?.role === UserRole.ADMIN || user?.role === UserRole.EVENT_OFFICE;
+  
+  // Non-admin/non-event-office users ALWAYS start with calendar view and cannot switch
+  const [view, setView] = useState<"TABLE" | "CALENDAR">("CALENDAR");
+  
   const [editing, setEditing] = useState<CalendarEvent | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createInitialDate, setCreateInitialDate] = useState<Date | undefined>(undefined);
@@ -37,10 +46,6 @@ export function GymSchedulePage(){
       description: 'Manage and view gym sessions',
     });
   }, [setPageMeta]);
-
-  const { user } = useAuthStore();
-  // Only Events Office can create/edit sessions (Admin excluded)
-  const canManage = user?.role === UserRole.EVENT_OFFICE;
 
   const utils = trpc.useUtils();
 
@@ -219,35 +224,39 @@ export function GymSchedulePage(){
     <div className="flex flex-col gap-6 p-6">
       {/* View Toggle and Action Buttons */}
       <div className="flex items-center justify-between">
-        {/* View Toggle - Matching calendar header style */}
-        <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
-          <Button 
-            variant="ghost"
-            size="sm" 
-            onClick={() => setView("TABLE")}
-            className={cn(
-              'gap-2 transition-all',
-              view === "TABLE"
-                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
-                : 'hover:bg-muted text-muted-foreground'
-            )}
-          >
-            <ListIcon className="h-4 w-4"/> Table
-          </Button>
-          <Button 
-            variant="ghost"
-            size="sm" 
-            onClick={() => setView("CALENDAR")}
-            className={cn(
-              'gap-2 transition-all',
-              view === "CALENDAR"
-                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
-                : 'hover:bg-muted text-muted-foreground'
-            )}
-          >
-            <CalendarIcon className="h-4 w-4"/> Calendar
-          </Button>
-        </div>
+        {/* View Toggle - Only for Admin and Events Office */}
+        {canSeeTableView ? (
+          <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
+            <Button 
+              variant="ghost"
+              size="sm" 
+              onClick={() => setView("TABLE")}
+              className={cn(
+                'gap-2 transition-all',
+                view === "TABLE"
+                  ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                  : 'hover:bg-muted text-muted-foreground'
+              )}
+            >
+              <ListIcon className="h-4 w-4"/> Table
+            </Button>
+            <Button 
+              variant="ghost"
+              size="sm" 
+              onClick={() => setView("CALENDAR")}
+              className={cn(
+                'gap-2 transition-all',
+                view === "CALENDAR"
+                  ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                  : 'hover:bg-muted text-muted-foreground'
+              )}
+            >
+              <CalendarIcon className="h-4 w-4"/> Calendar
+            </Button>
+          </div>
+        ) : (
+          <div></div>
+        )}
 
         {canManage && (
           <Button onClick={() => setCreateOpen(true)} className="gap-2">

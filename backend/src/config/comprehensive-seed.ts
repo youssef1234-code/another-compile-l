@@ -17,6 +17,7 @@ import { Event } from "../models/event.model";
 import { Registration } from "../models/registration.model";
 import { Court } from "../models/court.model";
 import { CourtReservation } from "../models/court-reservation.model";
+import { Payment } from "../models/payment.model";
 import { hashPassword } from "../utils/auth.util";
 import { config } from "./env";
 
@@ -272,6 +273,166 @@ const sampleEvents = [
     status: "PUBLISHED",
     tags: ["Trip", "Adventure", "Nature"],
   },
+  {
+    name: "Red Sea Diving Expedition",
+    type: "TRIP",
+    description: "Explore the underwater wonders of the Red Sea",
+    location: "Hurghada, Egypt",
+    date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
+    startDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000), // 13 days ago
+    registrationDeadline: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
+    capacity: 30,
+    price: 1500,
+    status: "PUBLISHED",
+    tags: ["Trip", "Diving", "Adventure", "Red Sea"],
+  },
+  {
+    name: "Luxor Historical Tour",
+    type: "TRIP",
+    description: "Discover ancient Egyptian temples and tombs in Luxor",
+    location: "Luxor, Egypt",
+    date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000), // 28 days ago
+    registrationDeadline: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
+    capacity: 50,
+    price: 800,
+    status: "PUBLISHED",
+    tags: ["Trip", "History", "Culture", "Ancient Egypt"],
+  },
+  {
+    name: "Dahab Relaxation Retreat",
+    type: "TRIP",
+    description: "Unwind in the peaceful coastal town of Dahab",
+    location: "Dahab, Egypt",
+    date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // 45 days ago
+    startDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 42 * 24 * 60 * 60 * 1000), // 42 days ago
+    registrationDeadline: new Date(Date.now() - 55 * 24 * 60 * 60 * 1000),
+    capacity: 35,
+    price: 950,
+    status: "PUBLISHED",
+    tags: ["Trip", "Relaxation", "Beach", "Snorkeling"],
+  },
+  {
+    name: "White Desert Camping",
+    type: "TRIP",
+    description: "Camp under the stars in Egypt's stunning White Desert",
+    location: "White Desert, Egypt",
+    date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // 60 days ago
+    startDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 58 * 24 * 60 * 60 * 1000), // 58 days ago
+    registrationDeadline: new Date(Date.now() - 70 * 24 * 60 * 60 * 1000),
+    capacity: 25,
+    price: 1100,
+    status: "PUBLISHED",
+    tags: ["Trip", "Camping", "Desert", "Adventure"],
+  },
+  {
+    name: "Advanced Blockchain Workshop",
+    type: "WORKSHOP",
+    description: "Deep dive into blockchain technology and smart contracts",
+    location: "GUC Cairo - C3.105",
+    date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+    startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000), // 9 days ago
+    registrationDeadline: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+    capacity: 40,
+    price: 500,
+    status: "PUBLISHED",
+    tags: ["Workshop", "Blockchain", "Technology", "Cryptocurrency"],
+    fullAgenda: "Introduction to blockchain, smart contracts, DeFi applications",
+    faculty: "MET",
+    requiredBudget: 4500,
+    fundingSource: "GUC",
+  },
+  {
+    name: "Professional Photography Workshop",
+    type: "WORKSHOP",
+    description: "Master the art of professional photography",
+    location: "GUC Cairo - Media Lab",
+    date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
+    startDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000), // 19 days ago
+    registrationDeadline: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    capacity: 30,
+    price: 350,
+    status: "PUBLISHED",
+    tags: ["Workshop", "Photography", "Arts", "Media"],
+    fullAgenda: "Camera basics, composition, lighting techniques, post-processing",
+    faculty: "ARTS",
+    requiredBudget: 3500,
+    fundingSource: "EXTERNAL",
+  },
+  {
+    name: "Cybersecurity Bootcamp",
+    type: "WORKSHOP",
+    description: "Learn ethical hacking and network security fundamentals",
+    location: "GUC Cairo - C7.205",
+    date: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000), // 35 days ago
+    startDate: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 33 * 24 * 60 * 60 * 1000), // 33 days ago
+    registrationDeadline: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
+    capacity: 35,
+    price: 600,
+    status: "PUBLISHED",
+    tags: ["Workshop", "Cybersecurity", "Technology", "Ethical Hacking"],
+    fullAgenda: "Network security, penetration testing, secure coding practices",
+    faculty: "MET",
+    requiredBudget: 5500,
+    fundingSource: "GUC",
+  },
+  {
+    name: "UX/UI Design Masterclass",
+    type: "WORKSHOP",
+    description: "Create stunning user experiences and interfaces",
+    location: "GUC Cairo - Design Studio",
+    date: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000), // 50 days ago
+    startDate: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 49 * 24 * 60 * 60 * 1000), // 49 days ago
+    registrationDeadline: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+    capacity: 25,
+    price: 450,
+    status: "PUBLISHED",
+    tags: ["Workshop", "Design", "UX", "UI", "Technology"],
+    fullAgenda: "Design thinking, wireframing, prototyping, user testing",
+    faculty: "ARTS",
+    requiredBudget: 4000,
+    fundingSource: "EXTERNAL",
+  },
+  {
+    name: "Entrepreneurship Summit 2024",
+    type: "CONFERENCE",
+    description: "Connect with entrepreneurs and learn startup strategies",
+    location: "GUC Cairo - Conference Hall",
+    date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), // 25 days ago
+    startDate: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 24 * 24 * 60 * 60 * 1000), // 24 days ago
+    registrationDeadline: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000),
+    capacity: 100,
+    price: 300,
+    status: "PUBLISHED",
+    tags: ["Conference", "Entrepreneurship", "Business", "Startups"],
+    fullAgenda: "Keynote speakers, pitch competitions, networking sessions, workshops",
+    websiteUrl: "https://entrepreneurship-summit.guc.edu.eg",
+    requiredBudget: 20000,
+    fundingSource: "EXTERNAL",
+  },
+  {
+    name: "Tech Innovation Bazaar",
+    type: "BAZAAR",
+    description: "Showcase cutting-edge technology and innovation products",
+    location: "GUC Campus - Innovation Hub",
+    date: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000), // 40 days ago
+    startDate: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 39 * 24 * 60 * 60 * 1000), // 39 days ago
+    registrationDeadline: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000),
+    capacity: 80,
+    price: 200,
+    status: "PUBLISHED",
+    tags: ["Bazaar", "Technology", "Innovation", "Startups"],
+  },
   // Bazaars
   {
     name: "Spring Tech Bazaar",
@@ -450,6 +611,8 @@ export async function seedComprehensiveData(): Promise<void> {
       (e) => e.status === "PUBLISHED",
     );
 
+    let paymentCount = 0;
+
     for (const student of students) {
       // Register each student for 2-3 random events
       const eventsToRegister = publishedEvents
@@ -463,13 +626,39 @@ export async function seedComprehensiveData(): Promise<void> {
         });
 
         if (!existingReg) {
-          await Registration.create({
+          const registration = await Registration.create({
             user: student._id,
             event: event._id,
             status: "CONFIRMED",
             registeredAt: new Date(),
           } as any);
           console.log(`  ✓ Registered ${student.firstName} for ${event.name}`);
+
+          // Create payment if event is not free
+          if (event.price && event.price > 0) {
+            const paymentMethod = Math.random() > 0.5 ? "STRIPE_CARD" : "WALLET";
+
+            // Generate random date within the past month
+            const now = new Date();
+            const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const randomTimestamp = oneMonthAgo.getTime() + Math.random() * (now.getTime() - oneMonthAgo.getTime());
+            const randomDate = new Date(randomTimestamp);
+
+            await Payment.create({
+              user: student._id,
+              registration: registration._id,
+              event: event._id,
+              method: paymentMethod,
+              status: "SUCCEEDED",
+              amountMinor: event.price, // Convert to minor units (cents)
+              currency: "EGP",
+              purpose: "EVENT_PAYMENT",
+              createdAt: randomDate,
+            });
+
+            paymentCount++;
+            console.log(`    💳 Created ${paymentMethod} payment of ${event.price} EGP`);
+          }
         }
       }
     }
@@ -509,23 +698,23 @@ export async function seedComprehensiveData(): Promise<void> {
       // For each court, create 2-4 random reservations per day
       for (const court of courts) {
         const reservationsPerDay = Math.floor(Math.random() * 3) + 2; // 2-4 reservations
-        
+
         // Shuffle time slots and pick some
         const shuffledSlots = [...reservationTimeSlots].sort(() => 0.5 - Math.random());
         const selectedSlots = shuffledSlots.slice(0, reservationsPerDay);
 
         for (const timeSlot of selectedSlots) {
           const randomStudent = studentUsers[Math.floor(Math.random() * studentUsers.length)];
-          
+
           // Create date for this reservation
           const reservationDate = new Date();
           reservationDate.setDate(reservationDate.getDate() + dayOffset);
           reservationDate.setHours(timeSlot.hour, timeSlot.minute, 0, 0);
-          
+
           // Duration: 60 or 90 minutes
           const durationMinutes = Math.random() > 0.5 ? 60 : 90;
           const endDate = new Date(reservationDate.getTime() + durationMinutes * 60 * 1000);
-          
+
           // Derive studentGucId from available fields
           const derivedStudentGucId =
             (randomStudent as any).studentId ||
@@ -550,9 +739,9 @@ export async function seedComprehensiveData(): Promise<void> {
               duration: durationMinutes,
               status: "BOOKED",
             } as any);
-            
+
             reservationCount++;
-            
+
             if (reservationCount <= 5) {
               console.log(
                 `  ✓ Created reservation for ${randomStudent.firstName} at ${court.name} on ${reservationDate.toLocaleDateString()} at ${timeSlot.hour}:00`,
@@ -571,6 +760,7 @@ export async function seedComprehensiveData(): Promise<void> {
     console.log(`   Events: ${createdEvents.length}`);
     console.log(`   Courts: ${courts.length}`);
     console.log(`   Court Reservations: ${reservationCount}`);
+    console.log(`   Payments: ${paymentCount}`);
     console.log("\n🔐 Sample Credentials:");
     console.log("   Student: john.doe@student.guc.edu.eg / Password123!");
     console.log("   Professor: prof.brown@prof.guc.edu.eg / Password123!");

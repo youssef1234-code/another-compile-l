@@ -310,8 +310,8 @@ export function useBrowserNotifications() {
         try {
           new Notification(title, {
             body: message,
-            icon: '/favicon.ico',
-            badge: '/favicon.ico',
+            icon: '/favicon.png',
+            badge: '/favicon.png',
             tag: 'guc-event-notification',
             requireInteraction: false,
           });

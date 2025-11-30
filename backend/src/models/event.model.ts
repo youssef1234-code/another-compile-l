@@ -25,6 +25,8 @@ export interface IEvent extends IBaseDocument {
   registeredCount: number;
   registrationDeadline?: Date;
   restrictedTo?: string[];
+  whitelistedUsers?: mongoose.Types.ObjectId[];
+  whitelistedRoles?: string[];
   
   // Workshop specific
   fullAgenda?: string;
@@ -109,6 +111,21 @@ const eventSchema = createBaseSchema<IEvent>(
       type: String,
       enum: ['STUDENT', 'STAFF', 'TA', 'PROFESSOR'],
     }],
+
+    whitelistedRoles: [
+      {
+        type: String,
+        enum: [
+          "STUDENT",
+          "STAFF",
+          "TA",
+          "PROFESSOR",
+          "VENDOR",
+          "ADMIN",
+          "EVENT_OFFICE",
+        ],
+      },
+    ],
     
     // Workshop specific
     fullAgenda: String,
@@ -168,6 +185,12 @@ const eventSchema = createBaseSchema<IEvent>(
       type: Number,
       default: 0,
     },
+    whitelistedUsers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     toJSON: {

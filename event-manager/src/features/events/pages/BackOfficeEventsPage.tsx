@@ -610,6 +610,37 @@ export function BackOfficeEventsPage() {
     }
   }, [utils, search, filters, extendedFilters, joinOperator, parsedSort]);
 
+  // Bulk export participants from multiple events
+  const handleExportParticipants = useCallback(async (_eventIds: string[]) => {
+    try {
+      // TODO: Implement exportMultipleEventRegistrations mutation in backend
+      toast.error('Bulk export feature is not yet implemented');
+      return;
+      /*
+      // Call backend mutation to export participants from multiple events
+      const result = await utils.client.events.exportMultipleEventRegistrations.mutate({ eventIds });
+      
+      // Download the Excel file
+      const blob = new Blob([Uint8Array.from(atob(result.file), c => c.charCodeAt(0))], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Exported participants from ${eventIds.length} event(s) successfully`);
+      */
+    } catch (error) {
+      toast.error('Failed to export participants');
+      console.error('Export participants error:', error);
+    }
+  }, [utils]);
+
   const handleCreateEvent = useCallback(() => {
     setCreateSheetOpen(true);
   }, []);
@@ -684,6 +715,7 @@ export function BackOfficeEventsPage() {
   onNeedsEdits={user?.role === 'EVENT_OFFICE' ? handleNeedsEdits : undefined}
         // Action buttons
         onExport={handleExport}
+        onExportParticipants={handleExportParticipants}
         // Only Event Office and Professors can create events, NOT Admins
         onCreate={user?.role !== 'ADMIN' ? handleCreateEvent : undefined}
         exportDisabled={isLoading}

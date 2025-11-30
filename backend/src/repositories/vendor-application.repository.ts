@@ -3,9 +3,8 @@ import {
   type IVendorApplication,
 } from '../models/vendor-application.model';
 import { BaseRepository } from './base.repository';
-import type { FilterQuery } from 'mongoose';
+import type { ClientSession, FilterQuery } from 'mongoose';
 import { userRepository } from './user.repository';
-
 /**
  * Repository Pattern for Vendor Application entity
  * Extends BaseRepository for common CRUD operations
@@ -89,6 +88,43 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
     ]);
 
     return { applications, total };
+  }
+  
+
+    async markAcceptedWithFee(
+    id: string,
+    opts: {
+      paymentAmount: number;                  // minor
+      paymentCurrency: "EGP" | "USD";
+      acceptedAt: Date;
+      paymentDueAt: Date;
+    },
+    session?: ClientSession
+  ) {
+    return this.model.findByIdAndUpdate(
+      id,
+      {
+        status: "APPROVED",
+        paymentStatus: "PENDING",
+        paymentAmount: opts.paymentAmount,
+        paymentCurrency: opts.paymentCurrency,
+        acceptedAt: opts.acceptedAt,
+        paymentDueAt: opts.paymentDueAt,
+      },
+      { new: true, session }
+    );
+  }
+
+  async markPaid(id: string, when = new Date(), session?: ClientSession) {
+    return this.model.findByIdAndUpdate(
+      id,
+      { paymentStatus: "PAID", paidAt: when },
+      { new: true, session }
+    );
+  }
+
+  async failPayment(id: string, session?: ClientSession) {
+    return this.model.findByIdAndUpdate(id, { paymentStatus: "FAILED" }, { new: true, session });
   }
 }
 

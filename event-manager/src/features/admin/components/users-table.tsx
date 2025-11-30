@@ -33,6 +33,8 @@ interface UsersTableProps {
   onBlockUser?: (userId: string) => void;
   onUnblockUser?: (userId: string) => void;
   onDeleteUser?: (userId: string) => void;
+  onDownloadTaxCard?: (userId: string) => void;
+  onDownloadLogo?: (userId: string) => void;
 }
 
 export function UsersTable({
@@ -55,6 +57,8 @@ export function UsersTable({
   onBlockUser,
   onUnblockUser,
   onDeleteUser,
+  onDownloadTaxCard,
+  onDownloadLogo,
 }: UsersTableProps) {
   // Toggle between advanced and simple filters (default to simple)
   const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
@@ -86,6 +90,8 @@ export function UsersTable({
         onBlockUser,
         onUnblockUser,
         onDeleteUser,
+        onDownloadTaxCard,
+        onDownloadLogo,
       }),
     [roleCounts, statusCounts, onUpdateUser, onVerifyRole, onApproveVendor, onRejectVendor, onBlockUser, onUnblockUser, onDeleteUser],
   );

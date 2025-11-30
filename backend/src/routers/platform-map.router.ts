@@ -16,6 +16,35 @@ const BoothPlacementInputSchema = z.object({
   isOccupied: z.boolean(),
   applicationId: z.string().optional(),
   label: z.string().optional(),
+  isVIP: z.boolean().optional(),
+});
+
+const LandmarkInputSchema = z.object({
+  id: z.string(),
+  x: z.number().int().min(0),
+  y: z.number().int().min(0),
+  type: z.enum(['ENTRANCE', 'EXIT', 'SPECIAL_PLACE']),
+  label: z.string().min(1).max(100),
+  rotation: z.number().int().optional().refine((val) => val === undefined || [0, 90, 180, 270].includes(val), {
+    message: "Rotation must be 0, 90, 180, or 270 degrees"
+  }),
+});
+
+const CustomTextInputSchema = z.object({
+  id: z.string(),
+  x: z.number(),
+  y: z.number(),
+  text: z.string().min(1).max(500),
+  fontSize: z.number().int().min(8).max(72).default(16),
+});
+
+const CustomObjectInputSchema = z.object({
+  id: z.string(),
+  x: z.number(),
+  y: z.number(),
+  type: z.enum(['circle', 'square']),
+  size: z.number().int().min(20).max(200).default(60),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Color must be a valid hex color"),
 });
 
 const CreatePlatformMapSchema = z.object({
@@ -24,6 +53,9 @@ const CreatePlatformMapSchema = z.object({
   gridHeight: z.number().int().min(10).max(100),
   cellSize: z.number().int().min(20).max(100).default(40),
   booths: z.array(BoothPlacementInputSchema).default([]),
+  landmarks: z.array(LandmarkInputSchema).optional(),
+  customTexts: z.array(CustomTextInputSchema).optional(),
+  customObjects: z.array(CustomObjectInputSchema).optional(),
   isActive: z.boolean().default(false),
 });
 
@@ -32,6 +64,9 @@ const UpdatePlatformMapSchema = z.object({
   gridWidth: z.number().int().min(10).max(100).optional(),
   gridHeight: z.number().int().min(10).max(100).optional(),
   booths: z.array(BoothPlacementInputSchema).optional(),
+  landmarks: z.array(LandmarkInputSchema).optional(),
+  customTexts: z.array(CustomTextInputSchema).optional(),
+  customObjects: z.array(CustomObjectInputSchema).optional(),
 });
 
 const AddBoothSchema = z.object({

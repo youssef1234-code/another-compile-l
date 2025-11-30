@@ -4,7 +4,7 @@ import {
 } from "../repositories/platform-map.repository";
 import { BaseService } from "./base.service";
 import { ServiceError } from "../errors/errors";
-import { type IPlatformMap, type IBoothPlacement } from "../models/platform-map.model";
+import { type IPlatformMap, type IBoothPlacement, type ILandmark } from "../models/platform-map.model";
 
 export class PlatformMapService extends BaseService<
   IPlatformMap,
@@ -25,13 +25,14 @@ export class PlatformMapService extends BaseService<
     let activePlatform = await this.repository.getActive();
     
     if (!activePlatform) {
-      // Create default platform map
+      // Create default platform map with larger grid
       activePlatform = await this.repository.create({
         name: "Default Platform Layout",
-        gridWidth: 50,
-        gridHeight: 15,
+        gridWidth: 60,
+        gridHeight: 20,
         cellSize: 40,
         booths: [],
+        landmarks: [],
         isActive: true,
       });
     }
@@ -49,6 +50,7 @@ export class PlatformMapService extends BaseService<
       gridWidth?: number;
       gridHeight?: number;
       booths?: IBoothPlacement[];
+      landmarks?: ILandmark[];
     }
   ): Promise<IPlatformMap> {
     const platform = await this.repository.findById(id);

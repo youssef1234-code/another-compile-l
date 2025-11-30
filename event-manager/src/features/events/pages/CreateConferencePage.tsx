@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { designSystem } from '@/styles/design-system';
@@ -141,23 +142,20 @@ export function CreateConferencePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="startDate">Start Date & Time *</Label>
-                    <Input
-                      id="startDate"
-                      type="datetime-local"
-                      value={formData.startDate}
-                      onChange={(e) => handleInputChange('startDate', e.target.value)}
-                      required
+                    <DateTimePicker
+                      value={formData.startDate ? new Date(formData.startDate) : null}
+                      onChange={(date) => handleInputChange('startDate', date ? date.toISOString().slice(0, 16) : '')}
+                      placeholder="Select start date & time"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="endDate">End Date & Time *</Label>
-                    <Input
-                      id="endDate"
-                      type="datetime-local"
-                      value={formData.endDate}
-                      onChange={(e) => handleInputChange('endDate', e.target.value)}
-                      required
+                    <DateTimePicker
+                      value={formData.endDate ? new Date(formData.endDate) : null}
+                      onChange={(date) => handleInputChange('endDate', date ? date.toISOString().slice(0, 16) : '')}
+                      placeholder="Select end date & time"
+                      minDate={formData.startDate ? new Date(formData.startDate) : undefined}
                     />
                   </div>
                 </div>

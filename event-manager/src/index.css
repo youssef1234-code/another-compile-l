@@ -655,4 +655,47 @@
 
 }
 
+/* ============================================================================
+   3D TRANSFORM UTILITIES
+   ============================================================================ */
+@layer utilities {
+  .perspective-distant {
+    perspective: 2000px;
+  }
+  
+  .transform-3d {
+    transform-style: preserve-3d;
+  }
+  
+  .rotate-x-8 {
+    --tw-rotate-x: 8deg;
+  }
+  
+  .rotate-y-12 {
+    --tw-rotate-y: 12deg;
+  }
+  
+  .translate-z-16 {
+    --tw-translate-z: 16px;
+  }
+  
+  .-translate-z-8 {
+    --tw-translate-z: -8px;
+  }
+}
+
+/* ============================================================================
+   SMOOTH SCROLLING
+   ============================================================================ */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 

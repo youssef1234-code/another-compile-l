@@ -1,12 +1,231 @@
-import { router, publicProcedure, protectedProcedure } from "../trpc/trpc";
+import { router, publicProcedure, protectedProcedure, adminOrEventOfficeProcedure } from "../trpc/trpc";
 import { z } from "zod";
 import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
 import type { CourtSummary } from "@event-manager/shared";
-import { CourtReservationCreateSchema, CourtReservationCancelSchema, CourtSport, CourtAvailabilityResponseSchema, CourtSummarySchema } from "@event-manager/shared";
+import { 
+  CourtReservationCreateSchema, 
+  CourtReservationCancelSchema, 
+  CourtSport, 
+  CourtAvailabilityResponseSchema, 
+  CourtSummarySchema,
+  CreateCourtSchema,
+  UpdateCourtSchema
+} from "@event-manager/shared";
 
 export const courtsRouter = router({
    
+  // Admin: Create court
+  create: adminOrEventOfficeProcedure
+    .input(CreateCourtSchema)
+    .mutation(async ({ input }: { input: z.infer<typeof CreateCourtSchema> }) => {
+      const court = await courtService.create(input);
+      return { 
+        id: (court._id as any).toString(), 
+        name: court.name,
+        sport: court.sport,
+        location: court.location 
+      };
+    }),
+
+  // Admin: Update court
+  update: adminOrEventOfficeProcedure
+    .input(UpdateCourtSchema)
+    .mutation(async ({ input }: { input: z.infer<typeof UpdateCourtSchema> }) => {
+      const { id, ...updateData } = input;
+      const court = await courtService.update(id, updateData);
+      if (!court) throw new Error("Court not found");
+      return { 
+        id: (court._id as any).toString(), 
+        name: court.name,
+        sport: court.sport,
+        location: court.location 
+      };
+    }),
+
+  // Admin: Delete court
+  delete: adminOrEventOfficeProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }: { input: { id: string } }) => {
+      await courtService.delete(input.id);
+      return { success: true };
+    }),
+
+  // Admin/Event Office: Get all courts (including details) with pagination and filters
+  getAll: adminOrEventOfficeProcedure
+    .input(
+      z.object({
+        page: z.number().min(1).optional().default(1),
+        limit: z.number().min(1).max(100).optional().default(50),
+        search: z.string().optional(),
+        // Simple filters
+        filters: z.record(z.array(z.string())).optional(),
+        // Advanced filters
+        extendedFilters: z.array(z.object({
+          id: z.string(),
+          value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
+          operator: z.enum([
+            "iLike",
+            "notILike",
+            "eq",
+            "ne",
+            "isEmpty",
+            "isNotEmpty",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "inArray",
+            "notInArray",
+          ]),
+          variant: z.enum([
+            "text",
+            "number",
+            "range",
+            "date",
+            "dateRange",
+            "boolean",
+            "select",
+            "multiSelect",
+          ]),
+          filterId: z.string(),
+        })).optional(),
+        // Sorting
+        sorting: z.array(z.object({
+          id: z.string(),
+          desc: z.boolean(),
+        })).optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      const page = input.page || 1;
+      const limit = input.limit || 50;
+      const skip = (page - 1) * limit;
+
+      // Build MongoDB query
+      const query: any = {};
+
+      // Global search (name or location)
+      if (input.search) {
+        query.$or = [
+          { name: { $regex: input.search, $options: 'i' } },
+          { location: { $regex: input.search, $options: 'i' } },
+          { description: { $regex: input.search, $options: 'i' } },
+        ];
+      }
+
+      // Simple faceted filters (e.g., sport: ['BASKETBALL', 'TENNIS'])
+      if (input.filters) {
+        Object.entries(input.filters).forEach(([key, values]) => {
+          if (values && values.length > 0) {
+            query[key] = { $in: values };
+          }
+        });
+      }
+
+      // Advanced filters with operators
+      if (input.extendedFilters && input.extendedFilters.length > 0) {
+        input.extendedFilters.forEach((filter) => {
+          const { id, value, operator } = filter;
+          
+          // Skip empty values for non-empty-check operators
+          if (operator !== "isEmpty" && operator !== "isNotEmpty") {
+            if (Array.isArray(value) && value.length === 0) return;
+            if (typeof value === "string" && !value.trim()) return;
+          }
+          
+          switch (operator) {
+            case 'iLike':
+              query[id] = { $regex: value, $options: 'i' };
+              break;
+            case 'notILike':
+              query[id] = { $not: { $regex: value, $options: 'i' } };
+              break;
+            case 'eq':
+              query[id] = value;
+              break;
+            case 'ne':
+              query[id] = { $ne: value };
+              break;
+            case 'isEmpty':
+              query[id] = { $in: [null, "", []] };
+              break;
+            case 'isNotEmpty':
+              query[id] = { $nin: [null, "", []] };
+              break;
+            case 'inArray':
+              query[id] = { $in: Array.isArray(value) ? value : [value] };
+              break;
+            case 'notInArray':
+              query[id] = { $nin: Array.isArray(value) ? value : [value] };
+              break;
+            case 'lt':
+              query[id] = { $lt: value };
+              break;
+            case 'lte':
+              query[id] = { $lte: value };
+              break;
+            case 'gt':
+              query[id] = { $gt: value };
+              break;
+            case 'gte':
+              query[id] = { $gte: value };
+              break;
+            default:
+              query[id] = value;
+          }
+        });
+      }
+
+      // Build sort object
+      const sort: any = {};
+      if (input.sorting && input.sorting.length > 0) {
+        input.sorting.forEach((s) => {
+          sort[s.id] = s.desc ? -1 : 1;
+        });
+      } else {
+        sort.name = 1; // Default sort by name
+      }
+
+      // Execute query
+      const [courts, total] = await Promise.all([
+        courtService.findAll(query, { skip, limit, sort }),
+        courtService.count(query),
+      ]);
+
+      return {
+        data: courts.map(court => ({
+          id: (court._id as any).toString(),
+          name: court.name,
+          sport: court.sport,
+          location: court.location,
+          description: court.description,
+          specs: court.specs,
+          customInstructions: court.customInstructions,
+          images: court.images || [],
+        })),
+        pageCount: Math.ceil(total / limit),
+        total,
+      };
+    }),
+
+  // Public: Get court details by ID
+  getById: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input }) => {
+      const court = await courtService.findById(input.id);
+      if (!court) throw new Error("Court not found");
+      return {
+        id: (court._id as any).toString(),
+        name: court.name,
+        sport: court.sport,
+        location: court.location,
+        description: court.description,
+        specs: court.specs,
+        customInstructions: court.customInstructions,
+        images: court.images || [],
+      };
+    }),
   
  list: publicProcedure
   .input(z.object({ sport: z.nativeEnum(CourtSport).optional() }).optional())

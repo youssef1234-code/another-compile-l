@@ -1,14 +1,19 @@
-import { protectedProcedure, router } from "../trpc/trpc";
+import { eventsOfficeProcedure, protectedProcedure, router } from "../trpc/trpc";
+
 import {
-  CardPaymentInitInput, WalletPaymentInput, WalletTopUpInitInput,
-  RefundToWalletInput, PaginationSchema,
-  PaymentStatus
+  CardPaymentInitInput,
+  PaginationSchema,
+  PaymentStatus,
+  RefundToWalletInput,
+  vendorInitCardInput,
+  WalletPaymentInput, WalletTopUpInitInput
 } from "@event-manager/shared";
-import { paymentService } from "../services/payment.service";
 import { TRPCError } from "@trpc/server";
 import { DateTime } from "luxon";
-import { eventRepository } from "../repositories/event.repository"; 
+import { z } from "zod";
+import { eventRepository } from "../repositories/event.repository";
 import { paymentRepository } from "../repositories/payment.repository";
+import { paymentService } from "../services/payment.service";
 
 // Policy: refunds allowed only if >= 14 days before event start
 async function assertRefundWindow(eventId: string) {
@@ -27,6 +32,12 @@ export const paymentRouter = router({
     .input(CardPaymentInitInput)
     .mutation(async ({ input, ctx }) => {
       return paymentService.initCardPayment((ctx.user!._id as any).toString(), input);
+    }),
+
+  initVendorCard: protectedProcedure
+    .input(vendorInitCardInput)
+    .mutation(async ({ input, ctx }) => {
+      return paymentService.initVendorCard(String(ctx.user!._id), { applicationId: input.applicationId });
     }),
 
   // 2) Pay using wallet
@@ -83,5 +94,19 @@ export const paymentRouter = router({
       const page = input.page ?? 1;
       const limit = input.limit ?? 50;
       return paymentService.getWallet((ctx.user!._id as any).toString(), page, limit);
+    }),
+
+  // 7) Get all payments (Admin/Event Office)
+  getAllPayments: eventsOfficeProcedure
+    .input(
+      z.object({
+        page: z.number().min(1).optional().default(1),
+        perPage: z.number().min(1).max(1000).optional().default(100),
+        search: z.string().optional(),
+        filters: z.record(z.array(z.string())).optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      return paymentService.getAllPayments(input);
     }),
 });

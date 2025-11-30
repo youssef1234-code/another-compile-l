@@ -55,9 +55,13 @@ import { PlatformSetupPage } from "@/features/platform/pages/PlatformSetupPage";
 import {
   GymSchedulePage,
   MySessionsPage,
-  CourtBookingsPage,
   ManageSessionsPage,
+  CourtBookingsPage,
 } from "@/features/gym/pages";
+import { CourtManagementPage } from "@/features/gym/pages/CourtManagementPage";
+
+// Landing
+import { LandingPage } from "@/features/landing/LandingPage";
 
 // Admin
 import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
@@ -81,6 +85,10 @@ import { WalletPage } from "@/features/wallet/pages";
 // Profile
 import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 
+// Reports
+import { EventsReportPage } from "@/features/reports/EventsReportPage";
+import { SalesReportPage } from "@/features/reports/SalesReportPage";
+
 // Protected Route Component
 import {
   ProtectedRoute,
@@ -96,7 +104,7 @@ import PaymentPage from "@/features/payments/pages/PaymentPage";
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to={ROUTES.DASHBOARD} replace />,
+    element: <LandingPage />,
   },
   // Auth Routes (no layout wrapper - each page handles its own layout)
   {
@@ -227,6 +235,13 @@ export const router = createBrowserRouter([
         path: "/checkout/:registrationId",
         element: <PaymentPage />, // requires auth wrapper if all app is protected
       },
+        path: ROUTES.VENDOR_CHECKOUT,
+        element: <PaymentPage isVendor={true} />, // requires auth wrapper if all app is protected
+      },
+      {
+        path: ROUTES.CHECKOUT_PAGE,
+        element: <PaymentPage isVendor={false} />, 
+      },
       {
         path: ROUTES.PAY_SUCCESS,
         element: <PaymentSuccessPage />,
@@ -294,6 +309,14 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.COURT_BOOKINGS,
         element: <CourtBookingsPage />,
+      },
+      {
+        path: ROUTES.COURT_MANAGEMENT,
+        element: (
+          <EventManagementRoute>
+            <CourtManagementPage />
+          </EventManagementRoute>
+        ),
       },
       {
         path: ROUTES.MANAGE_SESSIONS,
@@ -372,6 +395,23 @@ export const router = createBrowserRouter([
         element: (
           <EventOfficeRoute>
             <BazaarManagementPage />
+          </EventOfficeRoute>
+        ),
+      },
+
+      {
+        path: ROUTES.EVENTS_REPORTS,
+        element: (
+          <EventOfficeRoute>
+            <EventsReportPage />
+          </EventOfficeRoute>
+        ),
+      },
+      {
+        path: ROUTES.SALES_REPORTS,
+        element: (
+          <EventOfficeRoute>
+            <SalesReportPage />
           </EventOfficeRoute>
         ),
       },

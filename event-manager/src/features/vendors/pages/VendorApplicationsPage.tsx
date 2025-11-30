@@ -17,6 +17,7 @@ import { CheckCircle2, XCircle, Clock, Package } from "lucide-react";
 import { VendorApplicationsTable } from "../components/vendor-applications-table";
 import type { VendorApplication } from "@event-manager/shared";
 import { usePageMeta } from '@/components/layout/page-meta-context';
+import { useNavigate } from "react-router-dom";
 
 type SortState = Array<{ id: string; desc: boolean }>;
 
@@ -134,6 +135,15 @@ export function VendorApplicationsPage() {
     }
   );
 
+const navigate = useNavigate();
+
+  // Navigate to vendor payment page - payment initialization happens there
+  const handlePayVendorFee = (app: VendorApplication) => {
+    // Navigate to payment page with applicationId - payment init happens on that page
+    navigate(`/checkout/vendor/${app.id}`);
+  };
+
+
   // Get aggregated statistics from backend
   const { data: stats } = trpc.vendorApplications.getApplicationStats.useQuery();
 
@@ -207,8 +217,11 @@ export function VendorApplicationsPage() {
           eventTypeCounts={eventTypeCounts}
           boothSizeCounts={boothSizeCounts}
           isSearching={isFetching}
+          onPayVendorFee={handlePayVendorFee} 
         />
       </div>
     </div>
   );
 }
+
+

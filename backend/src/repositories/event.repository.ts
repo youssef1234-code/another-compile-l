@@ -329,6 +329,77 @@ export class EventRepository extends BaseRepository<IEvent> {
     const hit = await this.model.exists(q);
     return !!hit;
   }
+
+
+    async whitelistUser(userId: string, eventId: string): Promise<void> {
+    const event = await this.model.findById(eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    // Initialize array if it doesn't exist
+    if (!event.whitelistedUsers) {
+      event.whitelistedUsers = [];
+    }
+
+    // Check if user is already whitelisted
+    const userObjectId = new Types.ObjectId(userId);
+    const isAlreadyWhitelisted = event.whitelistedUsers.some(
+      (id) => id.toString() === userId
+    );
+
+    if (!isAlreadyWhitelisted) {
+      event.whitelistedUsers.push(userObjectId);
+      await event.save();
+    }
+  }
+
+  async whitelistRole(role: string, eventId: string): Promise<void> {
+    const event = await this.model.findById(eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+    // Initialize array if it doesn't exist
+    if (!event.whitelistedRoles) {
+      event.whitelistedRoles = [];
+    }
+    const roleIndex = event.whitelistedRoles.indexOf(role);
+    if (roleIndex === -1) {
+      event.whitelistedRoles.push(role);
+      await event.save();
+    }
+  }
+
+  async removeWhitelistedRole(role: string, eventId: string): Promise<void> {
+    const event = await this.model.findById(eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+    if (event.whitelistedRoles === undefined) {
+      return;
+    }
+    event.whitelistedRoles = event.whitelistedRoles.filter((r) => r !== role);
+    await event.save();
+  }
+
+    async removeWhitelistedUser(userId: string, eventId: string): Promise<void> {
+    const event = await this.model.findById(eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    if (event.whitelistedUsers === undefined) {
+      return;
+    }
+
+    const userObjectId = new Types.ObjectId(userId);
+    event.whitelistedUsers = event.whitelistedUsers.filter(
+      (id) => id.toString() !== userId
+    );
+    await event.save();
+  }
+
+
 }
 // Singleton instance
 export const eventRepository = new EventRepository();

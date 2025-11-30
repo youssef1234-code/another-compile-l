@@ -43,6 +43,8 @@ const vendorSignupSchema = z.object({
     .string()
     .min(2, 'Company name must be at least 2 characters')
     .max(100, 'Company name is too long'),
+    taxCardImage: z.string(),
+    logoImage: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -55,6 +57,25 @@ interface VendorSignupFormProps {
 }
 
 export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
+
+  const uploadingMutation = trpc.files.uploadUnprotectedFile.useMutation({
+    onSuccess: (data) => {
+      toast.success("File uploaded successfully", {
+        duration: 3000,
+        icon: "✅",
+      });
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          whiteSpace: "pre-line", // Allow line breaks
+        },
+      });
+    },
+  });
+
   const signupMutation = trpc.auth.signupVendor.useMutation({
     onSuccess: (data) => {
       toast.success(data.message, {
@@ -81,12 +102,33 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
   });
 
   const handleSubmit = (data: VendorSignupFormData) => {
+    uploadingMutation.mutate({
+      file: data.taxCardImage,
+      filename: "taxCard",
+      mimeType: "image/png",
+      entityType: "vendor",
+    });
+    uploadingMutation.mutate({
+      file: data.logoImage,
+      filename: "logoImage",
+      mimeType: "image/png",
+      entityType: "vendor",
+    });
+
+    if (!data.logoImage || !data.taxCardImage) {
+      toast.error("Please upload both Tax Card and Logo images.", {
+        duration: 5000,
+      });
+      return;
+    }
     signupMutation.mutate({
       email: data.email,
       password: data.password,
       firstName: data.firstName,
       lastName: data.lastName,
       companyName: data.companyName,
+      taxCardImage: data.taxCardImage,
+      logoImage: data.logoImage,
     });
   };
 
@@ -137,6 +179,22 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
       placeholder: '••••••••',
       icon: <Lock className="h-4 w-4" />,
     },
+    {
+      name: "taxCardImage",
+      label: "Tax Card",
+      type: "image",
+      description: "Upload your company's tax card document",
+      icon: <Briefcase className="h-4 w-4" />,
+      colSpan: 2,
+    },
+    {
+      name: "logoImage",
+      label: "Company Logo",
+      type: "image",
+      description: "Upload your company logo",
+      icon: <Building2 className="h-4 w-4" />,
+      colSpan: 2,
+    },
   ];
 
   return (
@@ -154,6 +212,8 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
         password: '',
         confirmPassword: '',
         companyName: '',
+        taxCardImage: undefined,
+        logoImage: undefined,
       }}
       submitButtonText="Create Vendor Account"
       submitButtonIcon={<Building2 className="h-4 w-4" />}

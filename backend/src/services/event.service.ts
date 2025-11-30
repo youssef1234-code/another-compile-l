@@ -14,9 +14,11 @@ import {
   EventStatus,
   GymSessionType,
   UpdateWorkshopSchema,
+  UserRole,
   type UpdateWorkshopInput,
 } from "@event-manager/shared";
 import { ServiceError } from "../errors/errors";
+import { IUser } from "../models/user.model";
 
 /**
  * Service Layer for Events
@@ -234,6 +236,30 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       if (data.filters.faculty && data.filters.faculty.length > 0) {
         filter.faculty = { $in: data.filters.faculty };
       }
+
+      // Start date filter (events starting from this date)
+      if (data.filters.startDateFrom && data.filters.startDateFrom.length > 0) {
+        filter.startDate = filter.startDate || {};
+        filter.startDate.$gte = new Date(data.filters.startDateFrom[0]);
+      }
+
+      // Start date filter (events starting up to this date)
+      if (data.filters.startDateTo && data.filters.startDateTo.length > 0) {
+        filter.startDate = filter.startDate || {};
+        filter.startDate.$lte = new Date(data.filters.startDateTo[0]);
+      }
+
+      // End date filter (events ending from this date)
+      if (data.filters.endDateFrom && data.filters.endDateFrom.length > 0) {
+        filter.endDate = filter.endDate || {};
+        filter.endDate.$gte = new Date(data.filters.endDateFrom[0]);
+      }
+
+      // End date filter (events ending up to this date)
+      if (data.filters.endDateTo && data.filters.endDateTo.length > 0) {
+        filter.endDate = filter.endDate || {};
+        filter.endDate.$lte = new Date(data.filters.endDateTo[0]);
+      }
     }
 
     // Handle extended filters with operators (command mode)
@@ -432,7 +458,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
-        
+
         // For BAZAAR events, populate vendors with their application details
         let vendorDetails = null;
         if (event.type === "BAZAAR") {
@@ -467,13 +493,26 @@ export class EventService extends BaseService<IEvent, EventRepository> {
           }
         }
 
+        // Calculate total sales
+        const totalSales = registeredCount * (event.price || 0);
+
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
           vendors: vendorDetails,
         };
       })
     );
+
+    if (data.sort?.[0]?.id === "totalSales" && data.sort?.[0]?.desc)
+      formattedEvents.sort((a, b) => b.totalSales - a.totalSales)
+    else if (data.sort?.[0]?.id === "totalSales" && !data.sort?.[0]?.desc)
+      formattedEvents.sort((a, b) => a.totalSales - b.totalSales)
+    else if (data.sort?.[0]?.id === "registeredCount" && data.sort?.[0]?.desc)
+      formattedEvents.sort((a, b) => b.registeredCount - a.registeredCount)
+    else if (data.sort?.[0]?.id === "registeredCount" && !data.sort?.[0]?.desc)
+      formattedEvents.sort((a, b) => a.registeredCount - b.registeredCount)
 
     return {
       events: formattedEvents,
@@ -612,7 +651,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   async getEventById(id: string): Promise<any> {
     const event = await this.findById(id);
     const registeredCount = await registrationRepository.countActiveForCapacity(id);
-    
+
     // For BAZAAR events, populate vendors with their application details
     let vendorDetails = null;
     if (event.type === "BAZAAR") {
@@ -839,21 +878,21 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       duration: event.duration,
       createdBy: event.createdBy
         ? {
-            id:
-              (event.createdBy as any)._id?.toString() ||
-              (event.createdBy as any).toString(),
-            firstName: (event.createdBy as any).firstName,
-            lastName: (event.createdBy as any).lastName,
-            email: (event.createdBy as any).email,
-            role: (event.createdBy as any).role,
-          }
+          id:
+            (event.createdBy as any)._id?.toString() ||
+            (event.createdBy as any).toString(),
+          firstName: (event.createdBy as any).firstName,
+          lastName: (event.createdBy as any).lastName,
+          email: (event.createdBy as any).email,
+          role: (event.createdBy as any).role,
+        }
         : null,
       vendors: event.vendors
         ? (event.vendors as any[]).map((vendor: any) => ({
-            id: vendor._id?.toString() || vendor.toString(),
-            companyName: vendor.companyName,
-            email: vendor.email,
-          }))
+          id: vendor._id?.toString() || vendor.toString(),
+          companyName: vendor.companyName,
+          email: vendor.email,
+        }))
         : [],
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
@@ -886,7 +925,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const newWorkshop = await eventRepository.update(workshopId, {
       status: "PUBLISHED",
     });
-    
+
     // Requirement #44: Notify professor about workshop acceptance
     if (workshop.createdBy) {
       await notificationService.notifyWorkshopStatus(
@@ -896,14 +935,14 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         'ACCEPTED'
       );
     }
-    
+
     // Requirement #57: Notify all users about new event
     await notificationService.notifyNewEvent(
       workshopId,
       workshop.name,
       'Workshop'
     );
-    
+
     return newWorkshop;
   }
 
@@ -937,7 +976,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       status: "REJECTED",
       rejectionReason: reason,
     });
-    
+
     // Requirement #44: Notify professor about workshop rejection
     if (workshop.createdBy) {
       await notificationService.notifyWorkshopStatus(
@@ -948,7 +987,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         reason
       );
     }
-    
+
     return newWorkshop;
   }
 
@@ -1148,7 +1187,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Track if this is a cancellation or modification for notification
     const isCancellation = patch.status === 'CANCELLED';
     const isModification = timeWindowChanged && !isCancellation;
-    
+
     const updated = await this.repository.update(
       id,
       {
@@ -1167,21 +1206,21 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     if (!updated) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Update failed" });
     }
-    
+
     // Requirement #87: Notify registered users about gym session changes
     if (isCancellation || isModification) {
       const registrations = await registrationRepository.findAll(
         { event: id, status: { $in: ['CONFIRMED', 'PENDING'] } } as any,
         {}
       );
-      
+
       if (registrations.length > 0) {
         const userIds = registrations.map((r: any) => String(r.user));
         const updateType = isCancellation ? 'CANCELLED' : 'EDITED';
-        const details = isModification 
-          ? `Time changed to ${nextStart.toLocaleString()}` 
+        const details = isModification
+          ? `Time changed to ${nextStart.toLocaleString()}`
           : undefined;
-        
+
         await notificationService.notifyGymSessionUpdate(
           userIds,
           id,
@@ -1191,7 +1230,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         );
       }
     }
-    
+
     return updated;
   }
 
@@ -1256,13 +1295,119 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     return userRepository.getFavoriteEvents(userId, options);
   }
 
-  /**
-   * Check if event is favorited by user
-   */
+
+  async whitelistUser(input: {
+    eventId: string;
+    userId: string;
+  }): Promise<void> {
+    const { eventId, userId } = input;
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    if (!event.whitelistedUsers) {
+      event.whitelistedUsers = [];
+    }
+
+    await eventRepository.whitelistUser(userId, eventId);
+  }
+
+  async removeWhitelistedUser(input: {
+    eventId: string;
+    userId: string;
+  }): Promise<void> {
+    const { eventId, userId } = input;
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    await eventRepository.removeWhitelistedUser(userId, eventId);
+  }
+
+
+  async whitelistRole(input: {
+    eventId: string;
+    role: UserRole;
+  }): Promise<void> {
+    const { eventId, role } = input;
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    await eventRepository.whitelistRole(role, eventId);
+  }
+
+
+  async removeWhitelistedRole(input: {
+    eventId: string;
+    role: UserRole;
+  }): Promise<void> {
+    const { eventId, role } = input;
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    await eventRepository.removeWhitelistedRole(role, eventId);
+  }
+
+  async checkRoleWhitelisted(data: {
+    eventId: string;
+    role: UserRole;
+  }): Promise<boolean> {
+    const event = await this.repository.findById(data.eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    return event.whitelistedRoles?.includes(data.role) ?? false;
+  }
+
+  async getWhitelistedUsers(input: { eventId: string }): Promise<IUser[]> {
+    const event = await this.repository.findById(input.eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    if (!event.whitelistedUsers) {
+      return [];
+    }
+    // turn event.whitelistedUsers to string array
+    const userIds = event.whitelistedUsers.map((id) => id.toString());
+    return userRepository.findByIds(userIds);
+  }
+
+  async checkEventWhitelisted(eventId: string): Promise<boolean> {
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    return (event.whitelistedUsers?.length ?? 0) > 0;
+  }
+
+  async checkUserWhitelisted(data: {
+    eventId: string;
+    userId: string;
+  }): Promise<boolean> {
+    const event = await this.repository.findById(data.eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    return (
+      event.whitelistedUsers?.some((id) => id.toString() === data.userId) ??
+      false
+    );
+  }
+
+  async getWhitelistedRoles(input: { eventId: string }): Promise<UserRole[]> {
+    const event = await this.repository.findById(input.eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+    return (event.whitelistedRoles ?? []) as UserRole[];
+  }
   async isFavorite(userId: string, eventId: string) {
     return userRepository.isFavorite(userId, eventId);
   }
 }
+
 
 // Singleton instance
 export const eventService = new EventService(eventRepository);

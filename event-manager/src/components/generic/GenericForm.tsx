@@ -13,11 +13,11 @@
  */
 
 import { useForm, type DefaultValues, type FieldPath, type UseFormReturn } from 'react-hook-form';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, type Variants } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -117,6 +117,7 @@ export interface FormFieldConfig<TFieldValues extends GenericFormValues = Generi
   // Styling
   className?: string;
   inputClassName?: string;
+  enablePasswordToggle?: boolean;
   
   // Error message spacing (prevents layout shift)
   reserveErrorSpace?: boolean; // Default true
@@ -246,6 +247,15 @@ export function GenericForm<TFieldValues extends GenericFormValues = GenericForm
     defaultValues: (defaultValues ?? fallbackDefaults) as DefaultValues<TFieldValues>,
   });
 
+  const [passwordVisibility, setPasswordVisibility] = useState<Record<string, boolean>>({});
+
+  const togglePasswordVisibility = (fieldName: string) => {
+    setPasswordVisibility((prev) => ({
+      ...prev,
+      [fieldName]: !prev[fieldName],
+    }));
+  };
+
   // Keep form values in sync when defaultValues prop changes (e.g., after refetch)
   const prevDefaultsRef = useRef<string | null>(null);
   useEffect(() => {
@@ -342,12 +352,19 @@ export function GenericForm<TFieldValues extends GenericFormValues = GenericForm
                     </div>
                   )}
                   <Input
-                    type={fieldConfig.type}
+                    type={
+                      fieldConfig.type === 'password' && fieldConfig.enablePasswordToggle
+                        ? passwordVisibility[fieldConfig.name]
+                          ? 'text'
+                          : 'password'
+                        : fieldConfig.type
+                    }
                     placeholder={fieldConfig.placeholder}
                     disabled={isLoading}
                     className={cn(
                       'w-full',
                       fieldConfig.icon && 'pl-10',
+                      fieldConfig.type === 'password' && fieldConfig.enablePasswordToggle && 'pr-12',
                       fieldConfig.inputClassName
                     )}
                     min={fieldConfig.min}
@@ -383,6 +400,20 @@ export function GenericForm<TFieldValues extends GenericFormValues = GenericForm
                       field.onChange(event.target.value);
                     }}
                   />
+                  {fieldConfig.type === 'password' && fieldConfig.enablePasswordToggle && (
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility(fieldConfig.name)}
+                      className="absolute right-3 top-2.5 text-muted-foreground transition hover:text-foreground"
+                      aria-label={passwordVisibility[fieldConfig.name] ? 'Hide password' : 'Show password'}
+                    >
+                      {passwordVisibility[fieldConfig.name] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
             </FormControl>

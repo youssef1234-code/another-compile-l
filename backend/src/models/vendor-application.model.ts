@@ -18,9 +18,9 @@ export interface IVendorApplication extends IBaseDocument {
   companyName: string;
   names: string[];
   emails: string[];
+  idPictures: string[];
   paymentMethod?: string;
   paymentStatus?: "PENDING" | "PAID" | "FAILED";
-  paymentAmount?: number;
 
   type: keyof typeof ApplicationType;
   boothSize: keyof typeof BoothSize;
@@ -31,6 +31,12 @@ export interface IVendorApplication extends IBaseDocument {
   startDate?: Date;
   boothLocationId?: string; // Reference to booth placement ID on platform map
   boothLabel?: string; // Human-readable booth number (e.g., "A1", "B2")
+
+  paymentAmount?: number;                   // minor 
+  paymentCurrency?: "EGP" | "USD";         // NEW
+  acceptedAt?: Date;                       // NEW
+  paymentDueAt?: Date;                     // NEW (acceptedAt + 3 days)
+  paidAt?: Date;        
 
   status: keyof typeof VendorApprovalStatus;
   rejectionReason?: string;
@@ -56,6 +62,16 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
           return v && v.length >= 1 && v.length <= 5;
         },
         message: "Must be between 1 and 5 emails",
+      },
+      required: true,
+    },
+    idPictures: {
+      type: [String],
+      validate: {
+        validator: function (v) {
+          return v && v.length >= 1 && v.length <= 5;
+        },
+        message: "Must be between 1 and 5 ID pictures",
       },
       required: true,
     },
@@ -115,6 +131,10 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
       type: String,
       required: false,
     },
+    paymentCurrency: { type: String, enum: ["EGP", "USD"] }, 
+    acceptedAt: { type: Date },              
+  paymentDueAt: { type: Date },            
+  paidAt: { type: Date },    
   },
   {
     toJSON: {

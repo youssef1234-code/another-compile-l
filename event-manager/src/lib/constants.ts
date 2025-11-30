@@ -36,10 +36,10 @@ export const ROUTES = {
   EDIT_TRIP: "/trips/edit/:id",
   EDIT_CONFERENCE: "/conferences/edit/:id",
   EDIT_BAZAAR: "/events/edit/bazaar/:id",
-  EVENT_PAY: "/events/:eventId/pay",          
+  EVENT_PAY: "/events/:eventId/pay",
   EVENT_PAY_CARD: "/events/:eventId/pay/card",
   EVENT_PAY_WALLET: "/events/:eventId/pay/wallet",
-  
+
 
   // Stripe return URLs (success/failure)
   PAY_SUCCESS: "/payments/success",
@@ -55,11 +55,13 @@ export const ROUTES = {
   LOYALTY_PROGRAM: "/vendors/loyalty",
   VENDOR_REQUESTS: "/vendors/requests",
   ALL_APPLICATIONS: "/vendors/all",
+  VENDOR_CHECKOUT : "/checkout/vendor/:applicationId",
 
   // Gym & Sports
   GYM_SCHEDULE: "/gym/schedule",
   MY_SESSIONS: "/gym/sessions",
   COURT_BOOKINGS: "/gym/courts",
+  COURT_MANAGEMENT: "/gym/courts/manage",
   MANAGE_SESSIONS: "/gym/manage",
 
   // Admin
@@ -69,7 +71,7 @@ export const ROUTES = {
   ADMIN_COMMENTS: '/admin/comments',
   ADMIN_REPORTS: '/admin/reports',
   ADMIN_LOYALTY: '/admin/loyalty',
-  
+
   // Events Office
   WORKSHOP_APPROVALS: "/events-office/workshops",
   VENDOR_POLLS: "/events-office/polls",
@@ -77,6 +79,10 @@ export const ROUTES = {
   QR_CODES: "/events-office/qr-codes",
   BAZAAR_MANAGEMENT: "/events-office/bazaars",
   PLATFORM_SETUP: "/events-office/platform-setup",
+
+  // Reports
+  EVENTS_REPORTS: "/reports/events",
+  SALES_REPORTS: "/reports/sales",
 
   // Other
   WALLET: "/wallet",

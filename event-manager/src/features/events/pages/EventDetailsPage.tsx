@@ -138,6 +138,26 @@ export function EventDetailsPage() {
     event.type === "WORKSHOP" &&
     eventCreatorId === user.id; // Compare user IDs, not names!
 
+    const checkUserWhitelisted = trpc.events.checkUserWhitelisted.useQuery(
+    {
+      eventId: id!,
+      userId: user?.id || "",
+    },
+    {
+      enabled: !!id && !!user,
+    }
+  );
+
+  const checkRoleWhitelisted = trpc.events.checkRoleWhitelisted.useQuery(
+    {
+      eventId: id!,
+      role: user?.role!,
+    },
+    {
+      enabled: !!id && !!user && !!user.role,
+    }
+  );
+
   // Debug logging
   if (user?.role === "PROFESSOR" && event?.type === "WORKSHOP") {
     console.log("🔍 Frontend Professor Workshop Check:", {
@@ -388,7 +408,8 @@ export function EventDetailsPage() {
                 variant={hasEnded ? "secondary" : hasStarted ? "default" : "outline"}
                 className={cn(
                   "shadow-lg backdrop-blur-md border border-white/20",
-                  hasStarted && !hasEnded && "text-white dark:text-white"
+                  hasStarted && !hasEnded && "text-white dark:text-white",
+                  !hasStarted && !hasEnded && "bg-black/40 text-white border-white/30"
                 )}
               >
                 {hasEnded ? "Ended" : hasStarted ? "Ongoing" : "Upcoming"}
@@ -466,8 +487,13 @@ export function EventDetailsPage() {
             variant="ghost"
             onClick={handleFavorite}
             disabled={isFavoriting}
+            className="absolute top-4 right-4 z-20 bg-white/90 dark:bg-black/90 hover:bg-white dark:hover:bg-black shadow-lg backdrop-blur-sm border-0"
           >
-            <Heart fill={isFavorite ? "red" : ""} />
+            <Heart 
+              fill={isFavorite ? "red" : "none"} 
+              stroke={isFavorite ? "red" : "currentColor"}
+              className="h-5 w-5"
+            />
           </Button>
         </div>
       </div>

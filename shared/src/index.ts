@@ -610,8 +610,29 @@ export const CourtSchema = z.object({
   name: z.string(),
   sport: z.nativeEnum(CourtSport),
   location: z.string().default("ON_CAMPUS"),
-  // optional capacity for team size etc. if needed
+  description: z.string().optional(),
+  specs: z.string().optional(), // Court specifications (e.g., "Indoor court, wooden floor, 28m x 15m")
+  customInstructions: z.string().optional(), // Custom booking instructions
+  images: z.array(z.string()).optional(), // Array of image URLs or file IDs
 });
+
+export const CreateCourtSchema = z.object({
+  name: z.string().min(3, "Court name must be at least 3 characters"),
+  sport: z.nativeEnum(CourtSport),
+  location: z.string().min(3, "Location is required"),
+  description: z.string().optional(),
+  specs: z.string().optional(),
+  customInstructions: z.string().optional(),
+  images: z.array(z.string()).optional(),
+});
+
+export type CreateCourtInput = z.infer<typeof CreateCourtSchema>;
+
+export const UpdateCourtSchema = CreateCourtSchema.partial().extend({
+  id: z.string(),
+});
+
+export type UpdateCourtInput = z.infer<typeof UpdateCourtSchema>;
 
 export const AvailabilityQuerySchema = z.object({
   courtId: z.string().optional(),
@@ -776,6 +797,7 @@ export type RegistrationForEventResponse = z.infer<
 export const CreateApplicationSchema = z.object({
   names: z.array(z.string()).min(1).max(5),
   emails: z.array(z.string().email()).min(1).max(5),
+    idPictures: z.array(z.string()).min(1).max(5),
 
   type: z.enum(["BAZAAR", "PLATFORM"]),
   boothSize: z.enum(["TWO_BY_TWO", "FOUR_BY_FOUR"]),
@@ -937,7 +959,12 @@ export const PaymentStatus = {
   FAILED: "FAILED",
   REFUNDED: "REFUNDED",
 } as const;
+
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
+
+
+export const vendorInitCardInput = z.object({ applicationId: z.string().min(1) });
+export type VendorInitCardInput = z.infer<typeof vendorInitCardInput>;
 
 // this is to track wallet transaction types without introducing negatives so can decide on the sign based on this type:
 
@@ -1236,13 +1263,19 @@ export interface Event {
   status?: string;
   rejectionReason?: string;
   revisionNotes?: string;
+  whitelistedUsers?: string[];
+  whitelistedRoles?: string[];
 }
+
+export type VendorPaymentStatus = "FAILED" | "PENDING" | "PAID";
+
 
 export interface VendorApplication {
   id: string;
   companyName: string;
   names: string[];
   emails: string[];
+  idPictures: string[];
 
   type: ApplicationType;
   boothSize: BoothSize;
@@ -1256,6 +1289,14 @@ export interface VendorApplication {
 
   status: VendorApprovalStatus;
   rejectionReason?: string;
+
+   // Payment fields (NEW)
+  feeMinor?: number;          // integer cents
+  feeCurrency?: "EGP" | "USD";
+  paymentStatus?: VendorPaymentStatus; // UNPAID | PENDING | PAID
+  acceptedAt?: string;
+  paymentDueAt?: string;      // acceptedAt + 3 days
+  paidAt?: string | null;
 }
 export interface Registration {
   id: string;

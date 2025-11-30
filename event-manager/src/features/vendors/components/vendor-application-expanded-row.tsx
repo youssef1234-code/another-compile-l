@@ -21,12 +21,20 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import { formatDate } from "@/lib/design-system";
 import type { VendorApplication } from "@event-manager/shared";
+import { toast } from "react-hot-toast";
+import { formatValidationErrors } from "@/lib/format-errors";
+import { Button } from "@/components/ui/button";
+import { useCallback } from "react";
+import { trpc } from "@/lib/trpc";
 
 interface VendorApplicationExpandedRowProps {
-  application: VendorApplication;
+  application: VendorApplication & {
+    idPictures?: string[]; // KHODARY CHECK THIS IF HALAL
+  };
 }
 
 export function VendorApplicationExpandedRow({ application }: VendorApplicationExpandedRowProps) {
@@ -56,6 +64,42 @@ export function VendorApplicationExpandedRow({ application }: VendorApplicationE
 
   const status = statusConfig[application.status as keyof typeof statusConfig] || statusConfig.PENDING;
   const StatusIcon = status.icon;
+
+  const utils = trpc.useUtils();
+
+  const handleDownloadIdPicture = useCallback(
+    async (index: number, attendeeName: string) => {
+      const fileId = application.idPictures?.[index];
+
+      if (!fileId) {
+        toast.error("No ID picture found for this attendee");
+        return;
+      }
+
+      try {
+        const fileData = await utils.files.downloadFile.fetch({ fileId });
+
+        // Create a download link
+        const dataUrl = `data:${fileData.mimeType};base64,${fileData.data}`;
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download =
+          fileData.filename ||
+          `id-${attendeeName.replace(/\s+/g, "-")}.${
+            fileData.mimeType.split("/")[1]
+          }`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success("ID picture downloaded successfully");
+      } catch (error) {
+        const errorMessage = formatValidationErrors(error);
+        toast.error(errorMessage, { style: { whiteSpace: "pre-line" } });
+      }
+    },
+    [application.idPictures, utils]
+  );
 
   return (
     <div className="p-6 bg-muted/30">
@@ -179,6 +223,16 @@ export function VendorApplicationExpandedRow({ application }: VendorApplicationE
                         </div>
                       )}
                     </div>
+                      {application.idPictures?.[index] && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadIdPicture(index, name)}
+                        title="Download ID/Passport"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>

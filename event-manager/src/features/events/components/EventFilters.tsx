@@ -16,6 +16,7 @@ import { Search, SlidersHorizontal, X, Calendar, MapPin, DollarSign, Tag, Loader
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ export interface EventFiltersState {
   dateTo?: Date;
   maxPrice?: number;
   showFreeOnly: boolean;
+  hideEnded?: boolean;
 }
 
 interface EventFiltersProps {
@@ -80,6 +82,7 @@ export function EventFilters({
   const [localDateTo, setLocalDateTo] = useState<Date | undefined>(filters.dateTo);
   const [localMaxPrice, setLocalMaxPrice] = useState<number | undefined>(filters.maxPrice);
   const [localShowFreeOnly, setLocalShowFreeOnly] = useState(filters.showFreeOnly);
+  const [localHideEnded, setLocalHideEnded] = useState(filters.hideEnded ?? true);
 
   // Sync local state when filters are reset externally
   useEffect(() => {
@@ -89,7 +92,8 @@ export function EventFilters({
     setLocalDateTo(filters.dateTo);
     setLocalMaxPrice(filters.maxPrice);
     setLocalShowFreeOnly(filters.showFreeOnly);
-  }, [filters.location, filters.dateRange, filters.dateFrom, filters.dateTo, filters.maxPrice, filters.showFreeOnly]);
+    setLocalHideEnded(filters.hideEnded ?? true);
+  }, [filters.location, filters.dateRange, filters.dateFrom, filters.dateTo, filters.maxPrice, filters.showFreeOnly, filters.hideEnded]);
 
   const handleApply = () => {
     onChange({
@@ -100,6 +104,7 @@ export function EventFilters({
       dateTo: localDateTo,
       maxPrice: localMaxPrice,
       showFreeOnly: localShowFreeOnly,
+      hideEnded: localHideEnded,
     });
     setIsOpen(false);
   };
@@ -111,6 +116,7 @@ export function EventFilters({
     setLocalDateTo(undefined);
     setLocalMaxPrice(undefined);
     setLocalShowFreeOnly(false);
+    setLocalHideEnded(false);
     onReset();
     setIsOpen(false);
   };
@@ -127,37 +133,37 @@ export function EventFilters({
     (filters.location ? 1 : 0) +
     (filters.dateRange && filters.dateRange !== 'upcoming' ? 1 : 0) +
     (filters.showFreeOnly ? 1 : 0) +
-    (filters.maxPrice ? 1 : 0);
+    (filters.maxPrice ? 1 : 0) +
+    (filters.hideEnded === true ? 1 : 0);
 
   return (
     <div className="space-y-4">
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search events by name, professor, or description..."
-          value={searchInput !== undefined ? searchInput : filters.search}
-          onChange={(e) => {
-            if (onSearchInputChange) {
-              onSearchInputChange(e.target.value);
-            } else {
-              onChange({ ...filters, search: e.target.value });
-            }
-          }}
-          className="pl-10 pr-4 h-12 text-base"
-        />
-        {isSearching && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          </div>
-        )}
-      </div>
+      {/* Search Bar + Event Type Pills on same row */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Search Bar - narrower width (about 2 cards) */}
+        <div className="relative flex-shrink-0" style={{ width: '400px', maxWidth: '100%' }}>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search events..."
+            value={searchInput !== undefined ? searchInput : filters.search}
+            onChange={(e) => {
+              if (onSearchInputChange) {
+                onSearchInputChange(e.target.value);
+              } else {
+                onChange({ ...filters, search: e.target.value });
+              }
+            }}
+            className="pl-10 pr-4 h-10 text-sm"
+          />
+          {isSearching && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
 
-      {/* Quick Filters + Advanced Filters Button */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Event Type Pills */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-muted-foreground">Types:</span>
+        {/* Event Type Pills - on the same row */}
+        <div className="flex items-center gap-2 flex-wrap flex-1">
           {EVENT_TYPES.map((type) => {
             const typeConfig = getEventTypeConfig(type.value);
             const isSelected = filters.types.includes(type.value);
@@ -181,7 +187,7 @@ export function EventFilters({
         {/* Advanced Filters Popover */}
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="ml-auto">
+            <Button variant="outline" size="sm">
               <SlidersHorizontal className="h-4 w-4 mr-2" />
               Filters
               {activeFiltersCount > 0 && (
@@ -251,31 +257,47 @@ export function EventFilters({
                 {localDateRange === 'custom' && (
                   <div className="space-y-2 pt-2 border-t">
                     <div className="grid grid-cols-2 gap-2">
-                      <div>
+                      <div className="space-y-1">
                         <Label className="text-xs">From</Label>
-                        <Input
-                          type="date"
-                          value={localDateFrom ? localDateFrom.toISOString().split('T')[0] : ''}
-                          onChange={(e) =>
-                            setLocalDateFrom(e.target.value ? new Date(e.target.value) : undefined)
-                          }
+                        <DatePicker
+                          value={localDateFrom || null}
+                          onChange={(date) => setLocalDateFrom(date || undefined)}
+                          placeholder="Start date"
                           className="h-9"
                         />
                       </div>
-                      <div>
+                      <div className="space-y-1">
                         <Label className="text-xs">To</Label>
-                        <Input
-                          type="date"
-                          value={localDateTo ? localDateTo.toISOString().split('T')[0] : ''}
-                          onChange={(e) =>
-                            setLocalDateTo(e.target.value ? new Date(e.target.value) : undefined)
-                          }
+                        <DatePicker
+                          value={localDateTo || null}
+                          onChange={(date) => setLocalDateTo(date || undefined)}
+                          placeholder="End date"
                           className="h-9"
+                          minDate={localDateFrom}
                         />
                       </div>
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Hide Ended Events Filter */}
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hide-ended"
+                    checked={localHideEnded}
+                    onCheckedChange={(checked) =>
+                      setLocalHideEnded(checked as boolean)
+                    }
+                  />
+                  <Label
+                    htmlFor="hide-ended"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Hide ended/completed events
+                  </Label>
+                </div>
               </div>
 
               {/* Price Filter */}
@@ -336,7 +358,7 @@ export function EventFilters({
           </PopoverContent>
         </Popover>
 
-        {/* Active Filters Count */}
+        {/* Clear All Button */}
         {activeFiltersCount > 0 && (
           <Button
             variant="ghost"

@@ -136,6 +136,10 @@ export function EventsPage() {
     "freeOnly",
     parseAsString.withDefault("")
   );
+  const [hideEnded, setHideEnded] = useQueryState(
+    "hideEnded",
+    parseAsString.withDefault("true")
+  );
 
   // Local search input state for debouncing
   const [searchInput, setSearchInput] = useState(search);
@@ -295,8 +299,25 @@ export function EventsPage() {
       });
     }
 
+    // Hide ended events filter (default: true)
+    if (hideEnded !== "false") {
+      result.push({
+        id: "endDate",
+        value: new Date().toISOString(),
+        operator: "gte" as const,
+        variant: "date" as const,
+        filterId: "hide-ended-filter",
+      });
+    }
+
     return result.length > 0 ? result : undefined;
-  }, [dateRange, dateFrom, dateTo, maxPrice, showFreeOnly]);
+  }, [dateRange, dateFrom, dateTo, maxPrice, showFreeOnly, hideEnded]);
+
+  // Debug log
+  useEffect(() => {
+    console.log('🔍 Extended Filters:', extendedFilters);
+    console.log('🔍 hideEnded state:', hideEnded);
+  }, [extendedFilters, hideEnded]);
 
   // Parse sort state
   const parsedSort = useMemo(() => {
@@ -438,6 +459,7 @@ export function EventsPage() {
       dateTo: dateTo ? new Date(dateTo) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       showFreeOnly: showFreeOnly === "true",
+      hideEnded: hideEnded !== "false",
     }),
     [
       search,
@@ -448,6 +470,7 @@ export function EventsPage() {
       dateTo,
       maxPrice,
       showFreeOnly,
+      hideEnded,
     ]
   );
 
@@ -461,6 +484,7 @@ export function EventsPage() {
     setDateTo("");
     setMaxPrice("");
     setShowFreeOnly("");
+    setHideEnded("false");
     setSearchInput("");
   };
 
@@ -474,6 +498,7 @@ export function EventsPage() {
     setDateTo(newFilters.dateTo ? newFilters.dateTo.toISOString() : "");
     setMaxPrice(newFilters.maxPrice ? String(newFilters.maxPrice) : "");
     setShowFreeOnly(newFilters.showFreeOnly ? "true" : "");
+    setHideEnded(newFilters.hideEnded !== false ? "true" : "false");
     setSearchInput(newFilters.search);
   };
 
@@ -828,6 +853,10 @@ function EventCardProduction({
     setIsFavoriting(false);
   };
 
+  const { data: isWhitelisted } = trpc.events.checkEventWhitelisted.useQuery(
+    { eventId: event.id },
+    { enabled: !!event.id }
+  );
   if (view === "list") {
     return (
       <Card
@@ -869,9 +898,11 @@ function EventCardProduction({
                   size="icon"
                   onClick={handleFavorite}
                   disabled={isFavoriting}
+                  className="border-0 hover:bg-transparent"
                 >
                   <Heart
-                    fill={isFavorite?.isFavorite ? "red" : ""}
+                    fill={isFavorite?.isFavorite ? "red" : "none"}
+                    stroke={isFavorite?.isFavorite ? "red" : "currentColor"}
                     className="h-4 w-4"
                   />
                 </Button>
@@ -879,15 +910,11 @@ function EventCardProduction({
                   {typeConfig.label}
                 </Badge>
                 <Badge
-                  variant={
-                    eventStatus === "ENDED"
-                      ? "secondary"
-                      : eventStatus === "FULL"
-                      ? "destructive"
-                      : "default"
-                  }
                   className={cn(
                     eventStatus === "OPEN" && statusConfig.bg,
+                    eventStatus === "ENDED" && "bg-red-600",
+                    eventStatus === "FULL" && "bg-destructive",
+                    eventStatus !== "OPEN" && eventStatus !== "ENDED" && eventStatus !== "FULL" && "bg-primary",
                     "text-white border-none"
                   )}
                 >
@@ -928,6 +955,11 @@ function EventCardProduction({
                 )}
               </span>
               {isFull && <Badge variant="destructive">Full</Badge>}
+              {isWhitelisted && (
+                <Badge className="bg-amber-500 text-white border-none">
+                  🔒 Whitelisted
+                </Badge>
+              )}
             </div>
           </div>
         </CardContent>
@@ -966,21 +998,20 @@ function EventCardProduction({
         )}
         <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
           <Badge
-            className={cn("text-white border-none shadow-lg", typeConfig.bg)}
+            className={cn(
+              "text-white border-none shadow-lg",
+              typeConfig.bg
+            )}
           >
             {typeConfig.label}
           </Badge>
           <Badge
-            variant={
-              eventStatus === "ENDED"
-                ? "secondary"
-                : eventStatus === "FULL"
-                ? "destructive"
-                : "default"
-            }
             className={cn(
               eventStatus === "OPEN" && statusConfig.bg,
               eventStatus === "ONGOING" && "bg-emerald-500",
+              eventStatus === "ENDED" && "bg-red-600",
+              eventStatus === "FULL" && "bg-destructive",
+              eventStatus !== "OPEN" && eventStatus !== "ONGOING" && eventStatus !== "ENDED" && eventStatus !== "FULL" && "bg-primary",
               "text-white border-none shadow-lg"
             )}
           >
@@ -1004,6 +1035,11 @@ function EventCardProduction({
               Free
             </Badge>
           )}
+          {isWhitelisted && (
+            <Badge className="bg-amber-500 text-white border-none shadow-md">
+              🔒 Whitelisted
+            </Badge>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -1019,8 +1055,8 @@ function EventCardProduction({
           </Button>
         </div>
       </div>
-      <div className="p-4 space-y-3">
-        <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
+      <div className="p-4 space-y-3 bg-card">
+        <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors text-card-foreground">
           {event.name}
         </h3>
         <p className="text-sm text-muted-foreground line-clamp-2">
@@ -1043,7 +1079,7 @@ function EventCardProduction({
           <div className="pt-2 border-t">
             <div className="flex items-center justify-between text-sm mb-1">
               <span className="text-muted-foreground">Capacity</span>
-              <span className="font-medium">
+              <span className="font-medium text-card-foreground">
                 {event.capacity - event.registeredCount} spots available
               </span>
             </div>

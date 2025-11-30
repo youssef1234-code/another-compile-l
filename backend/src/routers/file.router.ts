@@ -66,6 +66,56 @@ export const fileRouter = router({
       };
     }),
 
+
+      uploadUnprotectedFile: publicProcedure
+    .input(
+      z.object({
+        file: z.string(), // Base64 encoded file
+        filename: z.string(),
+        mimeType: z.string(),
+        entityType: z
+          .enum([
+            "user",
+            "event",
+            "vendor",
+            "feedback",
+            "registration",
+            "other",
+          ])
+          .optional(),
+        entityId: z.string().optional(),
+        isPublic: z.boolean().optional(),
+        skipCompression: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // Decode base64 file
+      const fileBuffer = Buffer.from(input.file, "base64");
+
+      const result = await fileService.uploadFile({
+        file: fileBuffer,
+        filename: input.filename,
+        mimeType: input.mimeType,
+        uploadedBy: "",
+        entityType: input.entityType,
+        entityId: input.entityId,
+        isPublic: input.isPublic,
+        skipCompression: input.skipCompression,
+      });
+
+      // Return without binary data
+      return {
+        id: (result._id as any).toString(),
+        filename: result.filename,
+        originalName: result.originalName,
+        mimeType: result.mimeType,
+        size: result.size,
+        isCompressed: result.isCompressed,
+        compressionRatio: result.compressionRatio,
+        metadata: result.metadata,
+      };
+    }),
+
   /**
    * Get file metadata (without binary data)
    */

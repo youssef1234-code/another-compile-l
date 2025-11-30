@@ -20,6 +20,36 @@ export interface IBoothPlacement {
   isOccupied: boolean;
   applicationId?: mongoose.Types.ObjectId; // Reference to VendorApplication
   label?: string; // Optional label like "Booth A1"
+  isVIP?: boolean; // VIP booth designation
+}
+
+// Landmark types for platform navigation
+export type LandmarkType = 'ENTRANCE' | 'EXIT' | 'SPECIAL_PLACE';
+
+export interface ILandmark {
+  id: string;
+  x: number; // Grid X position
+  y: number; // Grid Y position
+  type: LandmarkType;
+  label: string; // e.g., "Main Entrance", "Food Court", "Restrooms"
+  rotation?: number; // Rotation in degrees (0, 90, 180, 270)
+}
+
+export interface ICustomText {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  fontSize: number;
+}
+
+export interface ICustomObject {
+  id: string;
+  x: number;
+  y: number;
+  type: 'circle' | 'square';
+  size: number;
+  color: string;
 }
 
 export interface IPlatformMap extends IBaseDocument {
@@ -28,6 +58,9 @@ export interface IPlatformMap extends IBaseDocument {
   gridHeight: number; // Number of grid rows (e.g., 15)
   cellSize: number; // Size of each grid cell in pixels (for rendering)
   booths: IBoothPlacement[]; // Array of booth placements
+  landmarks?: ILandmark[]; // Array of landmarks (entrance, exit, special places)
+  customTexts?: ICustomText[]; // Array of custom text elements
+  customObjects?: ICustomObject[]; // Array of custom objects (circles, squares)
   isActive: boolean; // Whether this is the active platform layout
 }
 
@@ -45,6 +78,42 @@ const boothPlacementSchema = new Schema<IBoothPlacement>(
       required: false,
     },
     label: { type: String, required: false },
+    isVIP: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const landmarkSchema = new Schema<ILandmark>(
+  {
+    id: { type: String, required: true },
+    x: { type: Number, required: true, min: 0 },
+    y: { type: Number, required: true, min: 0 },
+    type: { type: String, required: true, enum: ['ENTRANCE', 'EXIT', 'SPECIAL_PLACE'] },
+    label: { type: String, required: true },
+    rotation: { type: Number, required: false, default: 0, enum: [0, 90, 180, 270] },
+  },
+  { _id: false }
+);
+
+const customTextSchema = new Schema<ICustomText>(
+  {
+    id: { type: String, required: true },
+    x: { type: Number, required: true },
+    y: { type: Number, required: true },
+    text: { type: String, required: true },
+    fontSize: { type: Number, required: true, default: 16 },
+  },
+  { _id: false }
+);
+
+const customObjectSchema = new Schema<ICustomObject>(
+  {
+    id: { type: String, required: true },
+    x: { type: Number, required: true },
+    y: { type: Number, required: true },
+    type: { type: String, required: true, enum: ['circle', 'square'] },
+    size: { type: Number, required: true, default: 60 },
+    color: { type: String, required: true },
   },
   { _id: false }
 );
@@ -73,6 +142,18 @@ const platformMapSchema = createBaseSchema<IPlatformMap>(
     },
     booths: {
       type: [boothPlacementSchema],
+      default: [],
+    },
+    landmarks: {
+      type: [landmarkSchema],
+      default: [],
+    },
+    customTexts: {
+      type: [customTextSchema],
+      default: [],
+    },
+    customObjects: {
+      type: [customObjectSchema],
       default: [],
     },
     isActive: {

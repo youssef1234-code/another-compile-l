@@ -8,7 +8,7 @@
 import { useEffect } from 'react';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Sparkles, Users, AlertCircle } from 'lucide-react';
+import { Loader2, Users, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoyaltyPartnerCard } from '../components/LoyaltyPartnerCard';
 
@@ -44,21 +44,7 @@ export function LoyaltyProgramPage() {
   } = trpc.loyalty.getAllPartners.useQuery() as { data: LoyaltyPartner[] | undefined; isLoading: boolean };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 backdrop-blur-sm">
-            <Sparkles className="h-8 w-8 text-amber-500" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">GUC Loyalty Program</h1>
-            <p className="text-muted-foreground mt-1">
-              Discover exclusive vendor partnerships and special offers
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="w-full py-6 px-4">
 
       {/* Partners List */}
       <div className="space-y-6">

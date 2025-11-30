@@ -36,10 +36,13 @@ import {
 import { ROUTES } from '@/lib/constants';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { useTheme } from '@/hooks/useTheme';
+import { DatePicker } from '@/components/ui/date-picker';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 interface Attendee {
   name: string;
   email: string;
+  idPicture: string;
 }
 
 interface Booth {
@@ -75,7 +78,7 @@ export function PlatformBoothApplicationPage() {
   const [platform, setPlatform] = useState<PlatformMap | null>(null);
   const [selectedBoothSize, setSelectedBoothSize] = useState<'2' | '4'>('2');
   const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
-  const [attendees, setAttendees] = useState<Attendee[]>([{ name: '', email: '' }]);
+  const [attendees, setAttendees] = useState<Attendee[]>([{ name: '', email: '', idPicture: '' }]);
   const [duration, setDuration] = useState<string>('1');
   const [startDate, setStartDate] = useState<string>('');
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
@@ -119,13 +122,14 @@ export function PlatformBoothApplicationPage() {
   });
 
   useEffect(() => {
-    if (data) {
+    // Only update platform state once data is fully loaded
+    if (data && !isLoading) {
       setPlatform(data as PlatformMap);
       const width = (data as PlatformMap).gridWidth * (data as PlatformMap).cellSize;
       const height = (data as PlatformMap).gridHeight * (data as PlatformMap).cellSize;
       setStageSize({ width: Math.min(width, 1000), height: Math.min(height, 600) });
     }
-  }, [data]);
+  }, [data, isLoading]);
 
   const handleStageClick = (e: KonvaEventObject<MouseEvent>) => {
     if (!platform) return;
@@ -164,7 +168,7 @@ export function PlatformBoothApplicationPage() {
 
   const handleAddAttendee = () => {
     if (attendees.length < 5) {
-      setAttendees([...attendees, { name: '', email: '' }]);
+      setAttendees([...attendees, { name: '', email: '', idPicture: '' }]);
     } else {
       toast.error('Maximum 5 attendees allowed');
     }
@@ -178,7 +182,7 @@ export function PlatformBoothApplicationPage() {
     }
   };
 
-  const handleUpdateAttendee = (index: number, field: 'name' | 'email', value: string) => {
+  const handleUpdateAttendee = (index: number, field: 'name' | 'email' | 'idPicture', value: string) => {
     const updated = [...attendees];
     updated[index][field] = value;
     setAttendees(updated);
@@ -191,8 +195,8 @@ export function PlatformBoothApplicationPage() {
       return;
     }
 
-    if (attendees.some((a) => !a.name.trim() || !a.email.trim())) {
-      toast.error('Please fill in all attendee names and emails');
+    if (attendees.some((a) => !a.name.trim() || !a.email.trim() || !a.idPicture.trim())) {
+      toast.error('Please fill in all attendee names, emails, and ID pictures');
       return;
     }
 
@@ -206,6 +210,7 @@ export function PlatformBoothApplicationPage() {
     createApplication.mutate({
       names: attendees.map((a) => a.name),
       emails: attendees.map((a) => a.email),
+      idPictures: attendees.map((a) => a.idPicture),
       type: 'PLATFORM' as const,
       boothSize,
       duration: parseInt(duration),
@@ -287,12 +292,11 @@ export function PlatformBoothApplicationPage() {
             {/* Start Date */}
             <div className="space-y-2">
               <Label htmlFor="start-date">Start Date *</Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+              <DatePicker
+                value={startDate ? new Date(startDate) : null}
+                onChange={(date) => setStartDate(date ? date.toISOString().split('T')[0] : '')}
+                minDate={new Date()}
+                placeholder="Select start date"
               />
             </div>
 
@@ -353,6 +357,15 @@ export function PlatformBoothApplicationPage() {
                           placeholder="email@example.com"
                           value={attendee.email}
                           onChange={(e) => handleUpdateAttendee(index, 'email', e.target.value)}
+                        />
+                        
+                      </div>
+                        <div className="space-y-2">
+                        <Label htmlFor={`email-${index}`}>ID/Passport</Label>
+                        <ImageUpload
+                          onChange={(e) =>
+                            handleUpdateAttendee(index, "idPicture", e)
+                          }
                         />
                       </div>
                       {attendees.length > 1 && (

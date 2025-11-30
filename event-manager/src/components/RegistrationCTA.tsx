@@ -43,10 +43,24 @@ export function RegistrationCTA({
 }) {
   const navigate = useNavigate();
   const { state, reg, refetch, isFetching } = useMyRegistration(event.id);
+  const utils = trpc.useUtils();
+
+  // Check if event is free
+  const isFreeEvent = !event.price || event.price === 0;
 
   const registerM = trpc.events.registerForEvent.useMutation({
     onSuccess: async (newReg) => {
-      console.log("Registration successful");
+      console.log("Registration successful", { isFreeEvent });
+      
+      if (isFreeEvent) {
+        // For free events, registration is immediately confirmed
+        toast.success("Successfully registered for this free event!");
+        await refetch();
+        utils.events.isRegistered.invalidate({ eventId: event.id });
+        return;
+      }
+
+      // For paid events, redirect to payment
       toast.success("Seat held. Complete payment to confirm.");
       await refetch();
       const params = new URLSearchParams({
@@ -55,7 +69,6 @@ export function RegistrationCTA({
         currency: "EGP" 
       });
       navigate(`/checkout/${(newReg.registration as any).id}?${params.toString()}`);
-
     },
     onError: (e) => {
       toast.error(e.message ?? "Registration failed");
@@ -67,6 +80,10 @@ export function RegistrationCTA({
       case "CONFIRMED":
         return { label: "You're Registered", variant: "secondary" as const, disabled: true };
       case "PENDING":
+        // For free events with pending status (edge case), show different message
+        if (isFreeEvent) {
+          return { label: "Processing...", variant: "default" as const, disabled: true };
+        }
         return {
           label: `Complete Payment (${Math.ceil(msLeft(reg?.holdUntil) / 60000)}m left)`,
           variant: "default" as const,
@@ -75,25 +92,27 @@ export function RegistrationCTA({
       case "EXPIRED":
         return { label: "Hold Expired — Try Again", variant: "destructive" as const, disabled: false };
       default:
-        return { label: "Register Now", variant: "default" as const, disabled: false };
+        return { label: isFreeEvent ? "Register Now (Free)" : "Register Now", variant: "default" as const, disabled: false };
     }
-  }, [state, reg?.holdUntil]);
+  }, [state, reg?.holdUntil, isFreeEvent]);
 
-    const onClick = () => {
-    console.log("RegistrationCTA onClick", { state, eventId: event.id });
-    console.log("onclick state:", state);
+  const onClick = () => {
+    console.log("RegistrationCTA onClick", { state, eventId: event.id, isFreeEvent });
+    
     if (state === "CONFIRMED") return;
-    if (state === "PENDING" && reg) {
+    
+    if (state === "PENDING" && reg && !isFreeEvent) {
+      // Only redirect to payment for paid events
       const params = new URLSearchParams({
         eventId: event.id,
         amountMinor: String(event.price ? event.price * 100 : 0),
-        currency: "EGP" // You might want to make this dynamic based on your app's configuration
+        currency: "EGP"
       });
       console.log("reg id:", reg.id);
-      
       navigate(`/checkout/${reg.id}?${params.toString()}`);
       return;
     }
+    
     // NONE or EXPIRED → (re)register to (re)hold
     registerM.mutate({ eventId: event.id });
   }; 

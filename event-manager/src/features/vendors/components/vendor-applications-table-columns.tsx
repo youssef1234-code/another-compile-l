@@ -27,11 +27,22 @@ import {
 } from "@/components/ui/tooltip";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
+import { differenceInDays } from "date-fns";
 
 interface GetVendorApplicationsTableColumnsProps {
   statusCounts: Record<string, number>;
   eventTypeCounts: Record<string, number>;
   boothSizeCounts: Record<string, number>;
+  onPayVendorFee: ((app: VendorApplication) => void) | undefined;
+}
+
+
+
+
+function getPaymentDeadline(app: VendorApplication) {
+  if (app.status !== "APPROVED") return null;
+  const deadline = new Date(app.paymentDueAt ?? Date.now().toLocaleString());
+  return { deadline, daysLeft : differenceInDays(deadline, new Date())};
 }
 
 // Application Status Badge Component
@@ -106,6 +117,7 @@ export function getVendorApplicationsTableColumns({
   statusCounts,
   eventTypeCounts,
   boothSizeCounts,
+  onPayVendorFee,
 }: GetVendorApplicationsTableColumnsProps): ColumnDef<VendorApplication>[] {
   return [
     {
@@ -361,13 +373,72 @@ export function getVendorApplicationsTableColumns({
       },
       size: 150,
     },
+// PAYMENT column (calls meta.onPayVendorFee)
+{
+  id: "payment",
+  header: "Payment",
+  cell: ({ row }) => {
+    const app = row.original as VendorApplication;
+    const due = getPaymentDeadline(app);
+
+    // Not approved -> no payment
+    if (app.status !== "APPROVED") {
+      return <span className="text-xs text-muted-foreground">—</span>;
+    }
+
+    // Approved + fully paid
+    if (app.paymentStatus === "PAID") {
+      return <Badge className="bg-emerald-600 text-white">Paid</Badge>;
+    }
+
+    // Approved + PENDING or FAILED -> allow paying / retrying
+    const isFailed = app.paymentStatus === "FAILED";
+
+    return (
+      <div className="flex flex-col gap-1">
+        {isFailed && (
+          <Badge
+            variant="destructive"
+            className="w-fit text-[11px] uppercase tracking-wide"
+          >
+            Last attempt failed
+          </Badge>
+        )}
+
+        <Button
+          size="sm"
+          className="w-[150px]"
+          variant={"default"}
+          onClick={() => onPayVendorFee?.(app)}
+        >
+          {isFailed ? "Retry payment" : "Pay vendor fee"}
+        </Button>
+
+        {due && (
+          <span
+            className={cn(
+              "text-xs",
+              due.daysLeft <= 1 ? "text-red-600" : "text-muted-foreground"
+            )}
+          >
+            Due in {due.daysLeft} day{due.daysLeft !== 1 ? "s" : ""} · by{" "}
+            {formatDate(due.deadline)}
+          </span>
+        )}
+      </div>
+    );
+  },
+  enableSorting: false,
+  size: 220,
+},
+
     {
       id: "actions",
       header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => {
         const application = row.original;
         const canDownloadBadges = application.status === 'APPROVED' && (application.names?.length || 0) > 0;
-        const canCancel = application.status === 'PENDING' && application.paymentStatus !== 'PAID';
+        const canCancel = application.status === 'PENDING';
         
         return (
           <div className="flex justify-end gap-2">
@@ -379,10 +450,13 @@ export function getVendorApplicationsTableColumns({
                     size="sm"
                     onClick={async (e) => {
                       e.stopPropagation();
-                      const { trpc } = await import('@/lib/trpc');
                       const toast = (await import('react-hot-toast')).toast;
+                      // TODO: Implement badge download - needs mutation hook at component level
+                      toast.error('Badge download feature needs to be reimplemented');
+                      return;
+                      /*
                       try {
-                        const result = await trpc.vendorApplications.generateVisitorBadges.mutate({ 
+                        const result = await generateVisitorBadges({ 
                           applicationId: application.id 
                         });
                         
@@ -393,6 +467,7 @@ export function getVendorApplicationsTableColumns({
                         );
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
+                      /*
                         a.href = url;
                         a.download = result.filename;
                         a.click();
@@ -401,6 +476,7 @@ export function getVendorApplicationsTableColumns({
                       } catch (error: any) {
                         toast.error(error.message || 'Failed to download badges');
                       }
+                      */
                     }}
                     className="gap-1.5"
                   >
@@ -423,10 +499,13 @@ export function getVendorApplicationsTableColumns({
                       e.stopPropagation();
                       if (!confirm('Are you sure you want to cancel this application? This action cannot be undone.')) return;
                       
-                      const { trpc } = await import('@/lib/trpc');
                       const toast = (await import('react-hot-toast')).toast;
+                      // TODO: Implement cancel application - needs mutation hook at component level
+                      toast.error('Cancel application feature needs to be reimplemented');
+                      return;
+                      /*
                       try {
-                        await trpc.vendorApplications.cancelApplication.mutate({ 
+                        await cancelApplication({ 
                           applicationId: application.id 
                         });
                         toast.success('Application cancelled successfully');
@@ -434,6 +513,7 @@ export function getVendorApplicationsTableColumns({
                       } catch (error: any) {
                         toast.error(error.message || 'Failed to cancel application');
                       }
+                      */
                     }}
                     className="gap-1.5"
                   >
@@ -451,5 +531,5 @@ export function getVendorApplicationsTableColumns({
       enableColumnFilter: false,
       size: 250,
     },
-  ];
+];
 }
