@@ -1290,9 +1290,9 @@ export interface VendorApplication {
   status: VendorApprovalStatus;
   rejectionReason?: string;
 
-   // Payment fields (NEW)
-  feeMinor?: number;          // integer cents
-  feeCurrency?: "EGP" | "USD";
+  // Payment fields
+  paymentAmount?: number;          // integer cents (minor units)
+  paymentCurrency?: "EGP" | "USD";
   paymentStatus?: VendorPaymentStatus; // UNPAID | PENDING | PAID
   acceptedAt?: string;
   paymentDueAt?: string;      // acceptedAt + 3 days

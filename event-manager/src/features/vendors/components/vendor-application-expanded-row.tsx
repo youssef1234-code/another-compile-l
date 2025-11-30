@@ -32,9 +32,7 @@ import { useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 
 interface VendorApplicationExpandedRowProps {
-  application: VendorApplication & {
-    idPictures?: string[]; // KHODARY CHECK THIS IF HALAL
-  };
+  application: VendorApplication;
 }
 
 export function VendorApplicationExpandedRow({ application }: VendorApplicationExpandedRowProps) {

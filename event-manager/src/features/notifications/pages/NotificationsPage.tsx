@@ -16,11 +16,10 @@ import {
 } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import type { Notification } from "@event-manager/shared";
 
 export function NotificationsPage() {
-  const navigate = useNavigate();
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(1)
   const [activeTab, setActiveTab] = useState<"unread" | "all">("unread");
 
   const {
@@ -66,7 +65,7 @@ export function NotificationsPage() {
     }
   };
 
-  const renderNotificationCard = (notification: any) => (
+  const renderNotificationCard = (notification: Notification) => (
     <Card
       key={notification.id}
       className={cn(
@@ -156,7 +155,7 @@ export function NotificationsPage() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "unread" | "all")}>
         <div className="flex items-center justify-between mb-4">
           <TabsList>
             <TabsTrigger value="unread">

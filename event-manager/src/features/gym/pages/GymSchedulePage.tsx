@@ -125,9 +125,29 @@ export function GymSchedulePage(){
     }
   );
 
+  // Fetch user's registrations to mark registered sessions in calendar
+  const { data: registrationsData } = trpc.events.getMyRegistrations.useQuery(
+    { page: 1, limit: 1000 },
+    { enabled: view === 'CALENDAR' }
+  );
+
+  // Get set of registered event IDs for quick lookup
+  const registeredEventIds = useMemo(() => {
+    if (!registrationsData?.registrations) return new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new Set((registrationsData.registrations as any[]).map((reg) => reg.event.id));
+  }, [registrationsData?.registrations]);
+
+  // Mark sessions with isRegistered flag
   const sessions = useMemo(() => {
-    return data?.events || [];
-  }, [data?.events]);
+    const events = data?.events || [];
+    if (view !== 'CALENDAR' || registeredEventIds.size === 0) return events;
+    
+    return events.map(event => ({
+      ...event,
+      isRegistered: registeredEventIds.has(event.id),
+    }));
+  }, [data?.events, registeredEventIds, view]);
 
   const pageCount = useMemo(() => {
     return data?.totalPages || 0;

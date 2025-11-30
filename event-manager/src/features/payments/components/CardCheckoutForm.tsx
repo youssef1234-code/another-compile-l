@@ -42,8 +42,8 @@ export function CardCheckoutForm({
       } else {
         afterFailure(`Payment status: ${paymentIntent.status}`);
       }
-    } catch (e: any) {
-      afterFailure(e?.message || "Payment error");
+    } catch (e) {
+      afterFailure((e as Error)?.message || "Payment error");
     } finally {
       setSubmitting(false);
     }

@@ -14,7 +14,7 @@ import { useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
 import { usePageMeta } from '@/components/layout/page-meta-context';
-import { Loader2, Sparkles, AlertCircle, CheckCircle2, Ban } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, Ban } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { LoyaltyApplicationForm } from '../components/LoyaltyApplicationForm';
@@ -54,7 +54,7 @@ export function VendorLoyaltyPage() {
   }) as { data: LoyaltyRequest[] | undefined; isLoading: boolean; refetch: () => void };
 
   // Check vendor status
-  const hasActiveRequest = vendorRequests?.some((r: any) => r.status === 'active') || false;
+  const hasActiveRequest = vendorRequests?.some((r: LoyaltyRequest) => r.status === 'active') || false;
   const canApply = !hasActiveRequest;
 
   // Mutations
@@ -74,7 +74,7 @@ export function VendorLoyaltyPage() {
       toast.success('Application cancelled successfully');
       refetchRequests();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       const errorMessage = error.message || 'Failed to cancel application';
       toast.error(errorMessage);
     },
@@ -101,7 +101,7 @@ export function VendorLoyaltyPage() {
             {/* Current Status */}
             {vendorRequests && vendorRequests.length > 0 && hasActiveRequest && (
               <VendorLoyaltyStatus
-                requests={vendorRequests as any}
+                requests={vendorRequests}
                 onCancel={handleCancel}
                 isCancelling={cancelMutation.isPending}
               />
@@ -137,7 +137,7 @@ export function VendorLoyaltyPage() {
           </div>
           <div className="px-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(vendorRequests as any[]).map((request: any, index: number) => {
+              {vendorRequests.map((request: LoyaltyRequest, index: number) => {
                     const getStatusIcon = () => {
                       switch (request.status) {
                         case 'cancelled':

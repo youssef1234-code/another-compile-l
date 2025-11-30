@@ -2,6 +2,7 @@
  * Format TRPC/Zod validation errors into user-friendly messages
  * Handles ALL error formats dynamically - no hardcoded assumptions
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export function formatValidationErrors(error: unknown): string {
   console.log('🔍 Formatting error:', JSON.stringify(error, null, 2));
 

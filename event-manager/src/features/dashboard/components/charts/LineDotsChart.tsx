@@ -7,7 +7,7 @@ import {type ChartConfig} from '@/components/ui/chart';
 interface LineDotsChartProps {
   title: string;
   description?: string;
-  data: any[];
+  data: Record<string, string | number>[];
   config: ChartConfig;
   dataKeys: string[];
 }

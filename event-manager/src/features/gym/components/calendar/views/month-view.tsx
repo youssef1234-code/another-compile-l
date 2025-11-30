@@ -160,8 +160,14 @@ function EventBadge({ event, onClick, readOnly = false }: EventBadgeProps) {
     hour12: false,
   }) : '';
 
-  // Get color based on session type using shared constants
-  const getColorClass = (type: string) => {
+  // If user is registered for this session, use green color
+  const getColorClass = (type: string, isRegistered?: boolean) => {
+    // Green color for registered sessions
+    if (isRegistered) {
+      return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/40 border-green-300 dark:border-green-700 ring-2 ring-green-500/30';
+    }
+    
+    // Original colors based on session type
     const colors: Record<string, string> = {
       YOGA: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/40 border-purple-300 dark:border-purple-700',
       PILATES: 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-800/40 border-pink-300 dark:border-pink-700',
@@ -187,9 +193,9 @@ function EventBadge({ event, onClick, readOnly = false }: EventBadgeProps) {
       }}
       className={cn(
         'px-2 py-1 rounded text-xs font-medium transition-all truncate border',
-        getColorClass(sessionType)
+        getColorClass(sessionType, event.isRegistered)
       )}
-      title={`${event.name} - ${GYM_SESSION_TYPE_LABELS[sessionType as keyof typeof GYM_SESSION_TYPE_LABELS] || sessionType}`}
+      title={`${event.name} - ${GYM_SESSION_TYPE_LABELS[sessionType as keyof typeof GYM_SESSION_TYPE_LABELS] || sessionType}${event.isRegistered ? ' (Registered)' : ''}`}
     >
       <span className="font-semibold">{startTime}</span> {event.name}
     </div>

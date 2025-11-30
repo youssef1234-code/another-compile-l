@@ -121,12 +121,12 @@ export class FileService {
       });
     }
 
-    let newUploadedBy = uploadedBy;
+    let effectiveUploadedBy = uploadedBy;
     if (uploadedBy.trim() === "") {
       const adminUser = await userRepository.findByEmail(
         process.env.ADMIN_EMAIL || ""
       );
-      newUploadedBy = adminUser ? adminUser.id.toString() : "";
+      effectiveUploadedBy = adminUser ? adminUser.id.toString() : "";
     }
 
     // 2. Validate file extension
@@ -167,7 +167,7 @@ export class FileService {
       mimeType,
       size: processedFile.length,
       data: processedFile,
-      uploadedBy,
+      uploadedBy: effectiveUploadedBy,
       entityType,
       entityId,
       isPublic,

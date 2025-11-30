@@ -259,9 +259,11 @@ export function BackOfficeEventsPage() {
       PUBLISHED: 0,
       DRAFT: 0,
       PENDING: 0,
+      PENDING_APPROVAL: 0,
       APPROVED: 0,
       REJECTED: 0,
       NEEDS_EDITS: 0,
+      ARCHIVED: 0,
     };
     
     // Count from current events data
@@ -611,7 +613,7 @@ export function BackOfficeEventsPage() {
   }, [utils, search, filters, extendedFilters, joinOperator, parsedSort]);
 
   // Bulk export participants from multiple events
-  const handleExportParticipants = useCallback(async (_eventIds: string[]) => {
+  const handleExportParticipants = useCallback(async () => {
     try {
       // TODO: Implement exportMultipleEventRegistrations mutation in backend
       toast.error('Bulk export feature is not yet implemented');
@@ -639,7 +641,7 @@ export function BackOfficeEventsPage() {
       toast.error('Failed to export participants');
       console.error('Export participants error:', error);
     }
-  }, [utils]);
+  }, []);
 
   const handleCreateEvent = useCallback(() => {
     setCreateSheetOpen(true);
@@ -806,7 +808,7 @@ export function BackOfficeEventsPage() {
       <CreateEventSheet
         open={createSheetOpen}
         onOpenChange={handleCreateSheetOpenChange}
-        initialType={isProfessor ? 'WORKSHOP' : (createType === 'TRIP' || createType === 'BAZAAR' ? (createType as any) : undefined)}
+        initialType={isProfessor ? 'WORKSHOP' : (createType === 'TRIP' || createType === 'BAZAAR' ? (createType as 'TRIP' | 'BAZAAR') : undefined)}
         skipTypeSelection={isProfessor || createType === 'TRIP' || createType === 'BAZAAR'}
         onSuccess={() => {
            // Clear the intent once an event is created successfully

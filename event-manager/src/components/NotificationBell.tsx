@@ -100,7 +100,7 @@ export function NotificationBell() {
           </div>
         ) : (
           <ScrollArea className="h-[400px]">
-            {unreadNotifications.map((notification: any) => (
+            {unreadNotifications.map((notification) => (
               <DropdownMenuItem
                 key={notification.id}
                 className={cn(

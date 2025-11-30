@@ -81,18 +81,13 @@ export function EventExpandedRow({
       { enabled: !!event.id }
     );
 
-     const isEventWhitelisted = trpc.events.checkEventWhitelisted.useQuery(
-    { eventId: event.id },
-    { enabled: !!event.id }
-  );
-
-  const { data: whitelistUserData, isLoading: loadingWhitelist } =
+  const { data: whitelistUserData } =
     trpc.events.getWhitelistUsers.useQuery(
       { eventId: event.id, page: 1, limit: 100 },
       { enabled: !!event.id }
     );
 
-  const { data: whitelistRoleData, isLoading: loadingWhitelistRoles } =
+  const { data: whitelistRoleData } =
     trpc.events.getWhitelistRoles.useQuery(
       { eventId: event.id },
       { enabled: !!event.id }
@@ -201,25 +196,15 @@ export function EventExpandedRow({
   const handleSearchUsers = async (query: string = searchQuery) => {
     setIsSearching(true);
     try {
-      // Search by name or email (empty query returns all users)
-      const response = await trpcUtils.client.auth.searchUsers.query({
+      // Use backend endpoint that excludes already whitelisted users
+      const response = await trpcUtils.client.events.searchUsersForWhitelist.query({
+        eventId: event.id,
         query: query || "",
         page: 1,
         limit: 50,
       });
       const results = response.users as EventUser[];
-
-      // Filter out users already in whitelist
-      const whitelistedIds = new Set(
-        (whitelistUserData as EventUser[] | undefined)?.map(
-          (user) => user.id
-        ) || []
-      );
-      const filteredResults = results.filter(
-        (user) => !whitelistedIds.has(user.id)
-      );
-
-      setSearchResults(filteredResults);
+      setSearchResults(results);
     } catch (error) {
       console.error("Error searching users:", error);
       setSearchResults([]);

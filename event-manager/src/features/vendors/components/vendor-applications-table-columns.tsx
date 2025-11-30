@@ -34,6 +34,9 @@ interface GetVendorApplicationsTableColumnsProps {
   eventTypeCounts: Record<string, number>;
   boothSizeCounts: Record<string, number>;
   onPayVendorFee: ((app: VendorApplication) => void) | undefined;
+  onDownloadBadges?: (applicationId: string) => void;
+  onSendBadgesToEmail?: (applicationId: string) => void;
+  onCancelApplication?: (applicationId: string) => void;
 }
 
 
@@ -118,6 +121,9 @@ export function getVendorApplicationsTableColumns({
   eventTypeCounts,
   boothSizeCounts,
   onPayVendorFee,
+  onDownloadBadges,
+  onSendBadgesToEmail,
+  onCancelApplication,
 }: GetVendorApplicationsTableColumnsProps): ColumnDef<VendorApplication>[] {
   return [
     {
@@ -442,78 +448,58 @@ export function getVendorApplicationsTableColumns({
         
         return (
           <div className="flex justify-end gap-2">
-            {canDownloadBadges && (
+            {canDownloadBadges && onDownloadBadges && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={async (e) => {
+                    onClick={(e) => {
                       e.stopPropagation();
-                      const toast = (await import('react-hot-toast')).toast;
-                      // TODO: Implement badge download - needs mutation hook at component level
-                      toast.error('Badge download feature needs to be reimplemented');
-                      return;
-                      /*
-                      try {
-                        const result = await generateVisitorBadges({ 
-                          applicationId: application.id 
-                        });
-                        
-                        // Convert base64 to blob and download
-                        const blob = new Blob(
-                          [Uint8Array.from(atob(result.data), c => c.charCodeAt(0))],
-                          { type: result.mimeType }
-                        );
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                      /*
-                        a.href = url;
-                        a.download = result.filename;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                        toast.success('Badges downloaded successfully');
-                      } catch (error: any) {
-                        toast.error(error.message || 'Failed to download badges');
-                      }
-                      */
+                      onDownloadBadges(application.id);
                     }}
                     className="gap-1.5"
                   >
                     <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m0 0l-4-4m4 4l4-4M5 20h14" />
                     </svg>
-                    Download Badges
+                    Download
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Download QR badges for all {application.names?.length || 0} attendees</TooltipContent>
               </Tooltip>
             )}
-            {canCancel && (
+            {canDownloadBadges && onSendBadgesToEmail && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSendBadgesToEmail(application.id);
+                    }}
+                    className="gap-1.5"
+                  >
+                    <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Email
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Send QR badges to your registered email</TooltipContent>
+              </Tooltip>
+            )}
+            {canCancel && onCancelApplication && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={async (e) => {
+                    onClick={(e) => {
                       e.stopPropagation();
                       if (!confirm('Are you sure you want to cancel this application? This action cannot be undone.')) return;
-                      
-                      const toast = (await import('react-hot-toast')).toast;
-                      // TODO: Implement cancel application - needs mutation hook at component level
-                      toast.error('Cancel application feature needs to be reimplemented');
-                      return;
-                      /*
-                      try {
-                        await cancelApplication({ 
-                          applicationId: application.id 
-                        });
-                        toast.success('Application cancelled successfully');
-                        window.location.reload();
-                      } catch (error: any) {
-                        toast.error(error.message || 'Failed to cancel application');
-                      }
-                      */
+                      onCancelApplication(application.id);
                     }}
                     className="gap-1.5"
                   >
@@ -529,7 +515,7 @@ export function getVendorApplicationsTableColumns({
       },
       enableSorting: false,
       enableColumnFilter: false,
-      size: 250,
+      size: 280,
     },
 ];
 }

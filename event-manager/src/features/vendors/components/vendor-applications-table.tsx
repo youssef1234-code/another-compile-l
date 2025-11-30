@@ -26,7 +26,10 @@ interface VendorApplicationsTableProps {
   eventTypeCounts: Record<string, number>;
   boothSizeCounts: Record<string, number>;
   isSearching?: boolean;
-  onPayVendorFee?: (app: VendorApplication) => void; 
+  onPayVendorFee?: (app: VendorApplication) => void;
+  onDownloadBadges?: (applicationId: string) => void;
+  onSendBadgesToEmail?: (applicationId: string) => void;
+  onCancelApplication?: (applicationId: string) => void;
 }
 
 export function VendorApplicationsTable({
@@ -36,7 +39,10 @@ export function VendorApplicationsTable({
   eventTypeCounts,
   boothSizeCounts,
   isSearching = false,
-  onPayVendorFee = (app: VendorApplication) => {console.log("Pay vendor fee clicked on", app);}, 
+  onPayVendorFee = (app: VendorApplication) => {console.log("Pay vendor fee clicked on", app);},
+  onDownloadBadges,
+  onSendBadgesToEmail,
+  onCancelApplication,
 }: VendorApplicationsTableProps) {
   // Toggle between advanced and simple filters
   const [enableAdvancedFilter, setEnableAdvancedFilter] = useQueryState(
@@ -63,8 +69,11 @@ export function VendorApplicationsTable({
         eventTypeCounts,
         boothSizeCounts,
         onPayVendorFee,
+        onDownloadBadges,
+        onSendBadgesToEmail,
+        onCancelApplication,
       }),
-    [statusCounts, eventTypeCounts, boothSizeCounts,onPayVendorFee]
+    [statusCounts, eventTypeCounts, boothSizeCounts, onPayVendorFee, onDownloadBadges, onSendBadgesToEmail, onCancelApplication]
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({

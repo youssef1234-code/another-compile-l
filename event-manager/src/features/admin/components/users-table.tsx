@@ -93,7 +93,7 @@ export function UsersTable({
         onDownloadTaxCard,
         onDownloadLogo,
       }),
-    [roleCounts, statusCounts, onUpdateUser, onVerifyRole, onApproveVendor, onRejectVendor, onBlockUser, onUnblockUser, onDeleteUser],
+    [roleCounts, statusCounts, onUpdateUser, onVerifyRole, onApproveVendor, onRejectVendor, onBlockUser, onUnblockUser, onDeleteUser, onDownloadTaxCard, onDownloadLogo],
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({

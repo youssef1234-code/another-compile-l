@@ -18,7 +18,7 @@ import {
   type UpdateWorkshopInput,
 } from "@event-manager/shared";
 import { ServiceError } from "../errors/errors";
-import { IUser } from "../models/user.model";
+import type { IUser } from "../models/user.model";
 
 /**
  * Service Layer for Events
@@ -194,6 +194,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       filterId: string;
     }>;
     joinOperator?: "and" | "or";
+    includeArchived?: boolean;
   }): Promise<{
     events: any[];
     total: number;
@@ -203,12 +204,15 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const page = data.page || 1;
     const limit = data.limit || 10;
     const skip = (page - 1) * limit;
+    const includeArchived = data.includeArchived ?? false;
 
-    // Build base filter - exclude archived or soft-deleted events by default
-    let filter: any = {
-      isArchived: false,
-      status: { $ne: "ARCHIVED" },
-    };
+    // Build base filter - exclude archived or soft-deleted events by default unless requested
+    let filter: any = {};
+    
+    if (!includeArchived) {
+      filter.isArchived = false;
+      filter.status = { $ne: "ARCHIVED" };
+    }
 
     // Handle simple faceted filters from tablecn (advanced mode)
     if (data.filters) {
@@ -217,11 +221,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         filter.type = { $in: data.filters.type };
       }
 
-      // Status filter (exclude ARCHIVED even if requested)
+      // Status filter (allow ARCHIVED only when includeArchived is true)
       if (data.filters.status && data.filters.status.length > 0) {
-        const allowedStatuses = data.filters.status.filter(
-          (status) => status !== "ARCHIVED"
-        );
+        const allowedStatuses = includeArchived 
+          ? data.filters.status 
+          : data.filters.status.filter((status) => status !== "ARCHIVED");
         if (allowedStatuses.length > 0) {
           filter.status = { $in: allowedStatuses };
         }
@@ -271,12 +275,12 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         const operator = extFilter.operator;
         let value = extFilter.value;
 
-        // Prevent consumers from reintroducing archived or soft-deleted records via filters
-        if (field === "isArchived") {
+        // Prevent consumers from reintroducing archived or soft-deleted records via filters (unless allowed)
+        if (field === "isArchived" && !includeArchived) {
           continue;
         }
 
-        if (field === "status") {
+        if (field === "status" && !includeArchived) {
           if (operator === "eq" && value === "ARCHIVED") {
             continue;
           }
@@ -1057,6 +1061,14 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const updatedEvent = await eventRepository.update(eventId, {
       status: "PUBLISHED",
     });
+    
+    // Requirement #57: Notify all users about new event
+    await notificationService.notifyNewEvent(
+      eventId,
+      event.name,
+      event.type
+    );
+    
     return updatedEvent;
   }
 
@@ -1403,6 +1415,62 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     }
     return (event.whitelistedRoles ?? []) as UserRole[];
   }
+
+  /**
+   * Search users for whitelisting purposes
+   * Excludes users that are already whitelisted for the event
+   */
+  async searchUsersForWhitelist(input: {
+    eventId: string;
+    query: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    users: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const { eventId, query } = input;
+    const page = input.page || 1;
+    const limit = input.limit || 50;
+    const skip = (page - 1) * limit;
+
+    // Get the event to find whitelisted users
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+
+    // Get whitelisted user IDs
+    const whitelistedIds = (event.whitelistedUsers || []).map((id) => id.toString());
+
+    // Search users and exclude whitelisted ones
+    const allUsers = await userRepository.search(query, { skip: 0, limit: 1000 });
+    const filteredUsers = allUsers.filter(
+      (user) => !whitelistedIds.includes((user._id as any).toString())
+    );
+
+    const total = filteredUsers.length;
+    const paginatedUsers = filteredUsers.slice(skip, skip + limit);
+
+    const formattedUsers = paginatedUsers.map((user) => ({
+      id: (user._id as any).toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      companyName: user.companyName,
+    }));
+
+    return {
+      users: formattedUsers,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   async isFavorite(userId: string, eventId: string) {
     return userRepository.isFavorite(userId, eventId);
   }

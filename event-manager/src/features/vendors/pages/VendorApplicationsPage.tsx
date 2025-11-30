@@ -18,6 +18,7 @@ import { VendorApplicationsTable } from "../components/vendor-applications-table
 import type { VendorApplication } from "@event-manager/shared";
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 type SortState = Array<{ id: string; desc: boolean }>;
 
@@ -136,11 +137,67 @@ export function VendorApplicationsPage() {
   );
 
 const navigate = useNavigate();
+  const utils = trpc.useUtils();
 
   // Navigate to vendor payment page - payment initialization happens there
   const handlePayVendorFee = (app: VendorApplication) => {
     // Navigate to payment page with applicationId - payment init happens on that page
     navigate(`/checkout/vendor/${app.id}`);
+  };
+
+  // Download visitor badges mutation (Requirement #66)
+  const downloadBadgesMutation = trpc.vendorApplications.generateVisitorBadges.useMutation({
+    onSuccess: (result) => {
+      // Convert base64 to blob and download
+      const blob = new Blob(
+        [Uint8Array.from(atob(result.data), c => c.charCodeAt(0))],
+        { type: result.mimeType }
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Badges downloaded successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to download badges');
+    },
+  });
+
+  const handleDownloadBadges = (applicationId: string) => {
+    downloadBadgesMutation.mutate({ applicationId });
+  };
+
+  // Send badges to email mutation (Requirement #66)
+  const sendBadgesEmailMutation = trpc.vendorApplications.sendVisitorBadges.useMutation({
+    onSuccess: () => {
+      toast.success('Badges sent to your email successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to send badges to email');
+    },
+  });
+
+  const handleSendBadgesToEmail = (applicationId: string) => {
+    sendBadgesEmailMutation.mutate({ applicationId });
+  };
+
+  // Cancel application mutation (Requirement #67)
+  const cancelApplicationMutation = trpc.vendorApplications.cancelApplication.useMutation({
+    onSuccess: () => {
+      toast.success('Application cancelled successfully');
+      utils.vendorApplications.getApplications.invalidate();
+      utils.vendorApplications.getApplicationStats.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to cancel application');
+    },
+  });
+
+  const handleCancelApplication = (applicationId: string) => {
+    cancelApplicationMutation.mutate({ applicationId });
   };
 
 
@@ -217,7 +274,10 @@ const navigate = useNavigate();
           eventTypeCounts={eventTypeCounts}
           boothSizeCounts={boothSizeCounts}
           isSearching={isFetching}
-          onPayVendorFee={handlePayVendorFee} 
+          onPayVendorFee={handlePayVendorFee}
+          onDownloadBadges={handleDownloadBadges}
+          onSendBadgesToEmail={handleSendBadgesToEmail}
+          onCancelApplication={handleCancelApplication}
         />
       </div>
     </div>

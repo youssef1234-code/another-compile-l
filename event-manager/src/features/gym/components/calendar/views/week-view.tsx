@@ -169,8 +169,13 @@ function WeekEventCard({ event, height, onClick }: WeekEventCardProps) {
     new Date(event.startDate).getMinutes()
   );
 
-  // Get color based on session type
-  const getColorClass = (type: string) => {
+  // Get color based on session type (green if registered)
+  const getColorClass = (type: string, isRegistered?: boolean) => {
+    // Green color for registered sessions
+    if (isRegistered) {
+      return 'bg-green-100 border-green-500 text-green-800 dark:bg-green-900/30 dark:border-green-500 dark:text-green-300 ring-2 ring-green-500/30';
+    }
+    
     const colors: Record<string, string> = {
       YOGA: 'bg-purple-100 border-purple-400 text-purple-800 dark:bg-purple-900/30 dark:border-purple-600 dark:text-purple-300',
       PILATES: 'bg-pink-100 border-pink-400 text-pink-800 dark:bg-pink-900/30 dark:border-pink-600 dark:text-pink-300',
@@ -195,13 +200,13 @@ function WeekEventCard({ event, height, onClick }: WeekEventCardProps) {
       className={cn(
         'absolute inset-x-1 rounded border-l-4 p-1 cursor-pointer overflow-hidden',
         'hover:shadow-md transition-shadow text-xs',
-        getColorClass(sessionType)
+        getColorClass(sessionType, event.isRegistered)
       )}
     >
       <div className="font-semibold truncate">{startTime}</div>
       <div className="truncate">{event.name}</div>
       <div className="text-[10px] opacity-75 truncate">
-        {GYM_SESSION_TYPE_LABELS[sessionType as keyof typeof GYM_SESSION_TYPE_LABELS]}
+        {event.isRegistered ? '✓ Registered - ' : ''}{GYM_SESSION_TYPE_LABELS[sessionType as keyof typeof GYM_SESSION_TYPE_LABELS]}
       </div>
     </div>
   );

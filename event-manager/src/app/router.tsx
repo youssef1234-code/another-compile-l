@@ -4,13 +4,15 @@
  * @module app/router
  */
 
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ROUTES } from "@/lib/constants";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 // Layouts
 import { AppLayout } from "@/components/layout/AppLayout";
 
-// Pages
+// Auth Pages (loaded eagerly - critical path)
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { SignupPage } from "@/features/auth/pages/SignupPage";
 import { SignupVendorPage } from "@/features/auth/pages/SignupVendorPage";
@@ -19,77 +21,10 @@ import { RequestVerificationPage } from "@/features/auth/pages/RequestVerificati
 import { ForgotPasswordPage } from "@/features/auth/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
 
-// Dashboard
-import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
-import { NotificationsPage } from "@/features/notifications/pages/NotificationsPage";
-
-// Events
-import { EventsPage, EventDetailsPage } from "@/features/events/pages";
-import { MyEventsPage } from "@/features/events/pages/MyEventsPage";
-import { FavoritesPage } from "@/features/events/pages/FavoritesPage";
-import { EditBazaarPage } from "@/features/events/pages/EditBazaarPage";
-import {
-  MyRegistrationsPage,
-  CreateTripPage,
-  CreateBazaarPage,
-  CreateConferencePage,
-  EditWorkshopPage,
-  EditTripPage,
-  EditConferencePage,
-} from "@/features/events/pages";
-
-// Vendors
-import {
-  BazaarsListPage,
-  VendorApplicationsPage,
-  LoyaltyProgramPage,
-  VendorLoyaltyPage,
-  VendorRequestsPage,
-  PlatformBoothApplicationPage,
-} from "@/features/vendors/pages";
-
-// Platform
-import { PlatformSetupPage } from "@/features/platform/pages/PlatformSetupPage";
-
-// Gym & Sports
-import {
-  GymSchedulePage,
-  MySessionsPage,
-  ManageSessionsPage,
-  CourtBookingsPage,
-} from "@/features/gym/pages";
-import { CourtManagementPage } from "@/features/gym/pages/CourtManagementPage";
-
-// Landing
+// Landing (loaded eagerly - entry point)
 import { LandingPage } from "@/features/landing/LandingPage";
 
-// Admin
-import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
-import { CommentsPage, ReportsPage } from "@/features/admin/pages";
-
-// Events - Back Office
-import { BackOfficeEventsPage } from "@/features/events/pages";
-
-// Events Office
-import { BazaarManagementPage } from "@/features/events-office/pages/BazaarManagementPage";
-import {
-  // WorkshopApprovalsPage, // Removed - functionality moved to BackOfficeEventsPage
-  VendorPollsPage,
-  EventOfficeReportsPage,
-  QRCodesPage,
-} from "@/features/events-office/pages";
-
-// Wallet
-import { WalletPage } from "@/features/wallet/pages";
-
-// Profile
-import { ProfilePage } from "@/features/profile/pages/ProfilePage";
-
-// Reports
-import { EventsReportPage } from "@/features/reports/EventsReportPage";
-import { SalesReportPage } from "@/features/reports/SalesReportPage";
-
-// Protected Route Component
+// Protected Route Components
 import {
   ProtectedRoute,
   AdminRoute,
@@ -97,9 +32,76 @@ import {
   EventOfficeRoute,
   EventManagementRoute,
 } from "@/components/auth/ProtectedRoute";
-import InsufficientFundsPage from "@/features/payments/pages/InsufficientFundsPage";
-import PaymentSuccessPage from "@/features/payments/pages/PaymentSuccessPage";
-import PaymentPage from "@/features/payments/pages/PaymentPage";
+
+// Lazy loaded pages - wrapped with Suspense fallback
+const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType>, variant: "default" | "table" | "cards" | "form" | "dashboard" = "default") => (
+  <Suspense fallback={<PageSkeleton variant={variant} />}>
+    <Component />
+  </Suspense>
+);
+
+// Dashboard & Core
+const DashboardPage = lazy(() => import("@/features/dashboard/pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
+const NotificationsPage = lazy(() => import("@/features/notifications/pages/NotificationsPage").then(m => ({ default: m.NotificationsPage })));
+
+// Events
+const EventsPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.EventsPage })));
+const EventDetailsPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.EventDetailsPage })));
+const MyEventsPage = lazy(() => import("@/features/events/pages/MyEventsPage").then(m => ({ default: m.MyEventsPage })));
+const FavoritesPage = lazy(() => import("@/features/events/pages/FavoritesPage").then(m => ({ default: m.FavoritesPage })));
+const EditBazaarPage = lazy(() => import("@/features/events/pages/EditBazaarPage").then(m => ({ default: m.EditBazaarPage })));
+const MyRegistrationsPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.MyRegistrationsPage })));
+const CreateTripPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.CreateTripPage })));
+const CreateBazaarPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.CreateBazaarPage })));
+const CreateConferencePage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.CreateConferencePage })));
+const EditWorkshopPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.EditWorkshopPage })));
+const EditTripPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.EditTripPage })));
+const EditConferencePage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.EditConferencePage })));
+const BackOfficeEventsPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.BackOfficeEventsPage })));
+
+// Vendors
+const BazaarsListPage = lazy(() => import("@/features/vendors/pages").then(m => ({ default: m.BazaarsListPage })));
+const VendorApplicationsPage = lazy(() => import("@/features/vendors/pages").then(m => ({ default: m.VendorApplicationsPage })));
+const LoyaltyProgramPage = lazy(() => import("@/features/vendors/pages").then(m => ({ default: m.LoyaltyProgramPage })));
+const VendorLoyaltyPage = lazy(() => import("@/features/vendors/pages").then(m => ({ default: m.VendorLoyaltyPage })));
+const VendorRequestsPage = lazy(() => import("@/features/vendors/pages").then(m => ({ default: m.VendorRequestsPage })));
+const PlatformBoothApplicationPage = lazy(() => import("@/features/vendors/pages").then(m => ({ default: m.PlatformBoothApplicationPage })));
+
+// Platform
+const PlatformSetupPage = lazy(() => import("@/features/platform/pages/PlatformSetupPage").then(m => ({ default: m.PlatformSetupPage })));
+
+// Gym & Sports
+const GymSchedulePage = lazy(() => import("@/features/gym/pages").then(m => ({ default: m.GymSchedulePage })));
+const MySessionsPage = lazy(() => import("@/features/gym/pages").then(m => ({ default: m.MySessionsPage })));
+const ManageSessionsPage = lazy(() => import("@/features/gym/pages").then(m => ({ default: m.ManageSessionsPage })));
+const CourtBookingsPage = lazy(() => import("@/features/gym/pages").then(m => ({ default: m.CourtBookingsPage })));
+const CourtManagementPage = lazy(() => import("@/features/gym/pages/CourtManagementPage").then(m => ({ default: m.CourtManagementPage })));
+
+// Admin
+const AdminUsersPage = lazy(() => import("@/features/admin/pages/AdminUsersPage").then(m => ({ default: m.AdminUsersPage })));
+const CommentsPage = lazy(() => import("@/features/admin/pages").then(m => ({ default: m.CommentsPage })));
+const ReportsPage = lazy(() => import("@/features/admin/pages").then(m => ({ default: m.ReportsPage })));
+
+// Events Office
+const BazaarManagementPage = lazy(() => import("@/features/events-office/pages/BazaarManagementPage").then(m => ({ default: m.BazaarManagementPage })));
+const VendorPollsPage = lazy(() => import("@/features/events-office/pages").then(m => ({ default: m.VendorPollsPage })));
+const EventOfficeReportsPage = lazy(() => import("@/features/events-office/pages").then(m => ({ default: m.EventOfficeReportsPage })));
+const QRCodesPage = lazy(() => import("@/features/events-office/pages").then(m => ({ default: m.QRCodesPage })));
+
+// Wallet
+const WalletPage = lazy(() => import("@/features/wallet/pages").then(m => ({ default: m.WalletPage })));
+
+// Profile
+const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage").then(m => ({ default: m.ProfilePage })));
+
+// Reports
+const EventsReportPage = lazy(() => import("@/features/reports/EventsReportPage").then(m => ({ default: m.EventsReportPage })));
+const SalesReportPage = lazy(() => import("@/features/reports/SalesReportPage").then(m => ({ default: m.SalesReportPage })));
+
+// Payments
+const PaymentPage = lazy(() => import("@/features/payments/pages/PaymentPage"));
+const InsufficientFundsPage = lazy(() => import("@/features/payments/pages/InsufficientFundsPage"));
+const PaymentSuccessPage = lazy(() => import("@/features/payments/pages/PaymentSuccessPage"));
 
 export const router = createBrowserRouter([
   {
@@ -145,37 +147,37 @@ export const router = createBrowserRouter([
     children: [
       {
         path: ROUTES.DASHBOARD,
-        element: <DashboardPage />,
+        element: withSuspense(DashboardPage, "dashboard"),
       },
       {
         path: ROUTES.NOTIFICATIONS,
-        element: <NotificationsPage />,
+        element: withSuspense(NotificationsPage, "default"),
       },
 
       // Events Routes
       {
         path: ROUTES.EVENTS,
-        element: <EventsPage />,
+        element: withSuspense(EventsPage, "cards"),
       },
       {
         path: ROUTES.EVENT_DETAILS,
-        element: <EventDetailsPage />,
+        element: withSuspense(EventDetailsPage, "default"),
       },
       {
         path: ROUTES.MY_EVENTS,
-        element: <MyEventsPage />,
+        element: withSuspense(MyEventsPage, "cards"),
       },
       {
         path: ROUTES.MY_REGISTRATIONS,
-        element: <MyRegistrationsPage />,
+        element: withSuspense(MyRegistrationsPage, "table"),
       },
       {
         path: ROUTES.FAVORITES,
-        element: <FavoritesPage />,
+        element: withSuspense(FavoritesPage, "cards"),
       },
       {
         path: ROUTES.LOYALTY_PROGRAM,
-        element: <LoyaltyProgramPage />,
+        element: withSuspense(LoyaltyProgramPage, "cards"),
       },
       {
         path: ROUTES.CREATE_WORKSHOP,
@@ -187,31 +189,31 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.CREATE_TRIP,
-        element: <CreateTripPage />,
+        element: withSuspense(CreateTripPage, "form"),
       },
       {
         path: ROUTES.CREATE_BAZAAR,
-        element: <CreateBazaarPage />,
+        element: withSuspense(CreateBazaarPage, "form"),
       },
       {
         path: ROUTES.CREATE_CONFERENCE,
-        element: <CreateConferencePage />,
+        element: withSuspense(CreateConferencePage, "form"),
       },
       {
         path: ROUTES.EDIT_WORKSHOP,
-        element: <EditWorkshopPage />,
+        element: withSuspense(EditWorkshopPage, "form"),
       },
       {
         path: ROUTES.EDIT_TRIP,
-        element: <EditTripPage />,
+        element: withSuspense(EditTripPage, "form"),
       },
       {
         path: ROUTES.EDIT_CONFERENCE,
-        element: <EditConferencePage />,
+        element: withSuspense(EditConferencePage, "form"),
       },
       {
         path: ROUTES.EDIT_BAZAAR,
-        element: <EditBazaarPage />,
+        element: withSuspense(EditBazaarPage, "form"),
       },
 
       // {
@@ -233,42 +235,53 @@ export const router = createBrowserRouter([
       // payments
       {
         path: "/checkout/:registrationId",
-        element: <PaymentPage />, // requires auth wrapper if all app is protected
+        element: withSuspense(PaymentPage, "default"), // requires auth wrapper if all app is protected
       },
+      {
         path: ROUTES.VENDOR_CHECKOUT,
-        element: <PaymentPage isVendor={true} />, // requires auth wrapper if all app is protected
+        element: (
+          <Suspense fallback={<PageSkeleton />}>
+            <PaymentPage isVendor={true} />
+          </Suspense>
+        ),
       },
       {
         path: ROUTES.CHECKOUT_PAGE,
-        element: <PaymentPage isVendor={false} />, 
+        element: (
+          <Suspense fallback={<PageSkeleton />}>
+            <PaymentPage isVendor={false} />
+          </Suspense>
+        ),
       },
       {
         path: ROUTES.PAY_SUCCESS,
-        element: <PaymentSuccessPage />,
+        element: withSuspense(PaymentSuccessPage, "default"),
       },
       {
         path: ROUTES.PAY_INSUFFICIENT,
-        element: <InsufficientFundsPage />,
+        element: withSuspense(InsufficientFundsPage, "default"),
       },
 
       // Vendor Routes
       {
         path: ROUTES.BROWSE_BAZAARS,
-        element: <BazaarsListPage />,
+        element: withSuspense(BazaarsListPage, "cards"),
       },
       {
         path: ROUTES.VENDOR_APPLICATIONS,
-        element: <VendorApplicationsPage />,
+        element: withSuspense(VendorApplicationsPage, "table"),
       },
       {
         path: ROUTES.APPLY_PLATFORM_BOOTH,
-        element: <PlatformBoothApplicationPage />,
+        element: withSuspense(PlatformBoothApplicationPage, "form"),
       },
       {
         path: ROUTES.VENDOR_LOYALTY,
         element: (
           <VendorRoute>
-            <VendorLoyaltyPage />
+            <Suspense fallback={<PageSkeleton variant="cards" />}>
+              <VendorLoyaltyPage />
+            </Suspense>
           </VendorRoute>
         ),
       },
@@ -276,7 +289,9 @@ export const router = createBrowserRouter([
         path: ROUTES.VENDOR_REQUESTS,
         element: (
           <EventManagementRoute>
-            <VendorRequestsPage />
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <VendorRequestsPage />
+            </Suspense>
           </EventManagementRoute>
         ),
       },
@@ -284,7 +299,9 @@ export const router = createBrowserRouter([
         path: ROUTES.PLATFORM_SETUP,
         element: (
           <EventManagementRoute>
-            <PlatformSetupPage />
+            <Suspense fallback={<PageSkeleton variant="form" />}>
+              <PlatformSetupPage />
+            </Suspense>
           </EventManagementRoute>
         ),
       },
@@ -292,7 +309,9 @@ export const router = createBrowserRouter([
         path: ROUTES.ALL_APPLICATIONS,
         element: (
           <EventManagementRoute>
-            <VendorRequestsPage />
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <VendorRequestsPage />
+            </Suspense>
           </EventManagementRoute>
         ),
       },
@@ -300,27 +319,29 @@ export const router = createBrowserRouter([
       // Gym & Sports Routes
       {
         path: ROUTES.GYM_SCHEDULE,
-        element: <GymSchedulePage />,
+        element: withSuspense(GymSchedulePage, "cards"),
       },
       {
         path: ROUTES.MY_SESSIONS,
-        element: <MySessionsPage />,
+        element: withSuspense(MySessionsPage, "table"),
       },
       {
         path: ROUTES.COURT_BOOKINGS,
-        element: <CourtBookingsPage />,
+        element: withSuspense(CourtBookingsPage, "cards"),
       },
       {
         path: ROUTES.COURT_MANAGEMENT,
         element: (
           <EventManagementRoute>
-            <CourtManagementPage />
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <CourtManagementPage />
+            </Suspense>
           </EventManagementRoute>
         ),
       },
       {
         path: ROUTES.MANAGE_SESSIONS,
-        element: <ManageSessionsPage />,
+        element: withSuspense(ManageSessionsPage, "table"),
       },
 
       // Admin Routes
@@ -328,7 +349,9 @@ export const router = createBrowserRouter([
         path: ROUTES.ADMIN_USERS,
         element: (
           <AdminRoute>
-            <AdminUsersPage />
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <AdminUsersPage />
+            </Suspense>
           </AdminRoute>
         ),
       },
@@ -336,7 +359,9 @@ export const router = createBrowserRouter([
         path: ROUTES.ADMIN_EVENTS,
         element: (
           <EventManagementRoute>
-            <BackOfficeEventsPage />
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <BackOfficeEventsPage />
+            </Suspense>
           </EventManagementRoute>
         ),
       },
@@ -344,7 +369,9 @@ export const router = createBrowserRouter([
         path: ROUTES.ADMIN_COMMENTS,
         element: (
           <AdminRoute>
-            <CommentsPage />
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <CommentsPage />
+            </Suspense>
           </AdminRoute>
         ),
       },
@@ -352,13 +379,15 @@ export const router = createBrowserRouter([
         path: ROUTES.ADMIN_REPORTS,
         element: (
           <AdminRoute>
-            <ReportsPage />
+            <Suspense fallback={<PageSkeleton variant="cards" />}>
+              <ReportsPage />
+            </Suspense>
           </AdminRoute>
         ),
       },
       {
         path: ROUTES.ADMIN_LOYALTY,
-        element: <LoyaltyProgramPage />,
+        element: withSuspense(LoyaltyProgramPage, "cards"),
       },
 
       // Events Office Routes
@@ -370,7 +399,9 @@ export const router = createBrowserRouter([
         path: ROUTES.VENDOR_POLLS,
         element: (
           <ProtectedRoute>
-            <VendorPollsPage />
+            <Suspense fallback={<PageSkeleton variant="cards" />}>
+              <VendorPollsPage />
+            </Suspense>
           </ProtectedRoute>
         ),
       },
@@ -378,7 +409,9 @@ export const router = createBrowserRouter([
         path: ROUTES.EVENT_OFFICE_REPORTS,
         element: (
           <EventOfficeRoute>
-            <EventOfficeReportsPage />
+            <Suspense fallback={<PageSkeleton variant="cards" />}>
+              <EventOfficeReportsPage />
+            </Suspense>
           </EventOfficeRoute>
         ),
       },
@@ -386,7 +419,9 @@ export const router = createBrowserRouter([
         path: ROUTES.QR_CODES,
         element: (
           <EventOfficeRoute>
-            <QRCodesPage />
+            <Suspense fallback={<PageSkeleton variant="cards" />}>
+              <QRCodesPage />
+            </Suspense>
           </EventOfficeRoute>
         ),
       },
@@ -394,7 +429,9 @@ export const router = createBrowserRouter([
         path: ROUTES.BAZAAR_MANAGEMENT,
         element: (
           <EventOfficeRoute>
-            <BazaarManagementPage />
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <BazaarManagementPage />
+            </Suspense>
           </EventOfficeRoute>
         ),
       },
@@ -403,7 +440,9 @@ export const router = createBrowserRouter([
         path: ROUTES.EVENTS_REPORTS,
         element: (
           <EventOfficeRoute>
-            <EventsReportPage />
+            <Suspense fallback={<PageSkeleton variant="cards" />}>
+              <EventsReportPage />
+            </Suspense>
           </EventOfficeRoute>
         ),
       },
@@ -411,7 +450,9 @@ export const router = createBrowserRouter([
         path: ROUTES.SALES_REPORTS,
         element: (
           <EventOfficeRoute>
-            <SalesReportPage />
+            <Suspense fallback={<PageSkeleton variant="cards" />}>
+              <SalesReportPage />
+            </Suspense>
           </EventOfficeRoute>
         ),
       },
@@ -419,13 +460,13 @@ export const router = createBrowserRouter([
       // Wallet
       {
         path: ROUTES.WALLET,
-        element: <WalletPage />,
+        element: withSuspense(WalletPage, "cards"),
       },
 
       // Profile
       {
         path: ROUTES.PROFILE,
-        element: <ProfilePage />,
+        element: withSuspense(ProfilePage, "form"),
       },
     ],
   },

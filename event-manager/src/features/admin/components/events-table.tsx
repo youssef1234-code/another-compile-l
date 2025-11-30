@@ -121,6 +121,7 @@ export function EventsTable({
     initialState: {
       sorting: [{ id: "startDate", desc: false }], // Upcoming events first
       columnPinning: { right: ["actions"] },
+      columnVisibility: { isArchived: false }, // Hide isArchived column but keep it filterable
     },
     queryKeys,
     getRowId: (originalRow) => originalRow.id,

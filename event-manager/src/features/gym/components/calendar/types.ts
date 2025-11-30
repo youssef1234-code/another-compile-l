@@ -11,6 +11,8 @@ export interface CalendarEvent extends Event {
   // Gym session specific fields (stored in Event but not typed)
   sessionType?: string;
   duration?: number;
+  // Whether the current user is registered for this session
+  isRegistered?: boolean;
 }
 
 export interface CalendarCell {

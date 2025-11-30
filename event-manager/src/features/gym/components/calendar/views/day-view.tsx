@@ -140,8 +140,13 @@ function DayEventCard({ event, height, onEventClick }: DayEventCardProps) {
     new Date(event.startDate).getMinutes()
   );
 
-  // Get color based on session type
-  const getColorClass = (type: string) => {
+  // Get color based on session type (green if registered)
+  const getColorClass = (type: string, isRegistered?: boolean) => {
+    // Green color for registered sessions
+    if (isRegistered) {
+      return 'bg-green-100 border-green-500 text-green-900 dark:bg-green-900/30 dark:border-green-500 dark:text-green-300 ring-2 ring-green-500/30';
+    }
+    
     const colors: Record<string, string> = {
       YOGA: 'bg-purple-100 border-purple-400 text-purple-900 dark:bg-purple-900/30 dark:border-purple-600 dark:text-purple-300',
       PILATES: 'bg-pink-100 border-pink-400 text-pink-900 dark:bg-pink-900/30 dark:border-pink-600 dark:text-pink-300',
@@ -165,7 +170,7 @@ function DayEventCard({ event, height, onEventClick }: DayEventCardProps) {
       style={{ height: `${height}px` }}
       className={cn(
         'mb-2 p-3 rounded-lg border-l-4 cursor-pointer transition-all shadow-sm hover:shadow-md',
-        getColorClass(sessionType)
+        getColorClass(sessionType, event.isRegistered)
       )}
     >
       <div className="flex items-start justify-between mb-2">
@@ -179,6 +184,7 @@ function DayEventCard({ event, height, onEventClick }: DayEventCardProps) {
       </div>
 
       <div className="text-sm font-medium opacity-90 mb-1">
+        {event.isRegistered && <span className="mr-1">✓</span>}
         {GYM_SESSION_TYPE_LABELS[sessionType as keyof typeof GYM_SESSION_TYPE_LABELS]}
       </div>
 

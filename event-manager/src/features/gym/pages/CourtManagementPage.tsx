@@ -88,15 +88,18 @@ export function CourtManagementPage() {
   const [sportFilter] = useQueryState('sport', parseAsArrayOf(parseAsString, ',').withDefault([]));
   
   // Read extended filters from URL (managed by DataTableFilterMenu in advanced mode)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [extendedFiltersState] = useQueryState('filters', parseAsJson<Array<{id: string; value: any; operator: string; variant: string; filterId: string}>>((v) => {
     if (!v) return null;
     if (typeof v === 'string') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return JSON.parse(v) as Array<{id: string; value: any; operator: string; variant: string; filterId: string}>;
       } catch {
         return null;
       }
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return v as Array<{id: string; value: any; operator: string; variant: string; filterId: string}>;
   }).withDefault([]));
 
@@ -120,6 +123,7 @@ export function CourtManagementPage() {
   
   // Build query params from URL state
   const queryParams = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const params: any = {
       page,
       limit: perPage,

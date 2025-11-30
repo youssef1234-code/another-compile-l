@@ -18,8 +18,7 @@ export function EventsReportPage() {
     const [dateTo, setDateTo] = useQueryState("dateTo", parseAsString.withDefault(""));
     const [view, setView] = useState<"STATISTICS" | "TABLE">("STATISTICS");
     const [searchInput, setSearchInput] = useState(search);
-    const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-    const [perPage] = useQueryState("perPage", parseAsInteger.withDefault(24));
+    const [, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
     const [sortState] = useQueryState('sort', parseAsJson<Array<{ id: string; desc: boolean }>>((v) => {
         if (!v) return null;
         if (typeof v === 'string') {
@@ -50,10 +49,9 @@ export function EventsReportPage() {
         dateTo: dateTo ? new Date(dateTo) : undefined,
     }), [search, typeFilter, dateFrom, dateTo]);
 
-    const maxDate = new Date();
-
     // Build filters for API from filtersState
     const filters = useMemo(() => {
+        const maxDate = new Date();
         const result: Record<string, string[]> = {};
         if (filtersState.types.length > 0) result.type = filtersState.types;
         if (filtersState.dateFrom) result.startDateFrom = [filtersState.dateFrom.toISOString()];
@@ -177,37 +175,37 @@ export function EventsReportPage() {
                 searchInput={searchInput}
                 onSearchInputChange={setSearchInput}
                 isSearching={searchInput !== search}
+                rightSlot={
+                    <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setView("STATISTICS")}
+                            className={cn(
+                                'gap-2 transition-all',
+                                view === "STATISTICS"
+                                    ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                                    : 'hover:bg-muted text-muted-foreground'
+                            )}
+                        >
+                            <LineChart className="h-4 w-4" /> Statistics
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setView("TABLE")}
+                            className={cn(
+                                'gap-2 transition-all',
+                                view === "TABLE"
+                                    ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                                    : 'hover:bg-muted text-muted-foreground'
+                            )}
+                        >
+                            <Calendar className="h-4 w-4" /> Events
+                        </Button>
+                    </div>
+                }
             />
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setView("STATISTICS")}
-                        className={cn(
-                            'gap-2 transition-all',
-                            view === "STATISTICS"
-                                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
-                                : 'hover:bg-muted text-muted-foreground'
-                        )}
-                    >
-                        <LineChart className="h-4 w-4" /> Statistics
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setView("TABLE")}
-                        className={cn(
-                            'gap-2 transition-all',
-                            view === "TABLE"
-                                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
-                                : 'hover:bg-muted text-muted-foreground'
-                        )}
-                    >
-                        <Calendar className="h-4 w-4" /> Events
-                    </Button>
-                </div>
-            </div>
 
             {view === "TABLE" ? (
                 <EventsReportsTable

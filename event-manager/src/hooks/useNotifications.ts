@@ -131,7 +131,7 @@ export function useNotifications() {
       );
 
       // Remove from all notifications cache for all pages
-      utils.notifications.getAll.setData(undefined, (old) => {
+      utils.notifications.getAll.setData({}, (old) => {
         if (!old) return old;
         return {
           ...old,
@@ -284,7 +284,7 @@ export function useNotificationSound() {
         audio.play().catch(() => {
           // Silently fail if autoplay is blocked
         });
-      } catch (error) {
+      } catch {
         // Silently fail if audio not supported
       }
     }
@@ -315,7 +315,7 @@ export function useBrowserNotifications() {
             tag: 'guc-event-notification',
             requireInteraction: false,
           });
-        } catch (error) {
+        } catch {
           // Silently fail if notifications not supported
         }
       }

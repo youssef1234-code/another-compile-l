@@ -392,7 +392,6 @@ export class EventRepository extends BaseRepository<IEvent> {
       return;
     }
 
-    const userObjectId = new Types.ObjectId(userId);
     event.whitelistedUsers = event.whitelistedUsers.filter(
       (id) => id.toString() !== userId
     );

@@ -68,7 +68,7 @@ export function RegistrationCTA({
         amountMinor: String(event.price ? event.price * 100 : 0),
         currency: "EGP" 
       });
-      navigate(`/checkout/${(newReg.registration as any).id}?${params.toString()}`);
+      navigate(`/checkout/${(newReg.registration as { id: string }).id}?${params.toString()}`);
     },
     onError: (e) => {
       toast.error(e.message ?? "Registration failed");

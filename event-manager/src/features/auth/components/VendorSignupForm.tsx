@@ -59,7 +59,7 @@ interface VendorSignupFormProps {
 export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
 
   const uploadingMutation = trpc.files.uploadUnprotectedFile.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("File uploaded successfully", {
         duration: 3000,
         icon: "✅",

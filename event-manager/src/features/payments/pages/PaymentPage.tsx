@@ -76,39 +76,35 @@ export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }
     { enabled: !!eventId && !isVendor }
   );
 
-  // For non-vendor: show registration info
-  const regQ = trpc.registrations.getMyRegistrationForEvent.useQuery(
-    { eventId: eventId ?? "" },
-    { enabled: !!eventId && !isVendor }
-  );
-
   // For vendor: fetch application
   const vendorAppQ = trpc.vendorApplications.getApplication.useQuery(
     { applicationId: applicationId ?? "" },
     { enabled: isVendor && !!applicationId }
   );
+  // Cast to proper type since tRPC inference doesn't capture backend model
+  const vendorApp = vendorAppQ.data as { paymentAmount?: number; paymentCurrency?: string; type?: string; bazaarName?: string; boothLabel?: string } | undefined;
 
   // Debug: Log vendor application data
   useEffect(() => {
-    if (isVendor && vendorAppQ.data) {
-      console.log("Vendor application data:", vendorAppQ.data);
+    if (isVendor && vendorApp) {
+      console.log("Vendor application data:", vendorApp);
     }
-  }, [isVendor, vendorAppQ.data]);
+  }, [isVendor, vendorApp]);
 
   // Compute display values - paymentAmount is already in minor units from backend
   const displayAmountMinor = isVendor
-    ? (vendorAppQ.data?.paymentAmount ?? 0)
+    ? (vendorApp?.paymentAmount ?? 0)
     : amountMinorFromUrl;
 
   const displayCurrency = (isVendor
-    ? (vendorAppQ.data?.paymentCurrency ?? "EGP")
+    ? (vendorApp?.paymentCurrency ?? "EGP")
     : currencyFromUrl) as "EGP" | "USD";
 
   // For vendor PLATFORM applications, show booth info; for BAZAAR, show bazaar name
   const displayTitle = isVendor
-    ? (vendorAppQ.data?.type === "BAZAAR" 
-        ? (vendorAppQ.data?.bazaarName ?? "Bazaar participation fee")
-        : (vendorAppQ.data?.boothLabel ?? "Platform booth fee"))
+    ? (vendorApp?.type === "BAZAAR" 
+        ? (vendorApp?.bazaarName ?? "Bazaar participation fee")
+        : (vendorApp?.boothLabel ?? "Platform booth fee"))
     : (eventQ.data?.name ?? "Event");
 
   // Check if this is a free event (should not be on payment page)
@@ -154,7 +150,7 @@ export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }
     onSuccess: (res) => {
       navigate(`${ROUTES.PAY_SUCCESS}?pid=${res.paymentId}`);
     },
-    onError: (e: any) => {
+    onError: (e) => {
       const msg = e?.message || "Wallet payment failed";
       if (/Insufficient wallet balance/i.test(msg)) {
         navigate(`${ROUTES.PAY_INSUFFICIENT}?eventId=${eventId}`);
@@ -254,7 +250,7 @@ export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }
   }
 
   // Show error if vendor application not found or has no payment amount
-  if (isVendor && vendorAppQ.data && !vendorAppQ.data.paymentAmount) {
+  if (isVendor && vendorApp && !vendorApp.paymentAmount) {
     return (
       <div className="max-w-2xl max-h-screen flex items-center justify-center mx-auto">
         <div className="container max-w-3xl py-6 space-y-6">
@@ -298,7 +294,7 @@ export default function PaymentPage({ isVendor = false }: { isVendor?: boolean }
 
             {!isVendor && <Separator />}
 
-            <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as "card" | "wallet")} className="w-full">
               {!isVendor && (
                 <TabsList className="grid grid-cols-2 justify-self-center w-full">
                   <TabsTrigger value="card">Pay by Card</TabsTrigger>

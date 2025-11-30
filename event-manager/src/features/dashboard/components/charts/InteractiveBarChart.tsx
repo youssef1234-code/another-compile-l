@@ -8,7 +8,7 @@ import NumberFlow from '@number-flow/react';
 interface InteractiveBarChartProps {
   title: string;
   description?: string;
-  data: any[];
+  data: Record<string, string | number>[];
   config: ChartConfig;
   categories: string[];
   totals: Record<string, number>;

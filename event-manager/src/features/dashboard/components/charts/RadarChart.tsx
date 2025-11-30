@@ -6,7 +6,7 @@ import {type ChartConfig} from '@/components/ui/chart';
 interface RadarChartProps {
   title: string;
   description?: string;
-  data: any[];
+  data: Record<string, string | number>[];
   config: ChartConfig;
   dataKeys: string[];
   angleKey: string;

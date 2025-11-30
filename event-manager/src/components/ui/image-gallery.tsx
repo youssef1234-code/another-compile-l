@@ -117,7 +117,7 @@ export function ImageGallery({
   const uploadMutation = trpc.files.uploadFile.useMutation({
     onSuccess: (data, variables) => {
       // Get the uploadId from variables context
-      const uploadId = (variables as any).uploadId;
+      const uploadId = (variables as { uploadId?: string }).uploadId;
       const dataUrl = uploadId ? uploadMapRef.current[uploadId] : null;
       
       if (dataUrl && uploadId) {
@@ -136,7 +136,7 @@ export function ImageGallery({
     },
     onError: (error, variables) => {
       // Get the uploadId from variables context
-      const uploadId = (variables as any).uploadId;
+      const uploadId = (variables as { uploadId?: string }).uploadId;
       const dataUrl = uploadId ? uploadMapRef.current[uploadId] : null;
       
       if (dataUrl && uploadId) {
@@ -149,36 +149,6 @@ export function ImageGallery({
       }
       const errorMessage = formatValidationErrors(error);
       toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
-    },
-  });
-
-  const uploadUnsecureMutation = trpc.files.uploadUnprotectedFile.useMutation({
-    onSuccess: (data, variables) => {
-      // Get the dataUrl from the map and remove from uploading state
-      const dataUrl = uploadMap[variables.file];
-      if (dataUrl) {
-        setUploadingPreviews((prev) => prev.filter((url) => url !== dataUrl));
-        setUploadMap((prev) => {
-          const newMap = { ...prev };
-          delete newMap[variables.file];
-          return newMap;
-        });
-      }
-  const newImages = [...value, data.id];
-      onChange(newImages);
-  toast.success("Image uploaded successfully");
-    },
-    onError: (error, variables) => {
-      // Get the dataUrl from the map and remove from uploading state
-      const dataUrl = uploadMap[variables.file];
-      if (dataUrl) {
-        setUploadingPreviews((prev) => prev.filter((url) => url !== dataUrl));
-        setUploadMap((prev) => {
-          const newMap = { ...prev };
-          delete newMap[variables.file];
-          return newMap;
-        });
-      }
     },
   });
 
@@ -247,10 +217,10 @@ export function ImageGallery({
         file: base64,
         filename: file.name,
         mimeType: file.type,
-        entityType: 'event',
+        entityType: 'event' as const,
         isPublic: true,
         uploadId, // Pass uploadId in context
-      } as any);
+      } as { file: string; filename: string; mimeType: string; entityType: 'event'; isPublic: boolean; uploadId: string });
     });
   }, [value.length, maxImages, disabled, uploadMutation]);
 

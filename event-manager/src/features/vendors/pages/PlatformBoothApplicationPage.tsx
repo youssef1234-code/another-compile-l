@@ -15,7 +15,7 @@
  */
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
-import { Stage, Layer, Rect, Text, Line } from 'react-konva';
+import { Stage, Layer, Rect, Text, Line, Circle as KonvaCircle, Group } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -52,7 +52,17 @@ interface Booth {
   width: number;
   height: number;
   isOccupied: boolean;
+  isVIP?: boolean;
   label?: string;
+}
+
+interface Landmark {
+  id: string;
+  type: 'ENTRANCE' | 'EXIT' | 'SPECIAL_PLACE';
+  x: number;
+  y: number;
+  label: string;
+  rotation?: number;
 }
 
 interface PlatformMap {
@@ -62,6 +72,7 @@ interface PlatformMap {
   gridHeight: number;
   cellSize: number;
   booths: Booth[];
+  landmarks?: Landmark[];
   isActive: boolean;
 }
 
@@ -95,6 +106,12 @@ export function PlatformBoothApplicationPage() {
     booth2x2Selected: isDark ? '#3b82f6' : '#60a5fa',  // blue-500 : blue-400
     booth2x2Stroke: isDark ? '#2563eb' : '#3b82f6',    // blue-600 : blue-500
     text: isDark ? '#ffffff' : '#000000',        // white : black
+    vipBooth: isDark ? '#f59e0b' : '#fbbf24',   // amber-500 : amber-400
+    // Landmark colors
+    entrance: isDark ? '#10b981' : '#34d399',   // emerald-500 : emerald-400
+    exit: isDark ? '#ef4444' : '#f87171',       // red-500 : red-400
+    special: isDark ? '#8b5cf6' : '#a78bfa',    // violet-500 : violet-400
+    landmarkText: isDark ? '#ffffff' : '#000000',
   };
 
   useEffect(() => {
@@ -437,8 +454,9 @@ export function PlatformBoothApplicationPage() {
                     const sizeNumber = parseInt(selectedBoothSize);
                     const isAvailable = !booth.isOccupied && booth.width === sizeNumber && booth.height === sizeNumber;
                     const isSelected = selectedBooth?.id === booth.id;
+                    const isVIP = booth.isVIP || false;
                     
-                    // Available (green), Occupied/Unavailable (gray), Selected (blue)
+                    // Available (green), Occupied/Unavailable (gray), Selected (blue), VIP (amber)
                     let fillColor = isDark ? '#475569' : '#cbd5e1'; // slate-600 : slate-300
                     let strokeColor = isDark ? '#334155' : '#64748b'; // slate-700 : slate-500
                     
@@ -466,7 +484,7 @@ export function PlatformBoothApplicationPage() {
                           y={booth.y * platform.cellSize}
                           width={booth.width * platform.cellSize}
                           height={booth.height * platform.cellSize}
-                          text={booth.label || `${booth.width}x${booth.height}`}
+                          text={`${isVIP ? '⭐ ' : ''}${booth.label || `${booth.width}x${booth.height}`}`}
                           fontSize={12}
                           fill={colors.text}
                           align="center"
@@ -475,11 +493,62 @@ export function PlatformBoothApplicationPage() {
                       </React.Fragment>
                     );
                   })}
+
+                  {/* Landmarks (Entrance, Exit, Special Places) */}
+                  {platform.landmarks?.map((landmark) => {
+                    const color = landmark.type === 'ENTRANCE' ? colors.entrance :
+                                  landmark.type === 'EXIT' ? colors.exit : colors.special;
+                    const icon = landmark.type === 'ENTRANCE' ? '⇩' :
+                                 landmark.type === 'EXIT' ? '⇧' : '★';
+                    const rotation = landmark.rotation || 0;
+
+                    return (
+                      <Group
+                        key={landmark.id}
+                        x={landmark.x * platform.cellSize}
+                        y={landmark.y * platform.cellSize}
+                      >
+                        <KonvaCircle
+                          radius={platform.cellSize / 2}
+                          fill={color}
+                          stroke={color}
+                          strokeWidth={1}
+                          shadowBlur={5}
+                          shadowColor="rgba(0,0,0,0.3)"
+                        />
+                        <Group
+                          x={0}
+                          y={0}
+                          rotation={rotation}
+                        >
+                          <Text
+                            x={-platform.cellSize / 2}
+                            y={-platform.cellSize / 4}
+                            width={platform.cellSize}
+                            text={icon}
+                            fontSize={24}
+                            fill={colors.landmarkText}
+                            align="center"
+                            verticalAlign="middle"
+                          />
+                        </Group>
+                        <Text
+                          x={-platform.cellSize}
+                          y={platform.cellSize / 2 + 5}
+                          width={platform.cellSize * 2}
+                          text={landmark.label}
+                          fontSize={12}
+                          fill={colors.text}
+                          align="center"
+                        />
+                      </Group>
+                    );
+                  })}
                 </Layer>
               </Stage>
               
               {/* Legend */}
-              <div className="flex items-center justify-center gap-4 p-3 bg-muted border-t dark:border-border">
+              <div className="flex flex-wrap items-center justify-center gap-4 p-3 bg-muted border-t dark:border-border">
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded bg-green-300 dark:bg-green-500" />
                   <span className="text-xs">Available</span>
@@ -491,6 +560,21 @@ export function PlatformBoothApplicationPage() {
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded bg-blue-400 dark:bg-blue-500" />
                   <span className="text-xs">Selected</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-emerald-400 dark:bg-emerald-500" />
+                  <span className="text-xs">Entrance</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-red-400 dark:bg-red-500" />
+                  <span className="text-xs">Exit</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-violet-400 dark:bg-violet-500" />
+                  <span className="text-xs">Special</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">⭐ = VIP booth</span>
                 </div>
               </div>
             </div>

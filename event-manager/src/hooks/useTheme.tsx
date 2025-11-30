@@ -66,7 +66,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.classList.remove('light', 'dark');
     root.classList.add(resolved);
     setResolvedTheme(resolved);
-  }, []);
+  }, [theme]);
 
   // Listen for system theme changes when theme is 'system'
   useEffect(() => {

@@ -9,9 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { GYM_SESSION_TYPE_LABELS } from '@event-manager/shared';
-import { Calendar, Clock, MapPin, Users, User, Trash2, Edit } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, User, Trash2, Edit, CheckCircle, Loader2 } from 'lucide-react';
 import type { CalendarEvent } from '../types';
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
+import { trpc } from '@/lib/trpc';
+import { toast } from 'react-hot-toast';
 
 interface EventDetailsDialogProps {
   event: CalendarEvent | null;
@@ -19,6 +21,7 @@ interface EventDetailsDialogProps {
   onOpenChange: (open: boolean) => void;
   onEdit?: (event: CalendarEvent) => void;
   onDelete?: (eventId: string) => void;
+  onRegister?: () => void;
   readOnly?: boolean;
 }
 
@@ -27,10 +30,48 @@ export function EventDetailsDialog({
   open, 
   onOpenChange, 
   onEdit, 
-  onDelete, 
+  onDelete,
+  onRegister,
   readOnly = false 
 }: EventDetailsDialogProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const utils = trpc.useUtils();
+
+  // Check if user is registered for this session
+  const { data: registrationData, isLoading: isCheckingRegistration } = trpc.events.isRegistered.useQuery(
+    { eventId: event?.id || '' },
+    { enabled: !!event?.id && open }
+  );
+  
+  const isRegistered = registrationData?.isRegistered;
+  const registrationId = registrationData?.registrationId;
+
+  // Registration mutation
+  const registerMutation = trpc.events.registerForEvent.useMutation({
+    onSuccess: () => {
+      toast.success('Successfully registered for this session!');
+      utils.events.isRegistered.invalidate({ eventId: event?.id });
+      utils.events.getAllEvents.invalidate();
+      utils.events.getMyRegistrations.invalidate();
+      onRegister?.();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to register');
+    },
+  });
+
+  // Cancel registration mutation
+  const cancelRegistrationMutation = trpc.events.cancelRegistration.useMutation({
+    onSuccess: () => {
+      toast.success('Registration cancelled successfully');
+      utils.events.isRegistered.invalidate({ eventId: event?.id });
+      utils.events.getAllEvents.invalidate();
+      utils.events.getMyRegistrations.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to cancel registration');
+    },
+  });
 
   if (!event) return null;
 
@@ -184,35 +225,77 @@ export function EventDetailsDialog({
               <Badge variant={event.status === 'PUBLISHED' ? 'default' : 'secondary'}>
                 {event.status}
               </Badge>
+              {isRegistered && (
+                <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Registered
+                </Badge>
+              )}
             </div>
           )}
         </div>
 
         {/* Action Buttons */}
-        {!readOnly && (onEdit || onDelete) && (
-          <DialogFooter className="gap-2">
-            {onDelete && (
-              <Button
-                variant="destructive"
-                onClick={handleDeleteClick}
-                className="gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete Session
-              </Button>
-            )}
-            {onEdit && (
-              <Button
-                variant="default"
-                onClick={handleEdit}
-                className="gap-2"
-              >
-                <Edit className="h-4 w-4" />
-                Edit Session
-              </Button>
-            )}
-          </DialogFooter>
-        )}
+        <DialogFooter className="gap-2 flex-wrap">
+          {/* Registration Button for regular users */}
+          {!readOnly && event.status === 'PUBLISHED' && (
+            <>
+              {isCheckingRegistration ? (
+                <Button variant="outline" disabled>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Checking...
+                </Button>
+              ) : isRegistered ? (
+                <Button
+                  variant="outline"
+                  onClick={() => registrationId && cancelRegistrationMutation.mutate({ registrationId })}
+                  disabled={cancelRegistrationMutation.isPending || !registrationId}
+                  className="gap-2"
+                >
+                  {cancelRegistrationMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Cancel Registration
+                </Button>
+              ) : (
+                <Button
+                  variant="default"
+                  onClick={() => registerMutation.mutate({ eventId: event.id })}
+                  disabled={registerMutation.isPending || Boolean(event.capacity && (event.registeredCount || 0) >= event.capacity)}
+                  className="gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  {registerMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <CheckCircle className="h-4 w-4" />
+                  {event.capacity && (event.registeredCount || 0) >= event.capacity ? 'Session Full' : 'Register'}
+                </Button>
+              )}
+            </>
+          )}
+          
+          {/* Admin/Events Office Actions */}
+          {!readOnly && (onEdit || onDelete) && (
+            <>
+              {onDelete && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteClick}
+                  className="gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Session
+                </Button>
+              )}
+              {onEdit && (
+                <Button
+                  variant="default"
+                  onClick={handleEdit}
+                  className="gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit Session
+                </Button>
+              )}
+            </>
+          )}
+        </DialogFooter>
       </DialogContent>
 
       {/* Delete Confirmation Dialog */}

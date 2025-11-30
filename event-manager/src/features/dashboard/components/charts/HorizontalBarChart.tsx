@@ -6,7 +6,7 @@ import {type ChartConfig} from '@/components/ui/chart';
 interface HorizontalBarChartProps {
   title: string;
   description?: string;
-  data: any[];
+  data: Record<string, string | number>[];
   config: ChartConfig;
   dataKey: string;
   nameKey: string;

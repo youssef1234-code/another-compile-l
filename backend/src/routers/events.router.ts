@@ -301,7 +301,10 @@ const eventRoutes = {
         joinOperator: z.enum(["and", "or"]).optional().default("and"),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      // Allow admins and events office to see archived events
+      const canSeeArchived = ctx.user?.role === "ADMIN" || ctx.user?.role === "EVENT_OFFICE";
+      
       const result = await eventService.getAllEvents({
         page: input.page,
         limit: input.perPage,
@@ -310,6 +313,7 @@ const eventRoutes = {
         filters: input.filters,
         extendedFilters: input.extendedFilters,
         joinOperator: input.joinOperator,
+        includeArchived: canSeeArchived,
       });
 
       return result;
@@ -772,6 +776,22 @@ const eventRoutes = {
     .query(async ({ input }) => {
       const eventId = input.eventId;
       return eventService.getWhitelistedUsers({ eventId });
+    }),
+
+  /**
+   * Search users for whitelisting - excludes already whitelisted users
+   */
+  searchUsersForWhitelist: eventsOfficeOnlyProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        query: z.string(),
+        page: z.number().min(1).optional().default(1),
+        limit: z.number().min(1).max(100).optional().default(50),
+      })
+    )
+    .query(async ({ input }) => {
+      return eventService.searchUsersForWhitelist(input);
     }),
 
   getWhitelistRoles: eventsOfficeOnlyProcedure

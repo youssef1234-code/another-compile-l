@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { useState } from 'react';
 import type { PageMeta, PageMetaContext } from './page-meta-context';
 import { NotificationBell } from '@/components/NotificationBell';
+import { NavigationProgress } from '@/components/ui/navigation-progress';
 
 export function AppLayout() {
   const [pageMeta, setPageMeta] = useState<PageMeta>({ title: 'Another Compile L' });
@@ -20,6 +21,9 @@ export function AppLayout() {
     <SidebarProvider>
       <AppSidebar />
       <main className="flex-1 flex flex-col w-full">
+        {/* Navigation Progress Bar */}
+        <NavigationProgress />
+        
         {/* Header with dynamic title and description */}
         <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-6">
           <SidebarTrigger className="-ml-1" />

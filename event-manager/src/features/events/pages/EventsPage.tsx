@@ -818,7 +818,7 @@ function EventCardProduction({
 
   // Get the event ID - handle both direct event.id and nested event structure
   const eventId =
-    event.id || (event as any)._id?.toString() || (event as any).eventId;
+    event.id || (event as { _id?: { toString(): string }; eventId?: string })._id?.toString() || (event as { _id?: { toString(): string }; eventId?: string }).eventId;
 
   const { data: isFavorite } = trpc.events.isFavorite.useQuery(
     { eventId: eventId! },

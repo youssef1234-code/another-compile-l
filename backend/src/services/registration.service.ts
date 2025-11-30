@@ -281,7 +281,7 @@ async registerForEvent(userId: string, eventId: string) {
       status: RegistrationStatus.CONFIRMED,
       paymentStatus: PaymentStatus.SUCCEEDED, // No payment needed
       paymentAmount: 0,
-      holdUntil: null,
+      holdUntil: undefined,
       registeredAt: now,
       certificateIssued: false,
       attended: false,

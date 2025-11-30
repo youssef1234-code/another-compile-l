@@ -67,7 +67,7 @@ export function FeedbackSection({ eventId, userId, userRole, eventStartDate, eve
       utils.feedback.getMyFeedback.invalidate();
       utils.feedback.getRatingStats.invalidate();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       const errorMessage = formatValidationErrors(error);
       toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
@@ -83,7 +83,7 @@ export function FeedbackSection({ eventId, userId, userRole, eventStartDate, eve
       utils.feedback.getMyFeedback.invalidate();
       utils.feedback.getRatingStats.invalidate();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       const errorMessage = formatValidationErrors(error);
       toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
     },
@@ -97,7 +97,7 @@ export function FeedbackSection({ eventId, userId, userRole, eventStartDate, eve
       utils.feedback.getMyFeedback.invalidate();
       utils.feedback.getRatingStats.invalidate();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       const errorMessage = formatValidationErrors(error);
       toast.error(errorMessage);
     },

@@ -98,6 +98,7 @@ function EventStatusBadge({ status, rejectionReason }: { status: string; rejecti
     REJECTED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
     NEEDS_EDITS: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
     CANCELLED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
+    ARCHIVED: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800",
   };
 
   const labels: Record<string, string> = {
@@ -109,6 +110,7 @@ function EventStatusBadge({ status, rejectionReason }: { status: string; rejecti
     REJECTED: "Rejected",
     NEEDS_EDITS: "Needs Edits",
     CANCELLED: "Cancelled",
+    ARCHIVED: "Archived",
   };
 
   const badge = (
@@ -305,9 +307,46 @@ export function getEventsTableColumns({
           { label: "Approved", value: "APPROVED", count: statusCounts.APPROVED, icon: CheckCircle2 },
           { label: "Rejected", value: "REJECTED", count: statusCounts.REJECTED, icon: XCircle },
           { label: "Needs Edits", value: "NEEDS_EDITS", count: statusCounts.NEEDS_EDITS, icon: Edit },
+          { label: "Archived", value: "ARCHIVED", count: statusCounts.ARCHIVED, icon: Archive },
         ],
       },
       size: 130,
+    },
+    {
+      id: "isArchived",
+      accessorKey: "isArchived",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Archived" />
+      ),
+      cell: ({ row }) => {
+        const isArchived = row.getValue("isArchived") as boolean;
+        return isArchived ? (
+          <Badge variant="outline" className="bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800">
+            <Archive className="size-3 mr-1" />
+            Archived
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground text-sm">—</span>
+        );
+      },
+      enableColumnFilter: true,
+      enableHiding: true,
+      filterFn: (row, id, value) => {
+        const isArchived = row.getValue(id) as boolean;
+        if (Array.isArray(value)) {
+          return value.includes(isArchived ? "true" : "false");
+        }
+        return true;
+      },
+      meta: {
+        label: "Archived",
+        variant: "multiSelect" as const,
+        options: [
+          { label: "Archived", value: "true", icon: Archive },
+          { label: "Not Archived", value: "false", icon: CheckCircle2 },
+        ],
+      },
+      size: 100,
     },
     {
       id: "startDate",

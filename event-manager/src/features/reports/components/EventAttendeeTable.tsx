@@ -63,7 +63,7 @@ export function EventsReportsTable({
                 userRole,
 
             }),
-        [typeCounts, userRole],
+        [typeCounts, statusCounts, userRole],
     );
 
     const { table } = useDataTable({

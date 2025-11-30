@@ -57,7 +57,7 @@ const FloatingIcon = ({
   x = 0,
   y = 0 
 }: { 
-  icon: any; 
+  icon: React.ComponentType<{ className?: string }>; 
   delay?: number; 
   duration?: number;
   x?: number;
@@ -88,7 +88,6 @@ const FloatingIcon = ({
 
 // 3D Image Component with amazing hover effect and tilt
 const Image3D = ({ 
-  src: _src, 
   alt, 
   direction = 'left' 
 }: { 
@@ -161,7 +160,7 @@ const FeatureCard = ({
   description, 
   index 
 }: { 
-  icon: any; 
+  icon: React.ComponentType<{ className?: string }>; 
   title: string; 
   description: string; 
   index: number;

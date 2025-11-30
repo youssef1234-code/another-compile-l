@@ -251,37 +251,37 @@ export function SalesReportPage() {
                 onSearchInputChange={setSearch}
                 isSearching={false}
                 showSearchBar={false}
+                rightSlot={
+                    <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setView("STATISTICS")}
+                            className={cn(
+                                'gap-2 transition-all',
+                                view === "STATISTICS"
+                                    ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                                    : 'hover:bg-muted text-muted-foreground'
+                            )}
+                        >
+                            <LineChart className="h-4 w-4" /> Statistics
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setView("TABLE")}
+                            className={cn(
+                                'gap-2 transition-all',
+                                view === "TABLE"
+                                    ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                                    : 'hover:bg-muted text-muted-foreground'
+                            )}
+                        >
+                            <Calendar className="h-4 w-4" /> Events
+                        </Button>
+                    </div>
+                }
             />
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setView("STATISTICS")}
-                        className={cn(
-                            'gap-2 transition-all',
-                            view === "STATISTICS"
-                                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
-                                : 'hover:bg-muted text-muted-foreground'
-                        )}
-                    >
-                        <LineChart className="h-4 w-4" /> Statistics
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setView("TABLE")}
-                        className={cn(
-                            'gap-2 transition-all',
-                            view === "TABLE"
-                                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
-                                : 'hover:bg-muted text-muted-foreground'
-                        )}
-                    >
-                        <Calendar className="h-4 w-4" /> Events
-                    </Button>
-                </div>
-            </div>
 
             {view === "TABLE" ? (
                 <EventsReportsTable

@@ -114,8 +114,13 @@ function AgendaEventCard({ event, onClick }: AgendaEventCardProps) {
   // Get shared colors for session type
   const colors = GYM_SESSION_TYPE_COLORS[sessionType as keyof typeof GYM_SESSION_TYPE_COLORS] || GYM_SESSION_TYPE_COLORS.OTHER;
   
-  // Get color based on session type with left border indicator
-  const getColorClass = (type: string) => {
+  // Get color based on session type with left border indicator (green if registered)
+  const getColorClass = (type: string, isRegistered?: boolean) => {
+    // Green color for registered sessions
+    if (isRegistered) {
+      return 'border-l-green-500 border-l-4 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 ring-2 ring-green-500/30';
+    }
+    
     const colorMap: Record<string, string> = {
       YOGA: 'border-l-purple-500 border-l-4 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30',
       PILATES: 'border-l-pink-500 border-l-4 bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 dark:hover:bg-pink-900/30',
@@ -138,7 +143,7 @@ function AgendaEventCard({ event, onClick }: AgendaEventCardProps) {
       onClick={onClick}
       className={cn(
         'border rounded-lg p-4 cursor-pointer transition-all',
-        getColorClass(sessionType)
+        getColorClass(sessionType, event.isRegistered)
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -147,6 +152,11 @@ function AgendaEventCard({ event, onClick }: AgendaEventCardProps) {
           <div>
             <div className="flex items-center gap-2">
               <h4 className="font-semibold text-foreground">{event.name}</h4>
+              {event.isRegistered && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                  ✓ Registered
+                </span>
+              )}
               <div className={cn('w-2 h-2 rounded-full', colors.bg.replace('100', '500'))} />
             </div>
             <div className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium mt-1', colors.bg, colors.text)}>

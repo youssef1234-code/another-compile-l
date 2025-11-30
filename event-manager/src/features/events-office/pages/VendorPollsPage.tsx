@@ -16,7 +16,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +27,6 @@ import {
   Calendar,
   MapPin,
   Clock,
-  Users,
-  TrendingUp,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { formatDate } from "@/lib/design-system";
@@ -53,6 +50,30 @@ import {
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+
+// Types for vendor polls
+interface PollVote {
+  applicationId?: string;
+  voterId?: string;
+}
+
+interface PollApplication {
+  _id?: string;
+  companyName?: string;
+  names?: string[];
+}
+
+interface VendorPoll {
+  _id: string;
+  boothLabel?: string;
+  boothLocationId?: string;
+  status: PollStatus;
+  startDate?: string;
+  endDate?: string;
+  duration?: number;
+  votes?: PollVote[];
+  conflictingApplications?: PollApplication[];
+}
 
 export function VendorPollsPage() {
   const { setPageMeta } = usePageMeta();
@@ -160,23 +181,37 @@ export function VendorPollsPage() {
   }
 
   return (
-    <>
-      <div className={designSystem.layout.maxWidth}>
-        <div className={designSystem.layout.padding}>
-          <div className={designSystem.layout.section}>
-            <div className={designSystem.layout.grid.three}>
-              {polls.map((poll: any) => {
+    <div className="flex flex-col gap-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Vendor Polls</h2>
+          <p className="text-muted-foreground">
+            Vote on vendor selection for platform booths
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1.5">
+            <Vote className="h-3.5 w-3.5" />
+            {polls.length} Active {polls.length === 1 ? "Poll" : "Polls"}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Polls Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {(polls as VendorPoll[]).map((poll) => {
                 // Calculate vote counts per application
                 const voteCounts = new Map<string, number>();
-                poll.votes?.forEach((vote: any) => {
+                poll.votes?.forEach((vote) => {
                   const appId = vote.applicationId?.toString();
-                  voteCounts.set(appId, (voteCounts.get(appId) || 0) + 1);
+                  if (appId) voteCounts.set(appId, (voteCounts.get(appId) || 0) + 1);
                 });
 
                 // Find user's current vote
-                const userId = user?._id?.toString();
+                const userId = user?.id;
                 const userVote = poll.votes?.find(
-                  (vote: any) => vote.voterId?.toString() === userId
+                  (vote) => vote.voterId?.toString() === userId
                 );
                 const userVotedAppId = userVote?.applicationId?.toString();
 
@@ -197,15 +232,19 @@ export function VendorPollsPage() {
                             <MapPin className="h-3.5 w-3.5" />
                             Booth {poll.boothLabel || poll.boothLocationId}
                           </span>
+                          {poll.startDate && (
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3.5 w-3.5" />
                             {formatDate(new Date(poll.startDate))}
                           </span>
+                          )}
+                          {poll.duration && (
                           <span className="flex items-center gap-1">
                             <Clock className="h-3.5 w-3.5" />
                             {poll.duration}{" "}
                             {poll.duration === 1 ? "week" : "weeks"}
                           </span>
+                          )}
                         </CardDescription>
                         <Badge
                           variant={
@@ -222,9 +261,9 @@ export function VendorPollsPage() {
                     <CardContent className="space-y-2 pt-0">
                       <div className="space-y-2">
                         {poll.conflictingApplications?.map(
-                          (application: any) => {
+                          (application) => {
                             const appId = application._id?.toString();
-                            const voteCount = voteCounts.get(appId) || 0;
+                            const voteCount = appId ? voteCounts.get(appId) || 0 : 0;
                             const votePercentage =
                               totalVotes > 0
                                 ? Math.round((voteCount / totalVotes) * 100)
@@ -234,7 +273,7 @@ export function VendorPollsPage() {
                             return (
                               <button
                                 key={appId}
-                                onClick={() => handleVote(poll._id, appId)}
+                                onClick={() => appId && handleVote(poll._id, appId)}
                                 disabled={voteMutation.isPending}
                                 className={cn(
                                   "w-full text-left p-3 border rounded-lg transition-all duration-200 hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed",
@@ -325,9 +364,6 @@ export function VendorPollsPage() {
                   </Card>
                 );
               })}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Resolve Poll Dialog */}
@@ -351,10 +387,10 @@ export function VendorPollsPage() {
                   <SelectValue placeholder="Select winning vendor" />
                 </SelectTrigger>
                 <SelectContent>
-                  {polls
-                    .find((p: any) => p._id === selectedPollId)
-                    ?.conflictingApplications?.map((app: any) => (
-                      <SelectItem key={app._id} value={app._id}>
+                  {((polls as VendorPoll[])
+                    .find((p) => p._id === selectedPollId))
+                    ?.conflictingApplications?.map((app) => (
+                      <SelectItem key={app._id} value={app._id!}>
                         {app.companyName} - {app.names?.join(", ")}
                       </SelectItem>
                     ))}
@@ -414,6 +450,6 @@ export function VendorPollsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

@@ -36,6 +36,7 @@ interface ReportFiltersProps {
     isSearching?: boolean;
     showDatePickers?: boolean;
     showSearchBar?: boolean;
+    rightSlot?: React.ReactNode;
 }
 
 // Show WORKSHOP, TRIP, CONFERENCE, BAZAAR in browse events (no GYM_SESSION)
@@ -55,6 +56,7 @@ export function ReportFilters({
     isSearching,
     showDatePickers = true,
     showSearchBar = true,
+    rightSlot,
 }: ReportFiltersProps) {
     const maxDate = new Date();
 
@@ -151,7 +153,8 @@ export function ReportFilters({
                     </div>
                 )}
 
-
+                {/* Right slot for toggle buttons */}
+                {rightSlot}
 
                 {/* Clear All Button */}
                 {activeFiltersCount > 0 && (
