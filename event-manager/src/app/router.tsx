@@ -21,7 +21,7 @@ import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
 
 // Dashboard
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
-import { NotificationsPage } from "@/features/dashboard/pages";
+import { NotificationsPage } from "@/features/notifications/pages/NotificationsPage";
 
 // Events
 import { EventsPage, EventDetailsPage } from "@/features/events/pages";
@@ -65,10 +65,7 @@ import { LandingPage } from "@/features/landing/LandingPage";
 
 // Admin
 import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
-import {
-  CommentsPage,
-  ReportsPage,
-} from "@/features/admin/pages";
+import { CommentsPage, ReportsPage } from "@/features/admin/pages";
 
 // Events - Back Office
 import { BackOfficeEventsPage } from "@/features/events/pages";
@@ -98,12 +95,11 @@ import {
   AdminRoute,
   VendorRoute,
   EventOfficeRoute,
-  EventManagementRoute
+  EventManagementRoute,
 } from "@/components/auth/ProtectedRoute";
 import InsufficientFundsPage from "@/features/payments/pages/InsufficientFundsPage";
 import PaymentSuccessPage from "@/features/payments/pages/PaymentSuccessPage";
 import PaymentPage from "@/features/payments/pages/PaymentPage";
-
 
 export const router = createBrowserRouter([
   {
@@ -236,6 +232,9 @@ export const router = createBrowserRouter([
       // },
       // payments
       {
+        path: "/checkout/:registrationId",
+        element: <PaymentPage />, // requires auth wrapper if all app is protected
+      },
         path: ROUTES.VENDOR_CHECKOUT,
         element: <PaymentPage isVendor={true} />, // requires auth wrapper if all app is protected
       },
@@ -370,9 +369,9 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.VENDOR_POLLS,
         element: (
-          <EventOfficeRoute>
+          <ProtectedRoute>
             <VendorPollsPage />
-          </EventOfficeRoute>
+          </ProtectedRoute>
         ),
       },
       {

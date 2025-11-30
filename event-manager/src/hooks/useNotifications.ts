@@ -1,9 +1,9 @@
 /**
  * Notification Hooks
- * 
+ *
  * React hooks for notification management with polling
  * Polls backend every 30 seconds for new notifications
- * 
+ *
  * @module hooks/useNotifications
  */
 
@@ -16,6 +16,8 @@ const POLLING_INTERVAL = 30000; // 30 seconds
  * Hook for managing notifications with automatic polling
  */
 export function useNotifications() {
+  const utils = trpc.useUtils();
+
   // Poll for unread notifications every 30 seconds
   const { data: unreadNotifications = [], refetch: refetchUnread } =
     trpc.notifications.getUnread.useQuery(undefined, {
@@ -34,8 +36,46 @@ export function useNotifications() {
       staleTime: 25000,
     });
 
-  // Mutations
+  // Mutations with optimistic updates
   const markAsReadMutation = trpc.notifications.markAsRead.useMutation({
+    onMutate: async ({ notificationId }) => {
+      // Cancel outgoing refetches
+      await utils.notifications.getUnread.cancel();
+      await utils.notifications.getUnreadCount.cancel();
+
+      // Snapshot previous values
+      const previousUnread = utils.notifications.getUnread.getData();
+      const previousCount = utils.notifications.getUnreadCount.getData();
+
+      // Optimistically update
+      utils.notifications.getUnread.setData(
+        undefined,
+        (old) =>
+          old?.map((n) =>
+            n.id === notificationId ? { ...n, isRead: true } : n
+          ) ?? []
+      );
+      utils.notifications.getUnreadCount.setData(undefined, (old) =>
+        Math.max(0, (old ?? 0) - 1)
+      );
+
+      return { previousUnread, previousCount };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on error
+      if (context?.previousUnread) {
+        utils.notifications.getUnread.setData(
+          undefined,
+          context.previousUnread
+        );
+      }
+      if (context?.previousCount !== undefined) {
+        utils.notifications.getUnreadCount.setData(
+          undefined,
+          context.previousCount
+        );
+      }
+    },
     onSuccess: () => {
       refetchUnread();
       refetchCount();
@@ -43,6 +83,32 @@ export function useNotifications() {
   });
 
   const markAllAsReadMutation = trpc.notifications.markAllAsRead.useMutation({
+    onMutate: async () => {
+      await utils.notifications.getUnread.cancel();
+      await utils.notifications.getUnreadCount.cancel();
+
+      const previousUnread = utils.notifications.getUnread.getData();
+      const previousCount = utils.notifications.getUnreadCount.getData();
+
+      utils.notifications.getUnread.setData(undefined, []);
+      utils.notifications.getUnreadCount.setData(undefined, 0);
+
+      return { previousUnread, previousCount };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousUnread) {
+        utils.notifications.getUnread.setData(
+          undefined,
+          context.previousUnread
+        );
+      }
+      if (context?.previousCount !== undefined) {
+        utils.notifications.getUnreadCount.setData(
+          undefined,
+          context.previousCount
+        );
+      }
+    },
     onSuccess: () => {
       refetchUnread();
       refetchCount();
@@ -50,6 +116,56 @@ export function useNotifications() {
   });
 
   const deleteMutation = trpc.notifications.delete.useMutation({
+    onMutate: async ({ notificationId }) => {
+      await utils.notifications.getUnread.cancel();
+      await utils.notifications.getUnreadCount.cancel();
+      await utils.notifications.getAll.cancel();
+
+      const previousUnread = utils.notifications.getUnread.getData();
+      const previousCount = utils.notifications.getUnreadCount.getData();
+
+      // Remove from unread list
+      utils.notifications.getUnread.setData(
+        undefined,
+        (old) => old?.filter((n) => n.id !== notificationId) ?? []
+      );
+
+      // Remove from all notifications cache for all pages
+      utils.notifications.getAll.setData(undefined, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          notifications: old.notifications.filter(
+            (n) => n.id !== notificationId
+          ),
+          total: Math.max(0, old.total - 1),
+        };
+      });
+
+      // Decrement count if notification was unread
+      const wasUnread = previousUnread?.some((n) => n.id === notificationId);
+      if (wasUnread) {
+        utils.notifications.getUnreadCount.setData(undefined, (old) =>
+          Math.max(0, (old ?? 0) - 1)
+        );
+      }
+
+      return { previousUnread, previousCount };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousUnread) {
+        utils.notifications.getUnread.setData(
+          undefined,
+          context.previousUnread
+        );
+      }
+      if (context?.previousCount !== undefined) {
+        utils.notifications.getUnreadCount.setData(
+          undefined,
+          context.previousCount
+        );
+      }
+    },
     onSuccess: () => {
       refetchUnread();
       refetchCount();
@@ -57,6 +173,32 @@ export function useNotifications() {
   });
 
   const deleteAllMutation = trpc.notifications.deleteAll.useMutation({
+    onMutate: async () => {
+      await utils.notifications.getUnread.cancel();
+      await utils.notifications.getUnreadCount.cancel();
+
+      const previousUnread = utils.notifications.getUnread.getData();
+      const previousCount = utils.notifications.getUnreadCount.getData();
+
+      utils.notifications.getUnread.setData(undefined, []);
+      utils.notifications.getUnreadCount.setData(undefined, 0);
+
+      return { previousUnread, previousCount };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousUnread) {
+        utils.notifications.getUnread.setData(
+          undefined,
+          context.previousUnread
+        );
+      }
+      if (context?.previousCount !== undefined) {
+        utils.notifications.getUnreadCount.setData(
+          undefined,
+          context.previousCount
+        );
+      }
+    },
     onSuccess: () => {
       refetchUnread();
       refetchCount();
@@ -200,7 +342,7 @@ export function useNotificationSystem() {
     if (prevCount !== null && currentCount > parseInt(prevCount, 10)) {
       // New notification arrived
       playSound();
-      
+
       // Show browser notification for the latest one
       if (notifications.unreadNotifications.length > 0) {
         const latest = notifications.unreadNotifications[0];

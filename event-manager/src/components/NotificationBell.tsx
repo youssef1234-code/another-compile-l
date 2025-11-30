@@ -1,26 +1,26 @@
 /**
  * Notification Bell Component
- * 
+ *
  * Displays notification bell icon with badge count
  * Opens dropdown with recent notifications
  */
 
-import { useState } from 'react';
-import { Bell, Check, CheckCheck, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { Bell, Check, CheckCheck, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useNotificationSystem } from '@/hooks/useNotifications';
-import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNotificationSystem } from "@/hooks/useNotifications";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export function NotificationBell() {
   const navigate = useNavigate();
@@ -31,57 +31,32 @@ export function NotificationBell() {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    refresh,
     isLoading,
   } = useNotificationSystem();
 
-  const handleNotificationClick = (notification: any) => {
-    markAsRead(notification.id);
-    
-    // Navigate to related entity if available
-    if (notification.relatedEntityId) {
-      switch (notification.type) {
-        case 'NEW_EVENT':
-        case 'EVENT_REMINDER':
-          navigate(`/events/${notification.relatedEntityId}`);
-          break;
-        case 'WORKSHOP_STATUS_UPDATE':
-        case 'WORKSHOP_PENDING':
-          navigate(`/events/${notification.relatedEntityId}`);
-          break;
-        case 'VENDOR_REQUEST_UPDATE':
-        case 'VENDOR_PENDING':
-          navigate(`/vendor/applications`);
-          break;
-        case 'GYM_SESSION_UPDATE':
-          navigate(`/gym`);
-          break;
-        case 'NEW_LOYALTY_PARTNER':
-          navigate(`/loyalty`);
-          break;
-      }
-    }
-    
-    setOpen(false);
-  };
-
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'NEW_EVENT':
-        return '🎉';
-      case 'EVENT_REMINDER':
-        return '⏰';
-      case 'WORKSHOP_STATUS_UPDATE':
-        return '📝';
-      case 'VENDOR_REQUEST_UPDATE':
-        return '✅';
-      case 'COMMENT_DELETED_WARNING':
-        return '⚠️';
-      case 'GYM_SESSION_UPDATE':
-        return '🏋️';
-      case 'NEW_LOYALTY_PARTNER':
-        return '🎁';
+      case "NEW_EVENT":
+        return "🎉";
+      case "EVENT_REMINDER":
+        return "⏰";
+      case "WORKSHOP_STATUS_UPDATE":
+        return "📝";
+      case "VENDOR_REQUEST_UPDATE":
+        return "✅";
+      case "VENDOR_PENDING":
+        return "📋";
+      case "VENDOR_POLL_CREATED":
+        return "🗳️";
+      case "COMMENT_DELETED_WARNING":
+        return "⚠️";
+      case "GYM_SESSION_UPDATE":
+        return "🏋️";
+      case "NEW_LOYALTY_PARTNER":
+        return "🎁";
       default:
-        return '🔔';
+        return "🔔";
     }
   };
 
@@ -95,7 +70,7 @@ export function NotificationBell() {
               variant="destructive"
               className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
             >
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {unreadCount > 99 ? "99+" : unreadCount}
             </Badge>
           )}
         </Button>
@@ -117,7 +92,7 @@ export function NotificationBell() {
           )}
         </div>
         <DropdownMenuSeparator />
-        
+
         {unreadNotifications.length === 0 ? (
           <div className="px-4 py-8 text-center text-muted-foreground">
             <Bell className="h-12 w-12 mx-auto mb-2 opacity-20" />
@@ -129,10 +104,10 @@ export function NotificationBell() {
               <DropdownMenuItem
                 key={notification.id}
                 className={cn(
-                  "flex flex-col items-start p-4 cursor-pointer focus:bg-accent",
+                  "flex flex-col items-start p-4",
                   !notification.isRead && "bg-accent/50"
                 )}
-                onClick={() => handleNotificationClick(notification)}
+                onSelect={(e) => e.preventDefault()}
               >
                 <div className="flex items-start justify-between w-full gap-2">
                   <div className="flex items-start gap-2 flex-1 min-w-0">
@@ -174,6 +149,10 @@ export function NotificationBell() {
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteNotification(notification.id);
+                        // Force refresh notifications
+                        setTimeout(() => {
+                          refresh();
+                        }, 100);
                       }}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -184,14 +163,14 @@ export function NotificationBell() {
             ))}
           </ScrollArea>
         )}
-        
+
         {unreadNotifications.length > 5 && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="justify-center cursor-pointer"
               onClick={() => {
-                navigate('/notifications');
+                navigate("/notifications");
                 setOpen(false);
               }}
             >

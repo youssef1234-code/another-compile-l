@@ -1,11 +1,10 @@
 import {
   VendorApplication,
   type IVendorApplication,
-} from "../models/vendor-application.model";
-import { BaseRepository } from "./base.repository";
-import type { ClientSession, FilterQuery } from "mongoose";
-import { userRepository } from "./user.repository";
-
+} from '../models/vendor-application.model';
+import { BaseRepository } from './base.repository';
+import type { ClientSession, FilterQuery } from 'mongoose';
+import { userRepository } from './user.repository';
 /**
  * Repository Pattern for Vendor Application entity
  * Extends BaseRepository for common CRUD operations
@@ -30,19 +29,19 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
       skip?: number;
       limit?: number;
       sortBy?: string;
-      sortOrder?: "asc" | "desc";
-    },
+      sortOrder?: 'asc' | 'desc';
+    }
   ): Promise<{ applications: IVendorApplication[]; total: number }> {
     const filter: FilterQuery<IVendorApplication> =
       {} as FilterQuery<IVendorApplication>;
 
     const vendor = await userRepository.findById(vendorId);
-    if (vendor?.role === "VENDOR") {
+    if (vendor?.role === 'VENDOR') {
       filter.createdBy = vendorId;
     }
 
     if (params.search) {
-      const searchRegex = new RegExp(params.search, "i");
+      const searchRegex = new RegExp(params.search, 'i');
       filter.$or = [{ companyName: searchRegex }, { bazaarName: searchRegex }];
     }
 
@@ -55,11 +54,11 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
     }
 
     if (params.isApproved === true) {
-      filter.status = "APPROVED" as any;
+      filter.status = 'APPROVED' as any;
     } else if (params.isApproved === false) {
-      filter.status = { $in: ["PENDING", "REJECTED"] };
+      filter.status = { $in: ['PENDING', 'REJECTED'] };
     }
-    
+
     if (params.status) {
       filter.status = params.status as any;
     }
@@ -74,7 +73,7 @@ export class VendorApplicationRepository extends BaseRepository<IVendorApplicati
 
     const sort: Record<string, 1 | -1> = {};
     if (params.sortBy) {
-      sort[params.sortBy] = params.sortOrder === "desc" ? -1 : 1;
+      sort[params.sortBy] = params.sortOrder === 'desc' ? -1 : 1;
     } else {
       sort.startDate = -1; // Default: newest first
     }

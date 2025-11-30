@@ -1,6 +1,6 @@
 /**
  * Notification Model
- * 
+ *
  * @module models/notification.model
  */
 
@@ -40,6 +40,7 @@ const notificationSchema = createBaseSchema<INotification>(
         'WORKSHOP_PENDING',
         'VENDOR_REQUEST_UPDATE',
         'VENDOR_PENDING',
+        'VENDOR_POLL_CREATED',
         'COMMENT_DELETED_WARNING',
         'GYM_SESSION_UPDATE',
         'NEW_LOYALTY_PARTNER',
@@ -76,5 +77,7 @@ const notificationSchema = createBaseSchema<INotification>(
 notificationSchema.index({ user: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, isRead: 1 });
 
-export const Notification = mongoose.model<INotification>('Notification', notificationSchema);
-
+export const Notification = mongoose.model<INotification>(
+  'Notification',
+  notificationSchema
+);

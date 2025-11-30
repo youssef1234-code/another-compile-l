@@ -1,8 +1,8 @@
 /**
  * Notification Service
- * 
+ *
  * Business logic for notification management
- * 
+ *
  * @module services/notification.service
  */
 
@@ -34,7 +34,11 @@ export class NotificationService extends BaseService<
   /**
    * Get all notifications for a user with pagination
    */
-  async getUserNotifications(userId: string, page: number = 1, limit: number = 20) {
+  async getUserNotifications(
+    userId: string,
+    page: number = 1,
+    limit: number = 20
+  ) {
     return this.repository.getForUser(userId, page, limit);
   }
 
@@ -69,8 +73,14 @@ export class NotificationService extends BaseService<
   /**
    * Delete notification
    */
-  async deleteNotification(notificationId: string, userId: string): Promise<boolean> {
-    const success = await this.repository.deleteNotification(notificationId, userId);
+  async deleteNotification(
+    notificationId: string,
+    userId: string
+  ): Promise<boolean> {
+    const success = await this.repository.deleteNotification(
+      notificationId,
+      userId
+    );
     if (!success) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -97,7 +107,13 @@ export class NotificationService extends BaseService<
     message: string,
     relatedEntityId?: string
   ): Promise<INotification> {
-    return this.repository.createForUser(userId, type, title, message, relatedEntityId);
+    return this.repository.createForUser(
+      userId,
+      type,
+      title,
+      message,
+      relatedEntityId
+    );
   }
 
   /**
@@ -111,7 +127,13 @@ export class NotificationService extends BaseService<
     relatedEntityId?: string
   ): Promise<number> {
     if (userIds.length === 0) return 0;
-    return this.repository.createForUsers(userIds, type, title, message, relatedEntityId);
+    return this.repository.createForUsers(
+      userIds,
+      type,
+      title,
+      message,
+      relatedEntityId
+    );
   }
 
   /**
@@ -142,7 +164,12 @@ export class NotificationService extends BaseService<
     message: string,
     relatedEntityId?: string
   ): Promise<number> {
-    return this.repository.createForAllUsers(type, title, message, relatedEntityId);
+    return this.repository.createForAllUsers(
+      type,
+      title,
+      message,
+      relatedEntityId
+    );
   }
 
   /**
@@ -150,12 +177,18 @@ export class NotificationService extends BaseService<
    * Requirement #57: Student/Staff/Events Office/TA/Professor receive notifications for any new added events
    */
   async notifyNewEvent(eventId: string, eventTitle: string, eventType: string) {
-    const roles: UserRole[] = ['STUDENT', 'STAFF', 'TA', 'PROFESSOR', 'EVENT_OFFICE'];
+    const roles: UserRole[] = [
+      'STUDENT',
+      'STAFF',
+      'TA',
+      'PROFESSOR',
+      'EVENT_OFFICE',
+    ];
     return this.notifyUsersByRole(
       roles,
       'NEW_EVENT',
       'New Event Added! 🎉',
-      `A new ${eventType.toLowerCase()} has been added: "${eventTitle}". Check it out now!`,
+      `A new ${eventType.toLowerCase()} has been added: '${eventTitle}'. Check it out now!`,
       eventId
     );
   }
@@ -172,8 +205,8 @@ export class NotificationService extends BaseService<
   ) {
     const message =
       timeframe === '1_DAY'
-        ? `Reminder: "${eventTitle}" is happening tomorrow! Don't forget to attend.`
-        : `Reminder: "${eventTitle}" is starting in 1 hour! Get ready!`;
+        ? `Reminder: '${eventTitle}' is happening tomorrow! Don't forget to attend.`
+        : `Reminder: '${eventTitle}' is starting in 1 hour! Get ready!`;
 
     return this.notifyUsers(
       userIds,
@@ -196,14 +229,14 @@ export class NotificationService extends BaseService<
     rejectionReason?: string
   ) {
     const title =
-      status === 'ACCEPTED'
-        ? '✅ Workshop Accepted!'
-        : '❌ Workshop Rejected';
-    
+      status === 'ACCEPTED' ? '✅ Workshop Accepted!' : '❌ Workshop Rejected';
+
     const message =
       status === 'ACCEPTED'
-        ? `Your workshop "${workshopTitle}" has been accepted and is now live!`
-        : `Your workshop "${workshopTitle}" has been rejected. ${rejectionReason || 'Please review and resubmit.'}`;
+        ? `Your workshop '${workshopTitle}' has been accepted and is now live!`
+        : `Your workshop '${workshopTitle}' has been rejected. ${
+            rejectionReason || 'Please review and resubmit.'
+          }`;
 
     return this.notifyUser(
       professorId,
@@ -218,12 +251,16 @@ export class NotificationService extends BaseService<
    * Notify Events Office about pending workshop
    * Requirement #39: Events Office receives notifications when doctors submit workshop requests
    */
-  async notifyPendingWorkshop(workshopId: string, workshopTitle: string, professorName: string) {
+  async notifyPendingWorkshop(
+    workshopId: string,
+    workshopTitle: string,
+    professorName: string
+  ) {
     return this.notifyUsersByRole(
       'EVENT_OFFICE',
       'WORKSHOP_PENDING',
       '📝 New Workshop Submission',
-      `Professor ${professorName} has submitted a new workshop: "${workshopTitle}". Please review it.`,
+      `Professor ${professorName} has submitted a new workshop: '${workshopTitle}'. Please review it.`,
       workshopId
     );
   }
@@ -239,10 +276,8 @@ export class NotificationService extends BaseService<
     status: 'ACCEPTED' | 'REJECTED'
   ) {
     const title =
-      status === 'ACCEPTED'
-        ? '✅ Request Accepted!'
-        : '❌ Request Rejected';
-    
+      status === 'ACCEPTED' ? '✅ Request Accepted!' : '❌ Request Rejected';
+
     const message =
       status === 'ACCEPTED'
         ? `Your ${requestType} request has been accepted! Please proceed with payment.`
@@ -270,7 +305,7 @@ export class NotificationService extends BaseService<
       userId,
       'COMMENT_DELETED_WARNING',
       '⚠️ Comment Removed',
-      `Your comment on "${eventTitle}" has been removed for being inappropriate. Reason: ${reason}. Please follow community guidelines.`,
+      `Your comment on '${eventTitle}' has been removed for being inappropriate. Reason: ${reason}. Please follow community guidelines.`,
       undefined
     );
   }
@@ -290,11 +325,13 @@ export class NotificationService extends BaseService<
       updateType === 'CANCELLED'
         ? '❌ Gym Session Cancelled'
         : '📝 Gym Session Updated';
-    
+
     const message =
       updateType === 'CANCELLED'
-        ? `The gym session "${sessionTitle}" has been cancelled. We apologize for the inconvenience.`
-        : `The gym session "${sessionTitle}" has been updated. ${details || 'Please check the new details.'}`;
+        ? `The gym session '${sessionTitle}' has been cancelled. We apologize for the inconvenience.`
+        : `The gym session '${sessionTitle}' has been updated. ${
+            details || 'Please check the new details.'
+          }`;
 
     return this.notifyUsers(
       userIds,
@@ -315,7 +352,9 @@ export class NotificationService extends BaseService<
     promoCode?: string
   ) {
     const roles: UserRole[] = ['STUDENT', 'STAFF', 'TA', 'PROFESSOR'];
-    const message = `New partner "${vendorName}" joined the GUC Loyalty Program! Enjoy ${discountRate}% discount${promoCode ? ` with code: ${promoCode}` : ''}.`;
+    const message = `New partner '${vendorName}' joined the GUC Loyalty Program! Enjoy ${discountRate}% discount${
+      promoCode ? ` with code: ${promoCode}` : ''
+    }.`;
 
     return this.notifyUsersByRole(
       roles,
@@ -340,8 +379,27 @@ export class NotificationService extends BaseService<
       roles,
       'VENDOR_PENDING',
       '📋 Pending Vendor Request',
-      `Vendor "${vendorName}" has submitted a ${requestType} request. Please review it.`,
+      `Vendor '${vendorName}' has submitted a ${requestType} request. Please review it.`,
       requestId
+    );
+  }
+
+  /**
+   * Notify Events Office about new vendor poll creation
+   * Requirement #82: Notify when poll is created for conflicting booth requests
+   */
+  async notifyVendorPollCreated(
+    pollId: string,
+    boothLabel: string,
+    vendorCount: number
+  ) {
+    const roles: UserRole[] = ['EVENT_OFFICE'];
+    return this.notifyUsersByRole(
+      roles,
+      'VENDOR_POLL_CREATED',
+      '🗳️ Vendor Poll Created',
+      `A poll has been created for booth ${boothLabel} with ${vendorCount} conflicting vendor applications. Please cast your vote.`,
+      pollId
     );
   }
 }
