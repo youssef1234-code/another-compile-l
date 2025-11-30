@@ -8,8 +8,9 @@
 import { useEffect } from 'react';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { trpc } from '@/lib/trpc';
-import { Loader2, Users, AlertCircle } from 'lucide-react';
+import { Loader2, Users, Gift } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { LoyaltyPartnerCard } from '../components/LoyaltyPartnerCard';
 
 interface LoyaltyPartner {
@@ -43,12 +44,14 @@ export function LoyaltyProgramPage() {
     isLoading: isLoadingPartners,
   } = trpc.loyalty.getAllPartners.useQuery() as { data: LoyaltyPartner[] | undefined; isLoading: boolean };
 
+  const showLoading = useDelayedLoading(isLoadingPartners);
+
   return (
     <div className="w-full py-6 px-4">
 
       {/* Partners List */}
       <div className="space-y-6">
-        {isLoadingPartners ? (
+        {showLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -68,13 +71,25 @@ export function LoyaltyProgramPage() {
             </div>
           </>
         ) : (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>No Partners Yet</AlertTitle>
-            <AlertDescription>
-              There are no loyalty partners at the moment. Check back later for exclusive offers!
-            </AlertDescription>
-          </Alert>
+          <div className="border border-dashed rounded-lg">
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              {/* Icon */}
+              <div className="relative mb-4">
+                <div className="absolute inset-0 animate-pulse rounded-full bg-primary/10 blur-xl" />
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                  <Gift className="h-8 w-8 text-primary" />
+                </div>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-lg font-semibold mb-2">No Partners Yet</h3>
+
+              {/* Description */}
+              <p className="text-sm text-muted-foreground max-w-md">
+                Exclusive vendor partnerships and special offers will appear here. Check back soon for discounts at campus vendors!
+              </p>
+            </div>
+          </div>
         )}
       </div>
     </div>

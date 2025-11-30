@@ -16,6 +16,7 @@ import type { CalendarEvent } from '../components/calendar/types';
 import { cn } from '@/lib/utils';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 
 export function GymSchedulePage(){
   const { setPageMeta } = usePageMeta();
@@ -109,10 +110,10 @@ export function GymSchedulePage(){
   }, [sortState]);
 
   // Fetch gym sessions with pagination and filtering
-  const { data, isLoading } = trpc.events.getAllEvents.useQuery(
+  const { data, isLoading, isFetching } = trpc.events.getAllEvents.useQuery(
     {
       page,
-      perPage: view === 'CALENDAR' ? 1000 : perPage, // Get more events for calendar view
+      perPage: view === 'CALENDAR' ? 100 : perPage, // Max 100 per page, date filter handles scoping
       search: search || undefined,
       sort: parsedSort.length > 0 ? parsedSort : undefined,
       filters,
@@ -125,9 +126,12 @@ export function GymSchedulePage(){
     }
   );
 
+  // Delayed loading state to prevent flash when response is fast
+  const showLoading = useDelayedLoading(isFetching && view === 'CALENDAR');
+
   // Fetch user's registrations to mark registered sessions in calendar
   const { data: registrationsData } = trpc.events.getMyRegistrations.useQuery(
-    { page: 1, limit: 1000 },
+    { page: 1, limit: 100 },
     { enabled: view === 'CALENDAR' }
   );
 
@@ -250,19 +254,6 @@ export function GymSchedulePage(){
             <Button 
               variant="ghost"
               size="sm" 
-              onClick={() => setView("TABLE")}
-              className={cn(
-                'gap-2 transition-all',
-                view === "TABLE"
-                  ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
-                  : 'hover:bg-muted text-muted-foreground'
-              )}
-            >
-              <ListIcon className="h-4 w-4"/> Table
-            </Button>
-            <Button 
-              variant="ghost"
-              size="sm" 
               onClick={() => setView("CALENDAR")}
               className={cn(
                 'gap-2 transition-all',
@@ -272,6 +263,19 @@ export function GymSchedulePage(){
               )}
             >
               <CalendarIcon className="h-4 w-4"/> Calendar
+            </Button>
+            <Button 
+              variant="ghost"
+              size="sm" 
+              onClick={() => setView("TABLE")}
+              className={cn(
+                'gap-2 transition-all',
+                view === "TABLE"
+                  ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                  : 'hover:bg-muted text-muted-foreground'
+              )}
+            >
+              <ListIcon className="h-4 w-4"/> Table
             </Button>
           </div>
         ) : (
@@ -306,6 +310,7 @@ export function GymSchedulePage(){
           onDeleteSession={canManage ? handleCalendarDeleteSession : undefined}
           onMonthChange={handleMonthChange}
           readOnly={!canManage}
+          isLoading={showLoading}
         />
       )}
 

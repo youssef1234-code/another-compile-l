@@ -13,6 +13,7 @@ import { useState } from 'react';
 import type { PageMeta, PageMetaContext } from './page-meta-context';
 import { NotificationBell } from '@/components/NotificationBell';
 import { NavigationProgress } from '@/components/ui/navigation-progress';
+import { CommandMenu } from '@/components/command-menu';
 
 export function AppLayout() {
   const [pageMeta, setPageMeta] = useState<PageMeta>({ title: 'Another Compile L' });
@@ -34,7 +35,10 @@ export function AppLayout() {
               <p className="text-xs text-muted-foreground truncate">{pageMeta.description}</p>
             )}
           </div>
-          <NotificationBell />
+          <div className="flex items-center gap-2">
+            <CommandMenu />
+            <NotificationBell />
+          </div>
         </header>
 
         {/* Main Content */}

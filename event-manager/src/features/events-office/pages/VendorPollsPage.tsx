@@ -170,12 +170,26 @@ export function VendorPollsPage() {
 
   if (polls.length === 0) {
     return (
-      <div className={designSystem.emptyState.container}>
-        <Vote className={designSystem.emptyState.icon} />
-        <h3 className={designSystem.emptyState.title}>No Active Polls</h3>
-        <p className={designSystem.emptyState.description}>
-          There are currently no vendor polls available for voting.
-        </p>
+      <div className="p-6">
+        <div className="border border-dashed rounded-lg">
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+            {/* Icon */}
+            <div className="relative mb-4">
+              <div className="absolute inset-0 animate-pulse rounded-full bg-primary/10 blur-xl" />
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                <Vote className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-lg font-semibold mb-2">No Active Polls</h3>
+
+            {/* Description */}
+            <p className="text-sm text-muted-foreground max-w-md">
+              Polls are created automatically when multiple vendors apply for the same booth. Check back when there are booth conflicts to vote on.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

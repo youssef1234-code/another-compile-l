@@ -42,7 +42,7 @@ const withSuspense = (Component: React.LazyExoticComponent<React.ComponentType>,
 
 // Dashboard & Core
 const DashboardPage = lazy(() => import("@/features/dashboard/pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
-const NotificationsPage = lazy(() => import("@/features/notifications/pages/NotificationsPage").then(m => ({ default: m.NotificationsPage })));
+// NotificationsPage removed - notifications are now in the header bell expandable dialog
 
 // Events
 const EventsPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.EventsPage })));
@@ -72,21 +72,21 @@ const PlatformSetupPage = lazy(() => import("@/features/platform/pages/PlatformS
 
 // Gym & Sports
 const GymSchedulePage = lazy(() => import("@/features/gym/pages").then(m => ({ default: m.GymSchedulePage })));
-const MySessionsPage = lazy(() => import("@/features/gym/pages").then(m => ({ default: m.MySessionsPage })));
-const ManageSessionsPage = lazy(() => import("@/features/gym/pages").then(m => ({ default: m.ManageSessionsPage })));
+// MySessionsPage removed - Coming Soon placeholder
+// ManageSessionsPage removed - Coming Soon placeholder
 const CourtBookingsPage = lazy(() => import("@/features/gym/pages").then(m => ({ default: m.CourtBookingsPage })));
 const CourtManagementPage = lazy(() => import("@/features/gym/pages/CourtManagementPage").then(m => ({ default: m.CourtManagementPage })));
 
 // Admin
 const AdminUsersPage = lazy(() => import("@/features/admin/pages/AdminUsersPage").then(m => ({ default: m.AdminUsersPage })));
 const CommentsPage = lazy(() => import("@/features/admin/pages").then(m => ({ default: m.CommentsPage })));
-const ReportsPage = lazy(() => import("@/features/admin/pages").then(m => ({ default: m.ReportsPage })));
+// ReportsPage removed - Coming Soon placeholder
 
 // Events Office
 const BazaarManagementPage = lazy(() => import("@/features/events-office/pages/BazaarManagementPage").then(m => ({ default: m.BazaarManagementPage })));
 const VendorPollsPage = lazy(() => import("@/features/events-office/pages").then(m => ({ default: m.VendorPollsPage })));
-const EventOfficeReportsPage = lazy(() => import("@/features/events-office/pages").then(m => ({ default: m.EventOfficeReportsPage })));
-const QRCodesPage = lazy(() => import("@/features/events-office/pages").then(m => ({ default: m.QRCodesPage })));
+// EventOfficeReportsPage removed - Coming Soon placeholder
+// QRCodesPage removed - Coming Soon placeholder
 
 // Wallet
 const WalletPage = lazy(() => import("@/features/wallet/pages").then(m => ({ default: m.WalletPage })));
@@ -149,10 +149,7 @@ export const router = createBrowserRouter([
         path: ROUTES.DASHBOARD,
         element: withSuspense(DashboardPage, "dashboard"),
       },
-      {
-        path: ROUTES.NOTIFICATIONS,
-        element: withSuspense(NotificationsPage, "default"),
-      },
+      // Notifications are now handled via NotificationBell expandable dialog in header
 
       // Events Routes
       {
@@ -321,10 +318,7 @@ export const router = createBrowserRouter([
         path: ROUTES.GYM_SCHEDULE,
         element: withSuspense(GymSchedulePage, "cards"),
       },
-      {
-        path: ROUTES.MY_SESSIONS,
-        element: withSuspense(MySessionsPage, "table"),
-      },
+      // My Sessions page was removed (Coming Soon placeholder)
       {
         path: ROUTES.COURT_BOOKINGS,
         element: withSuspense(CourtBookingsPage, "cards"),
@@ -339,10 +333,7 @@ export const router = createBrowserRouter([
           </EventManagementRoute>
         ),
       },
-      {
-        path: ROUTES.MANAGE_SESSIONS,
-        element: withSuspense(ManageSessionsPage, "table"),
-      },
+      // Manage Sessions page was removed (Coming Soon placeholder)
 
       // Admin Routes
       {
@@ -375,16 +366,7 @@ export const router = createBrowserRouter([
           </AdminRoute>
         ),
       },
-      {
-        path: ROUTES.ADMIN_REPORTS,
-        element: (
-          <AdminRoute>
-            <Suspense fallback={<PageSkeleton variant="cards" />}>
-              <ReportsPage />
-            </Suspense>
-          </AdminRoute>
-        ),
-      },
+      // Admin Reports page was removed (Coming Soon placeholder)
       {
         path: ROUTES.ADMIN_LOYALTY,
         element: withSuspense(LoyaltyProgramPage, "cards"),
@@ -405,26 +387,8 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      {
-        path: ROUTES.EVENT_OFFICE_REPORTS,
-        element: (
-          <EventOfficeRoute>
-            <Suspense fallback={<PageSkeleton variant="cards" />}>
-              <EventOfficeReportsPage />
-            </Suspense>
-          </EventOfficeRoute>
-        ),
-      },
-      {
-        path: ROUTES.QR_CODES,
-        element: (
-          <EventOfficeRoute>
-            <Suspense fallback={<PageSkeleton variant="cards" />}>
-              <QRCodesPage />
-            </Suspense>
-          </EventOfficeRoute>
-        ),
-      },
+      // Event Office Reports page was removed (Coming Soon placeholder)
+      // QR Codes page was removed (Coming Soon placeholder)
       {
         path: ROUTES.BAZAAR_MANAGEMENT,
         element: (

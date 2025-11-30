@@ -12,7 +12,9 @@ import {
   Grid3x3,
   Clock,
   Filter,
-  FileDown
+  FileDown,
+  FileSpreadsheet,
+  FileImage,
 } from 'lucide-react';
 import { useCalendar } from './calendar-context';
 import { formatMonthYear } from './helpers';
@@ -22,6 +24,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -54,9 +57,10 @@ interface CalendarHeaderProps {
   selectedTypes?: string[];
   onTypesChange?: (types: string[]) => void;
   onExportPDF?: () => void;
+  onExportExcel?: () => void;
 }
 
-export function CalendarHeader({ selectedTypes = [], onTypesChange, onExportPDF }: CalendarHeaderProps) {
+export function CalendarHeader({ selectedTypes = [], onTypesChange, onExportPDF, onExportExcel }: CalendarHeaderProps) {
   const { currentDate, view, setView, goToPrevious, goToNext, goToToday } = useCalendar();
 
   const toggleType = (type: string) => {
@@ -145,12 +149,34 @@ export function CalendarHeader({ selectedTypes = [], onTypesChange, onExportPDF 
           </DropdownMenu>
         )}
 
-        {/* Export PDF */}
-        {onExportPDF && (
-          <Button variant="outline" size="sm" onClick={onExportPDF} className="gap-2">
-            <FileDown className="h-4 w-4" />
-            Export PDF
-          </Button>
+        {/* Export Dropdown */}
+        {(onExportPDF || onExportExcel) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <FileDown className="h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {onExportPDF && (
+                <DropdownMenuItem onClick={onExportPDF} className="gap-2 cursor-pointer">
+                  <FileImage className="h-4 w-4" />
+                  Export as PDF
+                  <span className="text-xs text-muted-foreground ml-auto">Screenshot</span>
+                </DropdownMenuItem>
+              )}
+              {onExportExcel && (
+                <DropdownMenuItem onClick={onExportExcel} className="gap-2 cursor-pointer">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Export as Excel
+                  <span className="text-xs text-muted-foreground ml-auto">Data</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
 
         {/* View Switcher */}

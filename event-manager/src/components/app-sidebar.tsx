@@ -8,24 +8,21 @@ import {
   Calendar,
   ChevronRight,
   LayoutDashboard,
-  Settings,
   ShoppingBag,
   Users,
   FileText,
   Trophy,
   Dumbbell,
   Building2,
-  Bell,
   Heart,
   CreditCard,
   BarChart3,
-  CheckSquare,
-  Package,
   Clipboard,
   ClipboardList,
   Vote,
   MapPin,
   LayoutGrid,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -92,6 +89,12 @@ const navigationConfig: NavItem[] = [
         roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "ADMIN", "EVENT_OFFICE"],
       },
       {
+        title: "My Registrations",
+        url: ROUTES.MY_REGISTRATIONS,
+        icon: ClipboardList,
+        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
+      },
+      {
         title: "Manage Events",
         url: ROUTES.ADMIN_EVENTS,
         icon: Settings,
@@ -103,12 +106,6 @@ const navigationConfig: NavItem[] = [
         icon: Heart,
         roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
       },
-      { title: "Browse Events", url: ROUTES.EVENTS, icon: Calendar, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "ADMIN", "EVENT_OFFICE"] },
-      { title: "Manage Events", url: ROUTES.ADMIN_EVENTS, icon: Settings, roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"] },
-      { title: "Favorites", url: ROUTES.FAVORITES, icon: Heart, roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"] },
-      // { title: "Create Trip", url: ROUTES.CREATE_TRIP, icon: MapPin, roles: ["EVENT_OFFICE"] },
-      // { title: "Create Bazaar", url: ROUTES.CREATE_BAZAAR, icon: ShoppingBag, roles: ["EVENT_OFFICE"] },
-      // { title: "Create Conference", url: ROUTES.CREATE_CONFERENCE, icon: Building2, roles: ["EVENT_OFFICE"] },
     ],
   },
   {
@@ -172,22 +169,10 @@ const navigationConfig: NavItem[] = [
         icon: Calendar,
       },
       {
-        title: "My Sessions",
-        url: ROUTES.MY_SESSIONS,
-        icon: CheckSquare,
-        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
-      },
-      {
         title: "Court Bookings",
         url: ROUTES.COURT_BOOKINGS,
         icon: Trophy,
         roles: ["STUDENT"],
-      },
-      {
-        title: "Manage Sessions",
-        url: ROUTES.MANAGE_SESSIONS,
-        icon: Settings,
-        roles: ["EVENT_OFFICE"],
       },
       {
         title: "Manage Courts",
@@ -198,15 +183,10 @@ const navigationConfig: NavItem[] = [
     ],
   },
   {
-    title: "Admin",
+    title: "Manage Users",
     icon: Users,
     url: ROUTES.ADMIN_USERS,
     roles: ["ADMIN"],
-    items: [
-      { title: "All Users", url: ROUTES.ADMIN_USERS, icon: Users },
-      { title: "Reports", url: ROUTES.ADMIN_REPORTS, icon: BarChart3 },
-      { title: "Comments", url: ROUTES.ADMIN_COMMENTS, icon: FileText },
-    ],
   },
   {
     title: "Events Office",
@@ -215,9 +195,7 @@ const navigationConfig: NavItem[] = [
     roles: ["EVENT_OFFICE", "ADMIN"],
     items: [
       { title: "Platform Setup", url: ROUTES.PLATFORM_SETUP, icon: LayoutGrid },
-      { title: "Reports", url: ROUTES.EVENT_OFFICE_REPORTS, icon: BarChart3 },
       { title: "Vendor Polls", url: ROUTES.VENDOR_POLLS, icon: Vote },
-      { title: "QR Codes", url: ROUTES.QR_CODES, icon: Package },
     ],
   },
   {
@@ -243,11 +221,6 @@ const navigationConfig: NavItem[] = [
     url: ROUTES.WALLET,
     icon: CreditCard,
     roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
-  },
-  {
-    title: "Notifications",
-    url: ROUTES.NOTIFICATIONS,
-    icon: Bell,
   },
 ];
 

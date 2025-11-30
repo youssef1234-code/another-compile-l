@@ -4,7 +4,7 @@
  */
 
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { CalendarProvider, useCalendar } from './calendar-context';
 import { DragDropProvider } from './dnd/dnd-context';
 import { CalendarHeader } from './calendar-header';
@@ -14,7 +14,7 @@ import { DnDConfirmationDialog } from './dnd/dnd-confirmation-dialog';
 import type { CalendarEvent } from './types';
 import type { Event } from '@event-manager/shared';
 import { toast } from 'react-hot-toast';
-import { exportCalendarToPDF } from '../../utils/export-calendar-pdf';
+import { exportCalendarToExcel, exportCalendarScreenshot } from '../../utils/export-calendar-pdf';
 
 interface GymCalendarProps {
   events: CalendarEvent[];
@@ -24,6 +24,7 @@ interface GymCalendarProps {
   onDeleteSession?: (eventId: string) => Promise<void>;
   onMonthChange?: (year: number, month: number) => void;
   readOnly?: boolean;
+  isLoading?: boolean;
 }
 
 interface GymCalendarContentProps extends Omit<GymCalendarProps, 'events'> {
@@ -33,6 +34,8 @@ interface GymCalendarContentProps extends Omit<GymCalendarProps, 'events'> {
   selectedTypes: string[];
   onSelectedTypesChange: (types: string[]) => void;
   filteredEvents: CalendarEvent[];
+  isLoading?: boolean;
+  calendarRef: React.RefObject<HTMLDivElement | null>;
 }
 
 // This component must be INSIDE both CalendarProvider and DragDropProvider
@@ -43,12 +46,14 @@ function GymCalendarContent({
   onDeleteSession,
   onMonthChange, 
   readOnly = false,
+  isLoading = false,
   pendingDrop,
   showConfirmDialog,
   onConfirmDialogChange,
   selectedTypes,
   onSelectedTypesChange,
-  filteredEvents
+  filteredEvents,
+  calendarRef
 }: GymCalendarContentProps) {
   // Now these hooks are safe because we're inside the providers
   const { currentDate, selectedEvent, setSelectedEvent } = useCalendar();
@@ -90,17 +95,37 @@ function GymCalendarContent({
     }
   }, [pendingDrop, onUpdateEvent, onConfirmDialogChange]);
 
-  const handleExportPDF = useCallback(() => {
+  const handleExportPDF = useCallback(async () => {
+    if (!calendarRef.current) {
+      toast.error('Calendar not ready for export');
+      return;
+    }
+    
     try {
-      exportCalendarToPDF({
+      toast.loading('Generating PDF...', { id: 'pdf-export' });
+      await exportCalendarScreenshot({
+        element: calendarRef.current,
+        month: currentDate,
+        title: 'Gym Schedule'
+      });
+      toast.success('PDF exported successfully', { id: 'pdf-export' });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error('Failed to export PDF', { id: 'pdf-export' });
+    }
+  }, [calendarRef, currentDate]);
+
+  const handleExportExcel = useCallback(() => {
+    try {
+      exportCalendarToExcel({
         events: filteredEvents as Event[],
         month: currentDate,
         title: 'Gym Schedule'
       });
-      toast.success('PDF exported successfully');
+      toast.success('Excel exported successfully');
     } catch (error) {
-      console.error('PDF export error:', error);
-      toast.error('Failed to export PDF');
+      console.error('Excel export error:', error);
+      toast.error('Failed to export Excel');
     }
   }, [filteredEvents, currentDate]);
 
@@ -117,8 +142,23 @@ function GymCalendarContent({
           selectedTypes={selectedTypes}
           onTypesChange={onSelectedTypesChange}
           onExportPDF={handleExportPDF}
+          onExportExcel={handleExportExcel}
         />
-        <div className="flex-1 overflow-hidden">
+        <div ref={calendarRef} className="flex-1 overflow-hidden relative">
+          {isLoading && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10">
+              <div className="h-full grid grid-cols-7 gap-px p-4">
+                {/* Calendar skeleton grid */}
+                {[...Array(35)].map((_, i) => (
+                  <div key={i} className="flex flex-col gap-1 p-2">
+                    <div className="h-4 w-6 bg-muted animate-pulse rounded" />
+                    {i % 3 === 0 && <div className="h-6 bg-primary/10 animate-pulse rounded" />}
+                    {i % 5 === 0 && <div className="h-6 bg-primary/10 animate-pulse rounded" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <CalendarBody onCreateSession={onCreateSession} />
         </div>
       </div>
@@ -154,11 +194,13 @@ export function GymCalendar({
   onEditSession,
   onDeleteSession,
   onMonthChange, 
-  readOnly = false 
+  readOnly = false,
+  isLoading = false
 }: GymCalendarProps) {
   const [pendingDrop, setPendingDrop] = useState<{ eventId: string; targetDate: Date } | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const calendarRef = useRef<HTMLDivElement>(null);
   
   // Filter events by selected types at the top level
   const filteredEvents = useMemo(() => {
@@ -190,12 +232,14 @@ export function GymCalendar({
           onDeleteSession={onDeleteSession}
           onMonthChange={onMonthChange}
           readOnly={readOnly}
+          isLoading={isLoading}
           pendingDrop={pendingDrop}
           showConfirmDialog={showConfirmDialog}
           onConfirmDialogChange={setShowConfirmDialog}
           selectedTypes={selectedTypes}
           onSelectedTypesChange={setSelectedTypes}
           filteredEvents={filteredEvents}
+          calendarRef={calendarRef}
         />
       </CalendarProvider>
     </DragDropProvider>
