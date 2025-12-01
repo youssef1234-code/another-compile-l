@@ -15,6 +15,10 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  MoreHorizontal,
+  Download,
+  Mail,
+  CreditCard,
 } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +29,14 @@ import {
   TooltipContent, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
@@ -395,9 +407,17 @@ export function getVendorApplicationsTableColumns({
       return <span className="text-xs text-muted-foreground">—</span>;
     }
 
-    // Approved + fully paid
+    // Approved + fully paid - using status badge style
     if (app.paymentStatus === "PAID") {
-      return <Badge className="bg-emerald-600 text-white">Paid</Badge>;
+      return (
+        <Badge 
+          variant="outline" 
+          className="font-medium gap-1.5 bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
+        >
+          <CreditCard className="size-3" />
+          Paid
+        </Badge>
+      );
     }
 
     // Approved + PENDING or FAILED -> allow paying / retrying
@@ -407,10 +427,11 @@ export function getVendorApplicationsTableColumns({
       <div className="flex flex-col gap-1">
         {isFailed && (
           <Badge
-            variant="destructive"
-            className="w-fit text-[11px] uppercase tracking-wide"
+            variant="outline"
+            className="w-fit font-medium gap-1.5 bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800"
           >
-            Last attempt failed
+            <XCircle className="size-3" />
+            Failed
           </Badge>
         )}
 
@@ -451,76 +472,75 @@ export function getVendorApplicationsTableColumns({
         const canCancel = application.status === 'PENDING' || 
           (application.status === 'APPROVED' && application.paymentStatus !== 'PAID');
         
+        const hasAnyAction = canDownloadBadges || canCancel;
+        
+        if (!hasAnyAction) {
+          return <span className="text-xs text-muted-foreground">—</span>;
+        }
+
         return (
-          <div className="flex justify-end gap-2">
-            {canDownloadBadges && onDownloadBadges && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
+          <div className="flex justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                
+                {canDownloadBadges && onDownloadBadges && (
+                  <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
                       onDownloadBadges(application.id);
                     }}
-                    className="gap-1.5"
+                    className="gap-2"
                   >
-                    <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m0 0l-4-4m4 4l4-4M5 20h14" />
-                    </svg>
-                    Download
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Download QR badges for all {application.names?.length || 0} attendees</TooltipContent>
-              </Tooltip>
-            )}
-            {canDownloadBadges && onSendBadgesToEmail && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                    <Download className="h-4 w-4" />
+                    Download Badges
+                  </DropdownMenuItem>
+                )}
+                
+                {canDownloadBadges && onSendBadgesToEmail && (
+                  <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
                       onSendBadgesToEmail(application.id);
                     }}
-                    className="gap-1.5"
+                    className="gap-2"
                   >
-                    <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Email
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Send QR badges to your registered email</TooltipContent>
-              </Tooltip>
-            )}
-            {canCancel && onCancelApplication && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!confirm('Are you sure you want to cancel this application? This action cannot be undone.')) return;
-                      onCancelApplication(application.id);
-                    }}
-                    className="gap-1.5"
-                  >
-                    <XCircle className="size-4" />
-                    Cancel
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Cancel this application</TooltipContent>
-              </Tooltip>
-            )}
+                    <Mail className="h-4 w-4" />
+                    Send to Email
+                  </DropdownMenuItem>
+                )}
+                
+                {canCancel && onCancelApplication && (
+                  <>
+                    {canDownloadBadges && <DropdownMenuSeparator />}
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!confirm('Are you sure you want to cancel this application? This action cannot be undone.')) return;
+                        onCancelApplication(application.id);
+                      }}
+                      className="gap-2 text-destructive focus:text-destructive"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Cancel Application
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       },
       enableSorting: false,
       enableColumnFilter: false,
-      size: 280,
+      size: 80,
     },
 ];
 }

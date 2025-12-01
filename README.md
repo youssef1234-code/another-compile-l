@@ -1,4 +1,4 @@
-# 🎓 Event Management System - GUC
+# Another Compile L
 
 > **Enterprise-grade event management platform for the German University in Cairo (GUC)**  
 > Built with modern technologies, clean architecture principles, and a focus on scalability and maintainability.
