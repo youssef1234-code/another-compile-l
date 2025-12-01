@@ -19,6 +19,8 @@ import { loyaltyRouter } from './loyalty.router.js';
 import { registrationsRouter } from './registrations.router.js';
 import { notificationsRouter } from './notifications.router.js';
 import { vendorPollRouter } from './vendor-poll.router.js';
+import { qrCodesRouter } from './qr-codes.router.js';
+import { certificatesRouter } from './certificates.router.js';
 
 export const appRouter = router({
   auth: authRouter,
@@ -33,6 +35,8 @@ export const appRouter = router({
   loyalty: loyaltyRouter,
   registrations: registrationsRouter,
   notifications: notificationsRouter,
+  qrCodes: qrCodesRouter,
+  certificates: certificatesRouter,
 });
 
 export type AppRouter = typeof appRouter;

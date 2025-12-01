@@ -2,4 +2,4 @@
 // export { WorkshopApprovalsPage } from './WorkshopApprovalsPage'; // Removed - functionality moved to BackOfficeEventsPage
 export { VendorPollsPage } from './VendorPollsPage';
 export { EventOfficeReportsPage } from './EventOfficeReportsPage';
-export { QRCodesPage } from './QRCodesPage';
+// QRCodesPage and CertificatesPage removed - functionality moved to EventExpandedRow in BackOfficeEventsPage

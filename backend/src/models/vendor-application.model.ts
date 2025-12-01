@@ -40,6 +40,12 @@ export interface IVendorApplication extends IBaseDocument {
 
   status: keyof typeof VendorApprovalStatus;
   rejectionReason?: string;
+  
+  // QR Code tracking for each visitor (Requirement #51)
+  // Index matches names/emails arrays
+  qrCodes?: string[]; // Stored QR code data URLs for each visitor
+  qrCodesGeneratedAt?: Date;
+  qrCodesSentAt?: Date[]; // Track when QR email was sent to each visitor
 }
 
 const applicationSchema = createBaseSchema<IVendorApplication>(
@@ -133,8 +139,18 @@ const applicationSchema = createBaseSchema<IVendorApplication>(
     },
     paymentCurrency: { type: String, enum: ["EGP", "USD"] }, 
     acceptedAt: { type: Date },              
-  paymentDueAt: { type: Date },            
-  paidAt: { type: Date },    
+    paymentDueAt: { type: Date },            
+    paidAt: { type: Date },
+    // QR Code tracking (Requirement #51)
+    qrCodes: {
+      type: [String],
+      default: [],
+    },
+    qrCodesGeneratedAt: { type: Date },
+    qrCodesSentAt: {
+      type: [Date],
+      default: [],
+    },
   },
   {
     toJSON: {

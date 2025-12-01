@@ -85,8 +85,6 @@ const CommentsPage = lazy(() => import("@/features/admin/pages").then(m => ({ de
 // Events Office
 const BazaarManagementPage = lazy(() => import("@/features/events-office/pages/BazaarManagementPage").then(m => ({ default: m.BazaarManagementPage })));
 const VendorPollsPage = lazy(() => import("@/features/events-office/pages").then(m => ({ default: m.VendorPollsPage })));
-// EventOfficeReportsPage removed - Coming Soon placeholder
-// QRCodesPage removed - Coming Soon placeholder
 
 // Wallet
 const WalletPage = lazy(() => import("@/features/wallet/pages").then(m => ({ default: m.WalletPage })));
@@ -387,8 +385,6 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      // Event Office Reports page was removed (Coming Soon placeholder)
-      // QR Codes page was removed (Coming Soon placeholder)
       {
         path: ROUTES.BAZAAR_MANAGEMENT,
         element: (

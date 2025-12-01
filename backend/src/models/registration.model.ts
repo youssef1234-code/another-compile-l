@@ -20,7 +20,12 @@ export interface IEventRegistration extends IBaseDocument {
   stripePaymentIntentId?: string;
   registeredAt: Date;
   certificateIssued: boolean;
+  certificateSentAt?: Date; // Track when certificate email was sent (Requirement #30)
   attended: boolean;
+  // QR Code for event entry (Requirement #51)
+  qrCode?: string; // Stored QR code data URL
+  qrCodeGeneratedAt?: Date;
+  qrCodeSentAt?: Date; // Track when QR code email was sent
 }
 
 const registrationSchema = createBaseSchema<IEventRegistration>(
@@ -67,9 +72,21 @@ const registrationSchema = createBaseSchema<IEventRegistration>(
       type: Boolean,
       default: false,
     },
+    certificateSentAt: {
+      type: Date,
+    },
     attended: {
       type: Boolean,
       default: false,
+    },
+    qrCode: {
+      type: String,
+    },
+    qrCodeGeneratedAt: {
+      type: Date,
+    },
+    qrCodeSentAt: {
+      type: Date,
     },
   },
   {

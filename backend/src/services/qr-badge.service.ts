@@ -1,8 +1,9 @@
 /**
  * QR Badge Service
  * 
- * Generates QR codes and professional event badges for vendors
+ * Generates QR codes and professional event badges for vendors and event visitors
  * Requirement #66: Vendor receive QR code for all registered visitors
+ * Requirement #51: Events Office generate QR codes for external visitors to bazaars
  */
 
 import QRCode from 'qrcode';
@@ -10,6 +11,8 @@ import PDFDocument from 'pdfkit';
 import { vendorApplicationRepository } from '../repositories/vendor-application.repository';
 import { Event } from '../models/event.model';
 import { User } from '../models/user.model';
+import { EventRegistration } from '../models/registration.model';
+import { VendorApplication } from '../models/vendor-application.model';
 import { ServiceError } from '../errors/errors';
 
 export class QRBadgeService {
@@ -344,6 +347,293 @@ export class QRBadgeService {
     });
     
     console.log(`📧 ✓ Badges email sent to ${vendor.email}`);
+  }
+
+  // ============================================
+  // EVENTS OFFICE QR CODE MANAGEMENT (Requirement #51)
+  // ============================================
+
+  /**
+   * Generate and SAVE QR code for a single event registration (visitor)
+   * Called by Events Office when viewing event participants
+   */
+  async generateAndSaveVisitorQR(registrationId: string): Promise<string> {
+    const registration: any = await EventRegistration.findById(registrationId)
+      .populate('event')
+      .populate('user')
+      .lean();
+
+    if (!registration) {
+      throw new ServiceError('NOT_FOUND', 'Registration not found', 404);
+    }
+
+    const event = registration.event;
+    const user = registration.user;
+
+    // Generate QR code data
+    const qrData = JSON.stringify({
+      type: 'EVENT_VISITOR',
+      registrationId,
+      visitor: {
+        id: String(user._id),
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        gucId: user.studentId || user.gucId || 'N/A',
+      },
+      event: {
+        id: String(event._id),
+        name: event.name,
+        type: event.type,
+        date: event.startDate.toISOString(),
+        location: event.location,
+      },
+      generatedAt: new Date().toISOString(),
+    });
+
+    // Generate QR code as data URL
+    const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+      width: 300,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF',
+      },
+    });
+
+    // Save QR code to registration
+    await EventRegistration.findByIdAndUpdate(registrationId, {
+      qrCode: qrCodeDataUrl,
+      qrCodeGeneratedAt: new Date(),
+    });
+
+    console.log(`🔲 QR code generated and saved for registration ${registrationId}`);
+    return qrCodeDataUrl;
+  }
+
+  /**
+   * Generate QR codes for ALL registrations of an event
+   * Only generates for those who don't already have a QR code
+   */
+  async generateAllVisitorQRsForEvent(eventId: string): Promise<{ generated: number; skipped: number }> {
+    const registrations = await EventRegistration.find({
+      event: eventId,
+      status: { $in: ['CONFIRMED', 'PENDING'] },
+    }).populate('event').populate('user');
+
+    let generated = 0;
+    let skipped = 0;
+
+    for (const registration of registrations) {
+      if (registration.qrCode) {
+        skipped++;
+        continue;
+      }
+
+      await this.generateAndSaveVisitorQR(String(registration._id));
+      generated++;
+    }
+
+    console.log(`🔲 Generated ${generated} QR codes for event ${eventId}, skipped ${skipped} existing`);
+    return { generated, skipped };
+  }
+
+  /**
+   * Send QR code email to a visitor (and optionally to vendor)
+   * Requirement #51: Email sent to visitor AND vendor
+   */
+  async sendVisitorQREmail(
+    registrationId: string,
+    vendorEmail?: string
+  ): Promise<void> {
+    const registration: any = await EventRegistration.findById(registrationId)
+      .populate('event')
+      .populate('user')
+      .lean();
+
+    if (!registration) {
+      throw new ServiceError('NOT_FOUND', 'Registration not found', 404);
+    }
+
+    // Generate QR if not already generated
+    let qrCode = registration.qrCode;
+    if (!qrCode) {
+      qrCode = await this.generateAndSaveVisitorQR(registrationId);
+    }
+
+    const event = registration.event;
+    const user = registration.user;
+
+    // Import mail service dynamically
+    const { mailService } = await import('./mail.service.js');
+
+    // Send to visitor
+    await mailService.sendVisitorQREmail(user.email, {
+      visitorName: `${user.firstName} ${user.lastName}`,
+      eventName: event.name,
+      eventDate: event.startDate,
+      eventLocation: event.location,
+      qrCodeDataUrl: qrCode,
+    });
+
+    // Update sent timestamp
+    await EventRegistration.findByIdAndUpdate(registrationId, {
+      qrCodeSentAt: new Date(),
+    });
+
+    console.log(`📧 ✓ QR code email sent to visitor ${user.email}`);
+
+    // Also send to vendor if provided
+    if (vendorEmail) {
+      await mailService.sendVisitorQRToVendor(vendorEmail, {
+        visitorName: `${user.firstName} ${user.lastName}`,
+        visitorEmail: user.email,
+        eventName: event.name,
+        eventDate: event.startDate,
+        qrCodeDataUrl: qrCode,
+      });
+      console.log(`📧 ✓ QR code copy sent to vendor ${vendorEmail}`);
+    }
+  }
+
+  /**
+   * Generate and save QR codes for vendor application visitors
+   * Called by Events Office
+   */
+  async generateAndSaveVendorVisitorQRs(applicationId: string): Promise<string[]> {
+    const application: any = await VendorApplication.findById(applicationId)
+      .populate('bazaarId')
+      .lean();
+
+    if (!application) {
+      throw new ServiceError('NOT_FOUND', 'Application not found', 404);
+    }
+
+    const vendor = await User.findById(application.createdBy).lean();
+    const event = application.bazaarId;
+
+    const names = application.names || [];
+    const emails = application.emails || [];
+    const qrCodes: string[] = [];
+
+    for (let i = 0; i < names.length; i++) {
+      const visitorName = names[i];
+      const visitorEmail = emails[i] || 'N/A';
+
+      const qrData = JSON.stringify({
+        type: 'VENDOR_VISITOR',
+        applicationId,
+        visitorIndex: i,
+        visitor: {
+          name: visitorName,
+          email: visitorEmail,
+        },
+        vendor: {
+          id: String(application.createdBy),
+          companyName: application.companyName,
+          name: vendor ? `${vendor.firstName} ${vendor.lastName}` : 'N/A',
+        },
+        event: event ? {
+          id: String(event._id),
+          name: event.name,
+          date: event.startDate?.toISOString(),
+        } : null,
+        generatedAt: new Date().toISOString(),
+      });
+
+      const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF',
+        },
+      });
+
+      qrCodes.push(qrCodeDataUrl);
+    }
+
+    // Save all QR codes to application
+    await VendorApplication.findByIdAndUpdate(applicationId, {
+      qrCodes,
+      qrCodesGeneratedAt: new Date(),
+    });
+
+    console.log(`🔲 Generated ${qrCodes.length} QR codes for vendor application ${applicationId}`);
+    return qrCodes;
+  }
+
+  /**
+   * Send QR code email to a specific vendor visitor
+   * Also sends copy to vendor
+   */
+  async sendVendorVisitorQREmail(
+    applicationId: string,
+    visitorIndex: number
+  ): Promise<void> {
+    const application: any = await VendorApplication.findById(applicationId)
+      .populate('bazaarId')
+      .lean();
+
+    if (!application) {
+      throw new ServiceError('NOT_FOUND', 'Application not found', 404);
+    }
+
+    const names = application.names || [];
+    const emails = application.emails || [];
+
+    if (visitorIndex < 0 || visitorIndex >= names.length) {
+      throw new ServiceError('BAD_REQUEST', 'Invalid visitor index', 400);
+    }
+
+    // Generate QR codes if not already generated
+    let qrCodes = application.qrCodes || [];
+    if (qrCodes.length === 0) {
+      qrCodes = await this.generateAndSaveVendorVisitorQRs(applicationId);
+    }
+
+    const visitorName = names[visitorIndex];
+    const visitorEmail = emails[visitorIndex];
+    const qrCode = qrCodes[visitorIndex];
+
+    if (!visitorEmail) {
+      throw new ServiceError('BAD_REQUEST', 'Visitor email not available', 400);
+    }
+
+    const vendor = await User.findById(application.createdBy).lean();
+    const event = application.bazaarId;
+
+    // Import mail service
+    const { mailService } = await import('./mail.service.js');
+
+    // Send to visitor
+    await mailService.sendVisitorQREmail(visitorEmail, {
+      visitorName,
+      eventName: event?.name || application.bazaarName || 'Event',
+      eventDate: event?.startDate || application.startDate,
+      eventLocation: event?.location || 'TBD',
+      qrCodeDataUrl: qrCode,
+    });
+
+    // Update sent timestamp for this visitor
+    const qrCodesSentAt = application.qrCodesSentAt || [];
+    qrCodesSentAt[visitorIndex] = new Date();
+    await VendorApplication.findByIdAndUpdate(applicationId, {
+      qrCodesSentAt,
+    });
+
+    console.log(`📧 ✓ QR code email sent to vendor visitor ${visitorEmail}`);
+
+    // Also send copy to vendor
+    if (vendor?.email) {
+      await mailService.sendVisitorQRToVendor(vendor.email, {
+        visitorName,
+        visitorEmail,
+        eventName: event?.name || application.bazaarName || 'Event',
+        eventDate: event?.startDate || application.startDate,
+        qrCodeDataUrl: qrCode,
+      });
+      console.log(`📧 ✓ QR code copy sent to vendor ${vendor.email}`);
+    }
   }
 }
 

@@ -195,7 +195,6 @@ const navigationConfig: NavItem[] = [
     roles: ["EVENT_OFFICE", "ADMIN"],
     items: [
       { title: "Platform Setup", url: ROUTES.PLATFORM_SETUP, icon: LayoutGrid },
-      { title: "Vendor Polls", url: ROUTES.VENDOR_POLLS, icon: Vote },
     ],
   },
   {

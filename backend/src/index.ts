@@ -16,6 +16,7 @@ import { createContext } from './trpc/context';
 import { appRouter } from './routers/app.router';
 import { stripeWebhookExpressHandler } from './http/stripe-webhook';
 import { initializeEventReminderScheduler } from './utils/event-reminder-scheduler.js';
+import { initializeCertificateWorkerScheduler } from './utils/certificate-worker-scheduler.js';
 
 const app = express();
 
@@ -110,6 +111,9 @@ const startServer = async () => {
     // Start event reminder scheduler (runs every 15 minutes)
     initializeEventReminderScheduler();
     
+    // Start certificate worker scheduler (runs every 30 minutes)
+    initializeCertificateWorkerScheduler();
+    
     // Start Express server
     app.listen(config.port, () => {
       console.log('\n✅ Server started successfully!');
@@ -117,7 +121,8 @@ const startServer = async () => {
       console.log(`🔗 tRPC endpoint: ${config.apiUrl}/trpc`);
       console.log(`🌍 Environment: ${config.nodeEnv}`);
       console.log(`📡 Accepting requests from: ${config.clientUrl}`);
-      console.log(`⏰ Event reminder scheduler: Active\n`);
+      console.log(`⏰ Event reminder scheduler: Active`);
+      console.log(`📜 Certificate worker scheduler: Active\n`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

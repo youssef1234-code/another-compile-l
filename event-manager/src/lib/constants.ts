@@ -76,7 +76,7 @@ export const ROUTES = {
   WORKSHOP_APPROVALS: "/events-office/workshops",
   VENDOR_POLLS: "/events-office/polls",
   EVENT_OFFICE_REPORTS: "/events-office/reports",
-  QR_CODES: "/events-office/qr-codes",
+  // QR_CODES and CERTIFICATES routes removed - functionality moved to BackOfficeEventsPage expanded row
   BAZAAR_MANAGEMENT: "/events-office/bazaars",
   PLATFORM_SETUP: "/events-office/platform-setup",
 

@@ -33,6 +33,13 @@ import {
   XCircle,
   Download,
   Plus,
+  QrCode,
+  Award,
+  Send,
+  Eye,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react';
 import { formatDate } from '@/lib/design-system';
 import toast from 'react-hot-toast';
@@ -153,8 +160,86 @@ export function EventExpandedRow({
     exportRegistrationsMutation.mutate({ eventId: event.id });
   };
 
-  // Check if current user is admin/event office
+  // Check if current user is admin/event office (needed early for query enabled flags)
   const isAdminOrEventOffice = user?.role === UserRole.ADMIN || user?.role === UserRole.EVENT_OFFICE;
+
+  // ============================================
+  // QR CODE MANAGEMENT (Requirement #51)
+  // ============================================
+  
+  // QR code status query
+  const { data: qrStatus, refetch: refetchQRStatus } = trpc.qrCodes.getEventQRStatus.useQuery(
+    { eventId: event.id },
+    { enabled: !!event.id && isAdminOrEventOffice }
+  );
+
+  // QR code mutations
+  const generateAllQRsMutation = trpc.qrCodes.generateAllVisitorQRs.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      refetchQRStatus();
+    },
+    onError: (error) => {
+      toast.error(`Failed to generate QR codes: ${error.message}`);
+    },
+  });
+
+  const generateVisitorQRMutation = trpc.qrCodes.generateVisitorQR.useMutation({
+    onSuccess: () => {
+      toast.success('QR code generated');
+      refetchQRStatus();
+    },
+    onError: (error) => {
+      toast.error(`Failed to generate QR code: ${error.message}`);
+    },
+  });
+
+  const sendQREmailMutation = trpc.qrCodes.sendVisitorQREmail.useMutation({
+    onSuccess: () => {
+      toast.success('QR code email sent');
+      refetchQRStatus();
+    },
+    onError: (error) => {
+      toast.error(`Failed to send email: ${error.message}`);
+    },
+  });
+
+  // ============================================
+  // CERTIFICATE MANAGEMENT (Requirement #30)
+  // ============================================
+  
+  // Certificate status query (only for workshops)
+  const { data: certificateStatus, refetch: refetchCertificateStatus } = trpc.certificates.getCertificateStatus.useQuery(
+    { eventId: event.id },
+    { enabled: !!event.id && event.type === 'WORKSHOP' && isAdminOrEventOffice }
+  );
+
+  // Certificate attendees query
+  const { data: certificateAttendees, refetch: refetchCertificateAttendees } = trpc.certificates.getWorkshopAttendees.useQuery(
+    { eventId: event.id },
+    { enabled: !!event.id && event.type === 'WORKSHOP' && isAdminOrEventOffice }
+  );
+
+  // Certificate trigger mutation
+  const triggerCertificatesMutation = trpc.certificates.triggerCertificatesNow.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      refetchCertificateStatus();
+      refetchCertificateAttendees();
+    },
+    onError: (error) => {
+      toast.error(`Failed to send certificates: ${error.message}`);
+    },
+  });
+
+  // QR preview dialog state
+  const [qrPreviewDialog, setQrPreviewDialog] = useState<{ open: boolean; qrCode: string | null; name: string }>({
+    open: false,
+    qrCode: null,
+    name: '',
+  });
+
+  // Additional role/status checks
   const isAdmin = user?.role === UserRole.ADMIN;
   const isWorkshop = event.type === 'WORKSHOP';
   const isRejected = event.status === 'REJECTED';
@@ -653,6 +738,155 @@ export function EventExpandedRow({
               </CardContent>
             </Card>
           )}
+
+          {/* QR Code Management - Events Office/Admin only */}
+          {isAdminOrEventOffice && qrStatus && qrStatus.stats.total > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <QrCode className="h-5 w-5" />
+                    QR Codes ({qrStatus.stats.generated}/{qrStatus.stats.total} generated)
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => generateAllQRsMutation.mutate({ eventId: event.id })}
+                    disabled={generateAllQRsMutation.isPending || qrStatus.stats.pending === 0}
+                    className="gap-2"
+                  >
+                    {generateAllQRsMutation.isPending ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <QrCode className="h-4 w-4" />
+                    )}
+                    Generate All ({qrStatus.stats.pending} pending)
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                  {qrStatus.participants.map((participant) => (
+                    <div
+                      key={participant.registrationId}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          {participant.hasQRCode ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <Clock className="h-5 w-5 text-amber-600" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium">{participant.name}</p>
+                          <p className="text-sm text-muted-foreground">{participant.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!participant.hasQRCode ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => generateVisitorQRMutation.mutate({ registrationId: participant.registrationId })}
+                            disabled={generateVisitorQRMutation.isPending}
+                          >
+                            <QrCode className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setQrPreviewDialog({
+                                open: true,
+                                qrCode: participant.qrCode,
+                                name: participant.name,
+                              })}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => sendQREmailMutation.mutate({ registrationId: participant.registrationId })}
+                              disabled={sendQREmailMutation.isPending}
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Certificate Management - Workshops only, Events Office/Admin */}
+          {isAdminOrEventOffice && event.type === 'WORKSHOP' && certificateStatus && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Award className="h-5 w-5" />
+                    Certificates ({certificateStatus.certificatesSent}/{certificateStatus.totalAttendees} sent)
+                  </CardTitle>
+                  {certificateStatus.canSendNow && certificateStatus.certificatesPending > 0 && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => triggerCertificatesMutation.mutate({ eventId: event.id })}
+                      disabled={triggerCertificatesMutation.isPending}
+                      className="gap-2"
+                    >
+                      {triggerCertificatesMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      Send Now ({certificateStatus.certificatesPending} pending)
+                    </Button>
+                  )}
+                </div>
+                {!certificateStatus.canSendNow && certificateStatus.reason && (
+                  <p className="text-sm text-muted-foreground mt-2">{certificateStatus.reason}</p>
+                )}
+              </CardHeader>
+              {certificateAttendees && certificateAttendees.attendees.length > 0 && (
+                <CardContent>
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                    {certificateAttendees.attendees.map((attendee) => (
+                      <div
+                        key={attendee.registrationId}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            {attendee.certificateSentAt ? (
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            ) : (
+                              <Clock className="h-5 w-5 text-amber-600" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">{attendee.name}</p>
+                            <p className="text-sm text-muted-foreground">{attendee.email}</p>
+                          </div>
+                        </div>
+                        <Badge variant={attendee.certificateSentAt ? 'default' : 'secondary'}>
+                          {attendee.certificateSentAt ? 'Sent' : 'Pending'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
+
           {/* WhiteListed */}
           <Card>
             <CardHeader>
@@ -1061,6 +1295,30 @@ export function EventExpandedRow({
           </Card>
         </div>
       </div>
+
+      {/* QR Code Preview Dialog */}
+      <Dialog
+        open={qrPreviewDialog.open}
+        onOpenChange={(open) => setQrPreviewDialog((prev) => ({ ...prev, open }))}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>QR Code for {qrPreviewDialog.name}</DialogTitle>
+            <DialogDescription>
+              This QR code can be scanned at the event for check-in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center py-6">
+            {qrPreviewDialog.qrCode && (
+              <img
+                src={qrPreviewDialog.qrCode}
+                alt={`QR Code for ${qrPreviewDialog.name}`}
+                className="w-64 h-64 border rounded-lg"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

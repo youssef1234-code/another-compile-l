@@ -1287,6 +1287,217 @@ export class MailgunService extends BaseMailService {
       </html>
     `;
   }
+
+  /**
+   * Send visitor QR code email (Requirement #51)
+   * Used by Events Office to send QR codes to event visitors
+   */
+  async sendVisitorQREmail(
+    to: string,
+    data: {
+      visitorName: string;
+      eventName: string;
+      eventDate: Date;
+      eventLocation: string;
+      qrCodeDataUrl: string;
+    }
+  ): Promise<void> {
+    const eventDateStr = new Date(data.eventDate).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    const subject = `Your Event QR Code - ${data.eventName}`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <tr>
+                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border-radius: 12px 12px 0 0;">
+                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
+                        🎫 Your Event QR Code
+                      </h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 48px 40px; text-align: center;">
+                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
+                        Dear ${data.visitorName},
+                      </p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        Here is your QR code for <strong style="color: #6366f1;">${data.eventName}</strong>.
+                        Please present this QR code at the entrance for quick check-in.
+                      </p>
+                      
+                      <!-- QR Code -->
+                      <div style="margin: 32px 0; padding: 24px; background-color: #f9fafb; border-radius: 12px; display: inline-block;">
+                        <img src="${data.qrCodeDataUrl}" alt="Event QR Code" style="width: 200px; height: 200px; display: block;" />
+                      </div>
+                      
+                      <!-- Event Details -->
+                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border-left: 4px solid #6366f1; border-radius: 8px; text-align: left;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #4338ca;">
+                          📅 Event Details
+                        </p>
+                        <p style="margin: 0 0 8px; font-size: 14px; color: #4b5563;">
+                          <strong>Event:</strong> ${data.eventName}
+                        </p>
+                        <p style="margin: 0 0 8px; font-size: 14px; color: #4b5563;">
+                          <strong>Date:</strong> ${eventDateStr}
+                        </p>
+                        <p style="margin: 0; font-size: 14px; color: #4b5563;">
+                          <strong>Location:</strong> ${data.eventLocation}
+                        </p>
+                      </div>
+                      
+                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; border-radius: 8px; text-align: left;">
+                        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #92400e;">
+                          💡 Tip: Save or screenshot this QR code for easy access at the event!
+                        </p>
+                      </div>
+                      
+                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        See you there!<br>
+                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
+                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        This is an automated email from the GUC Event Management System.
+                      </p>
+                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
+                        &copy; ${new Date().getFullYear()} German University in Cairo
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+    this.saveEmailToLogs('visitor-qr', to, subject, html);
+
+    await this.sendMail({
+      to,
+      subject,
+      html,
+    });
+
+    console.log(`📧 ✓ Visitor QR code email sent to ${to}`);
+  }
+
+  /**
+   * Send visitor QR code copy to vendor (Requirement #51)
+   */
+  async sendVisitorQRToVendor(
+    to: string,
+    data: {
+      visitorName: string;
+      visitorEmail: string;
+      eventName: string;
+      eventDate: Date;
+      qrCodeDataUrl: string;
+    }
+  ): Promise<void> {
+    const eventDateStr = new Date(data.eventDate).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    const subject = `Visitor QR Code Sent - ${data.visitorName} for ${data.eventName}`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <tr>
+                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px 12px 0 0;">
+                      <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
+                        📋 Visitor QR Code Notification
+                      </h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 48px 40px; text-align: center;">
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                        A QR code has been sent to the following visitor for your booth/event:
+                      </p>
+                      
+                      <!-- Visitor Details -->
+                      <div style="margin: 24px 0; padding: 24px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; text-align: left;">
+                        <p style="margin: 0 0 8px; font-size: 15px; color: #78350f;">
+                          <strong>Visitor Name:</strong> ${data.visitorName}
+                        </p>
+                        <p style="margin: 0 0 8px; font-size: 15px; color: #78350f;">
+                          <strong>Visitor Email:</strong> ${data.visitorEmail}
+                        </p>
+                        <p style="margin: 0; font-size: 15px; color: #78350f;">
+                          <strong>Event:</strong> ${data.eventName} on ${eventDateStr}
+                        </p>
+                      </div>
+                      
+                      <!-- QR Code Copy -->
+                      <div style="margin: 32px 0; padding: 24px; background-color: #f9fafb; border-radius: 12px; display: inline-block;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #6b7280;">
+                          Visitor's QR Code (for your records):
+                        </p>
+                        <img src="${data.qrCodeDataUrl}" alt="Visitor QR Code" style="width: 150px; height: 150px; display: block; margin: 0 auto;" />
+                      </div>
+                      
+                      <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">
+                        This visitor will present this QR code at the event for verification.
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
+                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        This is an automated notification from the GUC Event Management System.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+    this.saveEmailToLogs('visitor-qr-vendor-copy', to, subject, html);
+
+    await this.sendMail({
+      to,
+      subject,
+      html,
+    });
+
+    console.log(`📧 ✓ Visitor QR code copy sent to vendor ${to}`);
+  }
   
 }
 

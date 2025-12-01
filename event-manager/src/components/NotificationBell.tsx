@@ -23,7 +23,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -285,20 +284,52 @@ export function NotificationBell() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Tabs value={filterBy} onValueChange={(v) => setFilterBy(v as FilterOption)} className="flex-1">
-                <TabsList className="h-8 w-full grid grid-cols-3">
-                  <TabsTrigger value="all" className="text-xs h-7">All</TabsTrigger>
-                  <TabsTrigger value="unread" className="text-xs h-7">
-                    Unread
-                    {unreadCount > 0 && (
-                      <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
-                        {unreadCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="read" className="text-xs h-7">Read</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border flex-1">
+                <Button 
+                  variant="ghost"
+                  size="sm" 
+                  onClick={() => setFilterBy("all")}
+                  className={cn(
+                    'flex-1 text-xs h-7 transition-all',
+                    filterBy === "all"
+                      ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                      : 'hover:bg-muted text-muted-foreground'
+                  )}
+                >
+                  All
+                </Button>
+                <Button 
+                  variant="ghost"
+                  size="sm" 
+                  onClick={() => setFilterBy("unread")}
+                  className={cn(
+                    'flex-1 text-xs h-7 gap-1.5 transition-all',
+                    filterBy === "unread"
+                      ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                      : 'hover:bg-muted text-muted-foreground'
+                  )}
+                >
+                  Unread
+                  {unreadCount > 0 && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+                <Button 
+                  variant="ghost"
+                  size="sm" 
+                  onClick={() => setFilterBy("read")}
+                  className={cn(
+                    'flex-1 text-xs h-7 transition-all',
+                    filterBy === "read"
+                      ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                      : 'hover:bg-muted text-muted-foreground'
+                  )}
+                >
+                  Read
+                </Button>
+              </div>
 
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
                 <SelectTrigger className="w-[130px] h-8 text-xs">
