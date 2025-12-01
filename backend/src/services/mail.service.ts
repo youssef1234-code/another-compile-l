@@ -524,37 +524,55 @@ export abstract class BaseMailService {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #2456d3 0%, #1a3fa8 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0;">📅 Event Reminder</h1>
-          </div>
-          
-          <div style="background-color: #f9fafb; padding: 40px; border-radius: 0 0 10px 10px;">
-            <h2 style="color: #1f2937; margin-top: 0;">Hi ${name}!</h2>
-            <p style="font-size: 16px; color: #4b5563;">This is a friendly reminder about your upcoming event:</p>
-            
-            <div style="background-color: white; padding: 25px; border-radius: 8px; margin: 30px 0; border: 2px solid #2456d3;">
-              <h3 style="color: #2456d3; margin-top: 0;">${eventName}</h3>
-              <div style="color: #4b5563; font-size: 15px;">
-                <p style="margin: 10px 0;"><strong>📅 Date:</strong> ${formattedDate}</p>
-                <p style="margin: 10px 0;"><strong>🕐 Time:</strong> ${formattedTime}</p>
-                <p style="margin: 10px 0;"><strong>📍 Location:</strong> ${eventLocation}</p>
-              </div>
-            </div>
-            
-            <div style="text-align: center; margin: 40px 0;">
-              <a href="${eventUrl}" 
-                 style="background-color: #2456d3; color: white; padding: 14px 40px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">
-                View Event Details
-              </a>
-            </div>
-            
-            <p style="color: #6b7280; font-size: 14px; text-align: center;">Looking forward to seeing you there! 🎉</p>
-          </div>
-          
-          <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
-            <p>&copy; ${new Date().getFullYear()} Another Compile L. All rights reserved.</p>
-          </div>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #171717;">Event Reminder</h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252;">Hi ${name},</p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252;">This is a friendly reminder about your upcoming event.</p>
+                      
+                      <!-- Event Details Card -->
+                      <div style="margin: 24px 0; padding: 20px; background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px;">
+                        <h3 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #2456d3;">${eventName}</h3>
+                        <p style="margin: 0 0 8px; font-size: 14px; color: #525252;"><strong>Date:</strong> ${formattedDate}</p>
+                        <p style="margin: 0 0 8px; font-size: 14px; color: #525252;"><strong>Time:</strong> ${formattedTime}</p>
+                        <p style="margin: 0; font-size: 14px; color: #525252;"><strong>Location:</strong> ${eventLocation}</p>
+                      </div>
+                      
+                      <!-- Button -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0;">
+                        <tr>
+                          <td align="center">
+                            <a href="${eventUrl}" style="display: inline-block; padding: 12px 32px; background-color: #2456d3; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">View Event Details</a>
+                          </td>
+                        </tr>
+                      </table>
+                      
+                      <p style="margin: 24px 0 0; font-size: 14px; color: #737373;">We look forward to seeing you there!</p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         </body>
       </html>
     `;
@@ -575,54 +593,67 @@ export abstract class BaseMailService {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background-color: #2456d3; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0;"> Payment Receipt</h1>
-          </div>
-          
-          <div style="background-color: #f9fafb; padding: 40px; border-radius: 0 0 10px 10px;">
-            <h2 style="color: #1f2937; margin-top: 0;">Hi ${name}!</h2>
-            <p style="font-size: 16px; color: #4b5563;">Your payment has been processed successfully. Here are the details:</p>
-            
-            <div style="background-color: white; padding: 25px; border-radius: 8px; margin: 30px 0; border: 1px solid #e5e7eb;">
-              <h3 style="color: #2456d3; margin-top: 0;">Payment Details</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 10px 0; color: #6b7280; font-weight: 600;">Event:</td>
-                  <td style="padding: 10px 0; color: #1f2937; text-align: right;">${eventName}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 0; color: #6b7280; font-weight: 600;">Amount:</td>
-                  <td style="padding: 10px 0; color: #1f2937; text-align: right; font-size: 18px; font-weight: 700;">${amount} ${currency}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 0; color: #6b7280; font-weight: 600;">Receipt ID:</td>
-                  <td style="padding: 10px 0; color: #1f2937; text-align: right; font-family: monospace;">${receiptId}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 0; color: #6b7280; font-weight: 600;">Date:</td>
-                  <td style="padding: 10px 0; color: #1f2937; text-align: right;">${formattedDate}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 0; color: #6b7280; font-weight: 600; border-top: 2px solid #e5e7eb;">Status:</td>
-                  <td style="padding: 10px 0; text-align: right; border-top: 2px solid #e5e7eb;">
-                    <span style="background-color: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: 600;">✓ Paid</span>
-                  </td>
-                </tr>
-              </table>
-            </div>
-            
-            <div style="background-color: #eff6ff; padding: 20px; border-radius: 6px; border-left: 4px solid #2456d3; margin-top: 30px;">
-              <p style="margin: 0; color: #1e3a8a; font-size: 14px;">
-                <strong>✓ Your registration is confirmed!</strong> You'll receive event details and reminders via email.
-              </p>
-            </div>
-          </div>
-          
-          <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
-            <p>Keep this email for your records.</p>
-            <p style="margin-top: 10px;">&copy; ${new Date().getFullYear()} Another Compile L. All rights reserved.</p>
-          </div>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #171717;">Payment Receipt</h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252;">Hi ${name},</p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252;">Your payment has been processed successfully. Here are the details:</p>
+                      
+                      <!-- Payment Details Card -->
+                      <div style="margin: 24px 0; padding: 20px; background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 14px; color: #737373;">Event</td>
+                            <td style="padding: 8px 0; font-size: 14px; color: #171717; text-align: right; font-weight: 500;">${eventName}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 14px; color: #737373;">Amount</td>
+                            <td style="padding: 8px 0; font-size: 16px; color: #171717; text-align: right; font-weight: 600;">${amount} ${currency}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 14px; color: #737373;">Receipt ID</td>
+                            <td style="padding: 8px 0; font-size: 14px; color: #171717; text-align: right; font-family: monospace;">${receiptId}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 14px; color: #737373;">Date</td>
+                            <td style="padding: 8px 0; font-size: 14px; color: #171717; text-align: right;">${formattedDate}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 12px 0 0; border-top: 1px solid #e5e5e5; font-size: 14px; color: #737373;">Status</td>
+                            <td style="padding: 12px 0 0; border-top: 1px solid #e5e5e5; text-align: right;">
+                              <span style="display: inline-block; padding: 4px 12px; background-color: #dcfce7; color: #166534; border-radius: 4px; font-size: 13px; font-weight: 500;">Paid</span>
+                            </td>
+                          </tr>
+                        </table>
+                      </div>
+                      
+                      <p style="margin: 24px 0 0; padding: 12px; background-color: #eff6ff; border-left: 3px solid #2456d3; border-radius: 4px; font-size: 14px; color: #1e40af;">Your registration is confirmed. You'll receive event details and reminders via email.</p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
+                      <p style="margin: 0 0 8px; font-size: 13px; color: #a3a3a3;">Keep this email for your records.</p>
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         </body>
       </html>
     `;
@@ -801,54 +832,48 @@ export class MailgunService extends BaseMailService {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
             <tr>
-              <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
+                  <!-- Header -->
                   <tr>
-                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border-radius: 12px 12px 0 0;">
-                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
-                        🎓 Certificate of Attendance
-                      </h1>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #2456d3;">Certificate of Attendance</h1>
                     </td>
                   </tr>
+                  
+                  <!-- Body -->
                   <tr>
-                    <td style="padding: 48px 40px;">
-                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
-                        Dear ${data.attendeeName},
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252;">Dear ${data.attendeeName},</p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252;">
+                        Congratulations on successfully completing <strong style="color: #2456d3;">${data.workshopTitle}</strong>!
                       </p>
-                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
-                        Congratulations on successfully completing <strong style="color: #6366f1;">${data.workshopTitle}</strong>!
-                      </p>
-                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252;">
                         Your certificate of attendance is attached to this email. This certificate recognizes your participation and successful completion of the workshop.
                       </p>
-                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-left: 4px solid #6366f1; border-radius: 8px;">
-                        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1e40af;">
-                          📎 Your certificate is attached as a PDF document
-                        </p>
-                        <p style="margin: 8px 0 0; font-size: 13px; color: #4b5563;">
-                          Keep this certificate for your records. You can print it or share it digitally.
-                        </p>
-                      </div>
-                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                      
+                      <p style="margin: 24px 0; padding: 12px; background-color: #eff6ff; border-left: 3px solid #2456d3; border-radius: 4px; font-size: 14px; color: #1e40af;">
+                        Your certificate is attached as a PDF document. Keep this certificate for your records.
+                      </p>
+                      
+                      <p style="margin: 24px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
                         We hope you found the workshop valuable and look forward to seeing you at future events!
                       </p>
-                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                      <p style="margin: 16px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
                         Best regards,<br>
-                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                        <strong>GUC Events Team</strong>
                       </p>
                     </td>
                   </tr>
+                  
+                  <!-- Footer -->
                   <tr>
-                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
-                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
-                        This is an automated email. Please do not reply to this message.
-                      </p>
-                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
-                        &copy; ${new Date().getFullYear()} German University in Cairo - Event Management System
-                      </p>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
+                      <p style="margin: 0 0 8px; font-size: 13px; color: #a3a3a3;">This is an automated email. Please do not reply.</p>
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
                     </td>
                   </tr>
                 </table>
@@ -895,69 +920,57 @@ export class MailgunService extends BaseMailService {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
             <tr>
-              <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
+                  <!-- Header -->
                   <tr>
-                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px 12px 0 0;">
-                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
-                        📦 Vendor QR Badges
-                      </h1>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #2456d3;">Vendor QR Badges</h1>
                     </td>
                   </tr>
+                  
+                  <!-- Body -->
                   <tr>
-                    <td style="padding: 48px 40px;">
-                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
-                        Dear ${data.vendorName},
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252;">Dear ${data.vendorName},</p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252;">
+                        Your vendor application has been <strong style="color: #166534;">approved</strong>! Attached are your personalized QR code badges for your booth.
                       </p>
-                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
-                        Your vendor application has been <strong style="color: #059669;">approved</strong>! Attached are your personalized QR code badges for your booth.
-                      </p>
-                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; border-radius: 8px;">
-                        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #92400e;">
-                          📎 Application ID: ${data.applicationId}
-                        </p>
-                        <p style="margin: 8px 0 0; font-size: 13px; color: #78350f;">
-                          Your QR badges are attached as a PDF document with multiple copies for printing.
-                        </p>
+                      
+                      <div style="margin: 24px 0; padding: 12px; background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px;">
+                        <p style="margin: 0; font-size: 14px; color: #525252;"><strong>Application ID:</strong> ${data.applicationId}</p>
                       </div>
-                      <h3 style="margin: 32px 0 16px; font-size: 18px; font-weight: 600; color: #1f2937;">
-                        📋 How to use your QR badges:
-                      </h3>
-                      <ul style="margin: 0 0 24px; padding-left: 24px; font-size: 15px; line-height: 1.8; color: #4b5563;">
+                      
+                      <h3 style="margin: 24px 0 12px; font-size: 16px; font-weight: 600; color: #171717;">How to use your QR badges:</h3>
+                      <ul style="margin: 0 0 24px; padding-left: 20px; font-size: 14px; line-height: 24px; color: #525252;">
                         <li>Print the attached PDF on standard A4 paper</li>
                         <li>Cut out the individual QR badges</li>
                         <li>Display them prominently at your booth</li>
                         <li>Attendees can scan to get your vendor information</li>
-                        <li>Print multiple copies if needed (the PDF contains several badges)</li>
                       </ul>
-                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-left: 4px solid #059669; border-radius: 8px;">
-                        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #065f46;">
-                          💡 Pro Tip
-                        </p>
-                        <p style="margin: 8px 0 0; font-size: 13px; color: #047857;">
-                          Laminate your QR badges for durability and professional appearance!
-                        </p>
-                      </div>
-                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                      
+                      <p style="margin: 24px 0 0; padding: 12px; background-color: #eff6ff; border-left: 3px solid #2456d3; border-radius: 4px; font-size: 14px; color: #1e40af;">
+                        Tip: Laminate your QR badges for durability and professional appearance.
+                      </p>
+                      
+                      <p style="margin: 24px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
                         We look forward to seeing your booth at the event!
                       </p>
-                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                      <p style="margin: 16px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
                         Best regards,<br>
-                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                        <strong>GUC Events Team</strong>
                       </p>
                     </td>
                   </tr>
+                  
+                  <!-- Footer -->
                   <tr>
-                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
-                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
-                        This is an automated email. For support, please contact the events team.
-                      </p>
-                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
-                        &copy; ${new Date().getFullYear()} German University in Cairo - Event Management System
-                      </p>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
+                      <p style="margin: 0 0 8px; font-size: 13px; color: #a3a3a3;">For support, please contact the events team.</p>
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
                     </td>
                   </tr>
                 </table>
@@ -1072,86 +1085,57 @@ export class MailgunService extends BaseMailService {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
             <tr>
-              <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
                   <!-- Header -->
                   <tr>
-                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px 12px 0 0;">
-                      <div style="width: 80px; height: 80px; margin: 0 auto 20px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <h1 style="margin: 0; font-size: 48px; color: #ffffff;">✓</h1>
-                      </div>
-                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
-                        Application Approved!
-                      </h1>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #166534;">Application Approved</h1>
                     </td>
                   </tr>
                   
                   <!-- Body -->
                   <tr>
-                    <td style="padding: 48px 40px;">
-                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
-                        Dear ${data.vendorName},
-                      </p>
-                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
-                        Congratulations! Your vendor application for <strong style="color: #10b981;">${
-                          data.eventName
-                        }</strong> has been approved.
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252;">Dear ${data.vendorName},</p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252;">
+                        Congratulations! Your vendor application for <strong style="color: #2456d3;">${data.eventName}</strong> has been approved.
                       </p>
                       
-                      <!-- Success Box -->
-                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid #10b981; border-radius: 8px;">
-                        <p style="margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #065f46;">
-                          🎉 You're all set!
-                        </p>
-                        <p style="margin: 0; font-size: 14px; color: #047857;">
-                          <strong>Application ID:</strong> ${data.applicationId}
-                        </p>
+                      <div style="margin: 24px 0; padding: 12px; background-color: #dcfce7; border-left: 3px solid #166534; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 14px; color: #166534;"><strong>Application ID:</strong> ${data.applicationId}</p>
                       </div>
                       
-                      <!-- Next Steps -->
-                      <h3 style="margin: 32px 0 16px; font-size: 18px; font-weight: 600; color: #1f2937;">
-                        📋 Next Steps:
-                      </h3>
-                      <ul style="margin: 0 0 24px; padding-left: 24px; font-size: 15px; line-height: 1.8; color: #4b5563;">
+                      <h3 style="margin: 24px 0 12px; font-size: 16px; font-weight: 600; color: #171717;">Next Steps:</h3>
+                      <ul style="margin: 0 0 24px; padding-left: 20px; font-size: 14px; line-height: 24px; color: #525252;">
                         <li>You will receive your vendor QR badges in a separate email</li>
                         <li>Print and display the QR codes at your booth</li>
-                        <li>Attendees can scan the codes to learn more about your offerings</li>
                         <li>Set up your booth according to the event guidelines</li>
                         <li>Arrive early on event day for setup</li>
                       </ul>
                       
-                      <!-- Important Info -->
-                      <div style="margin: 32px 0; padding: 24px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px;">
-                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #92400e;">
-                          ⚠️ Important Information
-                        </p>
-                        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #78350f;">
-                          Please review the vendor guidelines and event schedule. Contact the events team if you have any questions about booth setup or requirements.
-                        </p>
-                      </div>
-                      
-                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
-                        We're excited to have you as part of this event and look forward to your participation!
+                      <p style="margin: 24px 0 0; padding: 12px; background-color: #fef9c3; border-left: 3px solid #eab308; border-radius: 4px; font-size: 14px; color: #713f12;">
+                        Please review the vendor guidelines and event schedule. Contact the events team if you have any questions.
                       </p>
-                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                      
+                      <p style="margin: 24px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
+                        We're excited to have you as part of this event!
+                      </p>
+                      <p style="margin: 16px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
                         Best regards,<br>
-                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                        <strong>GUC Events Team</strong>
                       </p>
                     </td>
                   </tr>
                   
                   <!-- Footer -->
                   <tr>
-                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
-                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
-                        This is an automated email. For support, please contact the events team.
-                      </p>
-                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
-                        &copy; ${new Date().getFullYear()} German University in Cairo - Event Management System
-                      </p>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
+                      <p style="margin: 0 0 8px; font-size: 13px; color: #a3a3a3;">For support, please contact the events team.</p>
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
                     </td>
                   </tr>
                 </table>
@@ -1179,104 +1163,65 @@ export class MailgunService extends BaseMailService {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
             <tr>
-              <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
                   <!-- Header -->
                   <tr>
-                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px 12px 0 0;">
-                      <div style="width: 80px; height: 80px; margin: 0 auto 20px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <h1 style="margin: 0; font-size: 48px; color: #ffffff;">✕</h1>
-                      </div>
-                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
-                        Application Status Update
-                      </h1>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #171717;">Application Status Update</h1>
                     </td>
                   </tr>
                   
                   <!-- Body -->
                   <tr>
-                    <td style="padding: 48px 40px;">
-                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
-                        Dear ${data.vendorName},
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252;">Dear ${data.vendorName},</p>
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252;">
+                        Thank you for your interest in participating as a vendor for <strong>${data.eventName}</strong>.
                       </p>
-                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
-                        Thank you for your interest in participating as a vendor for <strong style="color: #1f2937;">${
-                          data.eventName
-                        }</strong>.
-                      </p>
-                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252;">
                         After careful consideration, we regret to inform you that your vendor application has not been approved at this time.
                       </p>
                       
-                      <!-- Application Info -->
-                      <div style="margin: 32px 0; padding: 24px; background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px;">
-                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #991b1b;">
-                          Application Details
-                        </p>
-                        <p style="margin: 0; font-size: 13px; color: #7f1d1d;">
-                          <strong>Application ID:</strong> ${
-                            data.applicationId
-                          }<br>
-                          <strong>Event:</strong> ${data.eventName}
-                        </p>
+                      <div style="margin: 24px 0; padding: 12px; background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px;">
+                        <p style="margin: 0 0 4px; font-size: 14px; color: #525252;"><strong>Application ID:</strong> ${data.applicationId}</p>
+                        <p style="margin: 0; font-size: 14px; color: #525252;"><strong>Event:</strong> ${data.eventName}</p>
                       </div>
                       
-                      ${
-                        data.rejectionReason
-                          ? `
-                      <!-- Rejection Reason -->
-                      <div style="margin: 32px 0; padding: 24px; background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 8px;">
-                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #92400e;">
-                          Reason for Decision
-                        </p>
-                        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #78350f;">
-                          ${data.rejectionReason}
-                        </p>
+                      ${data.rejectionReason ? `
+                      <div style="margin: 24px 0; padding: 12px; background-color: #fef9c3; border-left: 3px solid #eab308; border-radius: 4px;">
+                        <p style="margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #713f12;">Reason for Decision</p>
+                        <p style="margin: 0; font-size: 14px; color: #713f12;">${data.rejectionReason}</p>
                       </div>
-                      `
-                          : ""
-                      }
+                      ` : ""}
                       
-                      <!-- Future Opportunities -->
-                      <h3 style="margin: 32px 0 16px; font-size: 18px; font-weight: 600; color: #1f2937;">
-                        📅 Future Opportunities
-                      </h3>
-                      <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #4b5563;">
+                      <h3 style="margin: 24px 0 12px; font-size: 16px; font-weight: 600; color: #171717;">Future Opportunities</h3>
+                      <p style="margin: 0 0 24px; font-size: 14px; line-height: 22px; color: #525252;">
                         We encourage you to apply for future events. Each application is evaluated independently based on the specific event requirements and available space.
                       </p>
                       
-                      <!-- Support Info -->
-                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left: 4px solid #3b82f6; border-radius: 8px;">
-                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #1e3a8a;">
-                          💬 Questions?
-                        </p>
-                        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #1e40af;">
-                          If you have any questions about this decision or would like feedback on your application, please feel free to contact our events team.
-                        </p>
-                      </div>
-                      
-                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
-                        Thank you for your interest in our event, and we hope to work with you in the future.
+                      <p style="margin: 24px 0 0; padding: 12px; background-color: #eff6ff; border-left: 3px solid #2456d3; border-radius: 4px; font-size: 14px; color: #1e40af;">
+                        If you have any questions about this decision, please feel free to contact our events team.
                       </p>
-                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                      
+                      <p style="margin: 24px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
+                        Thank you for your interest, and we hope to work with you in the future.
+                      </p>
+                      <p style="margin: 16px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
                         Best regards,<br>
-                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                        <strong>GUC Events Team</strong>
                       </p>
                     </td>
                   </tr>
                   
                   <!-- Footer -->
                   <tr>
-                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
-                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
-                        This is an automated email. For support, please contact the events team.
-                      </p>
-                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
-                        &copy; ${new Date().getFullYear()} German University in Cairo - Event Management System
-                      </p>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
+                      <p style="margin: 0 0 8px; font-size: 13px; color: #a3a3a3;">For support, please contact the events team.</p>
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
                     </td>
                   </tr>
                 </table>
@@ -1317,69 +1262,55 @@ export class MailgunService extends BaseMailService {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
             <tr>
-              <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
+                  <!-- Header -->
                   <tr>
-                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border-radius: 12px 12px 0 0;">
-                      <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
-                        🎫 Your Event QR Code
-                      </h1>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #171717;">Your Event QR Code</h1>
                     </td>
                   </tr>
+                  
+                  <!-- Body -->
                   <tr>
-                    <td style="padding: 48px 40px; text-align: center;">
-                      <p style="margin: 0 0 24px; font-size: 18px; font-weight: 600; color: #1f2937;">
-                        Dear ${data.visitorName},
-                      </p>
-                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
-                        Here is your QR code for <strong style="color: #6366f1;">${data.eventName}</strong>.
-                        Please present this QR code at the entrance for quick check-in.
+                    <td style="padding: 32px; text-align: center;">
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252; text-align: left;">Dear ${data.visitorName},</p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252; text-align: left;">
+                        Here is your QR code for <strong style="color: #2456d3;">${data.eventName}</strong>. Please present this at the entrance for quick check-in.
                       </p>
                       
                       <!-- QR Code -->
-                      <div style="margin: 32px 0; padding: 24px; background-color: #f9fafb; border-radius: 12px; display: inline-block;">
+                      <div style="margin: 24px auto; padding: 24px; background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 8px; display: inline-block;">
                         <img src="${data.qrCodeDataUrl}" alt="Event QR Code" style="width: 200px; height: 200px; display: block;" />
                       </div>
                       
                       <!-- Event Details -->
-                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border-left: 4px solid #6366f1; border-radius: 8px; text-align: left;">
-                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #4338ca;">
-                          📅 Event Details
-                        </p>
-                        <p style="margin: 0 0 8px; font-size: 14px; color: #4b5563;">
-                          <strong>Event:</strong> ${data.eventName}
-                        </p>
-                        <p style="margin: 0 0 8px; font-size: 14px; color: #4b5563;">
-                          <strong>Date:</strong> ${eventDateStr}
-                        </p>
-                        <p style="margin: 0; font-size: 14px; color: #4b5563;">
-                          <strong>Location:</strong> ${data.eventLocation}
-                        </p>
+                      <div style="margin: 24px 0; padding: 16px; background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; text-align: left;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #171717;">Event Details</p>
+                        <p style="margin: 0 0 8px; font-size: 14px; color: #525252;"><strong>Event:</strong> ${data.eventName}</p>
+                        <p style="margin: 0 0 8px; font-size: 14px; color: #525252;"><strong>Date:</strong> ${eventDateStr}</p>
+                        <p style="margin: 0; font-size: 14px; color: #525252;"><strong>Location:</strong> ${data.eventLocation}</p>
                       </div>
                       
-                      <div style="margin: 32px 0; padding: 24px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; border-radius: 8px; text-align: left;">
-                        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #92400e;">
-                          💡 Tip: Save or screenshot this QR code for easy access at the event!
-                        </p>
-                      </div>
+                      <p style="margin: 24px 0; padding: 12px; background-color: #eff6ff; border-left: 3px solid #2456d3; border-radius: 4px; font-size: 14px; color: #1e40af; text-align: left;">
+                        Save or screenshot this QR code for easy access at the event.
+                      </p>
                       
-                      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                      <p style="margin: 0; font-size: 16px; line-height: 24px; color: #525252; text-align: left;">
                         See you there!<br>
-                        <strong style="color: #1f2937;">GUC Events Team</strong>
+                        <strong>GUC Events Team</strong>
                       </p>
                     </td>
                   </tr>
+                  
+                  <!-- Footer -->
                   <tr>
-                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
-                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
-                        This is an automated email from the GUC Event Management System.
-                      </p>
-                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
-                        &copy; ${new Date().getFullYear()} German University in Cairo
-                      </p>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5; text-align: center;">
+                      <p style="margin: 0 0 8px; font-size: 13px; color: #a3a3a3;">This is an automated email from the GUC Event Management System.</p>
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
                     </td>
                   </tr>
                 </table>
@@ -1429,55 +1360,49 @@ export class MailgunService extends BaseMailService {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
             <tr>
-              <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
+                  <!-- Header -->
                   <tr>
-                    <td style="padding: 48px 40px; text-align: center; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px 12px 0 0;">
-                      <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">
-                        📋 Visitor QR Code Notification
-                      </h1>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #171717;">Visitor QR Code Notification</h1>
                     </td>
                   </tr>
+                  
+                  <!-- Body -->
                   <tr>
-                    <td style="padding: 48px 40px; text-align: center;">
-                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                    <td style="padding: 32px; text-align: center;">
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252; text-align: left;">
                         A QR code has been sent to the following visitor for your booth/event:
                       </p>
                       
                       <!-- Visitor Details -->
-                      <div style="margin: 24px 0; padding: 24px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; text-align: left;">
-                        <p style="margin: 0 0 8px; font-size: 15px; color: #78350f;">
-                          <strong>Visitor Name:</strong> ${data.visitorName}
-                        </p>
-                        <p style="margin: 0 0 8px; font-size: 15px; color: #78350f;">
-                          <strong>Visitor Email:</strong> ${data.visitorEmail}
-                        </p>
-                        <p style="margin: 0; font-size: 15px; color: #78350f;">
-                          <strong>Event:</strong> ${data.eventName} on ${eventDateStr}
-                        </p>
+                      <div style="margin: 24px 0; padding: 16px; background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; text-align: left;">
+                        <p style="margin: 0 0 8px; font-size: 14px; color: #525252;"><strong>Visitor Name:</strong> ${data.visitorName}</p>
+                        <p style="margin: 0 0 8px; font-size: 14px; color: #525252;"><strong>Visitor Email:</strong> ${data.visitorEmail}</p>
+                        <p style="margin: 0; font-size: 14px; color: #525252;"><strong>Event:</strong> ${data.eventName} on ${eventDateStr}</p>
                       </div>
                       
                       <!-- QR Code Copy -->
-                      <div style="margin: 32px 0; padding: 24px; background-color: #f9fafb; border-radius: 12px; display: inline-block;">
-                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #6b7280;">
-                          Visitor's QR Code (for your records):
-                        </p>
+                      <div style="margin: 24px auto; padding: 24px; background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 8px; display: inline-block;">
+                        <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #525252;">Visitor's QR Code (for your records):</p>
                         <img src="${data.qrCodeDataUrl}" alt="Visitor QR Code" style="width: 150px; height: 150px; display: block; margin: 0 auto;" />
                       </div>
                       
-                      <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">
+                      <p style="margin: 24px 0 0; padding: 12px; background-color: #eff6ff; border-left: 3px solid #2456d3; border-radius: 4px; font-size: 14px; color: #1e40af; text-align: left;">
                         This visitor will present this QR code at the event for verification.
                       </p>
                     </td>
                   </tr>
+                  
+                  <!-- Footer -->
                   <tr>
-                    <td style="padding: 32px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
-                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
-                        This is an automated notification from the GUC Event Management System.
-                      </p>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5; text-align: center;">
+                      <p style="margin: 0 0 8px; font-size: 13px; color: #a3a3a3;">This is an automated notification from the GUC Event Management System.</p>
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
                     </td>
                   </tr>
                 </table>
