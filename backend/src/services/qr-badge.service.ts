@@ -230,6 +230,112 @@ export class QRBadgeService {
   }
 
   /**
+   * Force generate badges for any approved application (Events Office use)
+   * Does NOT check vendor ownership - for admin use only
+   */
+  async forceGenerateAllBadges(applicationId: string): Promise<Buffer> {
+    const application: any = await vendorApplicationRepository.findById(applicationId);
+    
+    if (!application) {
+      throw new ServiceError('NOT_FOUND', 'Application not found', 404);
+    }
+
+    // Check if approved
+    if (application.status !== 'APPROVED') {
+      throw new ServiceError(
+        'FORBIDDEN',
+        'Badges can only be generated for approved applications',
+        403
+      );
+    }
+
+    // Get visitor information from names and emails arrays
+    const names = application.names || [];
+    const emails = application.emails || [];
+    
+    if (names.length === 0 || emails.length === 0) {
+      throw new ServiceError(
+        'BAD_REQUEST',
+        'No visitors registered for this application. Please ensure names and emails are provided.',
+        400
+      );
+    }
+
+    // Get vendor info
+    const vendorId = String(application.createdBy);
+    const vendor = await User.findById(vendorId).lean();
+    if (!vendor) {
+      throw new ServiceError('NOT_FOUND', 'Vendor not found', 404);
+    }
+
+    // For BAZAAR type, get event info. For PLATFORM type, use platform info
+    let eventName = 'Platform Booth';
+    let eventDate = application.startDate || new Date();
+    let eventLocation = 'Campus Platform';
+    let eventId = 'platform';
+
+    if (application.type === 'BAZAAR' && application.bazaarId) {
+      const event = await Event.findById(application.bazaarId).lean();
+      if (event) {
+        eventName = event.name;
+        eventDate = event.startDate;
+        eventLocation = event.location || 'TBD';
+        eventId = String(event._id);
+      }
+    } else if (application.type === 'PLATFORM') {
+      eventName = application.boothLabel ? `Platform Booth ${application.boothLabel}` : 'Platform Booth';
+      eventLocation = 'GUC Campus Platform';
+    }
+
+    // Create multi-page PDF with all visitor badges
+    const doc = new PDFDocument({ size: 'LETTER', margin: 0 });
+    const buffers: Buffer[] = [];
+
+    doc.on('data', buffers.push.bind(buffers));
+
+    // Generate badge for each registered visitor
+    for (let i = 0; i < names.length; i++) {
+      const visitorName = names[i];
+      const visitorEmail = emails[i] || 'N/A';
+
+      if (i > 0) doc.addPage();
+
+      // Generate QR code for this visitor
+      const qrCodeDataUrl = await this.generateQRCode({
+        visitorId: `visitor-${i}`,
+        visitorName,
+        vendorId: String(vendor._id),
+        vendorName: vendor.companyName || `${vendor.firstName} ${vendor.lastName}`,
+        eventId: eventId,
+        eventName: eventName,
+        eventDate: eventDate,
+        applicationId,
+      });
+
+      // Draw badge on page
+      this.drawBadgeOnPage(doc, {
+        visitorName,
+        visitorEmail,
+        vendorName: vendor.companyName || `${vendor.firstName} ${vendor.lastName}`,
+        eventName: eventName,
+        eventDate: eventDate,
+        eventLocation: eventLocation,
+        qrCodeDataUrl,
+        badgeType: application.type === 'BAZAAR' ? 'Bazaar Participant' : 'Platform Booth',
+      });
+    }
+
+    doc.end();
+
+    return new Promise((resolve, reject) => {
+      doc.on('end', () => {
+        resolve(Buffer.concat(buffers));
+      });
+      doc.on('error', reject);
+    });
+  }
+
+  /**
    * Create a single-page badge PDF
    */
   private createBadgePDF(badgeData: any): Promise<Buffer> {

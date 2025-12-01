@@ -22,21 +22,26 @@ import {
   XCircle,
   AlertCircle,
   Download,
+  QrCode,
+  Loader2,
 } from "lucide-react";
 import { formatDate } from "@/lib/design-system";
 import type { VendorApplication } from "@event-manager/shared";
 import { toast } from "react-hot-toast";
 import { formatValidationErrors } from "@/lib/format-errors";
 import { Button } from "@/components/ui/button";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { trpc } from "@/lib/trpc";
 
 interface VendorApplicationExpandedRowProps {
   application: VendorApplication;
+  /** If true, shows Events Office actions like force download badges */
+  isEventsOffice?: boolean;
 }
 
-export function VendorApplicationExpandedRow({ application }: VendorApplicationExpandedRowProps) {
+export function VendorApplicationExpandedRow({ application, isEventsOffice = false }: VendorApplicationExpandedRowProps) {
   const isBazaar = application.type === 'BAZAAR';
+  const [isDownloadingBadges, setIsDownloadingBadges] = useState(false);
   
   // Status configuration
   const statusConfig = {
@@ -98,6 +103,31 @@ export function VendorApplicationExpandedRow({ application }: VendorApplicationE
     },
     [application.idPictures, utils]
   );
+
+  // Force generate badges mutation (Events Office only)
+  const forceGenerateBadgesMutation = trpc.vendorApplications.forceGenerateBadges.useMutation({
+    onSuccess: (data) => {
+      // Download the PDF
+      const link = document.createElement('a');
+      link.href = `data:${data.mimeType};base64,${data.data}`;
+      link.download = data.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('QR Badges downloaded successfully');
+      setIsDownloadingBadges(false);
+    },
+    onError: (error) => {
+      const errorMessage = formatValidationErrors(error);
+      toast.error(errorMessage, { style: { whiteSpace: 'pre-line' } });
+      setIsDownloadingBadges(false);
+    },
+  });
+
+  const handleDownloadBadges = useCallback(() => {
+    setIsDownloadingBadges(true);
+    forceGenerateBadgesMutation.mutate({ applicationId: application.id });
+  }, [application.id, forceGenerateBadgesMutation]);
 
   return (
     <div className="p-6 bg-muted/30">
@@ -193,11 +223,33 @@ export function VendorApplicationExpandedRow({ application }: VendorApplicationE
 
         {/* Attendees List */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5" />
               Attendees ({application.names?.length || 0})
             </CardTitle>
+            {/* Events Office: Download QR Badges button */}
+            {isEventsOffice && application.status === 'APPROVED' && application.names && application.names.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadBadges}
+                disabled={isDownloadingBadges}
+                className="gap-2"
+              >
+                {isDownloadingBadges ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <QrCode className="h-4 w-4" />
+                    Download QR Badges
+                  </>
+                )}
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {application.names && application.names.length > 0 ? (

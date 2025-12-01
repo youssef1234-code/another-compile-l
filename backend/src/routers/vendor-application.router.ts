@@ -158,6 +158,22 @@ const applicationRoutes = {
       return { success: true, message: 'Badges sent to your email successfully' };
     }),
 
+  /**
+   * [Events Office] Force generate visitor badges for any approved application
+   * Bypasses vendor ownership check
+   */
+  forceGenerateBadges: eventsOfficeProcedure
+    .input(z.object({ applicationId: z.string() }))
+    .mutation(async ({ input }) => {
+      const pdfBuffer = await qrBadgeService.forceGenerateAllBadges(input.applicationId);
+      const base64 = pdfBuffer.toString('base64');
+      return {
+        data: base64,
+        filename: `visitor-badges-${input.applicationId}-${Date.now()}.pdf`,
+        mimeType: 'application/pdf',
+      };
+    }),
+
   update: eventsOfficeProcedure
     .input(
       z.object({

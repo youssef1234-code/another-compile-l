@@ -89,7 +89,7 @@ export function VendorRequestsTable({
     <DataTable 
       table={table}
       renderSubComponent={(row) => (
-        <VendorApplicationExpandedRow application={row.original} />
+        <VendorApplicationExpandedRow application={row.original} isEventsOffice />
       )}
     >
       {/* Toggle Buttons */}
