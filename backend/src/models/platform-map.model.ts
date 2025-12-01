@@ -21,6 +21,7 @@ export interface IBoothPlacement {
   applicationId?: mongoose.Types.ObjectId; // Reference to VendorApplication
   label?: string; // Optional label like "Booth A1"
   isVIP?: boolean; // VIP booth designation
+  coordinates?: { lat: number; lng: number }; // Real-world map coordinates
 }
 
 // Landmark types for platform navigation
@@ -79,6 +80,13 @@ const boothPlacementSchema = new Schema<IBoothPlacement>(
     },
     label: { type: String, required: false },
     isVIP: { type: Boolean, default: false },
+    coordinates: {
+      type: {
+        lat: { type: Number },
+        lng: { type: Number },
+      },
+      required: false,
+    },
   },
   { _id: false }
 );

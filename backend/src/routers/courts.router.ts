@@ -2,6 +2,7 @@ import { router, publicProcedure, protectedProcedure, adminOrEventOfficeProcedur
 import { z } from "zod";
 import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
+import { courtReservationRepository } from "../repositories/court-reservation.repository";
 import type { CourtSummary } from "@event-manager/shared";
 import { 
   CourtReservationCreateSchema, 
@@ -203,6 +204,7 @@ export const courtsRouter = router({
           specs: court.specs,
           customInstructions: court.customInstructions,
           images: court.images || [],
+          coordinates: court.coordinates,
         })),
         pageCount: Math.ceil(total / limit),
         total,
@@ -224,6 +226,7 @@ export const courtsRouter = router({
         specs: court.specs,
         customInstructions: court.customInstructions,
         images: court.images || [],
+        coordinates: court.coordinates,
       };
     }),
   
@@ -300,5 +303,40 @@ availability: publicProcedure
       return { id: (updated._id as any).toString(), status: updated.status };
     }),
 
+  // Admin/Event Office: Get all registrations with filters
+  getAllRegistrations: adminOrEventOfficeProcedure
+    .input(z.object({
+      startDate: z.coerce.date(),
+      endDate: z.coerce.date(),
+      sport: z.nativeEnum(CourtSport).optional(),
+      courtId: z.string().optional(),
+      status: z.string().optional(),
+      search: z.string().optional(),
+      page: z.number().min(1).optional().default(1),
+      limit: z.number().min(1).max(500).optional().default(100),
+      sorting: z.array(z.object({
+        id: z.string(),
+        desc: z.boolean(),
+      })).optional(),
+    }))
+    .query(async ({ input }) => {
+      const result = await courtReservationRepository.getAllRegistrations({
+        startDate: input.startDate,
+        endDate: input.endDate,
+        sport: input.sport,
+        courtId: input.courtId,
+        status: input.status,
+        search: input.search,
+        skip: (input.page - 1) * input.limit,
+        limit: input.limit,
+        sorting: input.sorting,
+      });
+      
+      return {
+        registrations: result.registrations,
+        total: result.total,
+        pageCount: Math.ceil(result.total / input.limit),
+      };
+    }),
     
 });

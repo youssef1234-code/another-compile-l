@@ -5,7 +5,7 @@
  */
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, Trash2, MapPin, Trophy, Calendar, MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react";
+import { Edit, Trash2, MapPin, Trophy, MoreHorizontal, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,15 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { CourtSport } from "@event-manager/shared";
+import { useState } from "react";
+import type { CourtSport, Coordinates } from "@event-manager/shared";
 
 interface Court {
   id: string;
@@ -28,12 +35,12 @@ interface Court {
   specs?: string;
   customInstructions?: string;
   images: string[];
+  coordinates?: Coordinates;
 }
 
 interface GetCourtTableColumnsProps {
   onEdit: (court: Court) => void;
   onDelete: (id: string) => void;
-  onViewSchedule: (court: Court) => void;
 }
 
 // Sport Badge Component
@@ -55,7 +62,6 @@ function SportBadge({ sport }: { sport: CourtSport }) {
 export function getCourtTableColumns({
   onEdit,
   onDelete,
-  onViewSchedule,
 }: GetCourtTableColumnsProps): ColumnDef<Court>[] {
   return [
     {
@@ -130,11 +136,60 @@ export function getCourtTableColumns({
         <DataTableColumnHeader column={column} title="Location" />
       ),
       cell: ({ row }) => {
+        const court = row.original;
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const [showMapDialog, setShowMapDialog] = useState(false);
+        
         return (
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <MapPin className="size-3.5" />
-            {row.getValue("location")}
-          </div>
+          <>
+            <div 
+              className={cn(
+                "flex items-center gap-1.5 text-sm text-muted-foreground",
+                court.coordinates && "cursor-pointer hover:text-primary transition-colors"
+              )}
+              onClick={(e) => {
+                if (court.coordinates) {
+                  e.stopPropagation();
+                  setShowMapDialog(true);
+                }
+              }}
+            >
+              <MapPin className="size-3.5" />
+              <span>{row.getValue("location")}</span>
+              {court.coordinates && (
+                <ExternalLink className="size-3 ml-1 opacity-50" />
+              )}
+            </div>
+            
+            {/* Map Dialog */}
+            {court.coordinates && (
+              <Dialog open={showMapDialog} onOpenChange={setShowMapDialog}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      {court.name} - Location
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">{court.location}</p>
+                    <div className="h-[400px] rounded-lg overflow-hidden border">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${court.coordinates.lng - 0.005}%2C${court.coordinates.lat - 0.003}%2C${court.coordinates.lng + 0.005}%2C${court.coordinates.lat + 0.003}&layer=mapnik&marker=${court.coordinates.lat}%2C${court.coordinates.lng}`}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Coordinates: {court.coordinates.lat.toFixed(6)}, {court.coordinates.lng.toFixed(6)}
+                    </p>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </>
         );
       },
       enableColumnFilter: true,
@@ -183,15 +238,6 @@ export function getCourtTableColumns({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewSchedule(court);
-                  }}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Schedule
-                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();

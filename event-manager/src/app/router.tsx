@@ -74,6 +74,7 @@ const GymSchedulePage = lazy(() => import("@/features/gym/pages").then(m => ({ d
 // ManageSessionsPage removed - Coming Soon placeholder
 const CourtBookingsPage = lazy(() => import("@/features/gym/pages").then(m => ({ default: m.CourtBookingsPage })));
 const CourtManagementPage = lazy(() => import("@/features/gym/pages/CourtManagementPage").then(m => ({ default: m.CourtManagementPage })));
+// CourtRegistrationsPage merged into CourtManagementPage (tab=registrations)
 
 // Admin
 const AdminUsersPage = lazy(() => import("@/features/admin/pages/AdminUsersPage").then(m => ({ default: m.AdminUsersPage })));
@@ -325,6 +326,12 @@ export const router = createBrowserRouter([
               <CourtManagementPage />
             </Suspense>
           </EventManagementRoute>
+        ),
+      },
+      {
+        path: ROUTES.COURT_REGISTRATIONS,
+        element: (
+          <Navigate to={`${ROUTES.COURT_MANAGEMENT}?tab=registrations`} replace />
         ),
       },
       // Manage Sessions page was removed (Coming Soon placeholder)

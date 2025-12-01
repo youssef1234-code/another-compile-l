@@ -17,8 +17,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageGallery } from '@/components/ui/image-gallery';
+import { LocationPicker, type LocationData } from '@/components/ui/location-picker';
 import { Loader2 } from 'lucide-react';
-import type { CourtSport } from '@event-manager/shared';
+import type { CourtSport, Coordinates } from '@event-manager/shared';
 
 const SPORTS = ['BASKETBALL', 'TENNIS', 'FOOTBALL'] as const;
 
@@ -31,6 +32,7 @@ interface CourtData {
   specs?: string;
   customInstructions?: string;
   images: string[];
+  coordinates?: Coordinates;
 }
 
 interface CourtFormSheetProps {
@@ -49,6 +51,7 @@ const INITIAL_FORM_DATA: CourtData = {
   specs: '',
   customInstructions: '',
   images: [],
+  coordinates: undefined,
 };
 
 export function CourtFormSheet({
@@ -181,6 +184,36 @@ export function CourtFormSheet({
                 onChange={(urls: string[]) => setFormData({ ...formData, images: urls })}
                 onUploadingChange={setIsUploading}
                 maxImages={5}
+              />
+            </FormSheetField>
+
+            {/* Map Location */}
+            <FormSheetField
+              label="Map Location"
+              hint="Click on the map to set the court's location"
+            >
+              <LocationPicker
+                value={formData.coordinates ? {
+                  lat: formData.coordinates.lat,
+                  lng: formData.coordinates.lng,
+                  address: formData.location,
+                } : undefined}
+                onChange={(location: LocationData | undefined) => {
+                  if (location) {
+                    setFormData({
+                      ...formData,
+                      coordinates: { lat: location.lat, lng: location.lng },
+                      // Optionally update the location text field with the address
+                      location: location.address || formData.location,
+                    });
+                  } else {
+                    setFormData({
+                      ...formData,
+                      coordinates: undefined,
+                    });
+                  }
+                }}
+                height="250px"
               />
             </FormSheetField>
           </FormSheetSection>

@@ -42,6 +42,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { LocationPicker, LocationPreview, BoothMapDialog, type LocationData, type BoothMarkerData } from '@/components/ui/location-picker';
 import { useTheme } from '@/hooks/useTheme';
 import { formatValidationErrors } from '@/lib/format-errors';
 import { trpc } from '@/lib/trpc';
@@ -79,6 +80,11 @@ type ToolType = 'hand' | 'pointer' | 'booth' | 'landmark' | 'text' | 'object';
 type LandmarkType = 'ENTRANCE' | 'EXIT' | 'SPECIAL_PLACE';
 type ObjectType = 'circle' | 'square';
 
+interface BoothCoordinates {
+  lat: number;
+  lng: number;
+}
+
 interface Booth {
   id: string;
   x: number;
@@ -89,6 +95,7 @@ interface Booth {
   applicationId?: string;
   label?: string;
   isVIP?: boolean;
+  coordinates?: BoothCoordinates; // Real-world map coordinates
 }
 
 interface Landmark {
@@ -181,6 +188,7 @@ export function PlatformSetupPage() {
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [showAddTextDialog, setShowAddTextDialog] = useState(false);
   const [showAddLandmarkDialog, setShowAddLandmarkDialog] = useState(false);
+  const [showAllBoothsMapDialog, setShowAllBoothsMapDialog] = useState(false);
   const [newTextValue, setNewTextValue] = useState('');
   const [newTextPosition, setNewTextPosition] = useState({ x: 0, y: 0 });
   const [newLandmarkLabel, setNewLandmarkLabel] = useState('');
@@ -590,6 +598,7 @@ export function PlatformSetupPage() {
           applicationId: b.applicationId,
           label: b.label,
           isVIP: b.isVIP || false,
+          coordinates: b.coordinates, // Preserve map coordinates
         })),
         landmarks: landmarks.map((l) => ({
           id: l.id,
@@ -1067,7 +1076,63 @@ export function PlatformSetupPage() {
                   <p><strong>Label:</strong> {selectedBoothData.label || 'N/A'}</p>
                   <p><strong>Size:</strong> {selectedBoothData.width}x{selectedBoothData.height}</p>
                   <p><strong>Position:</strong> ({selectedBoothData.x}, {selectedBoothData.y})</p>
+                  {selectedBoothData.coordinates && (
+                    <p><strong>Map Location:</strong> Set ✓</p>
+                  )}
                 </div>
+
+                {/* Map Location Picker for booth */}
+                <div className="space-y-2 mt-3">
+                  <Label className="text-xs text-muted-foreground">Map Location</Label>
+                  {selectedBoothData.coordinates ? (
+                    <div className="space-y-2">
+                      <LocationPreview
+                        location={{
+                          lat: selectedBoothData.coordinates.lat,
+                          lng: selectedBoothData.coordinates.lng,
+                          address: selectedBoothData.label || `Booth at (${selectedBoothData.x}, ${selectedBoothData.y})`,
+                        }}
+                        height="120px"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          setPlatform({
+                            ...platform,
+                            booths: platform.booths.map(b =>
+                              b.id === selectedBooth ? { ...b, coordinates: undefined } : b
+                            ),
+                          });
+                          saveToHistory();
+                          toast.success('Location removed');
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove Location
+                      </Button>
+                    </div>
+                  ) : (
+                    <LocationPicker
+                      value={undefined}
+                      onChange={(location: LocationData | undefined) => {
+                        if (location) {
+                          setPlatform({
+                            ...platform,
+                            booths: platform.booths.map(b =>
+                              b.id === selectedBooth ? { ...b, coordinates: { lat: location.lat, lng: location.lng } } : b
+                            ),
+                          });
+                          saveToHistory();
+                          toast.success('Location set for booth');
+                        }
+                      }}
+                      height="150px"
+                    />
+                  )}
+                </div>
+
                 {!selectedBoothData.isOccupied && (
                   <div className="space-y-2 mt-2">
                     <Button
@@ -1201,6 +1266,18 @@ export function PlatformSetupPage() {
                   </>
                 )}
               </Button>
+
+              {/* View All Booths on Map */}
+              {platform.booths.some(b => b.coordinates) && (
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => setShowAllBoothsMapDialog(true)}
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  View All on Map
+                </Button>
+              )}
 
               <Button
                 variant="outline"
@@ -1627,6 +1704,26 @@ export function PlatformSetupPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View All Booths on Map Dialog with Numbered Markers */}
+      <BoothMapDialog
+        open={showAllBoothsMapDialog}
+        onOpenChange={setShowAllBoothsMapDialog}
+        booths={platform.booths
+          .filter(b => b.coordinates)
+          .map(b => ({
+            id: b.id,
+            label: b.label || `B${b.x}-${b.y}`,
+            lat: b.coordinates!.lat,
+            lng: b.coordinates!.lng,
+            isOccupied: b.isOccupied,
+            isVIP: b.isVIP,
+            size: `${b.width}x${b.height}`,
+          } as BoothMarkerData))
+        }
+        title="All Booth Locations on Map"
+        description="View all booths with their real-world locations. Each marker shows the booth number for easy identification."
+      />
     </div>
   );
 }

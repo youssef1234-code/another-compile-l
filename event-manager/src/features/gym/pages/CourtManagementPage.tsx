@@ -7,10 +7,10 @@
  * - Edit court details
  * - Upload court images
  * - Delete courts
- * - View court schedules
+ * - View all court registrations with proper pagination
  */
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { trpc } from '@/lib/trpc';
 import {
   Dialog,
@@ -23,13 +23,17 @@ import {
 import { toast } from 'react-hot-toast';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
-import type { CourtSport } from '@event-manager/shared';
+import type { CourtSport, Coordinates } from '@event-manager/shared';
 import type { TRPCClientErrorLike } from '@trpc/client';
 import type { AppRouter } from '../../../../../backend/src/routers/app.router';
 import { CourtFormSheet } from '../components/CourtFormSheet';
 import { CourtsTable } from '../components/courts-table';
+import { RegistrationsTable } from '../components/registrations-table';
+import type { Registration } from '../components/registration-table-columns';
 import { Button } from '@/components/ui/button';
-import { useQueryState, parseAsInteger, parseAsString, parseAsJson, parseAsArrayOf } from 'nuqs';
+import { useQueryState, parseAsInteger, parseAsString, parseAsJson, parseAsArrayOf, parseAsStringLiteral } from 'nuqs';
+import { Building2, ClipboardList } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface CourtData {
   id: string;
@@ -40,6 +44,7 @@ interface CourtData {
   specs?: string;
   customInstructions?: string;
   images: string[];
+  coordinates?: Coordinates;
 }
 
 interface CourtFormData {
@@ -51,15 +56,20 @@ interface CourtFormData {
   specs?: string;
   customInstructions?: string;
   images: string[];
+  coordinates?: Coordinates;
 }
 
 export function CourtManagementPage() {
   const { setPageMeta } = usePageMeta();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-  const [selectedCourt, setSelectedCourt] = useState<CourtData | null>(null);
   const [editingCourt, setEditingCourt] = useState<CourtData | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  
+  // Tab state (courts | registrations)
+  const [activeTab, setActiveTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(['courts', 'registrations'] as const).withDefault('courts')
+  );
 
   useEffect(() => {
     setPageMeta({
@@ -141,6 +151,49 @@ export function CourtManagementPage() {
   const courts = courtsResponse?.data || [];
   const pageCount = courtsResponse?.pageCount || 0;
 
+  // Registrations query state (managed by the table component)
+  const [regQueryParams, setRegQueryParams] = useState({
+    page: 1,
+    perPage: 50,
+    search: '',
+    sorting: [{ id: 'startDate', desc: true }] as Array<{ id: string; desc: boolean }>,
+  });
+
+  // Registrations date range - show past 7 days to next 30 days
+  const registrationsDateRange = useMemo(() => {
+    const now = new Date();
+    return {
+      start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7),
+      end: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30),
+    };
+  }, []);
+
+  // Callback to update registrations query params from table
+  const handleRegQueryChange = useCallback((params: {
+    page: number;
+    perPage: number;
+    search: string;
+    sorting: Array<{ id: string; desc: boolean }>;
+  }) => {
+    setRegQueryParams(params);
+  }, []);
+
+  // Fetch registrations with pagination (only when on registrations tab)
+  const { data: registrationsData, isLoading: isLoadingRegistrations } = trpc.courts.getAllRegistrations.useQuery(
+    {
+      startDate: registrationsDateRange.start,
+      endDate: registrationsDateRange.end,
+      page: regQueryParams.page,
+      limit: regQueryParams.perPage,
+      search: regQueryParams.search || undefined,
+      sorting: regQueryParams.sorting,
+    },
+    { enabled: activeTab === 'registrations' }
+  );
+
+  const registrations = (registrationsData?.registrations || []) as Registration[];
+  const registrationsPageCount = registrationsData?.pageCount || 1;
+
   const createMutation = trpc.courts.create.useMutation({
     onSuccess: () => {
       toast.success('Court created successfully');
@@ -189,11 +242,6 @@ export function CourtManagementPage() {
     setIsSheetOpen(true);
   };
 
-  const handleViewSchedule = (court: CourtData) => {
-    setSelectedCourt(court);
-    setIsScheduleDialogOpen(true);
-  };
-
   const handleFormSubmit = async (formData: CourtFormData) => {
     if (editingCourt) {
       await updateMutation.mutateAsync({ ...formData, id: editingCourt.id });
@@ -208,24 +256,73 @@ export function CourtManagementPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      {/* Courts Table */}
-      <CourtsTable
-        data={courts as CourtData[]}
-        pageCount={pageCount}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-        onDelete={(id) => setDeleteConfirmId(id)}
-        onViewSchedule={handleViewSchedule}
-        onCreate={handleCreateNew}
-        queryKeys={{
-          page: 'page',
-          perPage: 'perPage',
-          sort: 'sort',
-          filters: 'filters',
-          joinOperator: 'joinOperator',
-        }}
-        isSearching={isLoading}
-      />
+      {/* View Toggle - GymSchedulePage Style */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1 rounded-lg p-1 bg-muted/30 border">
+          <Button 
+            variant="ghost"
+            size="sm" 
+            onClick={() => setActiveTab('courts')}
+            className={cn(
+              'gap-2 transition-all',
+              activeTab === 'courts'
+                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                : 'hover:bg-muted text-muted-foreground'
+            )}
+          >
+            <Building2 className="h-4 w-4"/> Courts
+          </Button>
+          <Button 
+            variant="ghost"
+            size="sm" 
+            onClick={() => setActiveTab('registrations')}
+            className={cn(
+              'gap-2 transition-all',
+              activeTab === 'registrations'
+                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary' 
+                : 'hover:bg-muted text-muted-foreground'
+            )}
+          >
+            <ClipboardList className="h-4 w-4"/> Registrations
+          </Button>
+        </div>
+
+        {/* Create Button - only show on Courts tab */}
+        {activeTab === 'courts' && (
+          <Button onClick={handleCreateNew} className="gap-2">
+            + Add Court
+          </Button>
+        )}
+      </div>
+
+      {/* Courts View */}
+      {activeTab === 'courts' && (
+        <CourtsTable
+          data={courts as CourtData[]}
+          pageCount={pageCount}
+          isLoading={isLoading}
+          onEdit={handleEdit}
+          onDelete={(id) => setDeleteConfirmId(id)}
+          queryKeys={{
+            page: 'page',
+            perPage: 'perPage',
+            sort: 'sort',
+            filters: 'filters',
+            joinOperator: 'joinOperator',
+          }}
+          isSearching={isLoading}
+          />
+      )}
+
+      {/* Registrations View */}
+      {activeTab === 'registrations' && (
+        <RegistrationsTable
+          data={registrations}
+          pageCount={registrationsPageCount}
+          isLoading={isLoadingRegistrations}
+          onQueryChange={handleRegQueryChange}
+        />
+      )}
 
       {/* Form Sheet */}
       <CourtFormSheet
@@ -235,23 +332,6 @@ export function CourtManagementPage() {
         onSubmit={handleFormSubmit}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
       />
-
-      {/* Schedule Dialog */}
-      <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>{selectedCourt?.name} - Reservation Schedule</DialogTitle>
-            <DialogDescription>
-              View all reservations for this court
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-center text-muted-foreground">
-              Schedule view coming soon...
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>

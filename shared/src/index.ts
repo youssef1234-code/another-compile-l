@@ -605,6 +605,14 @@ export type CourtAvailabilityResponse = z.infer<
   typeof CourtAvailabilityResponseSchema
 >;
 
+// Coordinates schema for map locations
+export const CoordinatesSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+});
+
+export type Coordinates = z.infer<typeof CoordinatesSchema>;
+
 export const CourtSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -614,6 +622,7 @@ export const CourtSchema = z.object({
   specs: z.string().optional(), // Court specifications (e.g., "Indoor court, wooden floor, 28m x 15m")
   customInstructions: z.string().optional(), // Custom booking instructions
   images: z.array(z.string()).optional(), // Array of image URLs or file IDs
+  coordinates: CoordinatesSchema.optional(), // Map coordinates for the court location
 });
 
 export const CreateCourtSchema = z.object({
@@ -624,6 +633,7 @@ export const CreateCourtSchema = z.object({
   specs: z.string().optional(),
   customInstructions: z.string().optional(),
   images: z.array(z.string()).optional(),
+  coordinates: CoordinatesSchema.optional(), // Map coordinates for the court location
 });
 
 export type CreateCourtInput = z.infer<typeof CreateCourtSchema>;

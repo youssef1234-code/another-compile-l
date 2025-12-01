@@ -44,8 +44,11 @@ interface GetVendorApplicationsTableColumnsProps {
 
 function getPaymentDeadline(app: VendorApplication) {
   if (app.status !== "APPROVED") return null;
-  const deadline = new Date(app.paymentDueAt ?? Date.now().toLocaleString());
-  return { deadline, daysLeft : differenceInDays(deadline, new Date())};
+  if (!app.paymentDueAt) return null;
+  const deadline = new Date(app.paymentDueAt);
+  // Check if the date is valid
+  if (isNaN(deadline.getTime())) return null;
+  return { deadline, daysLeft: differenceInDays(deadline, new Date()) };
 }
 
 // Application Status Badge Component

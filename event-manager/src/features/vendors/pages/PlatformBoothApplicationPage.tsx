@@ -24,8 +24,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
-import { Loader2, Plus, Trash2, Save, MapPin } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, MapPin, Map } from 'lucide-react';
 import { formatValidationErrors } from '@/lib/format-errors';
+import { LocationPreview, BoothMapDialog, type BoothMarkerData } from '@/components/ui/location-picker';
 import { 
   Select,
   SelectContent,
@@ -33,6 +34,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ROUTES } from '@/lib/constants';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { useTheme } from '@/hooks/useTheme';
@@ -54,6 +62,10 @@ interface Booth {
   isOccupied: boolean;
   isVIP?: boolean;
   label?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 interface Landmark {
@@ -93,6 +105,8 @@ export function PlatformBoothApplicationPage() {
   const [duration, setDuration] = useState<string>('1');
   const [startDate, setStartDate] = useState<string>('');
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
+  const [showAllBoothsMapDialog, setShowAllBoothsMapDialog] = useState(false);
+  const [showSelectedBoothMapDialog, setShowSelectedBoothMapDialog] = useState(false);
 
   // Theme-aware colors for Konva canvas
   const isDark = resolvedTheme === 'dark';
@@ -319,16 +333,37 @@ export function PlatformBoothApplicationPage() {
 
             {/* Selected Booth Info */}
             {selectedBooth && (
-              <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  <span className="font-semibold text-primary">
-                    Selected: {selectedBooth.label || `Booth ${selectedBooth.width}×${selectedBooth.height}`}
-                  </span>
+              <div 
+                className="p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-3 cursor-pointer hover:bg-primary/15 hover:border-primary/30 transition-colors"
+                onClick={() => setShowSelectedBoothMapDialog(true)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-primary">
+                      Selected: {selectedBooth.label || `Booth ${selectedBooth.width}×${selectedBooth.height}`}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Click to expand</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Grid Position: ({selectedBooth.x}, {selectedBooth.y})
                 </p>
+                
+                {/* Show map location preview if booth has coordinates */}
+                {selectedBooth.coordinates && (
+                  <div className="mt-3 pt-3 border-t border-primary/20">
+                    <Label className="text-xs text-muted-foreground mb-2 block">Booth Location on Map</Label>
+                    <LocationPreview
+                      location={{
+                        lat: selectedBooth.coordinates.lat,
+                        lng: selectedBooth.coordinates.lng,
+                        address: selectedBooth.label || `Booth at (${selectedBooth.x}, ${selectedBooth.y})`,
+                      }}
+                      height="150px"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -408,7 +443,18 @@ export function PlatformBoothApplicationPage() {
         {/* Platform Map */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Select Booth Location</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Select Booth Location</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAllBoothsMapDialog(true)}
+                className="gap-2"
+              >
+                <Map className="h-4 w-4" />
+                View All on Map
+              </Button>
+            </div>
             <p className="text-sm text-muted-foreground">
               Click on a green booth to select it. Only booths matching your chosen size are available.
             </p>
@@ -603,6 +649,96 @@ export function PlatformBoothApplicationPage() {
           )}
         </Button>
       </div>
+
+      {/* View All Booths on Map Dialog with Numbered Markers */}
+      <BoothMapDialog
+        open={showAllBoothsMapDialog}
+        onOpenChange={setShowAllBoothsMapDialog}
+        booths={platform.booths
+          .filter(b => b.coordinates)
+          .map(b => ({
+            id: b.id,
+            label: b.label || `B${b.x}-${b.y}`,
+            lat: b.coordinates!.lat,
+            lng: b.coordinates!.lng,
+            isOccupied: b.isOccupied,
+            isVIP: b.isVIP,
+            size: `${b.width}x${b.height}`,
+          } as BoothMarkerData))
+        }
+        title="All Booth Locations on Map"
+        description="View all booths with their real-world locations. Each marker shows the booth number for easy identification."
+      />
+
+      {/* Selected Booth Detail Dialog */}
+      <Dialog open={showSelectedBoothMapDialog} onOpenChange={setShowSelectedBoothMapDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              {selectedBooth?.label || `Booth ${selectedBooth?.width}×${selectedBooth?.height}`}
+            </DialogTitle>
+            <DialogDescription>
+              Booth details and location information
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedBooth && (
+            <div className="space-y-4">
+              {/* Booth Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Grid Position</p>
+                  <p className="font-medium">({selectedBooth.x}, {selectedBooth.y})</p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Size</p>
+                  <p className="font-medium">{selectedBooth.width}×{selectedBooth.height}</p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <p className="font-medium">{selectedBooth.isOccupied ? 'Occupied' : 'Available'}</p>
+                </div>
+                {selectedBooth.isVIP && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="text-xs text-amber-600 dark:text-amber-400">Type</p>
+                    <p className="font-medium text-amber-700 dark:text-amber-300">⭐ VIP Booth</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Map Location */}
+              {selectedBooth.coordinates ? (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Location on Map</Label>
+                  <div className="h-[350px] rounded-lg overflow-hidden border">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${selectedBooth.coordinates.lng - 0.003}%2C${selectedBooth.coordinates.lat - 0.002}%2C${selectedBooth.coordinates.lng + 0.003}%2C${selectedBooth.coordinates.lat + 0.002}&layer=mapnik&marker=${selectedBooth.coordinates.lat}%2C${selectedBooth.coordinates.lng}`}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Coordinates: {selectedBooth.coordinates.lat.toFixed(6)}, {selectedBooth.coordinates.lng.toFixed(6)}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-6 bg-muted/30 rounded-lg text-center">
+                  <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    This booth doesn't have map coordinates set yet.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Contact the event organizer for location details.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -17,6 +17,10 @@ const BoothPlacementInputSchema = z.object({
   applicationId: z.string().optional(),
   label: z.string().optional(),
   isVIP: z.boolean().optional(),
+  coordinates: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }).optional(),
 });
 
 const LandmarkInputSchema = z.object({

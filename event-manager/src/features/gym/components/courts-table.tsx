@@ -15,8 +15,8 @@ import { getCourtTableColumns } from "./court-table-columns";
 import { CourtExpandedRow } from "./court-expanded-row";
 import { useQueryState, parseAsString, parseAsBoolean } from "nuqs";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, ListFilter } from "lucide-react";
-import type { CourtSport } from "@event-manager/shared";
+import { Search, ListFilter } from "lucide-react";
+import type { CourtSport, Coordinates } from "@event-manager/shared";
 import type { QueryKeys } from "@/types/data-table";
 
 interface Court {
@@ -28,6 +28,7 @@ interface Court {
   specs?: string;
   customInstructions?: string;
   images: string[];
+  coordinates?: Coordinates;
 }
 
 interface CourtsTableProps {
@@ -36,8 +37,6 @@ interface CourtsTableProps {
   isLoading?: boolean;
   onEdit: (court: Court) => void;
   onDelete: (id: string) => void;
-  onViewSchedule: (court: Court) => void;
-  onCreate?: () => void;
   queryKeys?: QueryKeys;
   isSearching?: boolean;
 }
@@ -47,8 +46,6 @@ export function CourtsTable({
   pageCount = 1,
   onEdit,
   onDelete,
-  onViewSchedule,
-  onCreate,
   queryKeys,
   isSearching = false,
 }: CourtsTableProps) {
@@ -75,9 +72,8 @@ export function CourtsTable({
       getCourtTableColumns({
         onEdit,
         onDelete,
-        onViewSchedule,
       }),
-    [onEdit, onDelete, onViewSchedule]
+    [onEdit, onDelete]
   );
 
   const { table, shallow, debounceMs, throttleMs } = useDataTable({
@@ -101,37 +97,27 @@ export function CourtsTable({
       table={table}
       renderSubComponent={(row) => <CourtExpandedRow court={row.original} />}
     >
-      {/* Toggle Buttons and Action Button */}
-      <div className="flex items-center justify-between gap-2 p-1">
-        <div className="flex items-center gap-2">
-          <Button
-            variant={!enableAdvancedFilter ? "default" : "outline"}
-            size="sm"
-            onClick={() => setEnableAdvancedFilter(false)}
-            className="gap-2"
-          >
-            <Search className="h-4 w-4" />
-            Simple filters
-          </Button>
+      {/* Toggle Buttons */}
+      <div className="flex items-center gap-2 p-1">
+        <Button
+          variant={!enableAdvancedFilter ? "default" : "outline"}
+          size="sm"
+          onClick={() => setEnableAdvancedFilter(false)}
+          className="gap-2"
+        >
+          <Search className="h-4 w-4" />
+          Simple filters
+        </Button>
 
-          <Button
-            variant={enableAdvancedFilter ? "default" : "outline"}
-            size="sm"
-            onClick={() => setEnableAdvancedFilter(true)}
-            className="gap-2"
-          >
-            <ListFilter className="h-4 w-4" />
-            Advanced filters
-          </Button>
-        </div>
-
-        {/* Create Button */}
-        {onCreate && (
-          <Button size="sm" onClick={onCreate} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Court
-          </Button>
-        )}
+        <Button
+          variant={enableAdvancedFilter ? "default" : "outline"}
+          size="sm"
+          onClick={() => setEnableAdvancedFilter(true)}
+          className="gap-2"
+        >
+          <ListFilter className="h-4 w-4" />
+          Advanced filters
+        </Button>
       </div>
 
       {/* Conditional Toolbar Rendering */}

@@ -160,6 +160,7 @@ const navigationConfig: NavItem[] = [
         title: "Gym Schedule",
         url: ROUTES.GYM_SCHEDULE,
         icon: Calendar,
+        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "ADMIN", "EVENT_OFFICE"],
       },
       {
         title: "Court Bookings",

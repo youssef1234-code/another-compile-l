@@ -11,6 +11,7 @@ export interface ICourt extends IBaseDocument {
   specs?: string; // Court specifications (size, floor type, etc.)
   customInstructions?: string; // Booking instructions
   images?: string[]; // Array of image URLs or file IDs
+  coordinates?: { lat: number; lng: number }; // Map coordinates
   createdAt: Date; 
   updatedAt: Date;
 }
@@ -23,6 +24,13 @@ const courtSchema = createBaseSchema<ICourt>({
   specs: { type: String },
   customInstructions: { type: String },
   images: { type: [String], default: [] },
+  coordinates: {
+    type: {
+      lat: { type: Number },
+      lng: { type: Number },
+    },
+    required: false,
+  },
 });
 
 courtSchema.index({ sport: 1, name: 1 }, { unique: true });

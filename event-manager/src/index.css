@@ -698,4 +698,41 @@ html {
   }
 }
 
+/* ============================================================================
+   LEAFLET MAP Z-INDEX FIXES
+   ============================================================================
+   Ensure Leaflet maps inside dialogs don't cause z-index overlap issues
+   ========================================================================= */
+.leaflet-container {
+  z-index: 0 !important;
+}
+
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 0 !important;
+}
+
+.leaflet-overlay-pane {
+  z-index: 2 !important;
+}
+
+.leaflet-marker-pane,
+.leaflet-shadow-pane {
+  z-index: 3 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 4 !important;
+}
+
+/* Ensure dialog content is above leaflet controls */
+[data-slot="dialog-content"] .leaflet-control-container {
+  z-index: 5 !important;
+}
+
 
