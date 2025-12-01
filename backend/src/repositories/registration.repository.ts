@@ -16,12 +16,12 @@ import mongoose, { Types } from 'mongoose';
  */
 function transformRegistration(reg: any): any {
   if (!reg) return reg;
-  
+
   const transformed: any = {
     ...reg,
     id: reg._id?.toString() || reg.id,
   };
-  
+
   // Transform nested event if populated
   if (reg.event && typeof reg.event === 'object') {
     transformed.event = {
@@ -29,7 +29,7 @@ function transformRegistration(reg: any): any {
       id: reg.event._id?.toString() || reg.event.id,
     };
   }
-  
+
   // Transform nested user if populated
   if (reg.user && typeof reg.user === 'object') {
     transformed.user = {
@@ -37,7 +37,7 @@ function transformRegistration(reg: any): any {
       id: reg.user._id?.toString() || reg.user.id,
     };
   }
-  
+
   return transformed;
 }
 
@@ -234,7 +234,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
       isActive: true,
       $and: [
         { status: 'CONFIRMED' },
-        { paymentStatus: 'PAID' },
+        { paymentStatus: 'SUCCEEDED' },
       ],
     });
   }
