@@ -45,6 +45,7 @@ const EVENT_TYPES = [
     { value: 'TRIP', label: 'Trips' },
     { value: 'CONFERENCE', label: 'Conferences' },
     { value: 'BAZAAR', label: 'Bazaars' },
+    { value: "GYM_SESSION", label: "Gym Sessions" }
 ];
 
 export function ReportFilters({
