@@ -1250,65 +1250,51 @@ Authorization: Bearer <access_token>
 
 The project uses **Postman** for API testing. Test collections are located in `backend/collections/`.
 
-### Test Collection 1: Authentication Tests
-![Auth Test 1](./Images/Tests/auth-signup-test.png)
-**Test**: Academic User Signup
-- **Route**: `POST /auth.signupAcademic`
-- **Validates**: Email format, password strength, GUC ID uniqueness
-- **Expected**: 200 OK with success message
-
-### Test Collection 2: Login & JWT Verification
-![Auth Test 2](./Images/Tests/auth-login-test.png)
-**Test**: User Login
+### Test Collection 1: Student Login & JWT Verification
+![Student Login Test](./Images/StudentLoginPostman.jpg)
+**Test**: Student User Login
 - **Route**: `POST /auth.login`
-- **Validates**: Credentials, token generation, user data return
+- **Validates**: Student credentials, JWT token generation, user data return
 - **Expected**: 200 OK with `accessToken`, `refreshToken`, and user object
 
-### Test Collection 3: Event Creation (Admin)
-![Event Test](./Images/Tests/event-create-test.png)
-**Test**: Create Event (Admin Only)
-- **Route**: `POST /events.createEvent`
-- **Validates**: Admin authorization, event data validation, database insertion
-- **Expected**: 201 Created with event object
-- **Error Cases**: 401 Unauthorized (non-admin), 400 Bad Request (invalid data)
+### Test Collection 2: Create Comment
+![Create Comment Test](./Images/createCommentPostman.jpg)
+**Test**: Create Comment on Event
+- **Route**: `POST /feedback.createComment`
+- **Validates**: User authentication, event existence, comment content
+- **Expected**: 200 OK with comment object
+- **Error Cases**: 401 Unauthorized (not logged in), 404 Event not found
 
-### Test Collection 4: Event Registration
-![Registration Test](./Images/Tests/registration-test.png)
-**Test**: Register for Event
-- **Route**: `POST /registrations.registerForEvent`
-- **Validates**: User authentication, event availability, capacity checking
-- **Expected**: 200 OK with registration object
-- **Special Cases**: 
-  - Waitlist if at capacity
-  - Error if already registered
-
-### Test Collection 5: Payment Processing
-![Payment Test](./Images/Tests/payment-intent-test.png)
-**Test**: Create Payment Intent
-- **Route**: `POST /payment.createPaymentIntent`
-- **Validates**: Registration ownership, Stripe integration, payment record creation
-- **Expected**: 200 OK with `clientSecret` from Stripe
-
-### Test Collection 6: Vendor Application
-![Vendor Test](./Images/Tests/vendor-application-test.png)
-**Test**: Vendor Applies for Bazaar
-- **Route**: `POST /vendorApplication.apply`
-- **Validates**: Vendor role, bazaar event type, application uniqueness
-- **Expected**: 201 Created with application object
-
-### Test Collection 7: Rating System
-![Rating Test](./Images/Tests/rating-test.png)
-**Test**: Rate Event
+### Test Collection 3: Rating and Comment System
+![Rating and Comment Test](./Images/ratingAndCommentPostman.jpg)
+**Test**: Rate Event with Comment
 - **Route**: `POST /feedback.rateEvent`
-- **Validates**: User attended event, rating range (1-5), duplicate prevention
-- **Expected**: 200 OK with rating object
+- **Validates**: User attended event, rating range (1-5), comment content
+- **Expected**: 200 OK with rating and comment object
+- **Special Cases**: 
+  - User must have attended the event
+  - Cannot rate same event twice
 
-### Test Collection 8: Cancellation with Refund
-![Cancellation Test](./Images/Tests/cancellation-refund-test.png)
-**Test**: Cancel Registration with Refund
-- **Route**: `POST /registrations.cancelRegistration`
-- **Validates**: 2-week policy, payment record, wallet refund
-- **Expected**: 200 OK with refund confirmation
+### Test Collection 4: Get Rating Statistics
+![Rating Statistics Test](./Images/getRatingStatsPostman.jpg)
+**Test**: Get Event Rating Statistics
+- **Route**: `GET /feedback.getRatingStats`
+- **Validates**: Event ID, aggregation of ratings
+- **Expected**: 200 OK with statistics object including average rating, total count, and distribution
+
+### Test Collection 5: Apply to Loyalty Program
+![Loyalty Application Test](./Images/applyToLoyaltyPostman.jpg)
+**Test**: Apply to Loyalty Partner Program
+- **Route**: `POST /loyalty.applyToPartner`
+- **Validates**: User authentication, eligibility check, partner program existence
+- **Expected**: 200 OK with application confirmation
+- **Special Cases**: 
+  - User must have minimum loyalty points
+  - Cannot apply to same partner twice
+
+### Postman Collections
+- [Feedback Module Collection](./backend/collections/Compile%20Time%20L%20Feedback%20Module.postman_collection.json)
+- [Loyalty Program Module Collection](./backend/collections/Loyalty%20Program%20Module.postman_collection.json)
 
 ### Running Postman Tests
 1. Open Postman
@@ -1319,19 +1305,6 @@ The project uses **Postman** for API testing. Test collections are located in `b
    accessToken: <your_jwt_token>
    ```
 4. Run collection with "Collection Runner"
-
-### Jest Unit Tests (Partial Coverage)
-```bash
-cd backend
-npm test
-```
-
-Current test files (examples):
-- `user.service.test.ts` - User service validation tests
-- `event.service.test.ts` - Event business logic tests
-- `payment.service.test.ts` - Payment processing tests
-
-**Test Coverage**: ~60% (Target: 80% by Sprint 3)
 
 ---
 
@@ -1476,7 +1449,6 @@ We welcome contributions from developers, designers, and testers! Here's how you
 - German University in Cairo (GUC) for project requirements
 - Advanced Computer Lab course instructors
 - Open source community for tools and libraries
-- Stack Overflow community for debugging help
 
 ---
 
@@ -1560,7 +1532,7 @@ Built with React, Node.js, MongoDB, and Stripe
 ### Disclaimer
 This project is for educational purposes as part of the Advanced Computer Lab course at GUC. It is not intended for commercial use without proper licensing and compliance checks.
 
-For questions about licensing, contact: [your-email@guc.edu.eg]
+For questions about licensing, contact: [youssef.elkhodary@student.guc.edu.eg]
 
 ---
 
