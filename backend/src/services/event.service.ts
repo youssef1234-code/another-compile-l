@@ -19,6 +19,7 @@ import {
 } from "@event-manager/shared";
 import { ServiceError } from "../errors/errors";
 import type { IUser } from "../models/user.model";
+import { format } from "path";
 
 /**
  * Service Layer for Events
@@ -490,7 +491,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const total = await this.repository.count(filter);
 
     // Populate registeredCount for each event
-    const formattedEvents = await Promise.all(
+    let formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
 
@@ -594,14 +595,16 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       })
     );
 
-    if (data.sort?.[0]?.id === "totalSales" && data.sort?.[0]?.desc)
-      formattedEvents.sort((a, b) => b.totalSales - a.totalSales)
-    else if (data.sort?.[0]?.id === "totalSales" && !data.sort?.[0]?.desc)
-      formattedEvents.sort((a, b) => a.totalSales - b.totalSales)
-    else if (data.sort?.[0]?.id === "registeredCount" && data.sort?.[0]?.desc)
-      formattedEvents.sort((a, b) => b.registeredCount - a.registeredCount)
-    else if (data.sort?.[0]?.id === "registeredCount" && !data.sort?.[0]?.desc)
-      formattedEvents.sort((a, b) => a.registeredCount - b.registeredCount)
+    if (data.sort?.some(s => s.id === "totalSales" || s.id === "registeredCount")) {
+      // If sorting by computed fields, apply sort in memory
+      if (data.sort?.[0]?.id === "totalSales")
+        data.sort?.[0]?.desc ? formattedAllEvents.sort((a, b) => b.totalSales - a.totalSales) : formattedAllEvents.sort((a, b) => a.totalSales - b.totalSales);
+      else if (data.sort?.[0]?.id === "registeredCount")
+        data.sort?.[0]?.desc ? formattedAllEvents.sort((a, b) => b.registeredCount - a.registeredCount) : formattedAllEvents.sort((a, b) => a.registeredCount - b.registeredCount);
+
+      formattedEvents = formattedAllEvents.slice(skip, skip + limit);
+
+    }
 
     return {
       events: formattedEvents,
@@ -659,21 +662,21 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       // If event has no whitelist, show to everyone
       const hasUserWhitelist = event.whitelistedUsers && event.whitelistedUsers.length > 0;
       const hasRoleWhitelist = event.whitelistedRoles && event.whitelistedRoles.length > 0;
-      
+
       if (!hasUserWhitelist && !hasRoleWhitelist) {
         return true;
       }
-      
+
       // Admin and Event Office can see all events
       if (params.userRole === 'ADMIN' || params.userRole === 'EVENT_OFFICE') {
         return true;
       }
-      
+
       // If user is not logged in, hide whitelisted events
       if (!params.userId) {
         return false;
       }
-      
+
       // Check if user is whitelisted by ID
       if (hasUserWhitelist && event.whitelistedUsers) {
         const isUserWhitelisted = event.whitelistedUsers.some(
@@ -681,14 +684,14 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         );
         if (isUserWhitelisted) return true;
       }
-      
+
       // Check if user's role is whitelisted
       if (hasRoleWhitelist && params.userRole && event.whitelistedRoles) {
         if (event.whitelistedRoles.includes(params.userRole)) {
           return true;
         }
       }
-      
+
       return false;
     });
 
@@ -1065,7 +1068,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       const professorId = typeof workshop.createdBy === 'object' && workshop.createdBy._id
         ? String(workshop.createdBy._id)
         : String(workshop.createdBy);
-      
+
       await notificationService.notifyWorkshopStatus(
         professorId,
         workshopId,
@@ -1121,7 +1124,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       const professorId = typeof workshop.createdBy === 'object' && workshop.createdBy._id
         ? String(workshop.createdBy._id)
         : String(workshop.createdBy);
-      
+
       await notificationService.notifyWorkshopStatus(
         professorId,
         workshopId,

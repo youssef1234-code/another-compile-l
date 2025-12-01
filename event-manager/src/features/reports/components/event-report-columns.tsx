@@ -289,7 +289,6 @@ export function getEventsTableColumns({
                 );
             },
             enableColumnFilter: true,
-            enableSorting: false,
             meta: {
                 label: "Registrations",
                 variant: "range" as const,
