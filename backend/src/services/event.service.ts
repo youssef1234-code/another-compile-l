@@ -879,8 +879,28 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
   /**
    * Archive event (soft delete alternative)
+   * Business Rule: Only events that have already ended can be archived
    */
   async archiveEvent(id: string): Promise<IEvent> {
+    // First, fetch the event to check if it has ended
+    const existingEvent = await this.repository.findById(id);
+    if (!existingEvent) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Event not found",
+      });
+    }
+
+    // Check if the event has ended (endDate is in the past)
+    const now = new Date();
+    const eventEndDate = new Date(existingEvent.endDate);
+    if (eventEndDate > now) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Only events that have already ended can be archived. This event ends on " + eventEndDate.toLocaleDateString() + ".",
+      });
+    }
+
     const event = await this.repository.archive(id);
     if (!event) {
       throw new TRPCError({
