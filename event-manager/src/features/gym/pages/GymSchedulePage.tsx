@@ -139,7 +139,9 @@ export function GymSchedulePage(){
   const registeredEventIds = useMemo(() => {
     if (!registrationsData?.registrations) return new Set<string>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return new Set((registrationsData.registrations as any[]).map((reg) => reg.event.id));
+    return new Set((registrationsData.registrations as any[])
+      .filter((reg) => reg.event != null) // Filter out registrations with deleted events
+      .map((reg) => reg.event.id));
   }, [registrationsData?.registrations]);
 
   // Mark sessions with isRegistered flag

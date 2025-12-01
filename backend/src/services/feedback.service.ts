@@ -71,8 +71,9 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       });
     }
 
-    // Requirement #15 & #16: Verify user attended the event
-    // User must have a CONFIRMED registration with attended=true to leave feedback
+    // Requirement #15 & #16: Verify user is registered for the event
+    // User must have a CONFIRMED registration to leave feedback
+    // For Student/Staff/TA/Professor: registration = attendance
     const registration = await registrationRepository.getByUserAndEvent(userId, input.eventId);
     if (!registration) {
       throw new TRPCError({
@@ -85,13 +86,6 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       throw new TRPCError({
         code: 'FORBIDDEN',
         message: 'Your registration must be confirmed to leave feedback.',
-      });
-    }
-    
-    if (!registration.attended) {
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'You must have attended this event to leave feedback. Only attendees can rate or comment.',
       });
     }
 
@@ -407,18 +401,24 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
     }
 
     // Determine whether to hide comment or delete entire feedback
-    // If feedback has a rating, preserve the rating and only hide the comment
-    // If feedback has only a comment (type='comment'), delete the entire feedback
-    if (feedback.rating != null && feedback.type === 'both') {
-      // Hide the comment but preserve the rating
+    // If feedback has a rating, preserve the rating and only remove the comment
+    // If feedback has only a comment (no rating), delete the entire feedback
+    if (feedback.type != 'comment') {
+      // Remove the comment but preserve the rating (same behavior as user deleting their own comment)
       const feedbackIdStr = feedback.id || (feedback as any)._id?.toString();
-      await this.repository.update(feedbackIdStr, {
-        isCommentHidden: true,
-        commentHiddenAt: new Date(),
-        commentHiddenReason: reason || 'Inappropriate content',
-        type: 'rating', // Update type since comment is now hidden
-      } as any);
-      console.log(`✓ Comment hidden for feedback ${feedbackIdStr}, rating preserved`);
+      
+      // Build update to remove comment (using $unset like in updateFeedback)
+      const updateQuery: any = {
+        $set: {
+          type: 'rating', // Update type since comment is removed
+        },
+        $unset: {
+          comment: '',
+        }
+      };
+      
+      await this.repository.update(feedbackIdStr, updateQuery);
+      console.log(`✓ Comment removed for feedback ${feedbackIdStr}, rating preserved`);
     } else {
       // Feedback has only a comment, delete the entire feedback
       const deleted = await this.repository.permanentlyDelete(feedbackId);

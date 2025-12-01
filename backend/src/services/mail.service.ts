@@ -83,6 +83,14 @@ export interface CommentDeletedWarningEmailData {
   deletedAt: string;
 }
 
+export interface GymSessionUpdateEmailData {
+  userName: string;
+  sessionTitle: string;
+  updateType: 'CANCELLED' | 'EDITED';
+  details?: string;
+  sessionDate?: string;
+}
+
 /**
  * Abstract Mail Service Class
  */
@@ -317,6 +325,29 @@ export abstract class BaseMailService {
     const subject = 'Comment Removed - Another Compile L';
     
     this.saveEmailToLogs('comment-deleted-warning', email, subject, html);
+    
+    await this.sendMail({
+      to: email,
+      subject,
+      html,
+    });
+  }
+
+  /**
+   * Send gym session update email (Story #87)
+   * Notifies registered users when gym session is cancelled or edited
+   */
+  async sendGymSessionUpdateEmail(
+    email: string,
+    data: GymSessionUpdateEmailData
+  ): Promise<void> {
+    console.log(`📧 Sending gym session update email to: ${email}`);
+    const html = this.generateGymSessionUpdateEmailHTML(data);
+    const subject = data.updateType === 'CANCELLED' 
+      ? '❌ Gym Session Cancelled - Another Compile L'
+      : '📝 Gym Session Updated - Another Compile L';
+    
+    this.saveEmailToLogs('gym-session-update', email, subject, html);
     
     await this.sendMail({
       to: email,
@@ -730,6 +761,100 @@ export abstract class BaseMailService {
                     <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5; background-color: #f9fafb;">
                       <p style="margin: 0; font-size: 13px; color: #6b7280;">
                         If you believe this was a mistake, please contact our support team.
+                      </p>
+                      <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
+                        &copy; ${new Date().getFullYear()} Another Compile L
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+  }
+
+  protected generateGymSessionUpdateEmailHTML(data: GymSessionUpdateEmailData): string {
+    const { userName, sessionTitle, updateType, details, sessionDate } = data;
+    const isCancelled = updateType === 'CANCELLED';
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5; background-color: ${isCancelled ? '#fef2f2' : '#eff6ff'};">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: ${isCancelled ? '#991b1b' : '#1e40af'};">
+                        ${isCancelled ? '❌ Gym Session Cancelled' : '📝 Gym Session Updated'}
+                      </h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252;">Hi ${userName},</p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252;">
+                        ${isCancelled 
+                          ? `We regret to inform you that the gym session "<strong>${sessionTitle}</strong>" you registered for has been <strong>cancelled</strong>.`
+                          : `The gym session "<strong>${sessionTitle}</strong>" you registered for has been <strong>updated</strong>.`
+                        }
+                      </p>
+                      
+                      <!-- Session Details Box -->
+                      <div style="margin: 24px 0; padding: 16px; background-color: ${isCancelled ? '#fef2f2' : '#eff6ff'}; border-left: 4px solid ${isCancelled ? '#dc2626' : '#3b82f6'}; border-radius: 4px;">
+                        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 600; color: ${isCancelled ? '#991b1b' : '#1e40af'}; text-transform: uppercase;">Session Details:</p>
+                        <p style="margin: 0; font-size: 14px; line-height: 20px; color: #525252;">
+                          <strong>Session:</strong> ${sessionTitle}<br>
+                          ${sessionDate ? `<strong>Original Date:</strong> ${sessionDate}<br>` : ''}
+                          ${details ? `<strong>Changes:</strong> ${details}` : ''}
+                        </p>
+                      </div>
+                      
+                      ${isCancelled ? `
+                      <!-- Cancellation Notice -->
+                      <div style="margin: 24px 0; padding: 16px; background-color: #fffbeb; border: 1px solid #fbbf24; border-radius: 6px;">
+                        <p style="margin: 0; font-size: 14px; line-height: 20px; color: #78350f;">
+                          <strong>What does this mean?</strong><br>
+                          Your registration for this session has been automatically cancelled. 
+                          ${sessionDate ? 'You can browse other available gym sessions in the schedule.' : ''}
+                        </p>
+                      </div>
+                      ` : `
+                      <!-- Update Notice -->
+                      <div style="margin: 24px 0; padding: 16px; background-color: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px;">
+                        <p style="margin: 0; font-size: 14px; line-height: 20px; color: #14532d;">
+                          <strong>Your registration is still active!</strong><br>
+                          You're still registered for this session. Please note the changes above and plan accordingly.
+                        </p>
+                      </div>
+                      `}
+                      
+                      <p style="margin: 24px 0 0; font-size: 14px; line-height: 20px; color: #525252;">
+                        ${isCancelled 
+                          ? 'We apologize for any inconvenience this may cause. Please check the gym schedule for alternative sessions.'
+                          : 'If you have any questions about these changes, please contact the Events Office.'
+                        }
+                      </p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5; background-color: #f9fafb;">
+                      <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        Thank you for using Another Compile L gym facilities!
                       </p>
                       <p style="margin: 12px 0 0; font-size: 13px; color: #a3a3a3;">
                         &copy; ${new Date().getFullYear()} Another Compile L

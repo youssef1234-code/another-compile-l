@@ -6,6 +6,7 @@ import { registrationRepository } from "../repositories/registration.repository"
 import { vendorApplicationRepository } from "../repositories/vendor-application.repository";
 import { userRepository } from "../repositories/user.repository";
 import { notificationService } from "./notification.service.js";
+import { mailService } from "./mail.service";
 import { BaseService, type ServiceOptions } from "./base.service";
 import { TRPCError } from "@trpc/server";
 import type { IEvent } from "../models/event.model";
@@ -175,13 +176,61 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       });
     }
 
-    // Check if there are any active registrations
-    const registrationCount = await registrationRepository.countActiveForCapacity(_id);
-    if (registrationCount > 0) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Cannot delete event with active registrations. There are ${registrationCount} registered participant(s).`,
-      });
+    // Allow gym sessions to be deleted even with participants
+    // For other event types, check if there are any active registrations
+    if (existing.type !== "GYM_SESSION") {
+      const registrationCount = await registrationRepository.countActiveForCapacity(_id);
+      if (registrationCount > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Cannot delete event with active registrations. There are ${registrationCount} registered participant(s).`,
+        });
+      }
+    }
+  }
+
+  /**
+   * After delete hook - Send notifications when gym sessions are deleted
+   */
+  protected async afterDelete(doc: IEvent): Promise<void> {
+    // Only send notifications for gym sessions with participants
+    if (doc.type === "GYM_SESSION") {
+      const registrations = await registrationRepository.findAll(
+        { event: doc.id, status: { $in: ['CONFIRMED', 'PENDING'] } } as any,
+        {}
+      );
+
+      if (registrations.length > 0) {
+        const userIds = registrations.map((r: any) => String(r.user));
+
+        // Send in-app notifications
+        await notificationService.notifyGymSessionUpdate(
+          userIds,
+          doc.id,
+          doc.name,
+          'CANCELLED',
+          'This session has been deleted'
+        );
+
+        // Send emails to all registered users
+        for (const registration of registrations) {
+          const user = await userRepository.findById(String((registration as any).user));
+          if (user && user.email) {
+            try {
+              await mailService.sendGymSessionUpdateEmail(user.email, {
+                userName: user.firstName || 'User',
+                sessionTitle: doc.name,
+                updateType: 'CANCELLED',
+                details: 'This session has been deleted',
+                sessionDate: doc.startDate.toLocaleString(),
+              });
+            } catch (emailError) {
+              console.error(`Failed to send email to ${user.email}:`, emailError);
+              // Continue with other emails even if one fails
+            }
+          }
+        }
+      }
     }
   }
 
@@ -1358,6 +1407,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
           ? `Time changed to ${nextStart.toLocaleString()}`
           : undefined;
 
+        // Send in-app notifications
         await notificationService.notifyGymSessionUpdate(
           userIds,
           id,
@@ -1365,6 +1415,25 @@ export class EventService extends BaseService<IEvent, EventRepository> {
           updateType,
           details
         );
+
+        // Send emails to all registered users
+        for (const registration of registrations) {
+          const user = await userRepository.findById(String((registration as any).user));
+          if (user && user.email) {
+            try {
+              await mailService.sendGymSessionUpdateEmail(user.email, {
+                userName: user.firstName || 'User',
+                sessionTitle: existing.name,
+                updateType,
+                details,
+                sessionDate: existing.startDate.toLocaleString(),
+              });
+            } catch (emailError) {
+              console.error(`Failed to send email to ${user.email}:`, emailError);
+              // Continue with other emails even if one fails
+            }
+          }
+        }
       }
     }
 

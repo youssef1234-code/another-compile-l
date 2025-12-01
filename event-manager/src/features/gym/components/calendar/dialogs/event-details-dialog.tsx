@@ -8,12 +8,13 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { GYM_SESSION_TYPE_LABELS } from '@event-manager/shared';
+import { GYM_SESSION_TYPE_LABELS, UserRole } from '@event-manager/shared';
 import { Calendar, Clock, MapPin, Users, User, Trash2, Edit, CheckCircle, Loader2 } from 'lucide-react';
 import type { CalendarEvent } from '../types';
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'react-hot-toast';
+import { useAuthStore } from '@/store/authStore';
 
 interface EventDetailsDialogProps {
   event: CalendarEvent | null;
@@ -36,6 +37,7 @@ export function EventDetailsDialog({
 }: EventDetailsDialogProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const utils = trpc.useUtils();
+  const { user } = useAuthStore();
 
   // Check if user is registered for this session
   const { data: registrationData, isLoading: isCheckingRegistration } = trpc.events.isRegistered.useQuery(
@@ -45,6 +47,9 @@ export function EventDetailsDialog({
   
   const isRegistered = registrationData?.isRegistered;
   const registrationId = registrationData?.registrationId;
+  
+  // Events Office cannot register for gym sessions
+  const canRegister = user?.role !== UserRole.EVENT_OFFICE;
 
   // Registration mutation
   const registerMutation = trpc.events.registerForEvent.useMutation({
@@ -237,8 +242,8 @@ export function EventDetailsDialog({
 
         {/* Action Buttons */}
         <DialogFooter className="gap-2 flex-wrap">
-          {/* Registration Button for regular users */}
-          {!readOnly && event.status === 'PUBLISHED' && (
+          {/* Registration Button for all users except Events Office */}
+          {canRegister && event.status === 'PUBLISHED' && (
             <>
               {isCheckingRegistration ? (
                 <Button variant="outline" disabled>
@@ -270,7 +275,7 @@ export function EventDetailsDialog({
             </>
           )}
           
-          {/* Admin/Events Office Actions */}
+          {/* Admin/Events Office Management Actions - Only for EVENT_OFFICE */}
           {!readOnly && (onEdit || onDelete) && (
             <>
               {onDelete && (
