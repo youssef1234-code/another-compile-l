@@ -9,7 +9,7 @@ import { registrationRepository } from "../repositories/registration.repository"
 import { eventService } from "./event.service";
 import { TRPCError } from "@trpc/server";
 import type { IEventRegistration } from "../models/registration.model";
-import mongoose, { startSession } from 'mongoose';
+import mongoose from 'mongoose';
 import { PaymentStatus, RegistrationStatus } from '@event-manager/shared';
 import type { RegistrationForEventResponse } from '@event-manager/shared';
 import { paymentRepository } from '../repositories/payment.repository';
@@ -182,38 +182,30 @@ async cancelWithRefund(userId: string, registrationId: string) {
   const pay = await paymentRepository.findSucceededByRegistration(registrationId);
   const amountMinor = pay?.amountMinor ?? 0;
 
-  const session = await startSession();
-  try {
-    session.startTransaction();
-
-    // refund (wallet credit) if paid
-    if (amountMinor > 0) {
-      await paymentService.refundToWallet(userId, {
-        paymentId: (pay?._id as any)?.toString(),
-        registrationId,
-        amountMinor,
-        currency: 'EGP'
-      });
-    }
-
-    // cancel registration
+  // If there was a payment, refundToWallet handles both the refund AND marks the registration
+  if (amountMinor > 0) {
+    await paymentService.refundToWallet(userId, {
+      paymentId: (pay?._id as any)?.toString(),
+      registrationId,
+      amountMinor,
+      currency: 'EGP'
+    });
+    // refundToWallet already sets status=CANCELLED and paymentStatus=REFUNDED
+    // Just need to set isActive=false and cancelledAt
+    await registrationRepository.update(registrationId, {
+      isActive: false,
+      cancelledAt: new Date(),
+    });
+  } else {
+    // No payment to refund, just cancel the registration
     await registrationRepository.update(registrationId, {
       status: 'CANCELLED',
       isActive: false,
       cancelledAt: new Date(),
-    }, { session });
-
-
-    await session.commitTransaction();
-    session.endSession();
-
-
-    return { ok: true, refunded: amountMinor > 0, amountMinor, currency: pay?.currency ?? 'EGP' };
-  } catch (e) {
-    await session.abortTransaction();
-    session.endSession();
-    throw e;
+    });
   }
+
+  return { ok: true, refunded: amountMinor > 0, amountMinor, currency: pay?.currency ?? 'EGP' };
 }
 
 
@@ -465,6 +457,12 @@ async registerForEvent(userId: string, eventId: string) {
     const doc = await registrationRepository.findMineForEvent(userId, eventId);
     if (!doc) return null;
 
+    // Find the latest successful payment for this registration (needed for refunds)
+    const latestPayment = await paymentRepository.findLatestForRegistration(String((doc as any)._id));
+    const paymentId = latestPayment && (latestPayment as any).status === 'SUCCEEDED' 
+      ? String((latestPayment as any)._id) 
+      : null;
+
     // ensure hold expiry semantics only affect frontend label; we still return the stored status/holdUntil
     // frontend can decide to show "EXPIRED" if status=PENDING && holdUntil < now
     const payload: RegistrationForEventResponse = {
@@ -475,6 +473,7 @@ async registerForEvent(userId: string, eventId: string) {
       paymentAmount: (doc as any).paymentAmount ?? 0,
       currency: (doc as any).currency ?? null,
       holdUntil: (doc as any).holdUntil ?? null,
+      paymentId,
       createdAt: (doc as any).createdAt,
       updatedAt: (doc as any).updatedAt,
     };

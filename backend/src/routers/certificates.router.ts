@@ -5,6 +5,7 @@
  * - Certificate status tracking
  * - Manual certificate trigger (Requirement #30)
  * - Certificate worker management
+ * - Force download certificate (Events Office)
  * 
  * @module routers/certificates.router
  */
@@ -12,6 +13,7 @@
 import { z } from "zod";
 import { eventsOfficeProcedure, router } from "../trpc/trpc.js";
 import { certificateWorkerService, type CertificateJobResult } from "../services/certificate-worker.service.js";
+import { certificateService } from "../services/certificate.service.js";
 import { EventRegistration } from "../models/registration.model.js";
 
 // Re-export for type inference
@@ -100,4 +102,30 @@ export const certificatesRouter = router({
       results,
     };
   }),
+
+  /**
+   * Force generate certificate for a specific registration
+   * Events Office can force generate certificate even if attended=false
+   * Used for cases where attendance was not marked but user was present
+   */
+  forceGenerateCertificate: eventsOfficeProcedure
+    .input(
+      z.object({
+        registrationId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const pdfBuffer = await certificateService.generateCertificateForced(
+        input.registrationId
+      );
+
+      // Convert to base64 for transmission
+      const base64 = Buffer.from(pdfBuffer).toString('base64');
+
+      return {
+        data: base64,
+        filename: `certificate-${input.registrationId}.pdf`,
+        mimeType: 'application/pdf',
+      };
+    }),
 });

@@ -444,7 +444,9 @@ export function getVendorApplicationsTableColumns({
       cell: ({ row }) => {
         const application = row.original;
         const canDownloadBadges = application.status === 'APPROVED' && (application.names?.length || 0) > 0;
-        const canCancel = application.status === 'PENDING';
+        // Allow cancel for PENDING applications OR APPROVED applications that haven't been paid
+        const canCancel = application.status === 'PENDING' || 
+          (application.status === 'APPROVED' && application.paymentStatus !== 'PAID');
         
         return (
           <div className="flex justify-end gap-2">

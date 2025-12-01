@@ -142,6 +142,25 @@ const authRoutes = {
         });
       }
 
+      // Check vendor approval status
+      if (user.role === 'VENDOR') {
+        if (user.vendorApprovalStatus === 'PENDING') {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Your vendor account is pending approval. Please wait for the Events Office to review your application.',
+          });
+        }
+        if (user.vendorApprovalStatus === 'REJECTED') {
+          const reason = user.vendorRejectionReason 
+            ? `Reason: ${user.vendorRejectionReason}` 
+            : 'Please contact the Events Office for more information.';
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: `Your vendor application has been rejected. ${reason}`,
+          });
+        }
+      }
+
       // Generate tokens
       const token = generateAccessToken((user._id as any).toString(), user.role);
       const refreshToken = generateRefreshToken((user._id as any).toString());

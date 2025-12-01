@@ -100,13 +100,17 @@ const feedbackRoutes = {
     }),
 
   /**
-   * Delete feedback (Story #18)
+   * Delete feedback comment (Story #18)
    * Admin can delete any inappropriate comments
+   * If feedback has a rating, the rating is preserved and only the comment is hidden
    */
   delete: adminProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ 
+      id: z.string(),
+      reason: z.string().optional(),
+    }))
     .mutation(async ({ input }) => {
-      await feedbackService.deleteFeedback(input.id);
+      await feedbackService.deleteFeedback(input.id, input.reason);
       return { success: true };
     }),
 };

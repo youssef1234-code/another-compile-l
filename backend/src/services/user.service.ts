@@ -1041,6 +1041,8 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
       roleVerifiedByAdmin: user.roleVerifiedByAdmin,
       vendorApprovalStatus: user.vendorApprovalStatus,
       vendorRejectionReason: user.vendorRejectionReason,
+      taxCardUrl: user.taxCardUrl,
+      logoUrl: user.logoUrl,
       createdAt: user.createdAt,
     }));
 

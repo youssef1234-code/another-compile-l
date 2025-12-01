@@ -11,6 +11,36 @@ import type { IEventRegistration } from '../models/registration.model';
 import { BaseRepository } from './base.repository';
 import mongoose, { Types } from 'mongoose';
 
+/**
+ * Transform registration and nested event to include 'id' field
+ */
+function transformRegistration(reg: any): any {
+  if (!reg) return reg;
+  
+  const transformed: any = {
+    ...reg,
+    id: reg._id?.toString() || reg.id,
+  };
+  
+  // Transform nested event if populated
+  if (reg.event && typeof reg.event === 'object') {
+    transformed.event = {
+      ...reg.event,
+      id: reg.event._id?.toString() || reg.event.id,
+    };
+  }
+  
+  // Transform nested user if populated
+  if (reg.user && typeof reg.user === 'object') {
+    transformed.user = {
+      ...reg.user,
+      id: reg.user._id?.toString() || reg.user.id,
+    };
+  }
+  
+  return transformed;
+}
+
 export class RegistrationRepository extends BaseRepository<IEventRegistration> {
   constructor() {
     super(EventRegistration);
@@ -41,7 +71,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
     ]);
 
     return {
-      registrations,
+      registrations: registrations.map(transformRegistration),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -73,7 +103,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
     ]);
 
     return {
-      registrations,
+      registrations: registrations.map(transformRegistration),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -97,7 +127,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
    * Get a specific registration by user and event
    */
   async getByUserAndEvent(userId: string, eventId: string) {
-    return this.model
+    const reg = await this.model
       .findOne({
         user: new mongoose.Types.ObjectId(userId),
         event: new mongoose.Types.ObjectId(eventId),
@@ -105,6 +135,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
       })
       .populate('event')
       .lean();
+    return transformRegistration(reg);
   }
 
   /**
@@ -145,7 +176,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
     const paginatedRegistrations = upcomingRegistrations.slice(skip, skip + limit);
 
     return {
-      registrations: paginatedRegistrations,
+      registrations: paginatedRegistrations.map(transformRegistration),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -180,7 +211,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
     const paginatedRegistrations = pastRegistrations.slice(skip, skip + limit);
 
     return {
-      registrations: paginatedRegistrations,
+      registrations: paginatedRegistrations.map(transformRegistration),
       total,
       page,
       totalPages: Math.ceil(total / limit),

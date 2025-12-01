@@ -117,6 +117,81 @@ class CertificateService {
   }
 
   /**
+   * Force generate certificate for Events Office
+   * Bypasses the attendance check for cases where attendance was not marked
+   * but the user was confirmed as attending
+   */
+  async generateCertificateForced(
+    registrationId: string
+  ): Promise<Buffer> {
+    // Fetch registration with populated data
+    const registration: any = await EventRegistration.findById(registrationId)
+      .populate('event')
+      .populate('user')
+      .lean();
+
+    if (!registration) {
+      throw new ServiceError('NOT_FOUND', 'Registration not found', 404);
+    }
+
+    // Verify registration is confirmed (attendance check bypassed for Events Office)
+    if (registration.status !== 'CONFIRMED') {
+      throw new ServiceError(
+        'BAD_REQUEST',
+        'Only confirmed registrations can receive certificates',
+        400
+      );
+    }
+
+    const event = registration.event;
+    const user = registration.user;
+
+    // Only workshops get certificates
+    if (event.type !== 'WORKSHOP') {
+      throw new ServiceError(
+        'BAD_REQUEST',
+        'Certificates are only available for workshops',
+        400
+      );
+    }
+
+    // Verify event has ended
+    const now = new Date();
+    const eventEndDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
+    if (eventEndDate > now) {
+      throw new ServiceError(
+        'BAD_REQUEST',
+        'Certificates can only be generated after the workshop has ended',
+        400
+      );
+    }
+
+    // Create PDF certificate
+    const pdfBuffer = await this.createCertificatePDF({
+      attendeeName: `${user.firstName} ${user.lastName}`,
+      attendeeEmail: user.email,
+      attendeeGucId: user.studentId || user.gucId || 'N/A',
+      workshopTitle: event.name,
+      workshopDescription: event.description,
+      professorName: event.professor || event.professorName || 'Event Team',
+      startDate: event.startDate,
+      endDate: event.endDate,
+      issueDate: new Date(),
+      registrationId,
+    });
+
+    // Mark as attended and issue certificate (for Events Office force action)
+    await EventRegistration.findByIdAndUpdate(registrationId, {
+      attended: true,
+      certificateIssued: true,
+    });
+
+    console.log(`✓ Certificate force-generated for registration ${registrationId}`);
+
+    return pdfBuffer;
+  }
+
+  /**
    * Create the actual PDF certificate with professional design
    */
   private async createCertificatePDF(data: {

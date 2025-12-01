@@ -639,14 +639,8 @@ export class VendorApplicationService extends BaseService<
       );
     }
 
-    // Check if already approved (additional safety for platform booths)
-    if (application.status === 'APPROVED' && application.type === 'PLATFORM') {
-      throw new ServiceError(
-        'FORBIDDEN',
-        'Cannot cancel approved platform booth reservations. Please contact Events Office.',
-        403
-      );
-    }
+    // Note: For approved platform booths, the booth will become available again 
+    // when the application is cancelled (booth availability is checked against active approved applications)
 
     // Mark as cancelled instead of deleting
     await this.repository.update(applicationId, {

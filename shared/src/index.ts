@@ -782,6 +782,7 @@ export const RegistrationForEventResponseSchema = z.object({
   paymentAmount: z.number().int().nonnegative().nullable(), // null for free events
   currency: z.enum(["EGP", "USD"]).nullable(), // align with your DEFAULT_CURRENCY set
   holdUntil: z.date().nullable(), // present only when PENDING
+  paymentId: z.string().nullable(), // for refund purposes
   createdAt: z.date(),
   updatedAt: z.date(),
 });

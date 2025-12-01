@@ -118,6 +118,7 @@ export interface FormFieldConfig<TFieldValues extends GenericFormValues = Generi
   className?: string;
   inputClassName?: string;
   enablePasswordToggle?: boolean;
+  entityType?: 'user' | 'event' | 'vendor' | 'feedback' | 'registration' | 'other';
   
   // Error message spacing (prevents layout shift)
   reserveErrorSpace?: boolean; // Default true
@@ -305,7 +306,7 @@ export function GenericForm<TFieldValues extends GenericFormValues = GenericForm
                 <ImageUpload
                   value={typeof field.value === 'string' ? field.value : undefined}
                   onChange={(nextValue) => field.onChange(nextValue)}
-                  entityType="event"
+                  entityType={fieldConfig.entityType || 'event'}
                   aspectRatio="banner"
                   maxSizeMB={5}
                   disabled={isLoading}

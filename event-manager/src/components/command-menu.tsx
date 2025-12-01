@@ -5,38 +5,7 @@
  * Built with shadcn/ui Command component
  */
 
-import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Calendar,
-  LayoutDashboard,
-  Settings,
-  ShoppingBag,
-  Users,
-  FileText,
-  Trophy,
-  Dumbbell,
-  Heart,
-  CreditCard,
-  User,
-  LogOut,
-  Moon,
-  Sun,
-  Search,
-  MapPin,
-  ClipboardList,
-  Vote,
-  LayoutGrid,
-  Ticket,
-  Wallet,
-  Building2,
-  Briefcase,
-  MessageSquare,
-  GraduationCap,
-  Car,
-  Store,
-  Presentation,
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
   CommandEmpty,
@@ -47,10 +16,40 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { useAuthStore } from "@/store/authStore";
-import { ROUTES } from "@/lib/constants";
-import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
+import { ROUTES } from "@/lib/constants";
+import { useAuthStore } from "@/store/authStore";
+import {
+  Briefcase,
+  Building2,
+  Calendar,
+  Car,
+  ClipboardList,
+  CreditCard,
+  Dumbbell,
+  FileText,
+  GraduationCap,
+  Heart,
+  LayoutDashboard,
+  LayoutGrid,
+  LogOut,
+  MapPin,
+  Moon,
+  Presentation,
+  Search,
+  Settings,
+  ShoppingBag,
+  Store,
+  Sun,
+  Ticket,
+  Trophy,
+  User,
+  Users,
+  Vote,
+  Wallet
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface CommandAction {
   id: string;
