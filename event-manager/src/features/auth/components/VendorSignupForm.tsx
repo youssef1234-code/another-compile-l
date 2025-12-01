@@ -186,6 +186,7 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
       description: "Upload your company's tax card document",
       icon: <Briefcase className="h-4 w-4" />,
       colSpan: 2,
+      entityType: "vendor"
     },
     {
       name: "logoImage",
@@ -194,6 +195,7 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
       description: "Upload your company logo",
       icon: <Building2 className="h-4 w-4" />,
       colSpan: 2,
+      entityType: "vendor"
     },
   ];
 
