@@ -48,9 +48,7 @@ const DashboardPage = lazy(() => import("@/features/dashboard/pages/DashboardPag
 const EventsPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.EventsPage })));
 const EventDetailsPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.EventDetailsPage })));
 const MyEventsPage = lazy(() => import("@/features/events/pages/MyEventsPage").then(m => ({ default: m.MyEventsPage })));
-const FavoritesPage = lazy(() => import("@/features/events/pages/FavoritesPage").then(m => ({ default: m.FavoritesPage })));
 const EditBazaarPage = lazy(() => import("@/features/events/pages/EditBazaarPage").then(m => ({ default: m.EditBazaarPage })));
-const MyRegistrationsPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.MyRegistrationsPage })));
 const CreateTripPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.CreateTripPage })));
 const CreateBazaarPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.CreateBazaarPage })));
 const CreateConferencePage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.CreateConferencePage })));
@@ -162,11 +160,11 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.MY_REGISTRATIONS,
-        element: withSuspense(MyRegistrationsPage, "table"),
+        element: <Navigate to={`${ROUTES.EVENTS}?tab=registrations`} replace />,
       },
       {
         path: ROUTES.FAVORITES,
-        element: withSuspense(FavoritesPage, "cards"),
+        element: <Navigate to={`${ROUTES.EVENTS}?tab=favorites`} replace />,
       },
       {
         path: ROUTES.LOYALTY_PROGRAM,
