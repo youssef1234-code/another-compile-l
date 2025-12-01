@@ -356,6 +356,9 @@ export function EventsPage() {
       {
         page: 1,
         limit: 100,
+        search: search || undefined,
+        types: typeFilter.length > 0 ? typeFilter : undefined,
+        location: (locationFilter as "ON_CAMPUS" | "OFF_CAMPUS") || undefined,
       },
       {
         enabled: activeTab === "registrations" && !!user,

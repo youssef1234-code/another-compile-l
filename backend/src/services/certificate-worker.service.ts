@@ -71,11 +71,11 @@ class CertificateWorkerService {
       errors: [],
     };
 
-    // Find all confirmed registrations who attended but haven't received certificate email
+    // Find all confirmed registrations who haven't received certificate email
+    // All confirmed registrations are treated as attended
     const registrations = await EventRegistration.find({
       event: eventId,
       status: 'CONFIRMED',
-      attended: true,
       certificateSentAt: { $exists: false }, // Only those who haven't received email
     }).populate('user');
 
@@ -153,10 +153,10 @@ class CertificateWorkerService {
 
     for (const workshop of workshops) {
       // Check if there are any unsent certificates for this workshop
+      // All confirmed registrations are treated as attended
       const unsentCount = await EventRegistration.countDocuments({
         event: workshop._id,
         status: 'CONFIRMED',
-        attended: true,
         certificateSentAt: { $exists: false },
       });
 
@@ -190,7 +190,7 @@ class CertificateWorkerService {
   async getCertificateStatus(eventId: string): Promise<{
     eventId: string;
     eventName: string;
-    totalAttendees: number;
+    totalConfirmed: number;
     certificatesSent: number;
     certificatesPending: number;
     canSendNow: boolean;
@@ -206,21 +206,21 @@ class CertificateWorkerService {
     const eventEndDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
     const hasEnded = eventEndDate <= now;
 
-    // Count attendees
-    const totalAttendees = await EventRegistration.countDocuments({
+    // Count all confirmed registrations (all treated as attended)
+    const totalConfirmed = await EventRegistration.countDocuments({
       event: eventId,
       status: 'CONFIRMED',
-      attended: true,
     });
 
+    // Count certificates already sent
     const certificatesSent = await EventRegistration.countDocuments({
       event: eventId,
       status: 'CONFIRMED',
-      attended: true,
       certificateSentAt: { $exists: true },
     });
 
-    const certificatesPending = totalAttendees - certificatesSent;
+    // Pending = confirmed registrations without certificate sent
+    const certificatesPending = totalConfirmed - certificatesSent;
 
     let canSendNow = false;
     let reason: string | undefined;
@@ -238,12 +238,180 @@ class CertificateWorkerService {
     return {
       eventId,
       eventName: event.name,
-      totalAttendees,
+      totalConfirmed,
       certificatesSent,
       certificatesPending,
       canSendNow,
       reason,
     };
+  }
+
+  /**
+   * Send certificate to a single user
+   */
+  async sendCertificateToUser(registrationId: string): Promise<{ message: string }> {
+    console.log(`📜 Sending certificate for registration ${registrationId}`);
+    
+    const registration = await EventRegistration.findById(registrationId)
+      .populate('event')
+      .populate('user');
+    
+    if (!registration) {
+      throw new ServiceError('NOT_FOUND', 'Registration not found', 404);
+    }
+
+    const event = registration.event as any;
+    const user = registration.user as any;
+
+    if (!event) {
+      throw new ServiceError('NOT_FOUND', 'Event not found', 404);
+    }
+
+    if (!user || !user.email) {
+      throw new ServiceError('BAD_REQUEST', 'User not found or has no email', 400);
+    }
+
+    // Only workshops get certificates
+    if (event.type !== 'WORKSHOP') {
+      throw new ServiceError(
+        'BAD_REQUEST',
+        'Certificates are only available for workshops',
+        400
+      );
+    }
+
+    // Verify event has ended
+    const now = new Date();
+    const eventEndDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
+    if (eventEndDate > now) {
+      throw new ServiceError(
+        'BAD_REQUEST',
+        'Certificates can only be sent after the workshop has ended',
+        400
+      );
+    }
+
+    // Check if already sent
+    if (registration.certificateSentAt) {
+      throw new ServiceError(
+        'BAD_REQUEST',
+        'Certificate has already been sent to this user',
+        400
+      );
+    }
+
+    // Generate certificate PDF using forced method
+    const pdfBuffer = await certificateService.generateCertificateForced(registrationId);
+
+    // Send email with certificate
+    await mailService.sendCertificateEmail(user.email, {
+      attendeeName: `${user.firstName} ${user.lastName}`,
+      workshopTitle: event.name,
+      pdfBuffer,
+    });
+
+    // Mark certificate as sent
+    await EventRegistration.findByIdAndUpdate(registrationId, {
+      certificateSentAt: new Date(),
+    });
+
+    console.log(`✅ Certificate sent to ${user.email} for ${event.name}`);
+    return { message: `Certificate sent to ${user.email}` };
+  }
+
+  /**
+   * Force send certificates to ALL confirmed registrations
+   * Bypasses attendance check - for cases where attendance wasn't marked
+   * but the event is complete and everyone should get certificates
+   */
+  async forceSendAllCertificates(eventId: string): Promise<CertificateJobResult> {
+    console.log(`📜 Force sending certificates for event ${eventId} (bypassing attendance check)`);
+    
+    const event = await Event.findById(eventId).lean();
+    
+    if (!event) {
+      throw new ServiceError('NOT_FOUND', 'Event not found', 404);
+    }
+
+    // Only workshops get certificates
+    if (event.type !== 'WORKSHOP') {
+      throw new ServiceError(
+        'BAD_REQUEST',
+        'Certificates are only available for workshops',
+        400
+      );
+    }
+
+    // Verify event has ended
+    const now = new Date();
+    const eventEndDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
+    if (eventEndDate > now) {
+      throw new ServiceError(
+        'BAD_REQUEST',
+        'Certificates can only be sent after the workshop has ended',
+        400
+      );
+    }
+
+    const result: CertificateJobResult = {
+      eventId,
+      eventName: event.name,
+      total: 0,
+      sent: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    // Find ALL confirmed registrations (not just attended) who haven't received certificate email
+    const registrations = await EventRegistration.find({
+      event: eventId,
+      status: 'CONFIRMED',
+      certificateSentAt: { $exists: false }, // Only those who haven't received email
+    }).populate('user');
+
+    result.total = registrations.length;
+    console.log(`📜 Found ${registrations.length} confirmed registrations to send certificates to`);
+
+    for (const registration of registrations) {
+      try {
+        const user = registration.user as any;
+        if (!user || !user.email) {
+          result.skipped++;
+          console.log(`⚠️ Skipping registration ${registration._id} - no user or email`);
+          continue;
+        }
+
+        console.log(`📜 Generating certificate for ${user.email}...`);
+
+        // Generate certificate PDF using forced method
+        const pdfBuffer = await certificateService.generateCertificateForced(
+          String(registration._id)
+        );
+
+        // Send email with certificate
+        await mailService.sendCertificateEmail(user.email, {
+          attendeeName: `${user.firstName} ${user.lastName}`,
+          workshopTitle: event.name,
+          pdfBuffer,
+        });
+
+        // Mark certificate as sent
+        await EventRegistration.findByIdAndUpdate(registration._id, {
+          certificateSentAt: new Date(),
+        });
+
+        result.sent++;
+        console.log(`✅ Certificate sent to ${user.email} for ${event.name}`);
+      } catch (error: any) {
+        result.failed++;
+        result.errors.push(`User ${(registration.user as any)?._id}: ${error.message}`);
+        console.error(`❌ Failed to send certificate to ${(registration.user as any)?.email}:`, error.message);
+      }
+    }
+
+    console.log(`📜 Force certificate job for "${event.name}": ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed`);
+    return result;
   }
 }
 

@@ -54,7 +54,8 @@ export const certificatesRouter = router({
     }),
 
   /**
-   * Get attendees for a workshop with certificate status
+   * Get all confirmed registrations for a workshop with certificate status
+   * Shows both attended and non-attended users for Events Office to manage
    */
   getWorkshopAttendees: eventsOfficeProcedure
     .input(
@@ -63,10 +64,10 @@ export const certificatesRouter = router({
       })
     )
     .query(async ({ input }) => {
+      // Get ALL confirmed registrations, not just attended
       const registrations = await EventRegistration.find({
         event: input.eventId,
         status: 'CONFIRMED',
-        attended: true,
       })
         .populate('user', 'firstName lastName email studentId gucId')
         .lean();
@@ -77,7 +78,7 @@ export const certificatesRouter = router({
         name: reg.user ? `${reg.user.firstName} ${reg.user.lastName}` : 'Unknown',
         email: reg.user?.email || 'N/A',
         studentId: reg.user?.studentId || reg.user?.gucId || 'N/A',
-        attended: reg.attended,
+        attended: reg.attended || false,
         certificateSentAt: reg.certificateSentAt || null,
       }));
 
@@ -104,11 +105,10 @@ export const certificatesRouter = router({
   }),
 
   /**
-   * Force generate certificate for a specific registration
-   * Events Office can force generate certificate even if attended=false
-   * Used for cases where attendance was not marked but user was present
+   * Download certificate for a specific registration
+   * Events Office can download certificate for any confirmed registration
    */
-  forceGenerateCertificate: eventsOfficeProcedure
+  downloadCertificate: eventsOfficeProcedure
     .input(
       z.object({
         registrationId: z.string(),
@@ -126,6 +126,41 @@ export const certificatesRouter = router({
         data: base64,
         filename: `certificate-${input.registrationId}.pdf`,
         mimeType: 'application/pdf',
+      };
+    }),
+
+  /**
+   * Send certificate email to a specific registration
+   */
+  sendCertificateToUser: eventsOfficeProcedure
+    .input(
+      z.object({
+        registrationId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const result = await certificateWorkerService.sendCertificateToUser(input.registrationId);
+      return {
+        success: true,
+        message: result.message,
+      };
+    }),
+
+  /**
+   * Send certificates to ALL confirmed registrations who haven't received yet
+   */
+  sendAllCertificates: eventsOfficeProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const result = await certificateWorkerService.triggerCertificatesNow(input.eventId);
+      return {
+        success: true,
+        ...result,
+        message: `Sent ${result.sent} certificates, skipped ${result.skipped}, failed ${result.failed}`,
       };
     }),
 });

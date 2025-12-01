@@ -356,6 +356,10 @@ const eventRoutes = {
         page: z.number().min(1).optional().default(1),
         limit: z.number().min(1).max(100).optional().default(100),
         status: z.enum(["upcoming", "past", "all"]).optional().default("all"),
+        // Filter options
+        search: z.string().optional(),
+        types: z.array(z.string()).optional(),
+        location: z.enum(["ON_CAMPUS", "OFF_CAMPUS"]).optional(),
       })
     )
     .query(async ({ input, ctx }) => {
@@ -364,6 +368,9 @@ const eventRoutes = {
         page: input.page,
         limit: input.limit,
         status: input.status,
+        search: input.search,
+        types: input.types,
+        location: input.location,
       });
     }),
 

@@ -82,10 +82,17 @@ export function EventExpandedRow({
 }: EventExpandedRowProps) {
   const { user } = useAuthStore();
   const trpcUtils = trpc.useUtils();
+  
+  // Only Event Office/Admin can view registrations, and NOT for conferences (Requirement #49)
+  const canViewRegistrations = 
+    user && 
+    event.type !== 'CONFERENCE' && 
+    (user.role === 'EVENT_OFFICE' || user.role === 'ADMIN');
+
   const { data: registrationsData, isLoading: loadingRegistrations } =
     trpc.events.getEventRegistrations.useQuery(
       { eventId: event.id, page: 1, limit: 100 },
-      { enabled: !!event.id }
+      { enabled: !!event.id && !!canViewRegistrations }
     );
 
   const { data: whitelistUserData } =
@@ -220,8 +227,8 @@ export function EventExpandedRow({
     { enabled: !!event.id && event.type === 'WORKSHOP' && isAdminOrEventOffice }
   );
 
-  // Certificate trigger mutation
-  const triggerCertificatesMutation = trpc.certificates.triggerCertificatesNow.useMutation({
+  // Send all certificates mutation
+  const sendAllCertificatesMutation = trpc.certificates.sendAllCertificates.useMutation({
     onSuccess: (data) => {
       toast.success(data.message);
       refetchCertificateStatus();
@@ -229,6 +236,35 @@ export function EventExpandedRow({
     },
     onError: (error) => {
       toast.error(`Failed to send certificates: ${error.message}`);
+    },
+  });
+
+  // Send certificate to single user mutation
+  const sendCertificateToUserMutation = trpc.certificates.sendCertificateToUser.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      refetchCertificateStatus();
+      refetchCertificateAttendees();
+    },
+    onError: (error) => {
+      toast.error(`Failed to send certificate: ${error.message}`);
+    },
+  });
+
+  // Download certificate mutation
+  const downloadCertificateMutation = trpc.certificates.downloadCertificate.useMutation({
+    onSuccess: (data) => {
+      // Download the PDF
+      const link = document.createElement('a');
+      link.href = `data:${data.mimeType};base64,${data.data}`;
+      link.download = data.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Certificate downloaded');
+    },
+    onError: (error) => {
+      toast.error(`Failed to download certificate: ${error.message}`);
     },
   });
 
@@ -671,8 +707,8 @@ export function EventExpandedRow({
             </CardContent>
           </Card>
 
-          {/* Registered Students */}
-          {registrationsData && registrationsData.registrations.length > 0 && (
+          {/* Registered Students - Event Office/Admin only, NOT for conferences */}
+          {canViewRegistrations && registrationsData && registrationsData.registrations.length > 0 && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -739,14 +775,14 @@ export function EventExpandedRow({
             </Card>
           )}
 
-          {/* QR Code Management - Events Office/Admin only */}
-          {isAdminOrEventOffice && qrStatus && qrStatus.stats.total > 0 && (
+          {/* QR Code Management for Vendor Visitors - BAZAAR only, Events Office/Admin */}
+          {isAdminOrEventOffice && event.type === 'BAZAAR' && qrStatus && qrStatus.stats.total > 0 && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <QrCode className="h-5 w-5" />
-                    QR Codes ({qrStatus.stats.generated}/{qrStatus.stats.total} generated)
+                    Vendor Visitor QR Codes ({qrStatus.stats.generated}/{qrStatus.stats.total} generated)
                   </CardTitle>
                   <Button
                     variant="outline"
@@ -832,22 +868,22 @@ export function EventExpandedRow({
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Award className="h-5 w-5" />
-                    Certificates ({certificateStatus.certificatesSent}/{certificateStatus.totalAttendees} sent)
+                    Certificates ({certificateStatus.certificatesSent}/{certificateStatus.totalConfirmed} sent)
                   </CardTitle>
-                  {certificateStatus.canSendNow && certificateStatus.certificatesPending > 0 && (
+                  {certificateStatus.canSendNow && (
                     <Button
                       variant="default"
                       size="sm"
-                      onClick={() => triggerCertificatesMutation.mutate({ eventId: event.id })}
-                      disabled={triggerCertificatesMutation.isPending}
+                      onClick={() => sendAllCertificatesMutation.mutate({ eventId: event.id })}
+                      disabled={sendAllCertificatesMutation.isPending}
                       className="gap-2"
                     >
-                      {triggerCertificatesMutation.isPending ? (
+                      {sendAllCertificatesMutation.isPending ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
                       ) : (
                         <Send className="h-4 w-4" />
                       )}
-                      Send Now ({certificateStatus.certificatesPending} pending)
+                      Send All ({certificateStatus.certificatesPending} pending)
                     </Button>
                   )}
                 </div>
@@ -876,9 +912,33 @@ export function EventExpandedRow({
                             <p className="text-sm text-muted-foreground">{attendee.email}</p>
                           </div>
                         </div>
-                        <Badge variant={attendee.certificateSentAt ? 'default' : 'secondary'}>
-                          {attendee.certificateSentAt ? 'Sent' : 'Pending'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {/* Download certificate button */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => downloadCertificateMutation.mutate({ registrationId: attendee.registrationId })}
+                            disabled={downloadCertificateMutation.isPending}
+                            title="Download certificate"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          {/* Send certificate button - only if not already sent */}
+                          {!attendee.certificateSentAt && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => sendCertificateToUserMutation.mutate({ registrationId: attendee.registrationId })}
+                              disabled={sendCertificateToUserMutation.isPending}
+                              title="Send certificate via email"
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Badge variant={attendee.certificateSentAt ? 'default' : 'secondary'}>
+                            {attendee.certificateSentAt ? 'Sent' : 'Pending'}
+                          </Badge>
+                        </div>
                       </div>
                     ))}
                   </div>

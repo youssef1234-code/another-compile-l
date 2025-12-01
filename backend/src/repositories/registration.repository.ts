@@ -47,28 +47,96 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
   }
 
   /**
-   * Get all registrations for a specific user
+   * Get all registrations for a specific user with optional event filters
    */
-  async getByUserId(userId: string, options?: { page?: number; limit?: number }) {
+  async getByUserId(userId: string, options?: { 
+    page?: number; 
+    limit?: number;
+    search?: string;
+    types?: string[];
+    location?: "ON_CAMPUS" | "OFF_CAMPUS";
+  }) {
     const page = options?.page || 1;
     const limit = options?.limit || 100;
     const skip = (page - 1) * limit;
 
-    const query = { 
-      user: new mongoose.Types.ObjectId(userId),
-      isActive: true
-    };
+    // Build aggregation pipeline for filtering by event properties
+    const pipeline: any[] = [
+      // Match user's registrations
+      { 
+        $match: { 
+          user: new mongoose.Types.ObjectId(userId),
+          isActive: true
+        }
+      },
+      // Lookup event details
+      {
+        $lookup: {
+          from: 'events',
+          localField: 'event',
+          foreignField: '_id',
+          as: 'eventData'
+        }
+      },
+      // Unwind event (should be single)
+      { $unwind: '$eventData' },
+    ];
 
-    const [registrations, total] = await Promise.all([
-      this.model
-        .find(query)
-        .populate('event')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      this.model.countDocuments(query),
-    ]);
+    // Add event filters
+    const eventMatch: any = {};
+    
+    if (options?.search) {
+      eventMatch.$or = [
+        { 'eventData.name': { $regex: options.search, $options: 'i' } },
+        { 'eventData.description': { $regex: options.search, $options: 'i' } }
+      ];
+    }
+    
+    if (options?.types && options.types.length > 0) {
+      eventMatch['eventData.type'] = { $in: options.types };
+    }
+    
+    if (options?.location) {
+      eventMatch['eventData.location'] = options.location;
+    }
+
+    if (Object.keys(eventMatch).length > 0) {
+      pipeline.push({ $match: eventMatch });
+    }
+
+    // Sort by creation date
+    pipeline.push({ $sort: { createdAt: -1 } });
+
+    // Get total count before pagination
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await this.model.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Add pagination
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // Project to reshape the document
+    pipeline.push({
+      $project: {
+        _id: 1,
+        user: 1,
+        event: '$eventData',
+        status: 1,
+        paymentStatus: 1,
+        paymentMethod: 1,
+        amount: 1,
+        loyaltyPointsUsed: 1,
+        holdExpiresAt: 1,
+        qrCode: 1,
+        scannedAt: 1,
+        isActive: 1,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    });
+
+    const registrations = await this.model.aggregate(pipeline);
 
     return {
       registrations: registrations.map(transformRegistration),
@@ -151,32 +219,94 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
   /**
    * Get upcoming registrations for a user
    */
-  async getUpcomingRegistrations(userId: string, options?: { page?: number; limit?: number }) {
+  async getUpcomingRegistrations(userId: string, options?: { 
+    page?: number; 
+    limit?: number;
+    search?: string;
+    types?: string[];
+    location?: "ON_CAMPUS" | "OFF_CAMPUS";
+  }) {
     const page = options?.page || 1;
     const limit = options?.limit || 100;
     const skip = (page - 1) * limit;
 
     const now = new Date();
 
-    // First get all registrations with populated events
-    const allRegistrations = await this.model
-      .find({
-        user: new mongoose.Types.ObjectId(userId),
-        isActive: true,
-      })
-      .populate('event')
-      .lean();
+    // Build aggregation pipeline
+    const pipeline: any[] = [
+      { 
+        $match: { 
+          user: new mongoose.Types.ObjectId(userId),
+          isActive: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'events',
+          localField: 'event',
+          foreignField: '_id',
+          as: 'eventData'
+        }
+      },
+      { $unwind: '$eventData' },
+      // Filter upcoming events
+      { $match: { 'eventData.startDate': { $gt: now } } }
+    ];
 
-    // Filter in memory for upcoming events
-    const upcomingRegistrations = allRegistrations.filter((reg: any) => {
-      return reg.event && new Date(reg.event.startDate) > now;
+    // Add event filters
+    const eventMatch: any = {};
+    
+    if (options?.search) {
+      eventMatch.$or = [
+        { 'eventData.name': { $regex: options.search, $options: 'i' } },
+        { 'eventData.description': { $regex: options.search, $options: 'i' } }
+      ];
+    }
+    
+    if (options?.types && options.types.length > 0) {
+      eventMatch['eventData.type'] = { $in: options.types };
+    }
+    
+    if (options?.location) {
+      eventMatch['eventData.location'] = options.location;
+    }
+
+    if (Object.keys(eventMatch).length > 0) {
+      pipeline.push({ $match: eventMatch });
+    }
+
+    pipeline.push({ $sort: { 'eventData.startDate': 1 } });
+
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await this.model.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    pipeline.push({
+      $project: {
+        _id: 1,
+        user: 1,
+        event: '$eventData',
+        status: 1,
+        paymentStatus: 1,
+        paymentMethod: 1,
+        amount: 1,
+        loyaltyPointsUsed: 1,
+        holdExpiresAt: 1,
+        qrCode: 1,
+        scannedAt: 1,
+        isActive: 1,
+        createdAt: 1,
+        updatedAt: 1
+      }
     });
 
-    const total = upcomingRegistrations.length;
-    const paginatedRegistrations = upcomingRegistrations.slice(skip, skip + limit);
+    const registrations = await this.model.aggregate(pipeline);
 
     return {
-      registrations: paginatedRegistrations.map(transformRegistration),
+      registrations: registrations.map(transformRegistration),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -186,32 +316,94 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
   /**
    * Get past registrations for a user
    */
-  async getPastRegistrations(userId: string, options?: { page?: number; limit?: number }) {
+  async getPastRegistrations(userId: string, options?: { 
+    page?: number; 
+    limit?: number;
+    search?: string;
+    types?: string[];
+    location?: "ON_CAMPUS" | "OFF_CAMPUS";
+  }) {
     const page = options?.page || 1;
     const limit = options?.limit || 100;
     const skip = (page - 1) * limit;
 
     const now = new Date();
 
-    // First get all registrations with populated events
-    const allRegistrations = await this.model
-      .find({
-        user: new mongoose.Types.ObjectId(userId),
-        isActive: true,
-      })
-      .populate('event')
-      .lean();
+    // Build aggregation pipeline
+    const pipeline: any[] = [
+      { 
+        $match: { 
+          user: new mongoose.Types.ObjectId(userId),
+          isActive: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'events',
+          localField: 'event',
+          foreignField: '_id',
+          as: 'eventData'
+        }
+      },
+      { $unwind: '$eventData' },
+      // Filter past events
+      { $match: { 'eventData.startDate': { $lte: now } } }
+    ];
 
-    // Filter in memory for past events
-    const pastRegistrations = allRegistrations.filter((reg: any) => {
-      return reg.event && new Date(reg.event.startDate) <= now;
+    // Add event filters
+    const eventMatch: any = {};
+    
+    if (options?.search) {
+      eventMatch.$or = [
+        { 'eventData.name': { $regex: options.search, $options: 'i' } },
+        { 'eventData.description': { $regex: options.search, $options: 'i' } }
+      ];
+    }
+    
+    if (options?.types && options.types.length > 0) {
+      eventMatch['eventData.type'] = { $in: options.types };
+    }
+    
+    if (options?.location) {
+      eventMatch['eventData.location'] = options.location;
+    }
+
+    if (Object.keys(eventMatch).length > 0) {
+      pipeline.push({ $match: eventMatch });
+    }
+
+    pipeline.push({ $sort: { 'eventData.startDate': -1 } });
+
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await this.model.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    pipeline.push({
+      $project: {
+        _id: 1,
+        user: 1,
+        event: '$eventData',
+        status: 1,
+        paymentStatus: 1,
+        paymentMethod: 1,
+        amount: 1,
+        loyaltyPointsUsed: 1,
+        holdExpiresAt: 1,
+        qrCode: 1,
+        scannedAt: 1,
+        isActive: 1,
+        createdAt: 1,
+        updatedAt: 1
+      }
     });
 
-    const total = pastRegistrations.length;
-    const paginatedRegistrations = pastRegistrations.slice(skip, skip + limit);
+    const registrations = await this.model.aggregate(pipeline);
 
     return {
-      registrations: paginatedRegistrations.map(transformRegistration),
+      registrations: registrations.map(transformRegistration),
       total,
       page,
       totalPages: Math.ceil(total / limit),

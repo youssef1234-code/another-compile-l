@@ -11,41 +11,41 @@
  * - Related events section
  */
 
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
-import type { Registration, User as EventUser } from "@event-manager/shared";
+import type { User as EventUser, Registration } from "@event-manager/shared";
 
-import { trpc } from "@/lib/trpc";
-import { useAuthStore } from "@/store/authStore";
 import { ROUTES } from "@/lib/constants";
-import { formatValidationErrors } from "@/lib/format-errors";
 import { formatDate } from "@/lib/design-system";
+import { formatValidationErrors } from "@/lib/format-errors";
+import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/authStore";
 
 import { toast } from "react-hot-toast";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { EventImageCarousel } from "@/components/ui/event-image-carousel";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { EventImageCarousel } from "@/components/ui/event-image-carousel";
 
-import { VendorCard } from "@/features/events/components/VendorCard";
-import { FeedbackSection } from "@/features/events/components/feedback";
 import { RegistrationCTA } from "@/components/RegistrationCTA";
 import { usePageMeta } from "@/components/layout/page-meta-context";
+import { VendorCard } from "@/features/events/components/VendorCard";
+import { FeedbackSection } from "@/features/events/components/feedback";
 
 import {
   AlertCircle,
+  Award,
   Building2,
   Calendar,
   CheckCircle,
-  CheckSquare,
   Clock,
   DollarSign,
   Dumbbell,
@@ -58,7 +58,7 @@ import {
   Store,
   User,
   Users,
-  XCircle,
+  XCircle
 } from "lucide-react";
 
 function EventDetailsPageSkeleton() {
@@ -152,10 +152,13 @@ export function EventDetailsPage() {
     });
   }
 
-  // Allow EVENT_OFFICE, ADMIN, or professors to view registrations for their own workshops
+  // Only EVENT_OFFICE can view registrations, and NOT for conferences (Requirement #49)
+  // Professors can see their own workshop participants via the workshop management page
   const canViewRegistrations =
     user &&
-    (user.role === "EVENT_OFFICE" || user.role === "ADMIN" || isProfessorOwned);
+    event &&
+    event.type !== 'CONFERENCE' &&
+    (user.role === "EVENT_OFFICE" || user.role === "ADMIN");
 
   const { data: registrationsData } =
     trpc.events.getEventRegistrations.useQuery(
@@ -486,17 +489,36 @@ export function EventDetailsPage() {
             {/* Registration Status Card */}
             {isRegistered && (
               <Card className="border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-6 w-6 text-emerald-600" />
-                    <div>
-                      <p className="font-semibold text-emerald-900 dark:text-emerald-100">
-                        You're Registered!
-                      </p>
-                      <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                        See you at the event
-                      </p>
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="h-6 w-6 text-emerald-600" />
+                      <div>
+                        <p className="font-semibold text-emerald-900 dark:text-emerald-100">
+                          You're Registered!
+                        </p>
+                        <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                          {hasEnded ? 'Thank you for attending!' : 'See you at the event'}
+                        </p>
+                      </div>
                     </div>
+                    {/* Certificate Download - Only for WORKSHOP events that have ended */}
+                    {event.type === 'WORKSHOP' && hasEnded && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDownloadCertificate}
+                        disabled={generateCertificateMutation.isPending}
+                        className="gap-2 border-emerald-500 text-emerald-700 hover:bg-emerald-100 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                      >
+                        {generateCertificateMutation.isPending ? (
+                          <span className="animate-spin">⏳</span>
+                        ) : (
+                          <Award className="h-4 w-4" />
+                        )}
+                        Download Certificate
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

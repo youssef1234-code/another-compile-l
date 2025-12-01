@@ -27,6 +27,9 @@ export class RegistrationService {
       page?: number;
       limit?: number;
       status?: "upcoming" | "past" | "all";
+      search?: string;
+      types?: string[];
+      location?: "ON_CAMPUS" | "OFF_CAMPUS";
     }
   ) {
     const status = options?.status || "all";
