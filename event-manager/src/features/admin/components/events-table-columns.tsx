@@ -636,9 +636,8 @@ export function getEventsTableColumns({
                 </>
               )}
 
-              {/* Archive and Delete - professors can do this on workshops, admin/event office on non-workshops */}
-              {onArchiveEvent && !((userRole === UserRole.ADMIN || userRole === UserRole.EVENT_OFFICE) && event.type === 'WORKSHOP') && (
-                <>
+{/* Archive and Delete */}
+              {onArchiveEvent && (                <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => onArchiveEvent(event.id)}>
                     <Archive className="mr-2 h-4 w-4" />
