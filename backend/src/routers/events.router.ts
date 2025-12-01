@@ -216,21 +216,11 @@ const eventRoutes = {
     }),
 
   /**
-   * Archive an event - EVENT_OFFICE and ADMIN only (CANNOT archive workshops - professors only)
+   * Archive an event - EVENT_OFFICE and ADMIN only
    */
   archive: eventsOfficeProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
-      // Check if event is a workshop
-      const event = await eventService.getEventById(input.id);
-      if (event.type === "WORKSHOP") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            "Workshops can only be archived by the professor who created them.",
-        });
-      }
-
       return eventService.archiveEvent(input.id);
     }),
 
