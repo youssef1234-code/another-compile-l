@@ -48,12 +48,12 @@ export class QRBadgeService {
       type: 'VENDOR_VISITOR_BADGE',
     });
 
-    // Generate QR code as data URL
+    // Generate QR code as data URL with primary blue color
     const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
       width: 300,
       margin: 2,
       color: {
-        dark: '#000000',
+        dark: '#1D4ED8', // Primary Blue-700 for better contrast
         light: '#FFFFFF',
       },
     });
@@ -155,13 +155,30 @@ export class QRBadgeService {
       );
     }
 
-    const [vendor, event] = await Promise.all([
-      User.findById(vendorId).lean(),
-      Event.findById(application.bazaarId).lean(),
-    ]);
+    // Get vendor info
+    const vendor = await User.findById(vendorId).lean();
+    if (!vendor) {
+      throw new ServiceError('NOT_FOUND', 'Vendor not found', 404);
+    }
 
-    if (!vendor || !event) {
-      throw new ServiceError('NOT_FOUND', 'Required data not found', 404);
+    // For BAZAAR type, get event info. For PLATFORM type, use platform info
+    let eventName = 'Platform Booth';
+    let eventDate = application.startDate || new Date();
+    let eventLocation = 'Campus Platform';
+    let eventId = 'platform';
+
+    if (application.type === 'BAZAAR' && application.bazaarId) {
+      const event = await Event.findById(application.bazaarId).lean();
+      if (event) {
+        eventName = event.name;
+        eventDate = event.startDate;
+        eventLocation = event.location || 'TBD';
+        eventId = String(event._id);
+      }
+    } else if (application.type === 'PLATFORM') {
+      // For platform applications, use booth info
+      eventName = application.boothLabel ? `Platform Booth ${application.boothLabel}` : 'Platform Booth';
+      eventLocation = 'GUC Campus Platform';
     }
 
     // Create multi-page PDF with all visitor badges
@@ -183,9 +200,9 @@ export class QRBadgeService {
         visitorName,
         vendorId: String(vendor._id),
         vendorName: vendor.companyName || `${vendor.firstName} ${vendor.lastName}`,
-        eventId: String(event._id),
-        eventName: event.name,
-        eventDate: event.startDate,
+        eventId: eventId,
+        eventName: eventName,
+        eventDate: eventDate,
         applicationId,
       });
 
@@ -194,11 +211,11 @@ export class QRBadgeService {
         visitorName,
         visitorEmail,
         vendorName: vendor.companyName || `${vendor.firstName} ${vendor.lastName}`,
-        eventName: event.name,
-        eventDate: event.startDate,
-        eventLocation: event.location,
+        eventName: eventName,
+        eventDate: eventDate,
+        eventLocation: eventLocation,
         qrCodeDataUrl,
-        badgeType: application.type === 'BAZAAR' ? 'Bazaar Participant' : 'Booth Setup',
+        badgeType: application.type === 'BAZAAR' ? 'Bazaar Participant' : 'Platform Booth',
       });
     }
 
@@ -236,91 +253,162 @@ export class QRBadgeService {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
 
+    // Primary blue color from the design system
+    const primaryBlue = '#2563EB'; // Blue-600
+    const primaryBlueDark = '#1D4ED8'; // Blue-700
+    const primaryBlueLight = '#DBEAFE'; // Blue-100
+
     // Badge dimensions (centered on page)
-    const badgeWidth = 350;
-    const badgeHeight = 500;
+    const badgeWidth = 380;
+    const badgeHeight = 550;
     const badgeX = (pageWidth - badgeWidth) / 2;
     const badgeY = (pageHeight - badgeHeight) / 2;
 
-    // Background
-    doc.rect(badgeX, badgeY, badgeWidth, badgeHeight)
-      .fill('#FFFFFF')
-      .stroke('#E5E7EB');
+    // Outer border - Primary Blue
+    doc.roundedRect(badgeX - 4, badgeY - 4, badgeWidth + 8, badgeHeight + 8, 12)
+      .fill(primaryBlue);
 
-    // Header - Brand Color
-    doc.rect(badgeX, badgeY, badgeWidth, 80)
-      .fill('#4F46E5'); // Indigo
+    // Badge background with rounded corners
+    doc.roundedRect(badgeX, badgeY, badgeWidth, badgeHeight, 10)
+      .fill('#FFFFFF');
 
-    // Event Logo/Title
+    // Header - Primary Blue gradient effect (solid for PDF)
+    doc.roundedRect(badgeX, badgeY, badgeWidth, 90, 10)
+      .fill(primaryBlue);
+    // Cover bottom corners to make header connect smoothly
+    doc.rect(badgeX, badgeY + 70, badgeWidth, 20)
+      .fill(primaryBlue);
+
+    // Event Logo/Title - White on blue
     doc.fillColor('#FFFFFF')
-      .fontSize(20)
+      .fontSize(22)
       .font('Helvetica-Bold')
-      .text('Another Compile L', badgeX, badgeY + 20, {
+      .text('Another Compile L', badgeX, badgeY + 18, {
         width: badgeWidth,
         align: 'center',
       });
 
-    doc.fontSize(12)
-      .font('Helvetica')
-      .text(data.badgeType, badgeX, badgeY + 50, {
+    // Badge type with styled background
+    doc.fontSize(11)
+      .font('Helvetica-Bold')
+      .text(data.badgeType.toUpperCase(), badgeX, badgeY + 55, {
         width: badgeWidth,
         align: 'center',
       });
 
-    // QR Code (centered)
-    const qrSize = 200;
+    // Decorative line under header
+    doc.rect(badgeX + 40, badgeY + 95, badgeWidth - 80, 3)
+      .fill(primaryBlueLight);
+
+    // QR Code section with border
+    const qrSize = 180;
     const qrX = badgeX + (badgeWidth - qrSize) / 2;
-    const qrY = badgeY + 100;
+    const qrY = badgeY + 115;
 
-    // Remove data URL prefix and add image
+    // QR code background/border
+    doc.roundedRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 8)
+      .fill(primaryBlueLight);
+    doc.roundedRect(qrX - 5, qrY - 5, qrSize + 10, qrSize + 10, 6)
+      .fill('#FFFFFF');
+
+    // Add QR code image
     const base64Data = data.qrCodeDataUrl.replace(/^data:image\/png;base64,/, '');
     doc.image(Buffer.from(base64Data, 'base64'), qrX, qrY, {
       width: qrSize,
       height: qrSize,
     });
 
-    // Visitor Info
-    doc.fillColor('#000000')
-      .fontSize(18)
+    // Visitor name section
+    const infoY = qrY + qrSize + 30;
+    
+    // Name label
+    doc.fillColor(primaryBlue)
+      .fontSize(10)
       .font('Helvetica-Bold')
-      .text(data.visitorName, badgeX + 20, qrY + qrSize + 20, {
+      .text('ATTENDEE', badgeX + 20, infoY, {
         width: badgeWidth - 40,
         align: 'center',
       });
+
+    // Visitor name
+    doc.fillColor('#1F2937')
+      .fontSize(20)
+      .font('Helvetica-Bold')
+      .text(data.visitorName, badgeX + 20, infoY + 15, {
+        width: badgeWidth - 40,
+        align: 'center',
+      });
+
+    // Divider line
+    doc.rect(badgeX + 60, infoY + 50, badgeWidth - 120, 1)
+      .fill('#E5E7EB');
 
     // Vendor Info
-    doc.fontSize(12)
-      .font('Helvetica')
-      .fillColor('#6B7280')
-      .text(`Vendor: ${data.vendorName}`, badgeX + 20, qrY + qrSize + 50, {
+    doc.fontSize(10)
+      .font('Helvetica-Bold')
+      .fillColor(primaryBlue)
+      .text('VENDOR', badgeX + 20, infoY + 65, {
         width: badgeWidth - 40,
         align: 'center',
       });
 
-    // Event Info
-    doc.fontSize(10)
-      .text(data.eventName, badgeX + 20, qrY + qrSize + 75, {
+    doc.fontSize(14)
+      .font('Helvetica')
+      .fillColor('#374151')
+      .text(data.vendorName, badgeX + 20, infoY + 80, {
         width: badgeWidth - 40,
+        align: 'center',
+      });
+
+    // Event Info box
+    const eventBoxY = infoY + 115;
+    doc.roundedRect(badgeX + 30, eventBoxY, badgeWidth - 60, 55, 6)
+      .fill(primaryBlueLight);
+
+    doc.fontSize(10)
+      .font('Helvetica-Bold')
+      .fillColor(primaryBlueDark)
+      .text(data.eventName, badgeX + 35, eventBoxY + 10, {
+        width: badgeWidth - 70,
         align: 'center',
       });
 
     const dateStr = new Date(data.eventDate).toLocaleDateString('en-US', {
+      weekday: 'short',
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
-    doc.text(dateStr, badgeX + 20, qrY + qrSize + 90, {
-      width: badgeWidth - 40,
-      align: 'center',
-    });
+    doc.fontSize(11)
+      .font('Helvetica')
+      .fillColor('#4B5563')
+      .text(dateStr, badgeX + 35, eventBoxY + 26, {
+        width: badgeWidth - 70,
+        align: 'center',
+      });
+
+    if (data.eventLocation) {
+      doc.fontSize(9)
+        .text(data.eventLocation, badgeX + 35, eventBoxY + 40, {
+          width: badgeWidth - 70,
+          align: 'center',
+        });
+    }
 
     // Footer
-    doc.fontSize(8)
+    doc.fontSize(9)
       .fillColor('#9CA3AF')
-      .text('Scan QR code for verification', badgeX + 20, badgeY + badgeHeight - 30, {
+      .font('Helvetica')
+      .text('Scan QR code for verification', badgeX + 20, badgeY + badgeHeight - 35, {
         width: badgeWidth - 40,
         align: 'center',
       });
+
+    // Small decorative dots at bottom
+    const dotY = badgeY + badgeHeight - 15;
+    doc.circle(badgeX + badgeWidth/2 - 15, dotY, 3).fill(primaryBlue);
+    doc.circle(badgeX + badgeWidth/2, dotY, 3).fill(primaryBlue);
+    doc.circle(badgeX + badgeWidth/2 + 15, dotY, 3).fill(primaryBlue);
   }
 
   /**

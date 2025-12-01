@@ -989,7 +989,7 @@ export class MailgunService extends BaseMailService {
                       </p>
                       <p style="margin: 16px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
                         Best regards,<br>
-                        <strong>GUC Events Team</strong>
+                        <strong>Another Compile L Team</strong>
                       </p>
                     </td>
                   </tr>
@@ -1086,7 +1086,7 @@ export class MailgunService extends BaseMailService {
                       </p>
                       <p style="margin: 16px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
                         Best regards,<br>
-                        <strong>GUC Events Team</strong>
+                        <strong>Another Compile L Team</strong>
                       </p>
                     </td>
                   </tr>
@@ -1251,7 +1251,7 @@ export class MailgunService extends BaseMailService {
                       </p>
                       <p style="margin: 16px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
                         Best regards,<br>
-                        <strong>GUC Events Team</strong>
+                        <strong>Another Compile L Team</strong>
                       </p>
                     </td>
                   </tr>
@@ -1337,7 +1337,7 @@ export class MailgunService extends BaseMailService {
                       </p>
                       <p style="margin: 16px 0 0; font-size: 16px; line-height: 24px; color: #525252;">
                         Best regards,<br>
-                        <strong>GUC Events Team</strong>
+                        <strong>Another Compile L Team</strong>
                       </p>
                     </td>
                   </tr>
@@ -1426,7 +1426,7 @@ export class MailgunService extends BaseMailService {
                       
                       <p style="margin: 0; font-size: 16px; line-height: 24px; color: #525252; text-align: left;">
                         See you there!<br>
-                        <strong>GUC Events Team</strong>
+                        <strong>Another Compile L Team</strong>
                       </p>
                     </td>
                   </tr>
