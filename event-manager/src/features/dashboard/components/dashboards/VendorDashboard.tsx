@@ -1,27 +1,25 @@
 /**
  * Vendor Dashboard
  * 
- * Dashboard for vendors showing:
- * - Application status overview
- * - Upcoming bazaars
- * - Loyalty program participation
- * - Booth information
+ * Enhanced dashboard with welcome section, business metrics,
+ * application tracking, and growth opportunities
  */
 
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/lib/constants';
 import { trpc } from '@/lib/trpc';
 import { useAuthStore } from '@/store/authStore';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { 
   Store, 
   Calendar, 
   Clock, 
   CheckCircle, 
-  XCircle, 
   ArrowRight,
   Heart,
   MapPin,
@@ -29,174 +27,17 @@ import {
   Building2,
   Sparkles,
   CreditCard,
+  TrendingUp,
+  Target,
+  Rocket,
+  AlertCircle,
+  Award,
+  ShoppingBag
 } from 'lucide-react';
 import { formatDate } from '@/lib/design-system';
 import { cn } from '@/lib/utils';
 import NumberFlow from '@number-flow/react';
 import type { Event } from '@event-manager/shared';
-import { DonutChart } from '../charts/DonutChart';
-
-// Application Status Card
-function ApplicationStatusCard({ 
-  application, 
-  onView 
-}: { 
-  application: any; 
-  onView: () => void;
-}) {
-  const statusConfig: Record<string, { color: string; icon: React.ElementType; label: string }> = {
-    PENDING: { color: 'bg-yellow-500', icon: Clock, label: 'Pending Review' },
-    APPROVED: { color: 'bg-green-500', icon: CheckCircle, label: 'Approved' },
-    REJECTED: { color: 'bg-red-500', icon: XCircle, label: 'Rejected' },
-    PAYMENT_PENDING: { color: 'bg-blue-500', icon: CreditCard, label: 'Payment Pending' },
-    CONFIRMED: { color: 'bg-emerald-500', icon: CheckCircle, label: 'Confirmed' },
-  };
-  
-  const config = statusConfig[application.status] || statusConfig.PENDING;
-  const StatusIcon = config.icon;
-  
-  return (
-    <Card className="hover:shadow-md transition-all duration-200 group cursor-pointer" onClick={onView}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge className={cn(config.color, 'text-white text-xs')}>
-                <StatusIcon className="h-3 w-3 mr-1" />
-                {config.label}
-              </Badge>
-            </div>
-            <h4 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-              {application.bazaar?.name || 'Bazaar Application'}
-            </h4>
-            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-              {application.bazaar?.startDate && (
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {formatDate(application.bazaar.startDate)}
-                </span>
-              )}
-              {application.boothNumber && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  Booth #{application.boothNumber}
-                </span>
-              )}
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Upcoming Bazaar Card
-function UpcomingBazaarCard({ 
-  bazaar, 
-  hasApplication,
-  onApply, 
-  onView 
-}: { 
-  bazaar: Event; 
-  hasApplication: boolean;
-  onApply: () => void;
-  onView: () => void;
-}) {
-  const startDate = bazaar.startDate ? new Date(bazaar.startDate) : new Date();
-  const daysUntil = Math.ceil((startDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-  
-  return (
-    <Card className="hover:shadow-md transition-all duration-200 group">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/30">
-                Bazaar
-              </Badge>
-              {daysUntil <= 14 && daysUntil > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  {daysUntil} days away
-                </Badge>
-              )}
-            </div>
-            <h4 
-              className="font-medium text-sm truncate cursor-pointer hover:text-primary transition-colors"
-              onClick={onView}
-            >
-              {bazaar.name}
-            </h4>
-            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {bazaar.startDate ? formatDate(bazaar.startDate) : 'TBD'}
-              </span>
-              <span className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                {bazaar.location === 'ON_CAMPUS' ? 'On Campus' : 'Off Campus'}
-              </span>
-            </div>
-          </div>
-          <div className="flex-shrink-0">
-            {hasApplication ? (
-              <Badge variant="secondary" className="text-xs">
-                Applied
-              </Badge>
-            ) : (
-              <Button size="sm" onClick={onApply}>
-                Apply
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Quick Action for Vendors
-function VendorQuickAction({ 
-  icon: Icon, 
-  title, 
-  description, 
-  href,
-  variant = 'default'
-}: { 
-  icon: React.ElementType; 
-  title: string; 
-  description: string; 
-  href: string;
-  variant?: 'default' | 'primary';
-}) {
-  const navigate = useNavigate();
-  
-  return (
-    <Card 
-      className={cn(
-        "cursor-pointer transition-all duration-200 group hover:shadow-md",
-        variant === 'primary' ? 'border-primary/30 bg-primary/5' : ''
-      )}
-      onClick={() => navigate(href)}
-    >
-      <CardContent className="p-4 flex items-center gap-4">
-        <div className={cn(
-          "p-3 rounded-xl transition-colors",
-          variant === 'primary' 
-            ? 'bg-primary/10 text-primary' 
-            : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
-        )}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-sm">{title}</h3>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-      </CardContent>
-    </Card>
-  );
-}
 
 export function VendorDashboard() {
   const navigate = useNavigate();
@@ -227,309 +68,529 @@ export function VendorDashboard() {
   
   const applications = applicationsData?.applications || [];
   const bazaars = bazaarsData?.events || [];
-  const upcomingBazaars = bazaars.filter((b: Event) => b.startDate && new Date(b.startDate) > new Date());
-  
-  // Application status breakdown
-  const statusBreakdown = applications.reduce((acc: Record<string, number>, a: any) => {
-    acc[a.status] = (acc[a.status] || 0) + 1;
-    return acc;
-  }, {});
-  
-  const pendingApplications = applications.filter((a: any) => a.status === 'PENDING');
-  const approvedApplications = applications.filter((a: any) => a.status === 'APPROVED' || a.status === 'CONFIRMED');
-  const paymentPendingApps = applications.filter((a: any) => a.status === 'PAYMENT_PENDING');
-  
-  // Chart data for application status
-  const statusChartData = [
-    { name: 'Confirmed', value: statusBreakdown['CONFIRMED'] || 0, fill: 'hsl(142, 76%, 36%)' },
-    { name: 'Approved', value: statusBreakdown['APPROVED'] || 0, fill: 'hsl(217, 91%, 60%)' },
-    { name: 'Pending', value: statusBreakdown['PENDING'] || 0, fill: 'hsl(45, 93%, 47%)' },
-    { name: 'Payment Pending', value: statusBreakdown['PAYMENT_PENDING'] || 0, fill: 'hsl(262, 83%, 58%)' },
-    { name: 'Rejected', value: statusBreakdown['REJECTED'] || 0, fill: 'hsl(0, 84%, 60%)' },
-  ].filter(d => d.value > 0);
-  
-  const statusChartConfig = {
-    Confirmed: { label: 'Confirmed', color: 'hsl(142, 76%, 36%)' },
-    Approved: { label: 'Approved', color: 'hsl(217, 91%, 60%)' },
-    Pending: { label: 'Pending', color: 'hsl(45, 93%, 47%)' },
-    'Payment Pending': { label: 'Payment Pending', color: 'hsl(262, 83%, 58%)' },
-    Rejected: { label: 'Rejected', color: 'hsl(0, 84%, 60%)' },
+
+  // Analytics calculations
+  const analytics = useMemo(() => {
+    const statusBreakdown: Record<string, number> = {};
+    applications.forEach((a: any) => {
+      statusBreakdown[a.status] = (statusBreakdown[a.status] || 0) + 1;
+    });
+    
+    const pending = applications.filter((a: any) => a.status === 'PENDING');
+    const approved = applications.filter((a: any) => a.status === 'APPROVED' || a.status === 'CONFIRMED');
+    const paymentPending = applications.filter((a: any) => a.status === 'PAYMENT_PENDING');
+    const rejected = applications.filter((a: any) => a.status === 'REJECTED');
+    
+    const upcomingBazaars = bazaars.filter((b: Event) => b.startDate && new Date(b.startDate) > new Date());
+    
+    // Get next bazaar with confirmed booth
+    const confirmedApps = applications.filter((a: any) => a.status === 'CONFIRMED');
+    const nextBooth = confirmedApps.find((a: any) => {
+      const bazaar = a.bazaar;
+      return bazaar?.startDate && new Date(bazaar.startDate) > new Date();
+    }) as { bazaar?: { name?: string; startDate?: string }; boothNumber?: string } | undefined;
+    
+    const loyaltyRequests = loyaltyData || [];
+    const activeLoyalty = loyaltyRequests.filter((r: any) => r.status === 'APPROVED').length;
+    const pendingLoyalty = loyaltyRequests.filter((r: any) => r.status === 'PENDING').length;
+    
+    const applicationBazaarIds = new Set(existingApplications?.map((a: any) => a.bazaarId) || []);
+    
+    // Success rate
+    const totalDecided = approved.length + rejected.length;
+    const successRate = totalDecided > 0 ? Math.round((approved.length / totalDecided) * 100) : 0;
+    
+    return {
+      statusBreakdown,
+      pending,
+      approved,
+      paymentPending,
+      rejected,
+      upcomingBazaars,
+      activeLoyalty,
+      pendingLoyalty,
+      applicationBazaarIds,
+      nextBooth,
+      successRate,
+      totalApplications: applications.length,
+      actionRequired: pending.length + paymentPending.length,
+    };
+  }, [applications, bazaars, loyaltyData, existingApplications]);
+
+  // Get greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   };
-  
-  // Check which bazaars have existing applications
-  const applicationBazaarIds = new Set(existingApplications?.map((a: any) => a.bazaarId) || []);
-  
-  // Loyalty program status
-  const loyaltyRequests = loyaltyData || [];
-  const activeLoyalty = loyaltyRequests.filter((r: any) => r.status === 'APPROVED').length;
-  
+
+  const isLoading = applicationsLoading || bazaarsLoading;
+
   return (
     <div className="space-y-6">
-      {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Applications
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {applicationsLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <div className="text-2xl font-bold">
-                <NumberFlow value={applications.length} />
+      {/* Hero Welcome Section */}
+      <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-[hsl(220,80%,45%)] via-[hsl(220,80%,50%)] to-[hsl(220,80%,55%)] text-white">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItMnptMCAwYzAtMiAyLTQgMi00czIgMiAyIDRjMCAyLTIgNC0yIDRzLTItMi0yLTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-50" />
+        <div className="relative p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                <Building2 className="h-7 w-7" />
               </div>
-            )}
-            <p className="text-xs text-muted-foreground">Total submitted</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <CheckCircle className="h-4 w-4" />
-              Approved
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {applicationsLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <div className="text-2xl font-bold text-green-600">
-                <NumberFlow value={approvedApplications.length} />
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-sm text-white/80">{getGreeting()}</span>
+                  <Sparkles className="h-4 w-4 text-white/60" />
+                </div>
+                <h1 className="text-xl font-bold">{user?.companyName || 'Your Business'}</h1>
+                <p className="text-white/70 text-sm">
+                  {analytics.approved.length > 0 
+                    ? `${analytics.approved.length} active booth${analytics.approved.length > 1 ? 's' : ''} secured`
+                    : "Ready to grow your business at campus events?"
+                  }
+                </p>
               </div>
-            )}
-            <p className="text-xs text-muted-foreground">Booths secured</p>
-          </CardContent>
-        </Card>
-        
-        <Card className={cn(
-          pendingApplications.length > 0 || paymentPendingApps.length > 0 
-            ? 'border-yellow-500/50 bg-yellow-500/5' 
-            : ''
-        )}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Pending
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {applicationsLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <div className="text-2xl font-bold">
-                <NumberFlow value={pendingApplications.length + paymentPendingApps.length} />
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Awaiting action</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              Loyalty Programs
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              <NumberFlow value={activeLoyalty} />
             </div>
-            <p className="text-xs text-muted-foreground">Active partnerships</p>
-          </CardContent>
+            
+            {/* Next Booth Info */}
+            {analytics.nextBooth && (
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <p className="text-xs text-white/70 uppercase tracking-wide mb-1">Next Event</p>
+                <p className="font-semibold text-sm mb-1 truncate max-w-[200px]">
+                  {analytics.nextBooth.bazaar?.name}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-white/80">
+                  <Calendar className="h-3 w-3" />
+                  {analytics.nextBooth.bazaar?.startDate 
+                    ? formatDate(analytics.nextBooth.bazaar.startDate)
+                    : 'TBD'
+                  }
+                  {analytics.nextBooth.boothNumber && (
+                    <>
+                      <span className="text-white/40">•</span>
+                      <span>Booth #{analytics.nextBooth.boothNumber}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Stats Row */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        {/* Booths Secured */}
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-[var(--stat-icon-success-bg)] text-[var(--stat-icon-success-fg)]">
+              <CheckCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Booths Secured</p>
+              {isLoading ? (
+                <Skeleton className="h-6 w-8 mt-0.5" />
+              ) : (
+                <p className="text-xl font-semibold">
+                  <NumberFlow value={analytics.approved.length} />
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Total Applications */}
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-[hsl(220,80%,50%)]/10 text-[hsl(220,80%,50%)]">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Applications</p>
+              {isLoading ? (
+                <Skeleton className="h-6 w-8 mt-0.5" />
+              ) : (
+                <p className="text-xl font-semibold">
+                  <NumberFlow value={analytics.totalApplications} />
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Loyalty Programs */}
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-[hsl(220,80%,60%)]/10 text-[hsl(220,80%,60%)]">
+              <Award className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Loyalty Partners</p>
+              {isLoading ? (
+                <Skeleton className="h-6 w-8 mt-0.5" />
+              ) : (
+                <p className="text-xl font-semibold">
+                  <NumberFlow value={analytics.activeLoyalty} />
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Action Required */}
+        <Card className={cn(
+          "p-4",
+          analytics.actionRequired > 0 && "ring-1 ring-[hsl(220,80%,50%)]/30 bg-[hsl(220,80%,50%)]/5"
+        )}>
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "w-10 h-10 flex items-center justify-center rounded-lg",
+              analytics.actionRequired > 0 
+                ? "bg-[hsl(220,80%,50%)]/20 text-[hsl(220,80%,50%)]"
+                : "bg-muted text-muted-foreground"
+            )}>
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Action Needed</p>
+              {isLoading ? (
+                <Skeleton className="h-6 w-8 mt-0.5" />
+              ) : (
+                <p className="text-xl font-semibold">
+                  <NumberFlow value={analytics.actionRequired} />
+                </p>
+              )}
+            </div>
+          </div>
         </Card>
       </div>
-      
-      {/* Payment Pending Alert */}
-      {paymentPendingApps.length > 0 && (
-        <Card className="border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-blue-500/20">
-                  <CreditCard className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Payment Required</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {paymentPendingApps.length} application(s) awaiting payment to confirm your booth
-                  </p>
-                </div>
+
+      {/* Payment Pending Banner */}
+      {analytics.paymentPending.length > 0 && (
+        <Card className="border-[hsl(220,80%,50%)]/50 bg-gradient-to-r from-[hsl(220,80%,50%)]/10 to-[hsl(220,80%,60%)]/10">
+          <div className="p-4 flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-[hsl(220,80%,50%)]/20">
+                <CreditCard className="h-5 w-5 text-[hsl(220,80%,50%)]" />
               </div>
-              <Button onClick={() => navigate(ROUTES.VENDOR_APPLICATIONS)}>
-                Complete Payment
-              </Button>
+              <div>
+                <h3 className="font-medium text-sm">Payment Required</h3>
+                <p className="text-xs text-muted-foreground">
+                  {analytics.paymentPending.length} booth{analytics.paymentPending.length > 1 ? 's' : ''} awaiting payment confirmation
+                </p>
+              </div>
             </div>
-          </CardContent>
+            <Button size="sm" onClick={() => navigate(ROUTES.VENDOR_APPLICATIONS)}>
+              <CreditCard className="h-4 w-4 mr-1" />
+              Complete Payment
+            </Button>
+          </div>
         </Card>
       )}
-      
-      {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Applications and Bazaars */}
-        <div className="lg:col-span-2 space-y-6">
+
+      {/* Main Content */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Applications and Opportunities */}
+        <div className="lg:col-span-2 space-y-4">
           {/* Recent Applications */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Store className="h-5 w-5 text-primary" />
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[hsl(220,80%,50%)]" />
                 Your Applications
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.VENDOR_APPLICATIONS)}>
-                View All <ArrowRight className="h-4 w-4 ml-1" />
+              <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.VENDOR_APPLICATIONS)} className="text-xs">
+                View All <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             </div>
             
             {applicationsLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i}>
-                    <CardContent className="p-4">
-                      <Skeleton className="h-16 w-full" />
-                    </CardContent>
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => (
+                  <Card key={i} className="p-3">
+                    <Skeleton className="h-14 w-full" />
                   </Card>
                 ))}
               </div>
             ) : applications.length > 0 ? (
-              <div className="space-y-3">
-                {applications.slice(0, 4).map((app: any) => (
-                  <ApplicationStatusCard 
-                    key={app.id} 
-                    application={app}
-                    onView={() => navigate(ROUTES.VENDOR_APPLICATIONS)}
-                  />
-                ))}
+              <div className="space-y-2">
+                {applications.slice(0, 4).map((app: any) => {
+                  const statusConfig: Record<string, { color: string; icon: typeof CheckCircle; label: string }> = {
+                    CONFIRMED: { color: 'bg-[hsl(142,76%,45%)]', icon: CheckCircle, label: 'Confirmed' },
+                    APPROVED: { color: 'bg-[hsl(220,80%,50%)]', icon: CheckCircle, label: 'Approved' },
+                    PENDING: { color: 'bg-[hsl(220,80%,65%)]', icon: Clock, label: 'Pending' },
+                    PAYMENT_PENDING: { color: 'bg-[hsl(38,92%,50%)]', icon: CreditCard, label: 'Pay Now' },
+                    REJECTED: { color: 'bg-muted', icon: AlertCircle, label: 'Rejected' },
+                  };
+                  const config = statusConfig[app.status] || statusConfig.PENDING;
+                  const StatusIcon = config.icon;
+                  
+                  return (
+                    <Card 
+                      key={app.id}
+                      className={cn(
+                        "p-3 cursor-pointer transition-all hover:shadow-md group",
+                        app.status === 'PAYMENT_PENDING' && "ring-1 ring-[hsl(38,92%,50%)]/30"
+                      )}
+                      onClick={() => navigate(ROUTES.VENDOR_APPLICATIONS)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-10 h-10 rounded-lg flex items-center justify-center text-white shrink-0",
+                          config.color
+                        )}>
+                          <Store className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="font-medium text-sm truncate">{app.bazaar?.name || 'Bazaar'}</span>
+                            <Badge 
+                              variant={app.status === 'CONFIRMED' ? 'default' : 'outline'} 
+                              className={cn(
+                                "text-[10px] px-1.5",
+                                app.status === 'CONFIRMED' && "bg-[hsl(142,76%,45%)]",
+                                app.status === 'PAYMENT_PENDING' && "border-[hsl(38,92%,50%)] text-[hsl(38,92%,50%)]"
+                              )}
+                            >
+                              <StatusIcon className="h-2.5 w-2.5 mr-1" />
+                              {config.label}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {app.bazaar?.startDate && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {formatDate(app.bazaar.startDate)}
+                              </span>
+                            )}
+                            {app.boothNumber && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                Booth #{app.boothNumber}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Store className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-                  <h3 className="font-medium mb-1">No applications yet</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Browse upcoming bazaars and apply for a booth!
-                  </p>
-                  <Button onClick={() => navigate(ROUTES.BROWSE_BAZAARS)}>
-                    Browse Bazaars
-                  </Button>
-                </CardContent>
+              <Card className="p-6 text-center bg-muted/30">
+                <ShoppingBag className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+                <p className="font-medium text-sm mb-1">No applications yet</p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Start growing your business at campus bazaars!
+                </p>
+                <Button size="sm" onClick={() => navigate(ROUTES.BROWSE_BAZAARS)}>
+                  <Rocket className="h-4 w-4 mr-1" />
+                  Browse Bazaars
+                </Button>
               </Card>
             )}
           </div>
-          
-          {/* Upcoming Bazaars */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                Upcoming Bazaars
+
+          {/* Upcoming Opportunities */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <Target className="h-4 w-4 text-[hsl(220,80%,60%)]" />
+                Upcoming Opportunities
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.BROWSE_BAZAARS)}>
-                Browse All <ArrowRight className="h-4 w-4 ml-1" />
+              <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.BROWSE_BAZAARS)} className="text-xs">
+                Browse All <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             </div>
             
             {bazaarsLoading ? (
-              <div className="space-y-3">
-                {[1, 2].map((i) => (
-                  <Card key={i}>
-                    <CardContent className="p-4">
-                      <Skeleton className="h-16 w-full" />
-                    </CardContent>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[1, 2].map(i => (
+                  <Card key={i} className="p-3">
+                    <Skeleton className="h-20 w-full" />
                   </Card>
                 ))}
               </div>
-            ) : upcomingBazaars.length > 0 ? (
-              <div className="space-y-3">
-                {upcomingBazaars.slice(0, 3).map((bazaar: Event) => (
-                  <UpcomingBazaarCard
-                    key={bazaar.id}
-                    bazaar={bazaar}
-                    hasApplication={applicationBazaarIds.has(bazaar.id)}
-                    onApply={() => navigate(ROUTES.BROWSE_BAZAARS)}
-                    onView={() => navigate(ROUTES.EVENT_DETAILS.replace(':id', bazaar.id))}
-                  />
-                ))}
+            ) : analytics.upcomingBazaars.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {analytics.upcomingBazaars.slice(0, 4).map((bazaar: Event) => {
+                  const hasApplication = analytics.applicationBazaarIds.has(bazaar.id);
+                  const startDate = bazaar.startDate ? new Date(bazaar.startDate) : new Date();
+                  const daysUntil = Math.ceil((startDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                  
+                  return (
+                    <Card 
+                      key={bazaar.id} 
+                      className={cn(
+                        "p-3 cursor-pointer transition-all hover:shadow-md group",
+                        hasApplication && "bg-[hsl(220,80%,50%)]/5 border-[hsl(220,80%,50%)]/20"
+                      )}
+                      onClick={() => navigate(`/events/${bazaar.id}`)}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <Badge variant="outline" className="text-[10px]">
+                          {daysUntil <= 7 ? `${daysUntil}d` : 'Bazaar'}
+                        </Badge>
+                        {hasApplication ? (
+                          <Badge variant="secondary" className="text-[10px]">
+                            <CheckCircle className="h-2.5 w-2.5 mr-1" />
+                            Applied
+                          </Badge>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            className="h-6 px-2 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(ROUTES.BROWSE_BAZAARS);
+                            }}
+                          >
+                            Apply
+                          </Button>
+                        )}
+                      </div>
+                      <h4 className="font-medium text-sm mb-1 line-clamp-1 group-hover:text-[hsl(220,80%,50%)]">
+                        {bazaar.name}
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {bazaar.startDate ? formatDate(bazaar.startDate) : 'TBD'}
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Calendar className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    No upcoming bazaars at the moment
-                  </p>
-                </CardContent>
+              <Card className="p-4 text-center bg-muted/30">
+                <Calendar className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+                <p className="text-sm text-muted-foreground">No upcoming bazaars at the moment</p>
               </Card>
             )}
           </div>
         </div>
-        
+
         {/* Sidebar */}
         <div className="space-y-4">
-          {/* Application Status Chart */}
-          {statusChartData.length > 0 && (
-            <DonutChart
-              title="Application Status"
-              description="Status distribution"
-              data={statusChartData}
-              config={statusChartConfig}
-              centerLabel="Apps"
-            />
-          )}
-          
-          {/* Quick Actions */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Quick Actions</h3>
-            <VendorQuickAction
-              icon={Store}
-              title="Browse Bazaars"
-              description="Find and apply to bazaars"
-              href={ROUTES.BROWSE_BAZAARS}
-              variant="primary"
-            />
-            <VendorQuickAction
-              icon={Building2}
-              title="Platform Booth"
-              description="Apply for permanent booth"
-              href={ROUTES.APPLY_PLATFORM_BOOTH}
-            />
-            <VendorQuickAction
-              icon={Heart}
-              title="Loyalty Program"
-              description="Join loyalty partnerships"
-              href={ROUTES.VENDOR_LOYALTY}
-            />
-          </div>
-          
-          {/* Company Info Card */}
-          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 rounded-full bg-primary/10">
-                  <Building2 className="h-5 w-5 text-primary" />
+          {/* Business Metrics */}
+          <Card className="p-4 bg-gradient-to-br from-[hsl(220,80%,50%)]/5 to-[hsl(220,80%,60%)]/10">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="h-4 w-4 text-[hsl(220,80%,50%)]" />
+              <span className="text-sm font-medium">Business Metrics</span>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-muted-foreground">Approval Rate</span>
+                  <span className="font-medium">{analytics.successRate}%</span>
                 </div>
-                <div>
-                  <h3 className="font-medium text-sm">{user?.companyName || 'Your Company'}</h3>
-                  <p className="text-xs text-muted-foreground">Vendor Account</p>
+                <Progress value={analytics.successRate} className="h-1.5" />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                <div className="text-center">
+                  <div className="text-lg font-semibold text-[hsl(220,80%,50%)]">
+                    <NumberFlow value={analytics.approved.length} />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground uppercase">Secured</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-semibold text-[hsl(220,80%,60%)]">
+                    <NumberFlow value={analytics.pending.length} />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground uppercase">Pending</p>
                 </div>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Status</span>
-                  <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
-                    Active
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Active Booths</span>
-                  <span className="font-medium">{approvedApplications.length}</span>
-                </div>
-              </div>
-            </CardContent>
+            </div>
           </Card>
+
+          {/* Company Card */}
+          <Card className="p-4 border-[hsl(220,80%,50%)]/20">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[hsl(220,80%,50%)] to-[hsl(220,80%,60%)] flex items-center justify-center text-white font-semibold">
+                {(user?.companyName || 'V')[0].toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-sm truncate">{user?.companyName || 'Your Company'}</h4>
+                <p className="text-xs text-muted-foreground">Vendor Account</p>
+              </div>
+              <Badge variant="outline" className="text-[10px] bg-[var(--stat-icon-success-bg)] text-[var(--stat-icon-success-fg)] border-transparent">
+                Active
+              </Badge>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Active Booths</span>
+                <span className="font-medium text-xs">{analytics.approved.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Loyalty Partners</span>
+                <span className="font-medium text-xs">{analytics.activeLoyalty}</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Quick Actions */}
+          <div className="space-y-2">
+            <h2 className="text-sm font-medium text-muted-foreground px-1">Quick Actions</h2>
+            
+            <Card 
+              className="p-3 cursor-pointer hover:bg-accent/50 transition-colors group"
+              onClick={() => navigate(ROUTES.BROWSE_BAZAARS)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[hsl(220,80%,50%)]/10 flex items-center justify-center text-[hsl(220,80%,50%)]">
+                  <Store className="h-4 w-4" />
+                </div>
+                <span className="text-sm font-medium flex-1">Browse Bazaars</span>
+                <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </Card>
+            
+            <Card 
+              className="p-3 cursor-pointer hover:bg-accent/50 transition-colors group"
+              onClick={() => navigate(ROUTES.APPLY_PLATFORM_BOOTH)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[hsl(220,80%,60%)]/10 flex items-center justify-center text-[hsl(220,80%,60%)]">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                <span className="text-sm font-medium flex-1">Platform Booth</span>
+                <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </Card>
+            
+            <Card 
+              className="p-3 cursor-pointer hover:bg-accent/50 transition-colors group"
+              onClick={() => navigate(ROUTES.VENDOR_LOYALTY)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[hsl(220,80%,70%)]/10 flex items-center justify-center text-[hsl(220,80%,70%)]">
+                  <Heart className="h-4 w-4" />
+                </div>
+                <span className="text-sm font-medium flex-1">Loyalty Program</span>
+                {analytics.pendingLoyalty > 0 && (
+                  <Badge variant="secondary" className="text-[10px]">{analytics.pendingLoyalty}</Badge>
+                )}
+                <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </Card>
+            
+            <Card 
+              className="p-3 cursor-pointer hover:bg-accent/50 transition-colors group"
+              onClick={() => navigate(ROUTES.VENDOR_APPLICATIONS)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <span className="text-sm font-medium flex-1">All Applications</span>
+                <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

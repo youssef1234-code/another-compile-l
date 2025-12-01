@@ -14,7 +14,6 @@ import {
   Trophy,
   Dumbbell,
   Building2,
-  Heart,
   CreditCard,
   BarChart3,
   Clipboard,
