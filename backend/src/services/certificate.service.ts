@@ -61,7 +61,7 @@ class CertificateService {
       );
     }
 
-    // Verify registration is confirmed and attended
+    // Verify registration is confirmed (registration = attendance for Student/Staff/TA/Professor)
     if (registration.status !== 'CONFIRMED') {
       throw new ServiceError(
         'BAD_REQUEST',

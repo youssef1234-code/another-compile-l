@@ -64,7 +64,7 @@ function GymCalendarContent({
     
     try {
       await onDeleteSession(eventId);
-      toast.success('Session deleted successfully');
+      // Success toast is handled by parent component
       setSelectedEvent(null);
     } catch (error) {
       console.error('❌ Delete error:', error);

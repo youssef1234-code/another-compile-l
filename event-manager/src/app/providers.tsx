@@ -6,12 +6,13 @@
  * @module app/providers
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { trpc, trpcClient } from '../lib/trpc';
 import { NuqsProvider } from '../components/providers/nuqs-provider';
 import { ThemeProvider, useTheme } from '../hooks/useTheme';
+import { useAuthStore } from '../store/authStore';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -76,9 +77,32 @@ function ThemedToaster() {
   );
 }
 
+// Component to handle query cache invalidation on user change
+function QueryCacheInvalidator() {
+  const { user } = useAuthStore();
+  const utils = trpc.useUtils();
+  const prevUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const currentUserId = user?.id || null;
+    
+    // Only invalidate if user actually changed (not on initial mount)
+    if (prevUserIdRef.current !== null && prevUserIdRef.current !== currentUserId) {
+      console.log('User changed, invalidating all queries...');
+      // Invalidate all queries when user changes
+      utils.invalidate();
+    }
+    
+    prevUserIdRef.current = currentUserId;
+  }, [user?.id, utils]);
+
+  return null;
+}
+
 function InnerProviders({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <QueryCacheInvalidator />
       {children}
       <ThemedToaster />
     </>

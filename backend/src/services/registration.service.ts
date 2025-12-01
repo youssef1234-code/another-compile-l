@@ -422,6 +422,7 @@ async registerForEvent(userId: string, eventId: string) {
   /**
    * Issue certificate for registration (after event completion)
    * This is called automatically when a certificate is generated
+   * For Student/Staff/TA/Professor: confirmed registration = attendance
    */
   async issueCertificate(
     registrationId: string
@@ -442,17 +443,11 @@ async registerForEvent(userId: string, eventId: string) {
       });
     }
 
-    if (!registration.attended) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "User must have attended the event to receive a certificate",
-      });
-    }
-
-    // Mark certificate as issued
+    // Mark certificate as issued (registration implies attendance for Student/Staff/TA/Professor)
     return registrationRepository.update(registrationId, {
       certificateIssued: true,
       certificateIssuedAt: new Date(),
+      attended: true, // Set attended flag when certificate is issued
     } as any);
   }
 
