@@ -22,7 +22,7 @@ function EventTypeBadge({ type }: { type: string }) {
         TRIP: "Trip",
         BAZAAR: "Bazaar",
         CONFERENCE: "Conference",
-        BOOTH: "Booth",
+        BOOTH: "Vendor Reservation",
     };
 
     return (
@@ -87,7 +87,7 @@ export function getPaymentsTableColumns(): ColumnDef<Payment>[] {
                 const payment = row.original;
                 return (
                     <div className="flex items-center gap-2">
-                        <span className="font-medium">{payment.event ? payment.event?.name : "Booth Reservation"}</span>
+                        <span className="font-medium">{payment.event ? payment.event?.name : "Vendor Reservation"}</span>
                     </div>
                 );
             },
