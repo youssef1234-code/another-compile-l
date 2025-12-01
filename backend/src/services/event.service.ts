@@ -197,6 +197,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     includeArchived?: boolean;
   }): Promise<{
     events: any[];
+    allEvents: any[];
     total: number;
     page: number;
     totalPages: number;
@@ -208,7 +209,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     // Build base filter - exclude archived or soft-deleted events by default unless requested
     let filter: any = {};
-    
+
     if (!includeArchived) {
       filter.isArchived = false;
       filter.status = { $ne: "ARCHIVED" };
@@ -223,8 +224,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
       // Status filter (allow ARCHIVED only when includeArchived is true)
       if (data.filters.status && data.filters.status.length > 0) {
-        const allowedStatuses = includeArchived 
-          ? data.filters.status 
+        const allowedStatuses = includeArchived
+          ? data.filters.status
           : data.filters.status.filter((status) => status !== "ARCHIVED");
         if (allowedStatuses.length > 0) {
           filter.status = { $in: allowedStatuses };
@@ -456,6 +457,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       populate: ["createdBy"],
     });
 
+    const allEvents = await this.repository.findAll(filter, {
+      sort,
+      populate: ["createdBy"],
+    });
+
     const total = await this.repository.count(filter);
 
     // Populate registeredCount for each event
@@ -497,6 +503,60 @@ export class EventService extends BaseService<IEvent, EventRepository> {
           }
         }
 
+
+
+        // Calculate total sales
+        const totalSales = registeredCount * (event.price || 0);
+
+        return {
+          ...this.formatEvent(event),
+          registeredCount,
+          totalSales,
+          vendors: vendorDetails,
+        };
+      })
+    );
+
+    const formattedAllEvents = await Promise.all(
+      allEvents.map(async (event) => {
+        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+
+        // For BAZAAR events, populate vendors with their application details
+        let vendorDetails = null;
+        if (event.type === "BAZAAR") {
+          // Get approved vendor applications for this event (regardless of vendors array)
+          const vendorApplications = await vendorApplicationRepository.findAll(
+            {
+              bazaarId: (event._id as any).toString(),
+              status: "APPROVED",
+            } as any,
+            {}
+          );
+
+          // Populate with user details
+          if (vendorApplications.length > 0) {
+            vendorDetails = await Promise.all(
+              vendorApplications.map(async (app: any) => {
+                const user = await userRepository.findById(
+                  app.createdBy.toString()
+                );
+                return {
+                  id: app._id.toString(),
+                  companyName: app.companyName,
+                  email: app.email,
+                  boothSize: app.boothSize,
+                  names: app.names || [],
+                  emails: app.emails || [],
+                  type: app.type,
+                  userId: (user?._id as any)?.toString(),
+                };
+              })
+            );
+          }
+        }
+
+
+
         // Calculate total sales
         const totalSales = registeredCount * (event.price || 0);
 
@@ -520,6 +580,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     return {
       events: formattedEvents,
+      allEvents: formattedAllEvents,
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -1061,14 +1122,14 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const updatedEvent = await eventRepository.update(eventId, {
       status: "PUBLISHED",
     });
-    
+
     // Requirement #57: Notify all users about new event
     await notificationService.notifyNewEvent(
       eventId,
       event.name,
       event.type
     );
-    
+
     return updatedEvent;
   }
 

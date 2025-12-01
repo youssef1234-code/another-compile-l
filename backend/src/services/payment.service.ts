@@ -611,16 +611,17 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     page?: number;
     perPage?: number;
     search?: string;
+    sort?: Array<{ id: string; desc: boolean }>;
     filters?: Record<string, string[]>;
   }): Promise<{
     payments: any[];
+    allPayments: any[];
     total: number;
     page: number;
     totalPages: number;
   }> {
     const page = params.page || 1;
     const limit = params.perPage || 100;
-    const skip = (page - 1) * limit;
 
     let filter: any = {};
 
@@ -653,22 +654,27 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
       }
     }
 
-    // Execute query with populated fields
-    const payments = await paymentRepository.findAll(filter, {
-      skip,
-      limit,
-      sort: { createdAt: -1 },
+    const sort: any = {};
+    if (params.sort && params.sort.length > 0) {
+      params.sort.forEach((sortField) => {
+        sort[sortField.id] = sortField.desc ? -1 : 1;
+      });
+    } else {
+      sort.createdAt = -1;
+    }
+
+    // Fetch all payments with filters (no pagination yet)
+    const allPayments = await paymentRepository.findAll(filter, {
+      sort,
       populate: ['user', 'event'],
     });
 
-
-
     // Filter by event properties if specified (post-query filter since event is populated)
-    let filteredPayments = payments;
+    let allFilteredPayments = allPayments;
 
     // Filter by event type
     if (params.filters?.type && params.filters.type.length > 0) {
-      filteredPayments = filteredPayments.filter((payment: any) =>
+      allFilteredPayments = allFilteredPayments.filter((payment: any) =>
         payment.event && params.filters!.type!.includes(payment.event.type)
       );
     }
@@ -676,7 +682,7 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     // Filter by event start date from
     if (params.filters?.startDateFrom && params.filters.startDateFrom.length > 0) {
       const startFrom = new Date(params.filters.startDateFrom[0]);
-      filteredPayments = filteredPayments.filter((payment: any) =>
+      allFilteredPayments = allFilteredPayments.filter((payment: any) =>
         payment.event && payment.event.startDate && new Date(payment.event.startDate) >= startFrom
       );
     }
@@ -684,19 +690,24 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     // Filter by event start date to
     if (params.filters?.startDateTo && params.filters.startDateTo.length > 0) {
       const startTo = new Date(params.filters.startDateTo[0]);
-      filteredPayments = filteredPayments.filter((payment: any) =>
+      allFilteredPayments = allFilteredPayments.filter((payment: any) =>
         payment.event && payment.event.startDate && new Date(payment.event.startDate) <= startTo
       );
     }
 
+    // Apply pagination after filtering
+    const skip = (page - 1) * limit;
+    const paginatedPayments = allFilteredPayments.slice(skip, skip + limit);
+
     // Format payments for response
-    const formattedPayments = filteredPayments.map((payment: any) => ({
+    const formattedPayments = paginatedPayments.map((payment: any) => ({
       id: payment._id.toString(),
       user: payment.user ? {
         id: payment.user._id?.toString(),
         firstName: payment.user.firstName,
         lastName: payment.user.lastName,
         email: payment.user.email,
+        companyName: payment.user.companyName,
       } : null,
       event: payment.event ? {
         id: payment.event._id?.toString(),
@@ -706,7 +717,7 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
       registration: payment.registration?.toString(),
       method: payment.method,
       status: payment.status,
-      amountMinor: payment.amountMinor * 100,
+      amountMinor: payment.amountMinor,
       currency: payment.currency,
       purpose: payment.purpose,
       stripePaymentIntentId: payment.stripePaymentIntentId,
@@ -714,10 +725,37 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
       updatedAt: payment.updatedAt,
     }));
 
-    const total = formattedPayments.length;
+    // Format all payments for response
+    const allFormattedPayments = allFilteredPayments.map((payment: any) => ({
+      id: payment._id.toString(),
+      user: payment.user ? {
+        id: payment.user._id?.toString(),
+        firstName: payment.user.firstName,
+        lastName: payment.user.lastName,
+        email: payment.user.email,
+        companyName: payment.user.companyName,
+      } : null,
+      event: payment.event ? {
+        id: payment.event._id?.toString(),
+        name: payment.event.name,
+        type: payment.event.type,
+      } : null,
+      registration: payment.registration?.toString(),
+      method: payment.method,
+      status: payment.status,
+      amountMinor: payment.amountMinor,
+      currency: payment.currency,
+      purpose: payment.purpose,
+      stripePaymentIntentId: payment.stripePaymentIntentId,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
+    }));
+
+    const total = allFormattedPayments.length;
 
     return {
       payments: formattedPayments,
+      allPayments: allFormattedPayments,
       total,
       page,
       totalPages: Math.ceil(total / limit),

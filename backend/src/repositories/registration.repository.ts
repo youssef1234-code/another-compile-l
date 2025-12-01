@@ -24,7 +24,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
     const limit = options?.limit || 100;
     const skip = (page - 1) * limit;
 
-    const query = { 
+    const query = {
       user: new mongoose.Types.ObjectId(userId),
       isActive: true
     };
@@ -56,9 +56,9 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
     const limit = options?.limit || 100;
     const skip = (page - 1) * limit;
 
-    const query = { 
+    const query = {
       event: new mongoose.Types.ObjectId(eventId),
-      isActive: true 
+      isActive: true
     };
 
     const [registrations, total] = await Promise.all([
@@ -189,24 +189,24 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
 
 
   // Get most recent registration for (user,event)
-async findLatestByUserAndEvent(userId: string, eventId: string) {
-  return this.model
-    .findOne({ user: userId, event: eventId })
-    .sort({ updatedAt: -1, createdAt: -1 })
-    .lean();
-}
+  async findLatestByUserAndEvent(userId: string, eventId: string) {
+    return this.model
+      .findOne({ user: userId, event: eventId })
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .lean();
+  }
 
-// Capacity = confirmed + pending with valid hold
-async countActiveForCapacity(eventId: string, now = new Date()) {
-  return this.model.countDocuments({
-    event: eventId,
-    isActive: true,
-    $or: [
-      { status: 'CONFIRMED' },
-      { status: 'PENDING', holdUntil: { $gt: now } },
-    ],
-  });
-}
+  // Capacity = confirmed + pending with valid hold
+  async countActiveForCapacity(eventId: string, now = new Date()) {
+    return this.model.countDocuments({
+      event: eventId,
+      isActive: true,
+      $and: [
+        { status: 'CONFIRMED' },
+        { paymentStatus: 'PAID' },
+      ],
+    });
+  }
 
 
   /**
@@ -223,8 +223,10 @@ async countActiveForCapacity(eventId: string, now = new Date()) {
         path: "event",
         select: "_id name startDate endDate price capacity isActive status type location", // adjust as needed
       })
-      .lean< (Omit<IEventRegistration, "event"> & { event: (Pick<IEvent,
-        "_id" | "name" | "startDate" | "endDate" | "price" | "capacity" | "isActive" | "status" | "type" | "location">) | null }) | null >();
+      .lean<(Omit<IEventRegistration, "event"> & {
+        event: (Pick<IEvent,
+          "_id" | "name" | "startDate" | "endDate" | "price" | "capacity" | "isActive" | "status" | "type" | "location">) | null
+      }) | null>();
 
     if (!doc) return null;
 
@@ -234,9 +236,9 @@ async countActiveForCapacity(eventId: string, now = new Date()) {
 
     const event = doc.event
       ? {
-          ...doc.event,
-          _id: normalizeId(doc.event),
-        }
+        ...doc.event,
+        _id: normalizeId(doc.event),
+      }
       : null;
 
     return {
@@ -247,7 +249,7 @@ async countActiveForCapacity(eventId: string, now = new Date()) {
     };
   }
 
-   async findMineForEvent(userId: string, eventId: string) {
+  async findMineForEvent(userId: string, eventId: string) {
     return this.model
       .findOne({
         user: new Types.ObjectId(userId),

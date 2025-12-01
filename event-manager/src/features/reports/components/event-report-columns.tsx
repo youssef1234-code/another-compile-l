@@ -289,10 +289,12 @@ export function getEventsTableColumns({
                 );
             },
             enableColumnFilter: true,
+            enableSorting: false,
             meta: {
                 label: "Registrations",
                 variant: "range" as const,
                 operators: ["gt", "lt", "gte", "lte", "eq", "ne"],
+
 
             },
             size: 130,

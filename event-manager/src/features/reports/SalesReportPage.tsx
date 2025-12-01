@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { useQueryState, parseAsString, parseAsArrayOf, parseAsJson } from "nuqs";
+import { useQueryState, parseAsString, parseAsArrayOf, parseAsJson, parseAsInteger } from "nuqs";
 import { useMemo, useState } from "react";
 import { DollarSign, CreditCard, TrendingUp, Calendar, LineChart } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -9,15 +9,19 @@ import { Pie, PieChart, Cell, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from '@/store/authStore';
 import { EventsReportsTable } from "./components/EventAttendeeTable";
+import { PaymentsTable } from "./components/PaymentTable";
 
 export function SalesReportPage() {
+    const { user } = useAuthStore();
     const [search, setSearch] = useQueryState("search", parseAsString.withDefault(""));
-    const [methodFilter, setMethodFilter] = useQueryState("method", parseAsArrayOf(parseAsString, ",").withDefault([]));
     const [typeFilter, setTypeFilter] = useQueryState("type", parseAsArrayOf(parseAsString, ",").withDefault([]));
     const [dateFrom, setDateFrom] = useQueryState("dateFrom", parseAsString.withDefault(""));
     const [dateTo, setDateTo] = useQueryState("dateTo", parseAsString.withDefault(""));
     const [view, setView] = useState<"STATISTICS" | "TABLE" | "PAYMENTS">("STATISTICS");
+    const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+    const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
     const [sortState] = useQueryState('sort', parseAsJson<Array<{ id: string; desc: boolean }>>((v) => {
         if (!v) return null;
         if (typeof v === 'string') {
@@ -42,7 +46,6 @@ export function SalesReportPage() {
     // Build filters for API
     const filters = useMemo(() => {
         const result: Record<string, string[]> = {};
-        if (methodFilter.length > 0) result.method = methodFilter;
         if (filtersState.types.length > 0) result.type = filtersState.types;
         if (filtersState.dateFrom) result.startDateFrom = [filtersState.dateFrom.toISOString()];
         if (filtersState.dateTo) result.startDateTo = [filtersState.dateTo.toISOString()];
@@ -50,7 +53,7 @@ export function SalesReportPage() {
         result.status = ["SUCCEEDED"];
         result.purpose = ["EVENT_PAYMENT", "VENDOR_FEE"];
         return result;
-    }, [methodFilter, filtersState]);
+    }, [filtersState]);
 
     const eventfilters = useMemo(() => {
         const result: Record<string, string[]> = {};
@@ -79,8 +82,10 @@ export function SalesReportPage() {
 
     const { data: paymentData } = trpc.payments.getAllPayments.useQuery(
         {
-            perPage: 1000,
+            perPage: perPage,
+            page: page,
             search: search || undefined,
+            sort: parsedSort.length > 0 ? parsedSort : undefined,
             filters: Object.keys(filters).length > 0 ? filters : undefined,
 
         },
@@ -92,7 +97,8 @@ export function SalesReportPage() {
 
     const { data: eventData } = trpc.events.getAllEvents.useQuery(
         {
-            perPage: 1000,
+            perPage: perPage,
+            page: page,
             search: search || undefined,
             sort: parsedSort.length > 0 ? parsedSort : undefined,
             filters: Object.keys(eventfilters).length > 0 ? eventfilters : undefined,
@@ -107,7 +113,7 @@ export function SalesReportPage() {
     // Calculate metrics
     const totalPayments = paymentData?.total || 0;
     const totalRevenue = useMemo(() => {
-        return paymentData?.payments
+        return paymentData?.allPayments
             .reduce((sum, p) => sum + (p.amountMinor / 100), 0) || 0;
     }, [paymentData]);
 
@@ -116,22 +122,26 @@ export function SalesReportPage() {
         return totalPayments > 0 ? totalRevenue / totalPayments : 0;
     }, [totalRevenue, totalPayments]);
 
-    // Calculate revenue by payment method
-    const revenueByMethod = useMemo(() => {
-        const methodStats: Record<string, number> = {};
+    // Calculate revenue by payment purpose (Event Payments vs Vendor Fees)
+    const revenueByPurpose = useMemo(() => {
+        const purposeStats: Record<string, number> = {};
 
-        paymentData?.payments
+        paymentData?.allPayments
             .forEach(payment => {
-                const method = payment.method === 'STRIPE_CARD' ? 'Card' : 'Wallet';
-                methodStats[method] = (methodStats[method] || 0) + (payment.amountMinor / 100);
+                const purpose = payment.purpose === 'EVENT_PAYMENT' ? 'Event Payments' :
+                    payment.purpose === 'VENDOR_FEE' ? 'Vendor Fees' :
+                        'Other';
+                purposeStats[purpose] = (purposeStats[purpose] || 0) + (payment.amountMinor / 100);
             });
 
-        const sortedEntries = Object.entries(methodStats).sort((a, b) => b[1] - a[1]);
+        const sortedEntries = Object.entries(purposeStats).sort((a, b) => b[1] - a[1]);
 
-        return sortedEntries.map(([method, revenue]) => {
-            const fill = method === 'Card' ? 'hsl(220, 80%, 60%)' : 'hsl(220, 80%, 40%)';
+        return sortedEntries.map(([purpose, revenue]) => {
+            const fill = purpose === 'Event Payments' ? 'hsl(220, 80%, 60%)' :
+                purpose === 'Vendor Fees' ? 'hsl(220, 80%, 40%)' :
+                    'hsl(220, 80%, 50%)';
             return {
-                method,
+                purpose,
                 revenue: Math.round(revenue * 100) / 100,
                 fill,
             };
@@ -142,7 +152,7 @@ export function SalesReportPage() {
     const revenueByEventType = useMemo(() => {
         const typeStats: Record<string, { revenue: number; count: number }> = {};
 
-        paymentData?.payments
+        paymentData?.allPayments
             .forEach(payment => {
                 const type = payment.event!.type;
                 if (!typeStats[type]) {
@@ -171,12 +181,12 @@ export function SalesReportPage() {
 
     // Calculate weekly payment method distribution
     const weeklyPaymentDistribution = useMemo(() => {
-        if (!paymentData?.payments || paymentData.payments.length === 0) return [];
+        if (!paymentData?.allPayments || paymentData.allPayments.length === 0) return [];
 
         // Group payments by week
         const weeklyData: Record<string, { card: number; wallet: number; weekStart: Date }> = {};
 
-        paymentData.payments.forEach(payment => {
+        paymentData.allPayments.forEach(payment => {
             const date = new Date(payment.createdAt);
             // Get the start of the week (Monday)
             const weekStart = new Date(date);
@@ -223,8 +233,6 @@ export function SalesReportPage() {
     }, [paymentData]);
 
     const handleResetFilters = () => {
-        setSearch('');
-        setMethodFilter([]);
         setDateFrom('');
         setDateTo('');
     };
@@ -236,9 +244,13 @@ export function SalesReportPage() {
         setDateTo(newFilters.dateTo ? newFilters.dateTo.toISOString() : '');
     };
 
-    const pageCount = useMemo(() => {
+    const eventPageCount = useMemo(() => {
         return eventData?.totalPages || 0;
     }, [eventData?.totalPages]);
+
+    const paymentPageCount = useMemo(() => {
+        return paymentData?.totalPages || 0;
+    }, [paymentData?.totalPages]);
 
     return (
         <div className='flex flex-col gap-6 p-6'>
@@ -269,7 +281,20 @@ export function SalesReportPage() {
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setView("TABLE")}
+                            onClick={() => { setView("PAYMENTS"); setPage(1); }}
+                            className={cn(
+                                'gap-2 transition-all',
+                                view === "PAYMENTS"
+                                    ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                                    : 'hover:bg-muted text-muted-foreground'
+                            )}
+                        >
+                            <DollarSign className="h-4 w-4" /> Transactions
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setView("TABLE"); setPage(1); }}
                             className={cn(
                                 'gap-2 transition-all',
                                 view === "TABLE"
@@ -279,17 +304,26 @@ export function SalesReportPage() {
                         >
                             <Calendar className="h-4 w-4" /> Events
                         </Button>
+
                     </div>
                 }
             />
 
-            {view === "TABLE" ? (
+            {view === "TABLE" && (
                 <EventsReportsTable
                     data={eventData ? eventData.events : []}
-                    pageCount={pageCount}
-
+                    pageCount={eventPageCount}
+                    userRole={user?.role}
                 />
-            ) : (
+            )}
+            {view === "PAYMENTS" && (
+                <PaymentsTable
+                    data={paymentData ? paymentData.payments : []}
+                    pageCount={paymentPageCount}
+                    userRole={user?.role}
+                />
+            )}
+            {view === "STATISTICS" && (
                 <div className="flex flex-col gap-6">{/* Stats Cards */}
                     <div className='grid gap-6 md:grid-cols-3'>
                         <Card className='flex gap-3 p-4'>
@@ -393,15 +427,15 @@ export function SalesReportPage() {
                             )}
                         </Card>
 
-                        {/* Revenue by Payment Method Pie Chart */}
+                        {/* Revenue by Payment Purpose Pie Chart */}
                         <Card className='p-6'>
-                            <h3 className='text-lg font-semibold mb-4'>Revenue by Payment Method</h3>
-                            {revenueByMethod.length > 0 ? (
+                            <h3 className='text-lg font-semibold mb-4'>Revenue by Payment Purpose</h3>
+                            {revenueByPurpose.length > 0 ? (
                                 <ChartContainer
                                     config={Object.fromEntries(
-                                        revenueByMethod.map(item => [
-                                            item.method,
-                                            { label: item.method, color: item.fill }
+                                        revenueByPurpose.map(item => [
+                                            item.purpose,
+                                            { label: item.purpose, color: item.fill }
                                         ])
                                     )}
                                     className="h-[350px]"
@@ -410,14 +444,14 @@ export function SalesReportPage() {
                                         <ChartTooltip content={<ChartTooltipContent />} />
                                         <Legend verticalAlign="bottom" height={36} />
                                         <Pie
-                                            data={revenueByMethod}
+                                            data={revenueByPurpose}
                                             dataKey="revenue"
-                                            nameKey="method"
+                                            nameKey="purpose"
                                             cx="50%"
                                             cy="45%"
                                             outerRadius={100}
                                         >
-                                            {revenueByMethod.map((entry, index) => (
+                                            {revenueByPurpose.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={entry.fill} />
                                             ))}
                                         </Pie>
@@ -481,6 +515,7 @@ export function SalesReportPage() {
                         )}
                     </Card>
                 </div>
+
             )}
         </div>
     );
