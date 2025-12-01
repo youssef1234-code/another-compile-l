@@ -154,7 +154,10 @@ export function SalesReportPage() {
 
         paymentData?.allPayments
             .forEach(payment => {
-                const type = payment.event!.type;
+                // Skip payments without events (e.g., vendor fees, wallet top-ups)
+                if (!payment.event) return;
+
+                const type = payment.event.type;
                 if (!typeStats[type]) {
                     typeStats[type] = { revenue: 0, count: 0 };
                 }

@@ -109,7 +109,7 @@ export function getPaymentsTableColumns(): ColumnDef<Payment>[] {
             cell: ({ row }) => {
                 const payment = row.original;
                 return (
-                    <EventTypeBadge type={(payment.event?.type)} />
+                    <EventTypeBadge type={(payment.event?.type || "BOOTH")} />
                 );
             },
             enableColumnFilter: true,
