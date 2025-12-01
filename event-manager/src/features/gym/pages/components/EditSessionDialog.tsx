@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import type { CalendarEvent } from "../../components/calendar/types";
 import toast from "react-hot-toast";
 import { formatValidationErrors } from "@/lib/format-errors";
@@ -38,8 +37,6 @@ export default function EditSessionDialog({
   const [date, setDate] = useState(toLocalYMD(start));
   const [time, setTime] = useState(toLocalHM(start));
   const [duration, setDuration] = useState<number>(session.duration ?? 60);
-  const [capacity, setCapacity] = useState<number>(session.capacity ?? 20);
-  const [status, setStatus] = useState<string>(session.status ?? "PUBLISHED");
 
   if (!session.startDate) return null;
 
@@ -81,26 +78,11 @@ export default function EditSessionDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <div>
               <label className="text-xs">Duration (min)</label>
               <Input type="number" value={duration} min={15} max={240}
                 onChange={(e)=> setDuration(Number(e.target.value) || 0)} />
-            </div>
-            <div>
-              <label className="text-xs">Capacity</label>
-              <Input type="number" value={capacity} min={1}
-                onChange={(e)=> setCapacity(Number(e.target.value) || 0)} />
-            </div>
-            <div>
-              <label className="text-xs">Status</label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PUBLISHED">Published</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
@@ -109,7 +91,7 @@ export default function EditSessionDialog({
             <Button
               onClick={()=>{
                 const startDate = buildDate(date, time);
-                const patch: Record<string, unknown> = { startDate, duration, capacity, status };
+                const patch: Record<string, unknown> = { startDate, duration };
                 // Remove unchanged fields (optional)
                 Object.keys(patch).forEach(k => patch[k] === undefined && delete patch[k]);
                 updateM.mutate({ id: session.id, ...patch });
