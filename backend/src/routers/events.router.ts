@@ -310,6 +310,8 @@ const eventRoutes = {
     .query(async ({ input, ctx }) => {
       // Allow admins and events office to see archived events
       const canSeeArchived = ctx.user?.role === "ADMIN" || ctx.user?.role === "EVENT_OFFICE";
+      const userId = ctx.user ? (ctx.user._id as any).toString() : undefined;
+      const userRole = ctx.user?.role;
       
       const result = await eventService.getAllEvents({
         page: input.page,
@@ -320,6 +322,8 @@ const eventRoutes = {
         extendedFilters: input.extendedFilters,
         joinOperator: input.joinOperator,
         includeArchived: canSeeArchived,
+        userId,
+        userRole,
       });
 
       return result;
@@ -855,6 +859,26 @@ const eventRoutes = {
     )
     .query(async ({ input }) => {
       return eventService.checkRoleWhitelisted(input);
+    }),
+
+  /**
+   * Check if current user is allowed to access/register for a whitelisted event
+   * Returns { allowed: boolean, reason?: string }
+   */
+  checkUserAllowedForEvent: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      const userRole = ctx.user!.role;
+      return eventService.isUserAllowedForEvent({
+        eventId: input.eventId,
+        userId,
+        userRole,
+      });
     }),
 
   /**
