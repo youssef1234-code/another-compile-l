@@ -5,6 +5,7 @@ import {
 import { registrationRepository } from "../repositories/registration.repository";
 import { vendorApplicationRepository } from "../repositories/vendor-application.repository";
 import { userRepository } from "../repositories/user.repository";
+import mongoose from "mongoose";
 import { notificationService } from "./notification.service.js";
 import { mailService } from "./mail.service";
 import { BaseService, type ServiceOptions } from "./base.service";
@@ -393,6 +394,13 @@ export class EventService extends BaseService<IEvent, EventRepository> {
             // Handle numbers for fields like price
             if (field === "price" || field === "capacity") {
               condition[field] = Number(value);
+            } else if (field === "createdBy") {
+              // Convert string to ObjectId for createdBy field
+              try {
+                condition[field] = new mongoose.Types.ObjectId(value as string);
+              } catch {
+                condition[field] = value;
+              }
             } else {
               condition[field] = value;
             }
@@ -562,10 +570,22 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         return false;
       }
 
+      const currentUserId = data.userId;
+
+      // Event creator can ALWAYS see their own events (e.g., professors seeing their workshops)
+      if (event.createdBy) {
+        const creatorId = typeof event.createdBy === 'object' 
+          ? (event.createdBy as any)._id?.toString() || (event.createdBy as any).toString()
+          : String(event.createdBy);
+        if (creatorId === currentUserId) {
+          return true;
+        }
+      }
+
       // Check if user is whitelisted by user ID
       if (hasUserWhitelist && event.whitelistedUsers) {
         const isUserWhitelisted = event.whitelistedUsers.some(
-          (id: any) => id.toString() === data.userId
+          (id: any) => id.toString() === currentUserId
         );
         if (isUserWhitelisted) {
           return true;
@@ -730,6 +750,18 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         return false;
       }
 
+      const currentUserId = params.userId;
+
+      // Event creator can ALWAYS see their own events (e.g., professors seeing their workshops)
+      if (event.createdBy) {
+        const creatorId = typeof event.createdBy === 'object' 
+          ? (event.createdBy as any)._id?.toString() || (event.createdBy as any).toString()
+          : String(event.createdBy);
+        if (creatorId === currentUserId) {
+          return true;
+        }
+      }
+
       // User must match at least one whitelist criterion:
       // - Either be in the whitelisted users list
       // - OR have a role that is in the whitelisted roles list
@@ -738,7 +770,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       // Check if user is whitelisted by user ID
       if (hasUserWhitelist && event.whitelistedUsers) {
         const isUserWhitelisted = event.whitelistedUsers.some(
-          (id: any) => id.toString() === params.userId
+          (id: any) => id.toString() === currentUserId
         );
         if (isUserWhitelisted) {
           isAllowed = true;
