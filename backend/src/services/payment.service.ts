@@ -1,5 +1,4 @@
 import Stripe from "stripe";
-import { startSession } from "mongoose";
 import {
   PaymentMethod, PaymentStatus, WalletTxnType,
   CardPaymentInitInput, WalletPaymentInput, WalletTopUpInitInput, RefundToWalletInput,
@@ -69,14 +68,32 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
       const reg = await registrationRepository.findById(input.registrationId);
       const holdValid = reg?.holdUntil && reg.holdUntil > new Date();
 
-      if (latest.status === PaymentStatus.PENDING && holdValid) {
-        // Reuse current clientSecret (same attempt still in progress).
-        return {
-          paymentId: (latest._id as any).toString(),
-          clientSecret: latest.stripeClientSecret,
-          stripePaymentIntentId: latest.stripePaymentIntentId,
-          status: latest.status,
-        };
+      if (latest.status === PaymentStatus.PENDING && holdValid && latest.stripePaymentIntentId) {
+        // Check if the Stripe PaymentIntent is still usable
+        try {
+          const pi = await stripe.paymentIntents.retrieve(latest.stripePaymentIntentId);
+          // Only reuse if PI is in a non-terminal state
+          if (pi.status === 'requires_payment_method' || pi.status === 'requires_confirmation' || pi.status === 'requires_action') {
+            return {
+              paymentId: (latest._id as any).toString(),
+              clientSecret: latest.stripeClientSecret,
+              stripePaymentIntentId: latest.stripePaymentIntentId,
+              status: latest.status,
+            };
+          }
+          // PI is in terminal state, mark local payment accordingly and create new one
+          console.log(`Existing PI ${latest.stripePaymentIntentId} is in terminal state: ${pi.status}`);
+          if (pi.status === 'succeeded') {
+            await paymentRepository.update((latest._id as any).toString(), { status: PaymentStatus.SUCCEEDED });
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Already paid for this registration" });
+          } else {
+            await paymentRepository.update((latest._id as any).toString(), { status: PaymentStatus.FAILED });
+          }
+        } catch (stripeErr: any) {
+          // If we can't retrieve the PI, mark as failed and create new
+          console.error("Error retrieving Stripe PI:", stripeErr?.message);
+          await paymentRepository.update((latest._id as any).toString(), { status: PaymentStatus.FAILED });
+        }
       }
 
       // mark pending as CANCELLED if the hold expired
@@ -156,57 +173,76 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
 
     let payDoc: any = null;
 
-    const session = await startSession();
+    const now = new Date();
+
+    // Pre-flight validations (no mutations yet)
+    if (reg.paymentStatus === PaymentStatus.SUCCEEDED) {
+      throw new TRPCError({ code: 'CONFLICT', message: 'Already paid for this registration' });
+    }
+    if (reg.status !== 'PENDING' || (reg.holdUntil && reg.holdUntil <= now)) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Hold expired' });
+    }
+    if (event.capacity) {
+      const used = await registrationRepository.countActiveForCapacity(eventId, now);
+      if (used >= event.capacity) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event became full' });
+      }
+    }
+
+    // Step 1: Create payment row
     try {
-      await session.withTransaction(async () => {
-        const now = new Date();
-
-        if (reg.paymentStatus === PaymentStatus.SUCCEEDED) {
-          throw new TRPCError({ code: 'CONFLICT', message: 'Already paid for this registration' });
-        }
-        // Re-read registration in tx if you want stricter correctness:
-        if (reg.status !== 'PENDING' || (reg.holdUntil && reg.holdUntil <= now)) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Hold expired' });
-        }
-
-        if (event.capacity) {
-          const used = await registrationRepository.countActiveForCapacity(eventId, now);
-          if (used >= event.capacity) {
-            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event became full' });
-          }
-        }
-
-        // Create payment row
-        payDoc = await paymentRepository.createWithSession({
-          user: userId,
-          registration: registrationId,
-          event: eventId,
-          method: PaymentMethod.WALLET,
-          status: PaymentStatus.SUCCEEDED,
-          amountMinor,
-          currency,
-          purpose: "EVENT_PAYMENT",
-        }, session);
-
-        // Debit wallet
-        await walletRepository.createWithSession({
-          user: userId,
-          type: WalletTxnType.DEBIT_PAYMENT,
-          amountMinor,
-          currency,
-          reference: { registrationId, eventId, paymentId: payDoc._id as any },
-        }, session);
-
-        // Confirm registration
-        await registrationRepository.update(registrationId, {
-          status: RegistrationStatus.CONFIRMED,
-          paymentStatus: PaymentStatus.SUCCEEDED,
-          paymentAmount: amountMinor,
-          holdUntil: null,
-        }, session);
+      payDoc = await paymentRepository.create({
+        user: userId,
+        registration: registrationId,
+        event: eventId,
+        method: PaymentMethod.WALLET,
+        status: PaymentStatus.SUCCEEDED,
+        amountMinor,
+        currency,
+        purpose: "EVENT_PAYMENT",
       });
-    } finally {
-      await session.endSession();
+    } catch (e) {
+      console.error("Error creating payment in payWithWallet:", e);
+      throw e;
+    }
+
+    // Step 2: Debit wallet (compensate payment if fails)
+    try {
+      await walletRepository.create({
+        user: userId,
+        type: WalletTxnType.DEBIT_PAYMENT,
+        amountMinor,
+        currency,
+        reference: { registrationId, eventId, paymentId: payDoc._id as any },
+      });
+    } catch (e) {
+      console.error("Error debiting wallet, rolling back payment:", e);
+      // Compensate: Mark payment as failed
+      await paymentRepository.update((payDoc._id as any).toString(), { status: PaymentStatus.FAILED });
+      throw e;
+    }
+
+    // Step 3: Confirm registration (compensate wallet + payment if fails)
+    try {
+      await registrationRepository.update(registrationId, {
+        status: RegistrationStatus.CONFIRMED,
+        paymentStatus: PaymentStatus.SUCCEEDED,
+        paymentAmount: amountMinor,
+        holdUntil: null,
+      });
+    } catch (e) {
+      console.error("Error confirming registration, rolling back wallet and payment:", e);
+      // Compensate: Credit back to wallet (reverse the debit)
+      await walletRepository.create({
+        user: userId,
+        type: WalletTxnType.CREDIT_REFUND,
+        amountMinor,
+        currency,
+        reference: { registrationId, eventId, paymentId: payDoc._id as any, note: "Rollback - registration failed" },
+      });
+      // Compensate: Mark payment as failed
+      await paymentRepository.update((payDoc._id as any).toString(), { status: PaymentStatus.FAILED });
+      throw e;
     }
 
     // Email AFTER commit
@@ -251,17 +287,36 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
   /** 4) Refund to wallet (policy-checked in router or here). */
   async refundToWallet(userId: string, payload: RefundToWalletInput & { amountMinor: number; currency: "EGP" | "USD" }) {
     const { paymentId, registrationId, amountMinor, currency } = payload;
-    const session = await startSession();
+    
+    // Get original payment status for compensation
+    const originalPayment = await paymentRepository.findById(paymentId);
+    const originalPaymentStatus = originalPayment?.status;
+
+    // Step 1: Mark original payment as REFUNDED
     try {
-      session.startTransaction();
-
-      // Mark original payment as CANCELLED (optional; or create a separate refund record)
       await paymentRepository.update(paymentId, { status: PaymentStatus.REFUNDED });
+    } catch (e) {
+      console.error("Error marking payment as refunded:", e);
+      throw e;
+    }
 
-      await registrationRepository.update(registrationId, { status: RegistrationStatus.CANCELLED, paymentStatus: PaymentStatus.REFUNDED });
+    // Step 2: Update registration (compensate payment if fails)
+    try {
+      await registrationRepository.update(registrationId, { 
+        status: RegistrationStatus.CANCELLED, 
+        paymentStatus: PaymentStatus.REFUNDED 
+      });
+    } catch (e) {
+      console.error("Error updating registration, rolling back payment status:", e);
+      // Compensate: Restore original payment status
+      if (originalPaymentStatus) {
+        await paymentRepository.update(paymentId, { status: originalPaymentStatus });
+      }
+      throw e;
+    }
 
-
-      // Credit wallet
+    // Step 3: Credit wallet (compensate registration + payment if fails)
+    try {
       await walletRepository.create({
         user: userId,
         type: WalletTxnType.CREDIT_REFUND,
@@ -273,15 +328,21 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
           note: "Registration refund",
         },
       });
-
-      await session.commitTransaction();
-      session.endSession();
-      return { ok: true };
     } catch (e) {
-      await session.abortTransaction();
-      session.endSession();
+      console.error("Error crediting wallet, rolling back registration and payment:", e);
+      // Compensate: Restore registration (best effort - use CONFIRMED as reasonable prior state)
+      await registrationRepository.update(registrationId, { 
+        status: RegistrationStatus.CONFIRMED, 
+        paymentStatus: PaymentStatus.SUCCEEDED 
+      });
+      // Compensate: Restore original payment status
+      if (originalPaymentStatus) {
+        await paymentRepository.update(paymentId, { status: originalPaymentStatus });
+      }
       throw e;
     }
+
+    return { ok: true };
   }
 
   async initVendorCard(userId: string, input: { applicationId: string }) {
@@ -394,108 +455,137 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
       console.log(`Processing succeeded PI ${piObj.id} for user ${userId}, purpose=${purpose}`);
 
       // -----------------------------------------------------------------------
-      // 3) Success path (single transaction)
+      // 3) Success path (sequential operations with compensation for standalone MongoDB)
       // -----------------------------------------------------------------------
-      const session = await startSession();
       let paymentDoc: any = null;
       let user: any = null;
       let event: any = null;
       let app: any = null; // vendor application (for VENDOR_FEE)
+      let previousPaymentStatus: PaymentStatus | null = null;
 
-      try {
-        await session.withTransaction(async () => {
-          // Load the user (mutations later may require existence)
-          user = await userRepository.findById(userId);
-          if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      // Load the user (mutations later may require existence)
+      user = await userRepository.findById(userId);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 
-          // Find the local payment row created at init
-          const p = paymentIdMeta
-            ? await paymentRepository.findByIdForTransaction(paymentIdMeta, { session })
-            : await paymentRepository.findByStripePI(piObj.id, { session });
+      // Find the local payment row created at init
+      const p = paymentIdMeta
+        ? await paymentRepository.findById(paymentIdMeta)
+        : await paymentRepository.findByStripePI(piObj.id);
 
-          if (!p) {
-            console.warn("No local payment row for PI:", piObj.id);
-            return; // nothing to mutate; commit nothing
-          }
+      if (!p) {
+        console.warn("No local payment row for PI:", piObj.id);
+        return { ok: true }; // nothing to mutate
+      }
 
-          // Idempotency
-          if (p.status === PaymentStatus.SUCCEEDED) {
-            paymentDoc = p.toObject?.() ?? p;
-            return;
-          }
+      // Idempotency
+      if (p.status === PaymentStatus.SUCCEEDED) {
+        paymentDoc = p.toObject?.() ?? p;
+        console.log("Payment already succeeded, skipping:", p._id);
+      } else {
+        console.log(`Found local payment ${p._id} with status ${p.status}`);
+        previousPaymentStatus = p.status;
 
-          console.log(`Found local payment ${p._id} with status ${p.status}`);
-
-          // Common: mark local Payment as SUCCEEDED
+        // Step 1: Mark local Payment as SUCCEEDED
+        try {
           const updated = await paymentRepository.update(
             String(p._id),
-            { status: PaymentStatus.SUCCEEDED },
-            session
+            { status: PaymentStatus.SUCCEEDED }
           );
           paymentDoc = updated?.toObject ? updated.toObject() : updated;
+        } catch (e) {
+          console.error("Error marking payment as succeeded:", e);
+          throw e;
+        }
 
-          // Purpose-specific effects
-          if (purpose === "WALLET_TOPUP") {
-            await walletRepository.createWithSession({
+        // Purpose-specific effects with compensation
+        if (purpose === "WALLET_TOPUP") {
+          try {
+            await walletRepository.create({
               user: userId,
               type: WalletTxnType.CREDIT_TOPUP,
               amountMinor: piObj.amount_received ?? piObj.amount ?? 0,
               currency: (piObj.currency?.toUpperCase() as any) ?? DEFAULT_CURRENCY,
               reference: { paymentId: p._id as any, note: "Stripe top-up" },
-            }, session);
+            });
+          } catch (e) {
+            console.error("Error crediting wallet for top-up, rolling back payment:", e);
+            // Compensate: Restore payment status
+            await paymentRepository.update(String(p._id), { status: previousPaymentStatus ?? PaymentStatus.PENDING });
+            throw e;
+          }
+        }
+
+        if (purpose === "EVENT_PAYMENT") {
+          if (!eventId || !registrationId) {
+            console.log("EVENT_PAYMENT missing eventId/registrationId for PI:", piObj.id);
+            return { ok: true };
+          }
+          const reg = await registrationRepository.findById(registrationId);
+          event = await eventRepository.findById(eventId);
+          if (!reg || !reg.isActive) {
+            // Compensate: Restore payment status
+            await paymentRepository.update(String(p._id), { status: previousPaymentStatus ?? PaymentStatus.PENDING });
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Registration missing' });
+          }
+          if (!event) {
+            await paymentRepository.update(String(p._id), { status: previousPaymentStatus ?? PaymentStatus.PENDING });
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event missing' });
           }
 
-          if (purpose === "EVENT_PAYMENT") {
-            if (!eventId || !registrationId) {
-              console.log("EVENT_PAYMENT missing eventId/registrationId for PI:", piObj.id);
-              // we've already marked payment SUCCEEDED; if you prefer, you could flip to FAILED here.
-              return;
+          const now = new Date();
+          if (reg.status !== 'PENDING' || (reg.holdUntil && reg.holdUntil <= now)) {
+            await paymentRepository.update(String(p._id), { status: previousPaymentStatus ?? PaymentStatus.PENDING });
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Hold expired' });
+          }
+          if (event.capacity) {
+            const used = await registrationRepository.countActiveForCapacity(eventId, now);
+            if (used >= event.capacity) {
+              await paymentRepository.update(String(p._id), { status: previousPaymentStatus ?? PaymentStatus.PENDING });
+              throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event became full' });
             }
-            const reg = await registrationRepository.findById(registrationId);
-            event = await eventRepository.findById(eventId);
-            if (!reg || !reg.isActive) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Registration missing' });
-            if (!event) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event missing' });
+          }
 
-            const now = new Date();
-            if (reg.status !== 'PENDING' || (reg.holdUntil && reg.holdUntil <= now)) {
-              throw new TRPCError({ code: 'BAD_REQUEST', message: 'Hold expired' });
-            }
-            if (event.capacity) {
-              const used = await registrationRepository.countActiveForCapacity(eventId, now);
-              if (used >= event.capacity) {
-                throw new TRPCError({ code: 'BAD_REQUEST', message: 'Event became full' });
-              }
-            }
-
+          try {
             await registrationRepository.update(registrationId, {
               status: RegistrationStatus.CONFIRMED,
               paymentStatus: PaymentStatus.SUCCEEDED,
               paymentAmount: piObj.amount_received ?? piObj.amount ?? 0,
               holdUntil: null,
-            }, session);
+            });
+          } catch (e) {
+            console.error("Error confirming registration, rolling back payment:", e);
+            // Compensate: Restore payment status
+            await paymentRepository.update(String(p._id), { status: previousPaymentStatus ?? PaymentStatus.PENDING });
+            throw e;
           }
+        }
 
-          if (purpose === "VENDOR_FEE") {
-            if (!applicationId) {
-              console.warn("VENDOR_FEE without applicationId in metadata for PI:", piObj.id);
-              return;
-            }
-            const { vendorApplicationRepository } = await import("../repositories/vendor-application.repository");
+        if (purpose === "VENDOR_FEE") {
+          if (!applicationId) {
+            console.warn("VENDOR_FEE without applicationId in metadata for PI:", piObj.id);
+            return { ok: true };
+          }
+          const { vendorApplicationRepository } = await import("../repositories/vendor-application.repository");
+          
+          try {
             // mark vendor application as paid
-            const updatedApp = await vendorApplicationRepository.markPaid(applicationId, new Date(), session);
+            const updatedApp = await vendorApplicationRepository.markPaid(applicationId, new Date());
             app = updatedApp?.toObject?.() ?? updatedApp;
 
             // (Optional) Load bazaar event for email context
             if (app?.bazaarId) {
               event = await eventRepository.findById(String(app.bazaarId));
             }
+          } catch (e) {
+            console.error("Error marking vendor application as paid, rolling back payment:", e);
+            // Compensate: Restore payment status
+            await paymentRepository.update(String(p._id), { status: previousPaymentStatus ?? PaymentStatus.PENDING });
+            throw e;
           }
-        }); // end withTransaction
-      } finally {
-        await session.endSession();
+        }
       }
 
-      console.log("Stripe webhook processing completed inside transaction");
+      console.log("Stripe webhook processing completed");
 
       // -----------------------------------------------------------------------
       // 4) Send receipt email (after the tx commits)

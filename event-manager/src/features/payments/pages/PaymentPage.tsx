@@ -24,9 +24,9 @@ function getStripeAppearance(theme: string | undefined) {
       borderRadius: "0.75rem",
       fontFamily:
         'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-      colorPrimary: "hsla(222, 37%, 89%, 1.00)",
+      colorPrimary: isDark ? "#3b82f6" : "#2563eb",
       colorBackground: isDark ? "#0B0F14" : "#ffffff",
-      colorText: isDark ? "#ffffffff" : "#0B0F14",
+      colorText: isDark ? "#ffffff" : "#0B0F14",
       colorDanger: "#ef4444",
       colorSuccess: "#10b981",
     },
