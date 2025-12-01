@@ -1292,6 +1292,10 @@ The project uses **Postman** for API testing. Test collections are located in `b
   - User must have minimum loyalty points
   - Cannot apply to same partner twice
 
+### Postman Collections
+- [Feedback Module Collection](./backend/collections/Compile%20Time%20L%20Feedback%20Module.postman_collection.json)
+- [Loyalty Program Module Collection](./backend/collections/Loyalty%20Program%20Module.postman_collection.json)
+
 ### Running Postman Tests
 1. Open Postman
 2. Import collections from `backend/collections/`
@@ -1445,7 +1449,6 @@ We welcome contributions from developers, designers, and testers! Here's how you
 - German University in Cairo (GUC) for project requirements
 - Advanced Computer Lab course instructors
 - Open source community for tools and libraries
-- Stack Overflow community for debugging help
 
 ---
 
@@ -1529,7 +1532,7 @@ Built with React, Node.js, MongoDB, and Stripe
 ### Disclaimer
 This project is for educational purposes as part of the Advanced Computer Lab course at GUC. It is not intended for commercial use without proper licensing and compliance checks.
 
-For questions about licensing, contact: [your-email@guc.edu.eg]
+For questions about licensing, contact: [youssef.elkhodary@student.guc.edu.eg]
 
 ---
 
