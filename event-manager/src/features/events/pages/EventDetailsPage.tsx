@@ -646,46 +646,8 @@ export function EventDetailsPage() {
 
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
-            {/* Registration CTA */}
-            {isRegistered ? (
-              <Card className="border-green-500 dark:border-green-600 shadow-lg bg-green-50/50 dark:bg-green-900/20">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <CheckSquare className="h-6 w-6 text-green-600 dark:text-green-400" />
-                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                          Already Registered
-                        </p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        You're confirmed for this event
-                      </p>
-                    </div>
-
-                    {/* Certificate Download for completed workshops */}
-                    {event.type === 'WORKSHOP' && hasEnded && (
-                      <div className="pt-4 border-t border-green-200 dark:border-green-800">
-                        <Button
-                          className="w-full gap-2"
-                          variant="outline"
-                          onClick={handleDownloadCertificate}
-                          disabled={generateCertificateMutation.isPending}
-                        >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          {generateCertificateMutation.isPending ? 'Generating...' : 'Download Certificate'}
-                        </Button>
-                        <p className="text-xs text-muted-foreground text-center mt-2">
-                          Certificate of Attendance
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : canRegister ? (
+            {/* Registration CTA - shown for registered users (for refund option) and eligible registrants */}
+            {(isRegistered || canRegister) ? (
               <RegistrationCTA event={event} />
             ) : user && !hasStarted && (
               <Card className="border-muted shadow-lg">

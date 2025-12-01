@@ -457,6 +457,12 @@ async registerForEvent(userId: string, eventId: string) {
     const doc = await registrationRepository.findMineForEvent(userId, eventId);
     if (!doc) return null;
 
+    // Find the latest successful payment for this registration (needed for refunds)
+    const latestPayment = await paymentRepository.findLatestForRegistration(String((doc as any)._id));
+    const paymentId = latestPayment && (latestPayment as any).status === 'SUCCEEDED' 
+      ? String((latestPayment as any)._id) 
+      : null;
+
     // ensure hold expiry semantics only affect frontend label; we still return the stored status/holdUntil
     // frontend can decide to show "EXPIRED" if status=PENDING && holdUntil < now
     const payload: RegistrationForEventResponse = {
@@ -467,6 +473,7 @@ async registerForEvent(userId: string, eventId: string) {
       paymentAmount: (doc as any).paymentAmount ?? 0,
       currency: (doc as any).currency ?? null,
       holdUntil: (doc as any).holdUntil ?? null,
+      paymentId,
       createdAt: (doc as any).createdAt,
       updatedAt: (doc as any).updatedAt,
     };
