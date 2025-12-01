@@ -95,7 +95,7 @@ export function SalesReportPage() {
         }
     );
 
-    const { data: eventData } = trpc.events.getAllEvents.useQuery(
+    const { data: eventData } = trpc.events.getEventReports.useQuery(
         {
             perPage: perPage,
             page: page,
