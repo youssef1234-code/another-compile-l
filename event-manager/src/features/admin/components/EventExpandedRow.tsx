@@ -86,8 +86,8 @@ export function EventExpandedRow({
   // Only Event Office/Admin can view registrations, and NOT for conferences (Requirement #49)
   const canViewRegistrations = 
     user && 
-    event.type !== 'CONFERENCE' && 
-    (user.role === 'EVENT_OFFICE' || user.role === 'ADMIN');
+    event.type !== 'CONFERENCE' && (
+    (user.role === 'EVENT_OFFICE' || user.role === 'ADMIN')  || (event.type === 'WORKSHOP' && user.role === 'PROFESSOR'));
 
   const { data: registrationsData, isLoading: loadingRegistrations } =
     trpc.events.getEventRegistrations.useQuery(
