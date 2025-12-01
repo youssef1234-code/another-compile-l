@@ -798,7 +798,7 @@ export type RegistrationForEventResponse = z.infer<
 export const CreateApplicationSchema = z.object({
   names: z.array(z.string()).min(1).max(5),
   emails: z.array(z.string().email()).min(1).max(5),
-    idPictures: z.array(z.string()).min(1).max(5),
+  idPictures: z.array(z.string()).min(1).max(5),
 
   type: z.enum(["BAZAAR", "PLATFORM"]),
   boothSize: z.enum(["TWO_BY_TWO", "FOUR_BY_FOUR"]),
@@ -963,6 +963,14 @@ export const PaymentStatus = {
 
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
+export const PaymentPurpose = {
+  EVENT_PAYMENT: "EVENT_PAYMENT",
+  WALLET_TOPUP: "WALLET_TOPUP",
+  VENDOR_FEE: "VENDOR_FEE",
+} as const;
+
+export type PaymentPurpose = (typeof PaymentPurpose)[keyof typeof PaymentPurpose];
+
 
 export const vendorInitCardInput = z.object({ applicationId: z.string().min(1) });
 export type VendorInitCardInput = z.infer<typeof vendorInitCardInput>;
@@ -1012,6 +1020,32 @@ export const RefundToWalletInput = z.object({
   paymentId: IdSchema,
 });
 export type RefundToWalletInput = z.infer<typeof RefundToWalletInput>;
+
+export const PaymentSchema = z.object({
+  id: z.string(),
+  user: z.object({
+    id: z.string().optional(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    email: z.string().optional(),
+    companyName: z.string().optional(),
+  }).nullable().optional(),
+  event: z.object({
+    id: z.string().optional(),
+    name: z.string().optional(),
+    type: z.nativeEnum(EventType as any).optional(),
+  }).nullable().optional(),
+  registration: z.string().optional(),
+  method: z.nativeEnum(PaymentMethod as any),
+  status: z.nativeEnum(PaymentStatus as any),
+  amountMinor: z.number(),
+  currency: CurrencySchema,
+  purpose: z.nativeEnum(PaymentPurpose as any),
+  stripePaymentIntentId: z.string().optional(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type Payment = z.infer<typeof PaymentSchema>;
 
 /** API shapes */
 export const PaymentSummarySchema = z.object({

@@ -210,6 +210,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     includeArchived?: boolean;
   }): Promise<{
     events: any[];
+    allEvents: any[];
     total: number;
     page: number;
     totalPages: number;
@@ -221,7 +222,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     // Build base filter - exclude archived or soft-deleted events by default unless requested
     let filter: any = {};
-    
+
     if (!includeArchived) {
       filter.isArchived = false;
       filter.status = { $ne: "ARCHIVED" };
@@ -236,8 +237,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
       // Status filter (allow ARCHIVED only when includeArchived is true)
       if (data.filters.status && data.filters.status.length > 0) {
-        const allowedStatuses = includeArchived 
-          ? data.filters.status 
+        const allowedStatuses = includeArchived
+          ? data.filters.status
           : data.filters.status.filter((status) => status !== "ARCHIVED");
         if (allowedStatuses.length > 0) {
           filter.status = { $in: allowedStatuses };
@@ -473,78 +474,93 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       sort.startDate = -1;
     }
 
-    // Execute query
-    const events = await this.repository.findAll(filter, {
-      skip,
-      limit,
+    // Use aggregation to get events with registeredCount and totalSales
+    const { events: aggregatedEvents, total } = await this.repository.findAllWithRegistrationStats({
+      filter,
       sort,
-      populate: ["createdBy"],
+      skip,
+      limit
     });
 
-    const total = await this.repository.count(filter);
+    // Get all events for export (without pagination)
+    const { events: allAggregatedEvents } = await this.repository.findAllWithRegistrationStats({
+      filter,
+      sort,
+      skip: 0,
+      limit: total || 10000 // Use total or a large number
+    });
 
-    // Populate registeredCount for each event
-    const formattedEvents = await Promise.all(
-      events.map(async (event) => {
-        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
-
+    // Format paginated events
+    let formattedEvents = await Promise.all(
+      aggregatedEvents.map(async (event) => {
         // For BAZAAR events, populate vendors with their application details
         let vendorDetails = null;
         if (event.type === "BAZAAR") {
-          // Get approved vendor applications for this event (regardless of vendors array)
-          const vendorApplications = await vendorApplicationRepository.findAll(
-            {
-              bazaarId: (event._id as any).toString(),
-              status: "APPROVED",
-            } as any,
-            {}
+          vendorDetails = await Promise.all(
+            (event.vendors || []).map(async (vendor: any) => {
+              // Find vendor application for this event
+              const application = await vendorApplicationRepository.findOne({
+                user: vendor._id,
+                event: event._id,
+              } as any);
+
+              return {
+                id: vendor._id.toString(),
+                companyName: vendor.companyName,
+                email: vendor.email,
+                applicationStatus: application?.status || 'UNKNOWN',
+                applicationId: application?._id?.toString(),
+              };
+            })
           );
-
-          // Populate with user details
-          if (vendorApplications.length > 0) {
-            vendorDetails = await Promise.all(
-              vendorApplications.map(async (app: any) => {
-                const user = await userRepository.findById(
-                  app.createdBy.toString()
-                );
-                return {
-                  id: app._id.toString(),
-                  companyName: app.companyName,
-                  email: app.email,
-                  boothSize: app.boothSize,
-                  names: app.names || [],
-                  emails: app.emails || [],
-                  type: app.type,
-                  userId: (user?._id as any)?.toString(),
-                };
-              })
-            );
-          }
         }
-
-        // Calculate total sales
-        const totalSales = registeredCount * (event.price || 0);
 
         return {
           ...this.formatEvent(event),
-          registeredCount,
-          totalSales,
+          registeredCount: event.registeredCount,
+          totalSales: event.totalSales,
           vendors: vendorDetails,
         };
       })
     );
 
-    if (data.sort?.[0]?.id === "totalSales" && data.sort?.[0]?.desc)
-      formattedEvents.sort((a, b) => b.totalSales - a.totalSales)
-    else if (data.sort?.[0]?.id === "totalSales" && !data.sort?.[0]?.desc)
-      formattedEvents.sort((a, b) => a.totalSales - b.totalSales)
-    else if (data.sort?.[0]?.id === "registeredCount" && data.sort?.[0]?.desc)
-      formattedEvents.sort((a, b) => b.registeredCount - a.registeredCount)
-    else if (data.sort?.[0]?.id === "registeredCount" && !data.sort?.[0]?.desc)
-      formattedEvents.sort((a, b) => a.registeredCount - b.registeredCount)
+    // Format all events for export
+    const formattedAllEvents = await Promise.all(
+      allAggregatedEvents.map(async (event) => {
+        // For BAZAAR events, populate vendors with their application details
+        let vendorDetails = null;
+        if (event.type === "BAZAAR") {
+          vendorDetails = await Promise.all(
+            (event.vendors || []).map(async (vendor: any) => {
+              // Find vendor application for this event
+              const application = await vendorApplicationRepository.findOne({
+                user: vendor._id,
+                event: event._id,
+              } as any);
+
+              return {
+                id: vendor._id.toString(),
+                companyName: vendor.companyName,
+                email: vendor.email,
+                applicationStatus: application?.status || 'UNKNOWN',
+                applicationId: application?._id?.toString(),
+              };
+            })
+          );
+        }
+
+        return {
+          ...this.formatEvent(event),
+          registeredCount: event.registeredCount,
+          totalSales: event.totalSales,
+          vendors: vendorDetails,
+        };
+      })
+    );
 
     return {
       events: formattedEvents,
+      allEvents: formattedAllEvents,
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -598,21 +614,21 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       // If event has no whitelist, show to everyone
       const hasUserWhitelist = event.whitelistedUsers && event.whitelistedUsers.length > 0;
       const hasRoleWhitelist = event.whitelistedRoles && event.whitelistedRoles.length > 0;
-      
+
       if (!hasUserWhitelist && !hasRoleWhitelist) {
         return true;
       }
-      
+
       // Admin and Event Office can see all events
       if (params.userRole === 'ADMIN' || params.userRole === 'EVENT_OFFICE') {
         return true;
       }
-      
+
       // If user is not logged in, hide whitelisted events
       if (!params.userId) {
         return false;
       }
-      
+
       // Check if user is whitelisted by ID
       if (hasUserWhitelist && event.whitelistedUsers) {
         const isUserWhitelisted = event.whitelistedUsers.some(
@@ -620,14 +636,14 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         );
         if (isUserWhitelisted) return true;
       }
-      
+
       // Check if user's role is whitelisted
       if (hasRoleWhitelist && params.userRole && event.whitelistedRoles) {
         if (event.whitelistedRoles.includes(params.userRole)) {
           return true;
         }
       }
-      
+
       return false;
     });
 
@@ -635,6 +651,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       filteredEvents.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        const totalSales = registeredCount * (event.price || 0);
         // For BAZAAR events, include approved vendor applications
         let vendors = [];
         if (event.type === "BAZAAR") {
@@ -664,6 +681,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
           vendors,
         };
       })
@@ -704,9 +722,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        const totalSales = registeredCount * (event.price || 0);
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
         };
       })
     );
@@ -723,6 +743,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   async getEventById(id: string): Promise<any> {
     const event = await this.findById(id);
     const registeredCount = await registrationRepository.countActiveForCapacity(id);
+    const totalSales = registeredCount * (event.price || 0);
 
     // For BAZAAR events, populate vendors with their application details
     let vendorDetails = null;
@@ -761,6 +782,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     return {
       ...this.formatEvent(event),
       registeredCount,
+      totalSales,
       vendors: vendorDetails,
     };
   }
@@ -791,9 +813,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        const totalSales = registeredCount * (event.price || 0);
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
         };
       })
     );
@@ -858,9 +882,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        const totalSales = registeredCount * (event.price || 0);
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
         };
       })
     );
@@ -898,9 +924,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        const totalSales = registeredCount * (event.price || 0);
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
         };
       })
     );
@@ -927,7 +955,6 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       endDate: event.endDate,
       registrationDeadline: event.registrationDeadline,
       capacity: event.capacity,
-      registeredCount: event.registeredCount,
       price: event.price,
       status: event.status,
       rejectionReason: event.rejectionReason,
@@ -1004,7 +1031,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       const professorId = typeof workshop.createdBy === 'object' && workshop.createdBy._id
         ? String(workshop.createdBy._id)
         : String(workshop.createdBy);
-      
+
       await notificationService.notifyWorkshopStatus(
         professorId,
         workshopId,
@@ -1060,7 +1087,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       const professorId = typeof workshop.createdBy === 'object' && workshop.createdBy._id
         ? String(workshop.createdBy._id)
         : String(workshop.createdBy);
-      
+
       await notificationService.notifyWorkshopStatus(
         professorId,
         workshopId,
@@ -1139,14 +1166,14 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const updatedEvent = await eventRepository.update(eventId, {
       status: "PUBLISHED",
     });
-    
+
     // Requirement #57: Notify all users about new event
     await notificationService.notifyNewEvent(
       eventId,
       event.name,
       event.type
     );
-    
+
     return updatedEvent;
   }
 

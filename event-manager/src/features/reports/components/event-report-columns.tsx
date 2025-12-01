@@ -294,6 +294,7 @@ export function getEventsTableColumns({
                 variant: "range" as const,
                 operators: ["gt", "lt", "gte", "lte", "eq", "ne"],
 
+
             },
             size: 130,
         },

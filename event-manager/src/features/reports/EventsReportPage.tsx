@@ -10,15 +10,19 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { EventsReportsTable } from "./components/EventAttendeeTable";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from '@/store/authStore';
 
 export function EventsReportPage() {
+
     const [search, setSearch] = useQueryState("search", parseAsString.withDefault(""));
     const [typeFilter, setTypeFilter] = useQueryState("type", parseAsArrayOf(parseAsString, ",").withDefault([]));
     const [dateFrom, setDateFrom] = useQueryState("dateFrom", parseAsString.withDefault(""));
     const [dateTo, setDateTo] = useQueryState("dateTo", parseAsString.withDefault(""));
     const [view, setView] = useState<"STATISTICS" | "TABLE">("STATISTICS");
     const [searchInput, setSearchInput] = useState(search);
-    const [, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+    const { user } = useAuthStore();
+    const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+    const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
     const [sortState] = useQueryState('sort', parseAsJson<Array<{ id: string; desc: boolean }>>((v) => {
         if (!v) return null;
         if (typeof v === 'string') {
@@ -76,7 +80,8 @@ export function EventsReportPage() {
 
     const { data } = trpc.events.getAllEvents.useQuery(
         {
-            perPage: 1000,
+            perPage: perPage,
+            page: page,
             search: filtersState.search || undefined,
             sort: parsedSort.length > 0 ? parsedSort : undefined,
             filters: Object.keys(filters).length > 0 ? filters : undefined,
@@ -87,16 +92,15 @@ export function EventsReportPage() {
         }
     );
 
-    console.log("Sales Data:", data?.events);
 
     const numberOfEvents = data?.total || 0;
-    const numberOfAttendees = data?.events.reduce((total, event) => total + (event.registeredCount || 0), 0) || 0;
+    const numberOfAttendees = data?.allEvents.reduce((total, event) => total + (event.registeredCount || 0), 0) || 0;
 
     // Calculate attendance rates per event type
     const attendanceData = useMemo(() => {
         const typeStats: Record<string, { totalCapacity: number; totalAttendees: number; eventCount: number }> = {};
 
-        data?.events.forEach(event => {
+        data?.allEvents.forEach(event => {
             if (!typeStats[event.type]) {
                 typeStats[event.type] = { totalCapacity: 0, totalAttendees: 0, eventCount: 0 };
             }
@@ -127,7 +131,7 @@ export function EventsReportPage() {
     const eventTypeData = useMemo(() => {
         const counts: Record<string, number> = {};
 
-        data?.events.forEach(event => {
+        data?.allEvents.forEach(event => {
             counts[event.type] = (counts[event.type] || 0) + 1;
         });
 
@@ -211,7 +215,7 @@ export function EventsReportPage() {
                 <EventsReportsTable
                     data={data ? data.events : []}
                     pageCount={pageCount}
-
+                    userRole={user?.role}
                 />
             ) : (
                 <div className="flex flex-col gap-6">

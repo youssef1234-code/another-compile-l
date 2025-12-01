@@ -331,7 +331,7 @@ export class EventRepository extends BaseRepository<IEvent> {
   }
 
 
-    async whitelistUser(userId: string, eventId: string): Promise<void> {
+  async whitelistUser(userId: string, eventId: string): Promise<void> {
     const event = await this.model.findById(eventId);
     if (!event) {
       throw new Error("Event not found");
@@ -382,7 +382,7 @@ export class EventRepository extends BaseRepository<IEvent> {
     await event.save();
   }
 
-    async removeWhitelistedUser(userId: string, eventId: string): Promise<void> {
+  async removeWhitelistedUser(userId: string, eventId: string): Promise<void> {
     const event = await this.model.findById(eventId);
     if (!event) {
       throw new Error("Event not found");
@@ -396,6 +396,129 @@ export class EventRepository extends BaseRepository<IEvent> {
       (id) => id.toString() !== userId
     );
     await event.save();
+  }
+
+  /**
+   * Aggregation pipeline to compute registeredCount and totalSales at database level
+   * Supports filtering, sorting by computed fields, and pagination
+   */
+  async findAllWithRegistrationStats(params: {
+    filter: FilterQuery<IEvent>;
+    sort?: Record<string, 1 | -1>;
+    skip?: number;
+    limit?: number;
+  }): Promise<{
+    events: any[];
+    total: number;
+  }> {
+    const { filter, sort = {}, skip = 0, limit = 10 } = params;
+
+    // Build the aggregation pipeline
+    const pipeline: any[] = [
+      // Stage 1: Match base filter
+      { $match: filter },
+
+      // Stage 2: Lookup registrations and count only CONFIRMED + SUCCEEDED
+      {
+        $lookup: {
+          from: 'eventregistrations',
+          let: { eventId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$event', '$$eventId'] },
+                    { $eq: ['$isActive', true] },
+                    { $eq: ['$status', 'CONFIRMED'] },
+                    //{ $eq: ['$paymentStatus', 'SUCCEEDED'] }
+                  ]
+                }
+              }
+            },
+            { $count: 'count' }
+          ],
+          as: 'registrationStats'
+        }
+      },
+
+      // Stage 3: Add computed fields
+      {
+        $addFields: {
+          registeredCount: {
+            $ifNull: [
+              { $arrayElemAt: ['$registrationStats.count', 0] },
+              0
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          totalSales: {
+            $multiply: [
+              '$registeredCount',
+              { $ifNull: ['$price', 0] }
+            ]
+          }
+        }
+      },
+
+      // Stage 4: Lookup createdBy user
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdBy',
+          foreignField: '_id',
+          as: 'createdBy'
+        }
+      },
+      {
+        $unwind: {
+          path: '$createdBy',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      // Stage 5: Lookup vendors
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'vendors',
+          foreignField: '_id',
+          as: 'vendors'
+        }
+      },
+
+      // Stage 6: Remove temporary fields
+      {
+        $project: {
+          registrationStats: 0
+        }
+      }
+    ];
+
+    // Clone pipeline for counting total (before sort/skip/limit)
+    const countPipeline = [...pipeline, { $count: 'total' }];
+
+    // Add sorting
+    if (Object.keys(sort).length > 0) {
+      pipeline.push({ $sort: sort });
+    }
+
+    // Add pagination
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // Execute both pipelines
+    const [events, countResult] = await Promise.all([
+      this.model.aggregate(pipeline),
+      this.model.aggregate(countPipeline)
+    ]);
+
+    const total = countResult[0]?.total || 0;
+
+    return { events, total };
   }
 
 

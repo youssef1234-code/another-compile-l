@@ -102,6 +102,14 @@ export const paymentRouter = router({
       z.object({
         page: z.number().min(1).optional().default(1),
         perPage: z.number().min(1).max(1000).optional().default(100),
+        sort: z
+          .array(
+            z.object({
+              id: z.string(),
+              desc: z.boolean(),
+            })
+          )
+          .optional(),
         search: z.string().optional(),
         filters: z.record(z.array(z.string())).optional(),
       })
