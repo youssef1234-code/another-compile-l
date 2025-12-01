@@ -96,7 +96,8 @@ export function BackOfficeEventsPage() {
   const [statusFilter] = useQueryState('status', parseAsArrayOf(parseAsString, ',').withDefault([]));
   const [locationFilter] = useQueryState('location', parseAsArrayOf(parseAsString, ',').withDefault([]));
   const [facultyFilter] = useQueryState('faculty', parseAsArrayOf(parseAsString, ',').withDefault([]));
-  const [archivedFilter] = useQueryState('archived', parseAsArrayOf(parseAsString, ',').withDefault([]));
+  // Note: URL param 'isArchived' matches the column ID for proper sync with DataTableFacetedFilter
+  const [archivedFilter, setArchivedFilter] = useQueryState('isArchived', parseAsArrayOf(parseAsString, ',').withDefault([]));
 
   // Read extended filters from URL - these are managed by DataTableFilterMenu (command mode)
   const [extendedFiltersState] = useQueryState('filters', parseAsJson<ExtendedFilter[]>((v) => {
@@ -128,6 +129,15 @@ export function BackOfficeEventsPage() {
       }
     }
   }, [user?.role, typeFilter, setTypeFilter]);
+
+  // Set default filter to show only non-archived events on mount
+  useEffect(() => {
+    // Only set default if no archived filter is already applied (e.g., from URL)
+    if (archivedFilter.length === 0) {
+      setArchivedFilter(['false']);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount
 
   // Build simple filters object for backend (advanced mode)
   const filters = useMemo(() => {
@@ -321,6 +331,9 @@ export function BackOfficeEventsPage() {
       toast.success('Event archived successfully');
       utils.events.getAllEvents.invalidate();
       utils.events.getEventStats.invalidate();
+      utils.events.getEvents.invalidate();
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
@@ -333,6 +346,9 @@ export function BackOfficeEventsPage() {
       toast.success('Workshop archived successfully');
       utils.events.getAllEvents.invalidate();
       utils.events.getEventStats.invalidate();
+      utils.events.getEvents.invalidate();
+      utils.events.getUpcoming.invalidate();
+      utils.events.search.invalidate();
     },
     onError: (error) => {
       const errorMessage = formatValidationErrors(error);
@@ -729,7 +745,7 @@ export function BackOfficeEventsPage() {
         open={archiveDialog.open}
         onOpenChange={(open) => setArchiveDialog({ ...archiveDialog, open })}
         title="Archive Event"
-        description="Are you sure you want to archive this event? Archived events won't appear in public listings but can be restored later."
+        description="Are you sure you want to archive this event? Only events that have already ended can be archived. Archived events won't appear in public listings but can be restored later."
         confirmLabel="Archive"
         onConfirm={confirmArchive}
         variant="default"
