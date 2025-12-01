@@ -88,10 +88,13 @@ const FloatingIcon = ({
 
 // 3D Image Component with amazing hover effect and tilt
 const Image3D = ({ 
+  srcLight,
+  srcDark,
   alt, 
   direction = 'left' 
 }: { 
-  src: string; 
+  srcLight: string;
+  srcDark: string;
   alt: string; 
   direction?: 'left' | 'right';
 }) => {
@@ -134,16 +137,17 @@ const Image3D = ({
                 : "-translate-x-full group-hover:translate-x-full"
             )} />
 
-            {/* Screenshot placeholder - you'll replace with actual screenshots */}
-            <div className="size-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-background p-8 transition-transform duration-700 group-hover:scale-105">
-              <div className="text-center space-y-4">
-                <div className="mx-auto w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center">
-                  <Sparkles className="w-10 h-10 text-primary" />
-                </div>
-                <p className="text-sm text-muted-foreground font-medium">{alt}</p>
-                <p className="text-xs text-muted-foreground">Screenshot placeholder</p>
-              </div>
-            </div>
+            {/* Actual screenshot images - light/dark theme support */}
+            <img 
+              src={srcLight} 
+              alt={alt}
+              className="size-full object-cover object-top transition-transform duration-700 group-hover:scale-105 dark:hidden"
+            />
+            <img 
+              src={srcDark} 
+              alt={alt}
+              className="size-full object-cover object-top transition-transform duration-700 group-hover:scale-105 hidden dark:block"
+            />
 
             {/* Border highlight */}
             <div className="absolute inset-0 rounded-2xl ring-1 ring-white/20 dark:ring-white/10 group-hover:ring-primary/40 transition-all duration-500" />
@@ -496,20 +500,22 @@ export function LandingPage() {
               <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 w-[90%] h-80 bg-primary/50 rounded-full blur-3xl" />
               
               <div className="relative rounded-xl border-2 border-primary/20 bg-card shadow-2xl overflow-hidden">
-                {/* Logo as placeholder - replace with actual screenshot */}
-                <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5">
-                  <div className="text-center space-y-4">
-                    <img 
-                      src="/logo.png" 
-                      alt="Platform Preview" 
-                      className="w-64 h-64 mx-auto object-contain opacity-80 transition-transform duration-500 hover:scale-105"
-                    />
-                    <p className="text-muted-foreground">Dashboard Preview</p>
-                  </div>
+                {/* Dashboard screenshots with theme support */}
+                <div className="bg-gradient-to-br from-muted/50 to-background">
+                  <img 
+                    src="/src/assets/dashboard-light.png" 
+                    alt="Dashboard Preview" 
+                    className="w-full h-auto dark:hidden"
+                  />
+                  <img 
+                    src="/src/assets/dasboard-dark.png" 
+                    alt="Dashboard Preview" 
+                    className="w-full h-auto hidden dark:block"
+                  />
                 </div>
                 
                 {/* Bottom fade */}
-                <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-b from-background/0 via-background/70 to-background rounded-b-xl" />
+                <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-b from-background/0 via-background/70 to-background rounded-b-xl" />
               </div>
             </div>
           </motion.div>
@@ -541,7 +547,8 @@ export function LandingPage() {
           {/* First Feature with 3D Image */}
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16 mb-32">
             <Image3D
-              src="events-dashboard.png"
+              srcLight="/src/assets/events-page-light.png"
+              srcDark="/src/assets/events-page-dark.png"
               alt="Events Management Dashboard"
               direction="left"
             />
@@ -615,8 +622,9 @@ export function LandingPage() {
             </div>
 
             <Image3D
-              src="mobile-experience.png"
-              alt="Mobile Experience"
+              srcLight="/src/assets/users-table-light.png"
+              srcDark="/src/assets/users-table-dark.png"
+              alt="User Management"
               direction="right"
             />
           </div>
