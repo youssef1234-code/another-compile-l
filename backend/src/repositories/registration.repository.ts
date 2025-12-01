@@ -228,7 +228,7 @@ export class RegistrationRepository extends BaseRepository<IEventRegistration> {
   }
 
   // Capacity = confirmed + pending with valid hold
-  async countActiveForCapacity(eventId: string, now = new Date()) {
+  async countActiveForCapacity(eventId: string, _now = new Date()) {
     return this.model.countDocuments({
       event: eventId,
       isActive: true,

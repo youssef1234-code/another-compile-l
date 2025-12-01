@@ -22,12 +22,11 @@ export interface IEvent extends IBaseDocument {
   rejectionReason?: string;
   isArchived: boolean;
   capacity?: number;
-  registeredCount: number;
   registrationDeadline?: Date;
   restrictedTo?: string[];
   whitelistedUsers?: mongoose.Types.ObjectId[];
   whitelistedRoles?: string[];
-  
+
   // Workshop specific
   fullAgenda?: string;
   faculty?: keyof typeof Faculty;
@@ -38,20 +37,20 @@ export interface IEvent extends IBaseDocument {
   extraResources?: string;
   requirements?: string; // Prerequisites or requirements for attendees
   price?: number;
-  
+
   // Media
   images?: string[]; // Array of file IDs or URLs
-  
+
   // Conference specific
   websiteUrl?: string;
-  
+
   // Bazaar specific
   vendors?: mongoose.Types.ObjectId[];
-  
+
   // Gym session specific
   sessionType?: keyof typeof GymSessionType;
   duration?: number;
-  
+
   // Ratings
   averageRating?: number;
   totalRatings?: number;
@@ -71,7 +70,7 @@ const eventSchema = createBaseSchema<IEvent>(
     },
     description: {
       type: String,
-      required: function(this: IEvent) {
+      required: function (this: IEvent) {
         // Description is optional for GYM_SESSION
         return this.type !== 'GYM_SESSION';
       },
@@ -102,10 +101,6 @@ const eventSchema = createBaseSchema<IEvent>(
       // Note: isActive already has an index from base schema
     },
     capacity: Number,
-    registeredCount: {
-      type: Number,
-      default: 0,
-    },
     registrationDeadline: Date,
     restrictedTo: [{
       type: String,
@@ -126,7 +121,7 @@ const eventSchema = createBaseSchema<IEvent>(
         ],
       },
     ],
-    
+
     // Workshop specific
     fullAgenda: String,
     faculty: {
@@ -148,32 +143,32 @@ const eventSchema = createBaseSchema<IEvent>(
       type: Number,
       default: 0,
     },
-    rejectionReason:{
+    rejectionReason: {
       type: String,
       required: false,
     },
-    
+
     // Media
     images: [{
       type: String, // File IDs or URLs
     }],
-    
+
     // Conference specific
     websiteUrl: String,
-    
+
     // Bazaar specific
     vendors: [{
       type: Schema.Types.ObjectId,
       ref: 'User',
     }],
-    
+
     // Gym session specific
     sessionType: {
       type: String,
       enum: GymSessionType,
     },
     duration: Number,
-    
+
     // Ratings
     averageRating: {
       type: Number,

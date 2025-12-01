@@ -19,7 +19,6 @@ import {
 } from "@event-manager/shared";
 import { ServiceError } from "../errors/errors";
 import type { IUser } from "../models/user.model";
-import { format } from "path";
 
 /**
  * Service Layer for Events
@@ -475,136 +474,89 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       sort.startDate = -1;
     }
 
-    // Execute query
-    const events = await this.repository.findAll(filter, {
+    // Use aggregation to get events with registeredCount and totalSales
+    const { events: aggregatedEvents, total } = await this.repository.findAllWithRegistrationStats({
+      filter,
+      sort,
       skip,
-      limit,
-      sort,
-      populate: ["createdBy"],
+      limit
     });
 
-    const allEvents = await this.repository.findAll(filter, {
+    // Get all events for export (without pagination)
+    const { events: allAggregatedEvents } = await this.repository.findAllWithRegistrationStats({
+      filter,
       sort,
-      populate: ["createdBy"],
+      skip: 0,
+      limit: total || 10000 // Use total or a large number
     });
 
-    const total = await this.repository.count(filter);
-
-    // Populate registeredCount for each event
+    // Format paginated events
     let formattedEvents = await Promise.all(
-      events.map(async (event) => {
-        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
-
+      aggregatedEvents.map(async (event) => {
         // For BAZAAR events, populate vendors with their application details
         let vendorDetails = null;
         if (event.type === "BAZAAR") {
-          // Get approved vendor applications for this event (regardless of vendors array)
-          const vendorApplications = await vendorApplicationRepository.findAll(
-            {
-              bazaarId: (event._id as any).toString(),
-              status: "APPROVED",
-            } as any,
-            {}
+          vendorDetails = await Promise.all(
+            (event.vendors || []).map(async (vendor: any) => {
+              // Find vendor application for this event
+              const application = await vendorApplicationRepository.findOne({
+                user: vendor._id,
+                event: event._id,
+              } as any);
+
+              return {
+                id: vendor._id.toString(),
+                companyName: vendor.companyName,
+                email: vendor.email,
+                applicationStatus: application?.status || 'UNKNOWN',
+                applicationId: application?._id?.toString(),
+              };
+            })
           );
-
-          // Populate with user details
-          if (vendorApplications.length > 0) {
-            vendorDetails = await Promise.all(
-              vendorApplications.map(async (app: any) => {
-                const user = await userRepository.findById(
-                  app.createdBy.toString()
-                );
-                return {
-                  id: app._id.toString(),
-                  companyName: app.companyName,
-                  email: app.email,
-                  boothSize: app.boothSize,
-                  names: app.names || [],
-                  emails: app.emails || [],
-                  type: app.type,
-                  userId: (user?._id as any)?.toString(),
-                };
-              })
-            );
-          }
         }
-
-
-
-        // Calculate total sales
-        const totalSales = registeredCount * (event.price || 0);
 
         return {
           ...this.formatEvent(event),
-          registeredCount,
-          totalSales,
+          registeredCount: event.registeredCount,
+          totalSales: event.totalSales,
           vendors: vendorDetails,
         };
       })
     );
 
+    // Format all events for export
     const formattedAllEvents = await Promise.all(
-      allEvents.map(async (event) => {
-        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
-
+      allAggregatedEvents.map(async (event) => {
         // For BAZAAR events, populate vendors with their application details
         let vendorDetails = null;
         if (event.type === "BAZAAR") {
-          // Get approved vendor applications for this event (regardless of vendors array)
-          const vendorApplications = await vendorApplicationRepository.findAll(
-            {
-              bazaarId: (event._id as any).toString(),
-              status: "APPROVED",
-            } as any,
-            {}
+          vendorDetails = await Promise.all(
+            (event.vendors || []).map(async (vendor: any) => {
+              // Find vendor application for this event
+              const application = await vendorApplicationRepository.findOne({
+                user: vendor._id,
+                event: event._id,
+              } as any);
+
+              return {
+                id: vendor._id.toString(),
+                companyName: vendor.companyName,
+                email: vendor.email,
+                applicationStatus: application?.status || 'UNKNOWN',
+                applicationId: application?._id?.toString(),
+              };
+            })
           );
-
-          // Populate with user details
-          if (vendorApplications.length > 0) {
-            vendorDetails = await Promise.all(
-              vendorApplications.map(async (app: any) => {
-                const user = await userRepository.findById(
-                  app.createdBy.toString()
-                );
-                return {
-                  id: app._id.toString(),
-                  companyName: app.companyName,
-                  email: app.email,
-                  boothSize: app.boothSize,
-                  names: app.names || [],
-                  emails: app.emails || [],
-                  type: app.type,
-                  userId: (user?._id as any)?.toString(),
-                };
-              })
-            );
-          }
         }
-
-
-
-        // Calculate total sales
-        const totalSales = registeredCount * (event.price || 0);
 
         return {
           ...this.formatEvent(event),
-          registeredCount,
-          totalSales,
+          registeredCount: event.registeredCount,
+          totalSales: event.totalSales,
           vendors: vendorDetails,
         };
       })
     );
-
-    if (data.sort?.some(s => s.id === "totalSales" || s.id === "registeredCount")) {
-      // If sorting by computed fields, apply sort in memory
-      if (data.sort?.[0]?.id === "totalSales")
-        data.sort?.[0]?.desc ? formattedAllEvents.sort((a, b) => b.totalSales - a.totalSales) : formattedAllEvents.sort((a, b) => a.totalSales - b.totalSales);
-      else if (data.sort?.[0]?.id === "registeredCount")
-        data.sort?.[0]?.desc ? formattedAllEvents.sort((a, b) => b.registeredCount - a.registeredCount) : formattedAllEvents.sort((a, b) => a.registeredCount - b.registeredCount);
-
-      formattedEvents = formattedAllEvents.slice(skip, skip + limit);
-
-    }
 
     return {
       events: formattedEvents,
@@ -699,6 +651,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       filteredEvents.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        const totalSales = registeredCount * (event.price || 0);
         // For BAZAAR events, include approved vendor applications
         let vendors = [];
         if (event.type === "BAZAAR") {
@@ -728,6 +681,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
           vendors,
         };
       })
@@ -768,9 +722,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        const totalSales = registeredCount * (event.price || 0);
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
         };
       })
     );
@@ -787,6 +743,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   async getEventById(id: string): Promise<any> {
     const event = await this.findById(id);
     const registeredCount = await registrationRepository.countActiveForCapacity(id);
+    const totalSales = registeredCount * (event.price || 0);
 
     // For BAZAAR events, populate vendors with their application details
     let vendorDetails = null;
@@ -825,6 +782,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     return {
       ...this.formatEvent(event),
       registeredCount,
+      totalSales,
       vendors: vendorDetails,
     };
   }
@@ -855,9 +813,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        const totalSales = registeredCount * (event.price || 0);
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
         };
       })
     );
@@ -922,9 +882,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        const totalSales = registeredCount * (event.price || 0);
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
         };
       })
     );
@@ -962,9 +924,11 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const formattedEvents = await Promise.all(
       events.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        const totalSales = registeredCount * (event.price || 0);
         return {
           ...this.formatEvent(event),
           registeredCount,
+          totalSales,
         };
       })
     );
@@ -991,7 +955,6 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       endDate: event.endDate,
       registrationDeadline: event.registrationDeadline,
       capacity: event.capacity,
-      registeredCount: event.registeredCount,
       price: event.price,
       status: event.status,
       rejectionReason: event.rejectionReason,
