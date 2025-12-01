@@ -241,6 +241,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
    * - Multi-field sorting
    * - Simple faceted filters (advanced mode)
    * - Extended filters with operators (command mode)
+   * - Whitelist filtering for restricted events
    */
   async getAllEvents(data: {
     page?: number;
@@ -257,6 +258,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     }>;
     joinOperator?: "and" | "or";
     includeArchived?: boolean;
+    userId?: string;
+    userRole?: string;
   }): Promise<{
     events: any[];
     allEvents: any[];
@@ -539,9 +542,53 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       limit: total || 10000 // Use total or a large number
     });
 
+    // Helper function to check if user is allowed to see a whitelisted event
+    const isUserAllowedForEvent = (event: any): boolean => {
+      const hasUserWhitelist = event.whitelistedUsers && event.whitelistedUsers.length > 0;
+      const hasRoleWhitelist = event.whitelistedRoles && event.whitelistedRoles.length > 0;
+
+      // If no whitelist exists, event is open to everyone
+      if (!hasUserWhitelist && !hasRoleWhitelist) {
+        return true;
+      }
+
+      // Admin and Event Office can see all events
+      if (data.userRole === 'ADMIN' || data.userRole === 'EVENT_OFFICE') {
+        return true;
+      }
+
+      // If user is not logged in, hide whitelisted events
+      if (!data.userId) {
+        return false;
+      }
+
+      // Check if user is whitelisted by user ID
+      if (hasUserWhitelist && event.whitelistedUsers) {
+        const isUserWhitelisted = event.whitelistedUsers.some(
+          (id: any) => id.toString() === data.userId
+        );
+        if (isUserWhitelisted) {
+          return true;
+        }
+      }
+
+      // Check if user's role is whitelisted
+      if (hasRoleWhitelist && data.userRole && event.whitelistedRoles) {
+        if (event.whitelistedRoles.includes(data.userRole)) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+
+    // Filter events based on whitelist before formatting
+    const filteredAggregatedEvents = aggregatedEvents.filter(isUserAllowedForEvent);
+    const filteredAllAggregatedEvents = allAggregatedEvents.filter(isUserAllowedForEvent);
+
     // Format paginated events
     let formattedEvents = await Promise.all(
-      aggregatedEvents.map(async (event) => {
+      filteredAggregatedEvents.map(async (event) => {
         // For BAZAAR events, populate vendors with their application details
         let vendorDetails = null;
         if (event.type === "BAZAAR") {
@@ -573,9 +620,9 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       })
     );
 
-    // Format all events for export
+    // Format all events for export (also filtered by whitelist)
     const formattedAllEvents = await Promise.all(
-      allAggregatedEvents.map(async (event) => {
+      filteredAllAggregatedEvents.map(async (event) => {
         // For BAZAAR events, populate vendors with their application details
         let vendorDetails = null;
         if (event.type === "BAZAAR") {
@@ -606,13 +653,16 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         };
       })
     );
+
+    // Use filtered count for pagination
+    const filteredTotal = filteredAllAggregatedEvents.length;
 
     return {
       events: formattedEvents,
       allEvents: formattedAllEvents,
-      total,
+      total: filteredTotal,
       page,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(filteredTotal / limit),
     };
   }
 
@@ -659,11 +709,13 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     });
 
     // Requirement #50: Filter out whitelisted events for non-whitelisted users
+    // Whitelist logic: If an event has ANY whitelist (users OR roles OR both),
+    // only users who match at least one whitelist criterion can see/register for it.
     const filteredEvents = events.filter((event) => {
-      // If event has no whitelist, show to everyone
       const hasUserWhitelist = event.whitelistedUsers && event.whitelistedUsers.length > 0;
       const hasRoleWhitelist = event.whitelistedRoles && event.whitelistedRoles.length > 0;
 
+      // If no whitelist exists, event is open to everyone
       if (!hasUserWhitelist && !hasRoleWhitelist) {
         return true;
       }
@@ -678,22 +730,29 @@ export class EventService extends BaseService<IEvent, EventRepository> {
         return false;
       }
 
-      // Check if user is whitelisted by ID
+      // User must match at least one whitelist criterion:
+      // - Either be in the whitelisted users list
+      // - OR have a role that is in the whitelisted roles list
+      let isAllowed = false;
+
+      // Check if user is whitelisted by user ID
       if (hasUserWhitelist && event.whitelistedUsers) {
         const isUserWhitelisted = event.whitelistedUsers.some(
           (id: any) => id.toString() === params.userId
         );
-        if (isUserWhitelisted) return true;
-      }
-
-      // Check if user's role is whitelisted
-      if (hasRoleWhitelist && params.userRole && event.whitelistedRoles) {
-        if (event.whitelistedRoles.includes(params.userRole)) {
-          return true;
+        if (isUserWhitelisted) {
+          isAllowed = true;
         }
       }
 
-      return false;
+      // Check if user's role is whitelisted
+      if (!isAllowed && hasRoleWhitelist && params.userRole && event.whitelistedRoles) {
+        if (event.whitelistedRoles.includes(params.userRole)) {
+          isAllowed = true;
+        }
+      }
+
+      return isAllowed;
     });
 
     // Populate registeredCount and vendors (for bazaars) for each event
@@ -1667,6 +1726,61 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
   async isFavorite(userId: string, eventId: string) {
     return userRepository.isFavorite(userId, eventId);
+  }
+
+  /**
+   * Check if a user is allowed to access/register for a whitelisted event
+   * Returns true if:
+   * - Event has no whitelist (open to everyone)
+   * - User is whitelisted by user ID
+   * - User's role is whitelisted
+   * - User is Admin or Event Office (can access all events)
+   */
+  async isUserAllowedForEvent(data: {
+    eventId: string;
+    userId: string;
+    userRole: string;
+  }): Promise<{ allowed: boolean; reason?: string }> {
+    const event = await this.repository.findById(data.eventId);
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    }
+
+    const hasUserWhitelist = event.whitelistedUsers && event.whitelistedUsers.length > 0;
+    const hasRoleWhitelist = event.whitelistedRoles && event.whitelistedRoles.length > 0;
+
+    // If no whitelist exists, event is open to everyone
+    if (!hasUserWhitelist && !hasRoleWhitelist) {
+      return { allowed: true };
+    }
+
+    // Admin and Event Office can access all events
+    if (data.userRole === 'ADMIN' || data.userRole === 'EVENT_OFFICE') {
+      return { allowed: true };
+    }
+
+    // Check if user is whitelisted by user ID
+    if (hasUserWhitelist && event.whitelistedUsers) {
+      const isUserWhitelisted = event.whitelistedUsers.some(
+        (id: any) => id.toString() === data.userId
+      );
+      if (isUserWhitelisted) {
+        return { allowed: true };
+      }
+    }
+
+    // Check if user's role is whitelisted
+    if (hasRoleWhitelist && event.whitelistedRoles) {
+      if (event.whitelistedRoles.includes(data.userRole)) {
+        return { allowed: true };
+      }
+    }
+
+    // User is not allowed
+    return { 
+      allowed: false, 
+      reason: 'This event is restricted. You are not on the whitelist for this event.' 
+    };
   }
 }
 

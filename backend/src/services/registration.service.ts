@@ -7,6 +7,7 @@
 
 import { registrationRepository } from "../repositories/registration.repository";
 import { eventService } from "./event.service";
+import { userRepository } from "../repositories/user.repository";
 import { TRPCError } from "@trpc/server";
 import type { IEventRegistration } from "../models/registration.model";
 import mongoose from 'mongoose';
@@ -225,6 +226,25 @@ async registerForEvent(userId: string, eventId: string) {
   }
   if (event.registrationDeadline && new Date(event.registrationDeadline) < now) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Registration deadline passed' });
+  }
+
+  // Whitelist validation: Check if user is allowed to register for this event
+  const user = await userRepository.findById(userId);
+  if (!user) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+  }
+  
+  const whitelistCheck = await eventService.isUserAllowedForEvent({
+    eventId,
+    userId,
+    userRole: user.role,
+  });
+  
+  if (!whitelistCheck.allowed) {
+    throw new TRPCError({ 
+      code: 'FORBIDDEN', 
+      message: whitelistCheck.reason || 'You are not allowed to register for this event' 
+    });
   }
 
   // Check if event is free
