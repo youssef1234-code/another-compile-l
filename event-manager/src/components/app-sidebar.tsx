@@ -89,22 +89,10 @@ const navigationConfig: NavItem[] = [
         roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "ADMIN", "EVENT_OFFICE"],
       },
       {
-        title: "My Registrations",
-        url: ROUTES.MY_REGISTRATIONS,
-        icon: ClipboardList,
-        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
-      },
-      {
         title: "Manage Events",
         url: ROUTES.ADMIN_EVENTS,
         icon: Settings,
         roles: ["ADMIN", "EVENT_OFFICE", "PROFESSOR"],
-      },
-      {
-        title: "Favorites",
-        url: ROUTES.FAVORITES,
-        icon: Heart,
-        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR"],
       },
     ],
   },
