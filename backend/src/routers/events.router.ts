@@ -55,7 +55,7 @@ const eventRoutes = {
       // Pass user context for whitelist filtering (Requirement #50)
       const userId = ctx.user?._id ? String(ctx.user._id) : undefined;
       const userRole = ctx.user?.role;
-      
+
       return eventService.getEvents({
         page: input.page,
         limit: input.limit,
@@ -216,22 +216,94 @@ const eventRoutes = {
     }),
 
   /**
-   * Archive an event - EVENT_OFFICE and ADMIN only (CANNOT archive workshops - professors only)
+   * Archive an event - EVENT_OFFICE and ADMIN only
    */
   archive: eventsOfficeProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
-      // Check if event is a workshop
-      const event = await eventService.getEventById(input.id);
-      if (event.type === "WORKSHOP") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            "Workshops can only be archived by the professor who created them.",
-        });
-      }
-
       return eventService.archiveEvent(input.id);
+    }),
+
+  getEventReports: protectedProcedure
+    .input(
+      z.object({
+        // Pagination
+        page: z.number().optional().default(1),
+        perPage: z.number().optional().default(20),
+
+        // Global search
+        search: z.string().optional(),
+
+        // Multi-field sorting
+        sort: z
+          .array(
+            z.object({
+              id: z.string(),
+              desc: z.boolean(),
+            })
+          )
+          .optional(),
+
+        // Simple faceted filters: {type: ["WORKSHOP"], status: ["PUBLISHED"]}
+        filters: z.record(z.array(z.string())).optional(),
+
+        // Extended filters with operators (for command mode)
+        extendedFilters: z
+          .array(
+            z.object({
+              id: z.string(),
+              value: z.union([z.string(), z.array(z.string())]),
+              operator: z.enum([
+                "iLike",
+                "notILike",
+                "eq",
+                "ne",
+                "isEmpty",
+                "isNotEmpty",
+                "lt",
+                "lte",
+                "gt",
+                "gte",
+                "isBetween",
+                "inArray",
+                "notInArray",
+                "isRelativeToToday",
+              ]),
+              variant: z.enum([
+                "text",
+                "number",
+                "range",
+                "date",
+                "dateRange",
+                "boolean",
+                "select",
+                "multiSelect",
+              ]),
+              filterId: z.string(),
+            })
+          )
+          .optional(),
+
+        // Join operator for extended filters (AND/OR logic)
+        joinOperator: z.enum(["and", "or"]).optional().default("and"),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      // Allow admins and events office to see archived events
+      const canSeeArchived = ctx.user?.role === "ADMIN" || ctx.user?.role === "EVENT_OFFICE";
+
+      const result = await eventService.getEventsReports({
+        page: input.page,
+        limit: input.perPage,
+        search: input.search,
+        sort: input.sort,
+        filters: input.filters,
+        extendedFilters: input.extendedFilters,
+        joinOperator: input.joinOperator,
+        includeArchived: canSeeArchived,
+      });
+
+      return result;
     }),
 
   /**
@@ -312,7 +384,7 @@ const eventRoutes = {
       const canSeeArchived = ctx.user?.role === "ADMIN" || ctx.user?.role === "EVENT_OFFICE";
       const userId = ctx.user ? (ctx.user._id as any).toString() : undefined;
       const userRole = ctx.user?.role;
-      
+
       const result = await eventService.getAllEvents({
         page: input.page,
         limit: input.perPage,
@@ -434,14 +506,14 @@ const eventRoutes = {
         userId,
         input.eventId
       );
-      
+
       // Get registration ID if registered (for certificate download)
       let registrationId: string | undefined;
       if (isRegistered) {
         const registration = await registrationService.getMineForEvent(userId, input.eventId);
         registrationId = registration?.id;
       }
-      
+
       return { isRegistered, registrationId };
     }),
 
@@ -476,7 +548,7 @@ const eventRoutes = {
         const eventCreatorId =
           typeof event.createdBy === "object" && event.createdBy !== null
             ? (event.createdBy as any)._id?.toString() ||
-              (event.createdBy as any).id?.toString()
+            (event.createdBy as any).id?.toString()
             : (event.createdBy as any)?.toString();
 
         // Check if this professor created the workshop (compare user IDs)
@@ -622,14 +694,14 @@ const eventRoutes = {
         },
         { userId, role: ctx.user!.role.toString() }
       );
-      
+
       // Requirement #39: Notify Events Office about new workshop submission
       await notificationService.notifyPendingWorkshop(
         String(workshop._id),
         workshop.name,
         professorName
       );
-      
+
       return workshop;
     }),
 
@@ -722,7 +794,7 @@ const eventRoutes = {
     return workshops;
   }),
 
-   whiteListUser: eventsOfficeOnlyProcedure
+  whiteListUser: eventsOfficeOnlyProcedure
     .input(
       z.object({
         eventId: z.string(),
@@ -763,7 +835,7 @@ const eventRoutes = {
       return eventService.whitelistRole(input);
     }),
 
-    removeWhitelistRole: eventsOfficeOnlyProcedure
+  removeWhitelistRole: eventsOfficeOnlyProcedure
     .input(
       z.object({
         eventId: z.string(),
@@ -996,10 +1068,10 @@ const eventRoutes = {
         input.eventId,
         input.registrationIds
       );
-      
+
       // Convert buffer to base64 for transmission
       const base64 = Buffer.from(buffer).toString('base64');
-      
+
       return {
         data: base64,
         filename: `registrations-${input.eventId}-${Date.now()}.xlsx`,

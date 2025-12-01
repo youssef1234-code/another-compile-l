@@ -234,7 +234,426 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       }
     }
   }
+  async getEventsReports(data: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sort?: Array<{ id: string; desc: boolean }>;
+    filters?: Record<string, string[]>;
+    extendedFilters?: Array<{
+      id: string;
+      value: string | string[];
+      operator: string;
+      variant: string;
+      filterId: string;
+    }>;
+    joinOperator?: "and" | "or";
+    includeArchived?: boolean;
+  }): Promise<{
+    events: any[];
+    allEvents: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const page = data.page || 1;
+    const limit = data.limit || 10;
+    const skip = (page - 1) * limit;
+    const includeArchived = data.includeArchived ?? false;
 
+    // Build base filter - exclude archived or soft-deleted events by default unless requested
+    let filter: any = {};
+
+    if (!includeArchived) {
+      filter.isArchived = false;
+      filter.status = { $ne: "ARCHIVED" };
+    }
+
+    // Handle simple faceted filters from tablecn (advanced mode)
+    if (data.filters) {
+      // Type filter
+      if (data.filters.type && data.filters.type.length > 0) {
+        filter.type = { $in: data.filters.type };
+      }
+
+      // Status filter (allow ARCHIVED only when includeArchived is true)
+      if (data.filters.status && data.filters.status.length > 0) {
+        const allowedStatuses = includeArchived
+          ? data.filters.status
+          : data.filters.status.filter((status) => status !== "ARCHIVED");
+        if (allowedStatuses.length > 0) {
+          filter.status = { $in: allowedStatuses };
+        }
+      }
+
+      // Location filter
+      if (data.filters.location && data.filters.location.length > 0) {
+        filter.location = { $in: data.filters.location };
+      }
+
+      // Faculty filter (for workshops)
+      if (data.filters.faculty && data.filters.faculty.length > 0) {
+        filter.faculty = { $in: data.filters.faculty };
+      }
+
+      // Start date filter (events starting from this date)
+      if (data.filters.startDateFrom && data.filters.startDateFrom.length > 0) {
+        filter.startDate = filter.startDate || {};
+        filter.startDate.$gte = new Date(data.filters.startDateFrom[0]);
+      }
+
+      // Start date filter (events starting up to this date)
+      if (data.filters.startDateTo && data.filters.startDateTo.length > 0) {
+        filter.startDate = filter.startDate || {};
+        filter.startDate.$lte = new Date(data.filters.startDateTo[0]);
+      }
+
+      // End date filter (events ending from this date)
+      if (data.filters.endDateFrom && data.filters.endDateFrom.length > 0) {
+        filter.endDate = filter.endDate || {};
+        filter.endDate.$gte = new Date(data.filters.endDateFrom[0]);
+      }
+
+      // End date filter (events ending up to this date)
+      if (data.filters.endDateTo && data.filters.endDateTo.length > 0) {
+        filter.endDate = filter.endDate || {};
+        filter.endDate.$lte = new Date(data.filters.endDateTo[0]);
+      }
+
+      // isArchived filter (only applies when includeArchived is true)
+      if (includeArchived && data.filters.isArchived && data.filters.isArchived.length > 0) {
+        // Convert string values to boolean: ["true"] -> true, ["false"] -> false, ["true", "false"] -> both
+        const archivedValues = data.filters.isArchived.map(v => v === "true");
+        if (archivedValues.length === 1) {
+          filter.isArchived = archivedValues[0];
+        } else {
+          // Both true and false selected means show all (no filter on isArchived)
+          delete filter.isArchived;
+        }
+      }
+    }
+
+    // Handle extended filters with operators (command mode)
+    if (data.extendedFilters && data.extendedFilters.length > 0) {
+      const extendedConditions: any[] = [];
+
+      for (const extFilter of data.extendedFilters) {
+        const field = extFilter.id;
+        const operator = extFilter.operator;
+        let value = extFilter.value;
+
+        // Prevent consumers from reintroducing archived or soft-deleted records via filters (unless allowed)
+        if (field === "isArchived" && !includeArchived) {
+          continue;
+        }
+
+        if (field === "status" && !includeArchived) {
+          if (operator === "eq" && value === "ARCHIVED") {
+            continue;
+          }
+
+          if (
+            (operator === "inArray" || operator === "notInArray") &&
+            Array.isArray(value)
+          ) {
+            value = value.filter((status) => status !== "ARCHIVED");
+            if (value.length === 0) {
+              continue;
+            }
+          }
+        }
+
+        // Skip empty/invalid values
+        if (operator !== "isEmpty" && operator !== "isNotEmpty") {
+          if (Array.isArray(value) && value.length === 0) continue;
+          if (typeof value === "string" && !value.trim()) continue;
+        }
+
+        const condition: any = {};
+
+        switch (operator) {
+          case "iLike":
+            condition[field] = { $regex: value, $options: "i" };
+            break;
+          case "notILike":
+            condition[field] = { $not: { $regex: value, $options: "i" } };
+            break;
+          case "eq":
+            // Handle numbers for fields like price
+            if (field === "price" || field === "capacity") {
+              condition[field] = Number(value);
+            } else {
+              condition[field] = value;
+            }
+            break;
+          case "ne":
+            // Handle numbers for fields like price
+            if (field === "price" || field === "capacity") {
+              condition[field] = { $ne: Number(value) };
+            } else {
+              condition[field] = { $ne: value };
+            }
+            break;
+          case "isEmpty":
+            condition[field] = { $in: [null, "", undefined] };
+            break;
+          case "isNotEmpty":
+            condition[field] = { $nin: [null, "", undefined], $exists: true };
+            break;
+          case "inArray":
+            if (Array.isArray(value)) {
+              condition[field] = { $in: value };
+            }
+            break;
+          case "notInArray":
+            if (Array.isArray(value)) {
+              condition[field] = { $nin: value };
+            }
+            break;
+          case "lt":
+            // Check if it's a date field or numeric field
+            if (field.includes("Date") || field.includes("date")) {
+              condition[field] = { $lt: new Date(value as string) };
+            } else {
+              condition[field] = { $lt: Number(value) };
+            }
+            break;
+          case "lte":
+            // Check if it's a date field or numeric field
+            if (field.includes("Date") || field.includes("date")) {
+              condition[field] = { $lte: new Date(value as string) };
+            } else {
+              condition[field] = { $lte: Number(value) };
+            }
+            break;
+          case "gt":
+            // Check if it's a date field or numeric field
+            if (field.includes("Date") || field.includes("date")) {
+              condition[field] = { $gt: new Date(value as string) };
+            } else {
+              condition[field] = { $gt: Number(value) };
+            }
+            break;
+          case "gte":
+            // Check if it's a date field or numeric field
+            if (field.includes("Date") || field.includes("date")) {
+              condition[field] = { $gte: new Date(value as string) };
+            } else {
+              condition[field] = { $gte: Number(value) };
+            }
+            break;
+          case "isBetween":
+            if (Array.isArray(value) && value.length === 2) {
+              condition[field] = {
+                $gte: new Date(value[0]),
+                $lte: new Date(value[1]),
+              };
+            }
+            break;
+        }
+
+        if (Object.keys(condition).length > 0) {
+          extendedConditions.push(condition);
+        }
+      }
+
+      // Combine extended filters with AND or OR logic
+      if (extendedConditions.length > 0) {
+        const joinOp = data.joinOperator === "or" ? "$or" : "$and";
+
+        if (filter[joinOp]) {
+          filter[joinOp].push(...extendedConditions);
+        } else {
+          filter[joinOp] = extendedConditions;
+        }
+      }
+    }
+
+    // Handle global search - search across name, description, professorName
+    // Also search in createdBy user's firstName/lastName for workshops
+    if (data.search && data.search.trim()) {
+      const searchRegex = { $regex: data.search.trim(), $options: "i" };
+
+      // Find users whose first or last names match the search term
+      const matchingUsers = await userRepository.findAll(
+        {
+          $or: [{ firstName: searchRegex }, { lastName: searchRegex }],
+        } as any,
+        {}
+      );
+
+      const matchingUserIds = matchingUsers.map((u: any) => u._id);
+
+      const searchConditions: any[] = [
+        { name: searchRegex },
+        { description: searchRegex },
+        { professorName: searchRegex },
+      ];
+
+      // Add condition for events created by users with matching names
+      if (matchingUserIds.length > 0) {
+        searchConditions.push({ createdBy: { $in: matchingUserIds } });
+      }
+
+      filter.$or = searchConditions;
+    }
+
+    // NOTE: Registration deadline filter removed to allow back office users
+    // (Admin, Event Office, Professors) to see all events including:
+    // - Pending workshops awaiting approval
+    // - Events with past registration deadlines
+    // - Draft events
+
+    // Build multi-field sort
+    const sort: any = {};
+    if (data.sort && data.sort.length > 0) {
+      data.sort.forEach((sortField) => {
+        sort[sortField.id] = sortField.desc ? -1 : 1;
+      });
+    } else {
+      // Default sort by start date descending
+      sort.startDate = -1;
+    }
+
+    // Execute query
+    const events = await this.repository.findAll(filter, {
+      skip,
+      limit,
+      sort,
+      populate: ["createdBy"],
+    });
+
+    const allEvents = await this.repository.findAll(filter, {
+      sort,
+      populate: ["createdBy"],
+    });
+
+    const total = await this.repository.count(filter);
+
+    // Populate registeredCount for each event
+    let formattedEvents = await Promise.all(
+      events.map(async (event) => {
+        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+
+        // For BAZAAR events, populate vendors with their application details
+        let vendorDetails = null;
+        if (event.type === "BAZAAR") {
+          // Get approved vendor applications for this event (regardless of vendors array)
+          const vendorApplications = await vendorApplicationRepository.findAll(
+            {
+              bazaarId: (event._id as any).toString(),
+              status: "APPROVED",
+            } as any,
+            {}
+          );
+
+          // Populate with user details
+          if (vendorApplications.length > 0) {
+            vendorDetails = await Promise.all(
+              vendorApplications.map(async (app: any) => {
+                const user = await userRepository.findById(
+                  app.createdBy.toString()
+                );
+                return {
+                  id: app._id.toString(),
+                  companyName: app.companyName,
+                  email: app.email,
+                  boothSize: app.boothSize,
+                  names: app.names || [],
+                  emails: app.emails || [],
+                  type: app.type,
+                  userId: (user?._id as any)?.toString(),
+                };
+              })
+            );
+          }
+        }
+
+
+
+        // Calculate total sales
+        const totalSales = registeredCount * (event.price || 0);
+
+        return {
+          ...this.formatEvent(event),
+          registeredCount,
+          totalSales,
+          vendors: vendorDetails,
+        };
+      })
+    );
+
+    const formattedAllEvents = await Promise.all(
+      allEvents.map(async (event) => {
+        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+
+        // For BAZAAR events, populate vendors with their application details
+        let vendorDetails = null;
+        if (event.type === "BAZAAR") {
+          // Get approved vendor applications for this event (regardless of vendors array)
+          const vendorApplications = await vendorApplicationRepository.findAll(
+            {
+              bazaarId: (event._id as any).toString(),
+              status: "APPROVED",
+            } as any,
+            {}
+          );
+
+          // Populate with user details
+          if (vendorApplications.length > 0) {
+            vendorDetails = await Promise.all(
+              vendorApplications.map(async (app: any) => {
+                const user = await userRepository.findById(
+                  app.createdBy.toString()
+                );
+                return {
+                  id: app._id.toString(),
+                  companyName: app.companyName,
+                  email: app.email,
+                  boothSize: app.boothSize,
+                  names: app.names || [],
+                  emails: app.emails || [],
+                  type: app.type,
+                  userId: (user?._id as any)?.toString(),
+                };
+              })
+            );
+          }
+        }
+
+
+
+        // Calculate total sales
+        const totalSales = registeredCount * (event.price || 0);
+
+        return {
+          ...this.formatEvent(event),
+          registeredCount,
+          totalSales,
+          vendors: vendorDetails,
+        };
+      })
+    );
+
+    if (data.sort?.some(s => s.id === "totalSales" || s.id === "registeredCount")) {
+      // If sorting by computed fields, apply sort in memory
+      if (data.sort?.[0]?.id === "totalSales")
+        data.sort?.[0]?.desc ? formattedAllEvents.sort((a, b) => b.totalSales - a.totalSales) : formattedAllEvents.sort((a, b) => a.totalSales - b.totalSales);
+      else if (data.sort?.[0]?.id === "registeredCount")
+        data.sort?.[0]?.desc ? formattedAllEvents.sort((a, b) => b.registeredCount - a.registeredCount) : formattedAllEvents.sort((a, b) => a.registeredCount - b.registeredCount);
+
+      formattedEvents = formattedAllEvents.slice(skip, skip + limit);
+
+    }
+
+    return {
+      events: formattedEvents,
+      allEvents: formattedAllEvents,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
   /**
    * Get all events with advanced filters and pagination (Admin/EventsOffice)
    * Supports tablecn data table pattern with:
@@ -1809,9 +2228,9 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     }
 
     // User is not allowed
-    return { 
-      allowed: false, 
-      reason: 'This event is restricted. You are not on the whitelist for this event.' 
+    return {
+      allowed: false,
+      reason: 'This event is restricted. You are not on the whitelist for this event.'
     };
   }
 }

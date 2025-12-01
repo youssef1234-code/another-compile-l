@@ -78,7 +78,7 @@ export function EventsReportPage() {
     }, [sortState]);
 
 
-    const { data } = trpc.events.getAllEvents.useQuery(
+    const { data } = trpc.events.getEventReports.useQuery(
         {
             perPage: perPage,
             page: page,

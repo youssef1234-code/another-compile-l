@@ -431,7 +431,7 @@ export class EventRepository extends BaseRepository<IEvent> {
                     { $eq: ['$event', '$$eventId'] },
                     { $eq: ['$isActive', true] },
                     { $eq: ['$status', 'CONFIRMED'] },
-                    //{ $eq: ['$paymentStatus', 'SUCCEEDED'] }
+                    { $eq: ['$paymentStatus', 'SUCCEEDED'] }
                   ]
                 }
               }
