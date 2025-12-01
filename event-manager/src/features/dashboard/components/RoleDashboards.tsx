@@ -551,7 +551,7 @@ export function AdminDashboard() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-20 flex-col gap-2">
-                <Link to={ROUTES.ADMIN_REPORTS}>
+                <Link to={ROUTES.EVENTS_REPORTS}>
                   <BarChart3 className="h-5 w-5" />
                   <span>View Reports</span>
                 </Link>

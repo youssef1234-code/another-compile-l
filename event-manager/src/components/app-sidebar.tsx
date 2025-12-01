@@ -199,7 +199,7 @@ const navigationConfig: NavItem[] = [
   },
   {
     title: "Reports",
-    url: ROUTES.EVENT_OFFICE_REPORTS,
+    url: ROUTES.EVENTS_REPORTS,
     icon: BarChart3,
     roles: ["EVENT_OFFICE", "ADMIN"],
     items: [

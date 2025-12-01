@@ -79,8 +79,6 @@ const CourtManagementPage = lazy(() => import("@/features/gym/pages/CourtManagem
 
 // Admin
 const AdminUsersPage = lazy(() => import("@/features/admin/pages/AdminUsersPage").then(m => ({ default: m.AdminUsersPage })));
-const CommentsPage = lazy(() => import("@/features/admin/pages").then(m => ({ default: m.CommentsPage })));
-// ReportsPage removed - Coming Soon placeholder
 
 // Events Office
 const BazaarManagementPage = lazy(() => import("@/features/events-office/pages/BazaarManagementPage").then(m => ({ default: m.BazaarManagementPage })));
@@ -354,17 +352,7 @@ export const router = createBrowserRouter([
           </EventManagementRoute>
         ),
       },
-      {
-        path: ROUTES.ADMIN_COMMENTS,
-        element: (
-          <AdminRoute>
-            <Suspense fallback={<PageSkeleton variant="table" />}>
-              <CommentsPage />
-            </Suspense>
-          </AdminRoute>
-        ),
-      },
-      // Admin Reports page was removed (Coming Soon placeholder)
+
       {
         path: ROUTES.ADMIN_LOYALTY,
         element: withSuspense(LoyaltyProgramPage, "cards"),

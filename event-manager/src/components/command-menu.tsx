@@ -370,15 +370,6 @@ export function CommandMenu() {
           roles: ["ADMIN"],
         },
         {
-          id: "admin-comments",
-          label: "Manage Comments",
-          icon: <MessageSquare className="size-4" />,
-          action: () => navigate(ROUTES.ADMIN_COMMENTS),
-          keywords: ["reviews", "feedback", "moderation"],
-          roles: ["ADMIN"],
-        },
-        // Admin Reports page was removed (Coming Soon placeholder)
-        {
           id: "admin-loyalty",
           label: "Manage Loyalty Program",
           icon: <Trophy className="size-4" />,

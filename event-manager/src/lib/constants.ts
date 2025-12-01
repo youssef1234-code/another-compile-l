@@ -59,23 +59,18 @@ export const ROUTES = {
 
   // Gym & Sports
   GYM_SCHEDULE: "/gym/schedule",
-  MY_SESSIONS: "/gym/sessions",
   COURT_BOOKINGS: "/gym/courts",
   COURT_MANAGEMENT: "/gym/courts/manage",
-  MANAGE_SESSIONS: "/gym/manage",
 
   // Admin
   ADMIN: '/admin',
   ADMIN_USERS: '/admin/users',
   ADMIN_EVENTS: '/admin/events',
-  ADMIN_COMMENTS: '/admin/comments',
-  ADMIN_REPORTS: '/admin/reports',
   ADMIN_LOYALTY: '/admin/loyalty',
 
   // Events Office
   WORKSHOP_APPROVALS: "/events-office/workshops",
   VENDOR_POLLS: "/events-office/polls",
-  EVENT_OFFICE_REPORTS: "/events-office/reports",
   // QR_CODES and CERTIFICATES routes removed - functionality moved to BackOfficeEventsPage expanded row
   BAZAAR_MANAGEMENT: "/events-office/bazaars",
   PLATFORM_SETUP: "/events-office/platform-setup",
@@ -86,7 +81,6 @@ export const ROUTES = {
 
   // Other
   WALLET: "/wallet",
-  NOTIFICATIONS: "/notifications",
   PROFILE: "/profile",
   SETTINGS: "/settings",
 } as const;
