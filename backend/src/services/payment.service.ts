@@ -287,7 +287,7 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
   /** 4) Refund to wallet (policy-checked in router or here). */
   async refundToWallet(userId: string, payload: RefundToWalletInput & { amountMinor: number; currency: "EGP" | "USD" }) {
     const { paymentId, registrationId, amountMinor, currency } = payload;
-    
+
     // Get original payment status for compensation
     const originalPayment = await paymentRepository.findById(paymentId);
     const originalPaymentStatus = originalPayment?.status;
@@ -302,9 +302,9 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
 
     // Step 2: Update registration (compensate payment if fails)
     try {
-      await registrationRepository.update(registrationId, { 
-        status: RegistrationStatus.CANCELLED, 
-        paymentStatus: PaymentStatus.REFUNDED 
+      await registrationRepository.update(registrationId, {
+        status: RegistrationStatus.CANCELLED,
+        paymentStatus: PaymentStatus.REFUNDED
       });
     } catch (e) {
       console.error("Error updating registration, rolling back payment status:", e);
@@ -331,9 +331,9 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     } catch (e) {
       console.error("Error crediting wallet, rolling back registration and payment:", e);
       // Compensate: Restore registration (best effort - use CONFIRMED as reasonable prior state)
-      await registrationRepository.update(registrationId, { 
-        status: RegistrationStatus.CONFIRMED, 
-        paymentStatus: PaymentStatus.SUCCEEDED 
+      await registrationRepository.update(registrationId, {
+        status: RegistrationStatus.CONFIRMED,
+        paymentStatus: PaymentStatus.SUCCEEDED
       });
       // Compensate: Restore original payment status
       if (originalPaymentStatus) {
@@ -566,7 +566,7 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
             return { ok: true };
           }
           const { vendorApplicationRepository } = await import("../repositories/vendor-application.repository");
-          
+
           try {
             // mark vendor application as paid
             const updatedApp = await vendorApplicationRepository.markPaid(applicationId, new Date());
@@ -762,26 +762,26 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
     // Filter by event properties if specified (post-query filter since event is populated)
     let allFilteredPayments = allPayments;
 
-    // Filter by event type
+    // Filter by event type (only apply to payments that have events)
     if (params.filters?.type && params.filters.type.length > 0) {
       allFilteredPayments = allFilteredPayments.filter((payment: any) =>
-        payment.event && params.filters!.type!.includes(payment.event.type)
+        !payment.event || params.filters!.type!.includes(payment.event.type)
       );
     }
 
-    // Filter by event start date from
+    // Filter by event start date from (only apply to payments that have events)
     if (params.filters?.startDateFrom && params.filters.startDateFrom.length > 0) {
       const startFrom = new Date(params.filters.startDateFrom[0]);
       allFilteredPayments = allFilteredPayments.filter((payment: any) =>
-        payment.event && payment.event.startDate && new Date(payment.event.startDate) >= startFrom
+        !payment.event || (payment.event.startDate && new Date(payment.event.startDate) >= startFrom)
       );
     }
 
-    // Filter by event start date to
+    // Filter by event start date to (only apply to payments that have events)
     if (params.filters?.startDateTo && params.filters.startDateTo.length > 0) {
       const startTo = new Date(params.filters.startDateTo[0]);
       allFilteredPayments = allFilteredPayments.filter((payment: any) =>
-        payment.event && payment.event.startDate && new Date(payment.event.startDate) <= startTo
+        !payment.event || (payment.event.startDate && new Date(payment.event.startDate) <= startTo)
       );
     }
 
