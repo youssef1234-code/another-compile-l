@@ -75,6 +75,26 @@ export const qrCodesRouter = router({
     }),
 
   /**
+   * Force send QR codes to all confirmed registrations for an event
+   * Requirement #51: Events Office can force send QR codes to all participants
+   */
+  forceSendAllQRs: eventsOfficeProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const result = await qrBadgeService.forceSendAllQRsForEvent(input.eventId);
+      return {
+        success: true,
+        sent: result.sent,
+        failed: result.failed,
+        message: `Successfully sent ${result.sent} QR codes. ${result.failed > 0 ? `${result.failed} failed.` : ''}`,
+      };
+    }),
+
+  /**
    * Get QR code status for event registrations
    * Shows which registrations have QR codes generated/sent
    */
@@ -166,6 +186,26 @@ export const qrCodesRouter = router({
       return {
         success: true,
         message: 'QR code email sent to visitor and vendor',
+      };
+    }),
+
+  /**
+   * Force send QR codes to ALL visitors of a vendor application
+   * Sends QR code to each visitor AND copies to the vendor
+   */
+  forceSendAllVendorVisitorQRs: eventsOfficeProcedure
+    .input(
+      z.object({
+        applicationId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const result = await qrBadgeService.forceSendAllVendorVisitorQRs(input.applicationId);
+      return {
+        success: true,
+        sent: result.sent,
+        failed: result.failed,
+        message: `Successfully sent ${result.sent} QR codes to visitors and vendor. ${result.failed > 0 ? `${result.failed} failed.` : ''}`,
       };
     }),
 

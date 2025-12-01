@@ -438,6 +438,65 @@ export class QRBadgeService {
   }
 
   /**
+   * Force send QR codes to ALL confirmed registrations for an event
+   * Requirement #51: Events Office can force send QR codes to all participants
+   * Generates QR codes if not already generated, and sends emails regardless of previous send status
+   */
+  async forceSendAllQRsForEvent(eventId: string): Promise<{ sent: number; failed: number }> {
+    const registrations = await EventRegistration.find({
+      event: eventId,
+      status: 'CONFIRMED',
+    }).populate('event').populate('user');
+
+    const { mailService } = await import('./mail.service.js');
+    
+    let sent = 0;
+    let failed = 0;
+
+    for (const registration of registrations) {
+      try {
+        const reg: any = registration;
+        const event = reg.event;
+        const user = reg.user;
+
+        if (!user || !user.email) {
+          failed++;
+          continue;
+        }
+
+        // Generate QR if not already generated
+        let qrCode = reg.qrCode;
+        if (!qrCode) {
+          qrCode = await this.generateAndSaveVisitorQR(String(registration._id));
+        }
+
+        // Send email (force send regardless of previous send status)
+        await mailService.sendVisitorQREmail(user.email, {
+          visitorName: `${user.firstName} ${user.lastName}`,
+          eventName: event.name,
+          eventDate: event.startDate,
+          eventLocation: event.location,
+          qrCodeDataUrl: qrCode,
+        });
+
+        // Update sent timestamp
+        await EventRegistration.findByIdAndUpdate(registration._id, {
+          qrCodeSentAt: new Date(),
+        });
+
+        sent++;
+        console.log(`📧 ✓ Force sent QR to ${user.email}`);
+      } catch (error) {
+        console.error(`📧 ✗ Failed to send QR to registration ${registration._id}:`, error);
+        failed++;
+      }
+    }
+
+    console.log(`📧 Force sent ${sent} QR codes for event ${eventId}, ${failed} failed`);
+    return { sent, failed };
+  }
+
+  /**
    * Send QR code email to a visitor (and optionally to vendor)
    * Requirement #51: Email sent to visitor AND vendor
    */
@@ -634,6 +693,87 @@ export class QRBadgeService {
       });
       console.log(`📧 ✓ QR code copy sent to vendor ${vendor.email}`);
     }
+  }
+
+  /**
+   * Force send QR codes to ALL visitors of a vendor application
+   * Sends to each visitor AND sends a summary to the vendor
+   * Requirement: Vendor receives QR code for all registered visitors coming to bazaar/booth
+   */
+  async forceSendAllVendorVisitorQRs(applicationId: string): Promise<{ sent: number; failed: number }> {
+    const application: any = await VendorApplication.findById(applicationId)
+      .populate('bazaarId')
+      .lean();
+
+    if (!application) {
+      throw new ServiceError('NOT_FOUND', 'Application not found', 404);
+    }
+
+    const names = application.names || [];
+    const emails = application.emails || [];
+
+    // Generate QR codes if not already generated
+    let qrCodes = application.qrCodes || [];
+    if (qrCodes.length === 0 || qrCodes.length < names.length) {
+      qrCodes = await this.generateAndSaveVendorVisitorQRs(applicationId);
+    }
+
+    const vendor = await User.findById(application.createdBy).lean();
+    const event = application.bazaarId;
+    const { mailService } = await import('./mail.service.js');
+
+    let sent = 0;
+    let failed = 0;
+    const qrCodesSentAt = application.qrCodesSentAt || [];
+
+    // Send QR code to each visitor
+    for (let i = 0; i < names.length; i++) {
+      const visitorName = names[i];
+      const visitorEmail = emails[i];
+      const qrCode = qrCodes[i];
+
+      if (!visitorEmail || !qrCode) {
+        failed++;
+        continue;
+      }
+
+      try {
+        // Send to visitor
+        await mailService.sendVisitorQREmail(visitorEmail, {
+          visitorName,
+          eventName: event?.name || application.bazaarName || 'Event',
+          eventDate: event?.startDate || application.startDate,
+          eventLocation: event?.location || 'TBD',
+          qrCodeDataUrl: qrCode,
+        });
+
+        // Also send copy to vendor for each visitor
+        if (vendor?.email) {
+          await mailService.sendVisitorQRToVendor(vendor.email, {
+            visitorName,
+            visitorEmail,
+            eventName: event?.name || application.bazaarName || 'Event',
+            eventDate: event?.startDate || application.startDate,
+            qrCodeDataUrl: qrCode,
+          });
+        }
+
+        qrCodesSentAt[i] = new Date();
+        sent++;
+        console.log(`📧 ✓ Force sent QR to visitor ${visitorEmail}`);
+      } catch (error) {
+        console.error(`📧 ✗ Failed to send QR to visitor ${visitorEmail}:`, error);
+        failed++;
+      }
+    }
+
+    // Update all sent timestamps
+    await VendorApplication.findByIdAndUpdate(applicationId, {
+      qrCodesSentAt,
+    });
+
+    console.log(`📧 Force sent ${sent} vendor visitor QR codes for application ${applicationId}, ${failed} failed`);
+    return { sent, failed };
   }
 }
 

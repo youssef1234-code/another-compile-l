@@ -18,6 +18,9 @@ export interface IFeedback extends IBaseDocument {
   rating?: number; // 1-5, required if type is 'rating' or 'both'
   comment?: string; // required if type is 'comment' or 'both'
   isEdited?: boolean; // Flag to show if feedback was edited after creation
+  isCommentHidden?: boolean; // Flag for admin-deleted comments (rating preserved)
+  commentHiddenAt?: Date; // When the comment was hidden
+  commentHiddenReason?: string; // Reason for hiding (optional)
 }
 
 const feedbackSchema = createBaseSchema<IFeedback>(
@@ -54,6 +57,18 @@ const feedbackSchema = createBaseSchema<IFeedback>(
     isEdited: {
       type: Boolean,
       default: false,
+    },
+    isCommentHidden: {
+      type: Boolean,
+      default: false,
+    },
+    commentHiddenAt: {
+      type: Date,
+    },
+    commentHiddenReason: {
+      type: String,
+      trim: true,
+      maxlength: 500,
     },
   },
   {

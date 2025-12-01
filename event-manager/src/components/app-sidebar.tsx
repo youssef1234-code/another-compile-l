@@ -77,6 +77,12 @@ const navigationConfig: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    title: "Browse Events",
+    url: ROUTES.EVENTS,
+    icon: Calendar,
+    roles: ["STUDENT", "STAFF","TA"],
+  },
+  {
     title: "Events",
     icon: Calendar,
     url: ROUTES.EVENTS,
@@ -85,7 +91,7 @@ const navigationConfig: NavItem[] = [
         title: "Browse Events",
         url: ROUTES.EVENTS,
         icon: Calendar,
-        roles: ["STUDENT", "STAFF", "TA", "PROFESSOR", "ADMIN", "EVENT_OFFICE"],
+        roles: ["PROFESSOR", "ADMIN", "EVENT_OFFICE"],
       },
       {
         title: "Manage Events",

@@ -58,24 +58,6 @@ interface VendorSignupFormProps {
 
 export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
 
-  const uploadingMutation = trpc.files.uploadUnprotectedFile.useMutation({
-    onSuccess: () => {
-      toast.success("File uploaded successfully", {
-        duration: 3000,
-        icon: "✅",
-      });
-    },
-    onError: (error) => {
-      const errorMessage = formatValidationErrors(error);
-      toast.error(errorMessage, {
-        duration: 5000,
-        style: {
-          whiteSpace: "pre-line", // Allow line breaks
-        },
-      });
-    },
-  });
-
   const signupMutation = trpc.auth.signupVendor.useMutation({
     onSuccess: (data) => {
       toast.success(data.message, {
@@ -102,25 +84,16 @@ export function VendorSignupForm({ onSuccess }: VendorSignupFormProps) {
   });
 
   const handleSubmit = (data: VendorSignupFormData) => {
-    uploadingMutation.mutate({
-      file: data.taxCardImage,
-      filename: "taxCard",
-      mimeType: "image/png",
-      entityType: "vendor",
-    });
-    uploadingMutation.mutate({
-      file: data.logoImage,
-      filename: "logoImage",
-      mimeType: "image/png",
-      entityType: "vendor",
-    });
-
+    // Validate that both images have been uploaded via ImageUpload component
+    // The ImageUpload component already handles the file upload and stores the file ID
     if (!data.logoImage || !data.taxCardImage) {
       toast.error("Please upload both Tax Card and Logo images.", {
         duration: 5000,
       });
       return;
     }
+    
+    // The taxCardImage and logoImage already contain file IDs from ImageUpload component
     signupMutation.mutate({
       email: data.email,
       password: data.password,

@@ -14,6 +14,7 @@
 
 import { FeedbackRepository, feedbackRepository } from '../repositories/feedback.repository';
 import { eventRepository } from '../repositories/event.repository';
+import { registrationRepository } from '../repositories/registration.repository';
 import { BaseService } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IFeedback } from '../models/feedback.model';
@@ -67,6 +68,30 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message: 'Cannot add feedback until the day after the event ends. Please wait until tomorrow.',
+      });
+    }
+
+    // Requirement #15 & #16: Verify user attended the event
+    // User must have a CONFIRMED registration with attended=true to leave feedback
+    const registration = await registrationRepository.getByUserAndEvent(userId, input.eventId);
+    if (!registration) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'You must be registered for this event to leave feedback.',
+      });
+    }
+    
+    if (registration.status !== 'CONFIRMED') {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Your registration must be confirmed to leave feedback.',
+      });
+    }
+    
+    if (!registration.attended) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'You must have attended this event to leave feedback. Only attendees can rate or comment.',
       });
     }
 
@@ -325,18 +350,28 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
   }
 
   /**
-   * Delete feedback (Story #18 & #21)
+   * Delete feedback comment (Story #18 & #21)
    * Admin can delete any inappropriate comments
+   * If feedback has a rating, the rating is preserved and only the comment is hidden
+   * If feedback has only a comment, the entire feedback is deleted
    * Sends warning email to the user who posted the comment
    */
-  async deleteFeedback(feedbackId: string): Promise<void> {
-    // Fetch the feedback with populated user and event data before deleting
+  async deleteFeedback(feedbackId: string, reason?: string): Promise<void> {
+    // Fetch the feedback with populated user and event data before processing
     const feedback = await this.repository.findById(feedbackId);
     
     if (!feedback) {
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: 'Feedback not found',
+      });
+    }
+
+    // Check if feedback has a comment to delete
+    if (!feedback.comment) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'This feedback has no comment to delete',
       });
     }
 
@@ -367,17 +402,33 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       await notificationService.notifyCommentDeleted(
         String(user._id),
         event?.name || 'an event',
-        'Inappropriate content'
+        reason || 'Inappropriate content'
       );
     }
 
-    // Proceed with deletion
-    const deleted = await this.repository.permanentlyDelete(feedbackId);
-    if (!deleted) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Feedback not found',
-      });
+    // Determine whether to hide comment or delete entire feedback
+    // If feedback has a rating, preserve the rating and only hide the comment
+    // If feedback has only a comment (type='comment'), delete the entire feedback
+    if (feedback.rating != null && feedback.type === 'both') {
+      // Hide the comment but preserve the rating
+      const feedbackIdStr = feedback.id || (feedback as any)._id?.toString();
+      await this.repository.update(feedbackIdStr, {
+        isCommentHidden: true,
+        commentHiddenAt: new Date(),
+        commentHiddenReason: reason || 'Inappropriate content',
+        type: 'rating', // Update type since comment is now hidden
+      } as any);
+      console.log(`✓ Comment hidden for feedback ${feedbackIdStr}, rating preserved`);
+    } else {
+      // Feedback has only a comment, delete the entire feedback
+      const deleted = await this.repository.permanentlyDelete(feedbackId);
+      if (!deleted) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Feedback not found',
+        });
+      }
+      console.log(`✓ Feedback ${feedbackId} permanently deleted (comment-only)`);
     }
   }
 }

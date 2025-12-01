@@ -54,6 +54,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
   /**
    * Override create to set appropriate status for events
+   * Requirement #57: Send notifications for new events
    */
   async create(data: Partial<IEvent>, options?: any): Promise<IEvent> {
     // Set default status based on event type
@@ -67,7 +68,19 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       }
     }
 
-    return super.create(data, options);
+    const createdEvent = await super.create(data, options);
+
+    // Requirement #57: Send notification for non-workshop events that are published immediately
+    // Workshops get notified when approved via approveWorkshop()
+    if (createdEvent.status === "PUBLISHED" && createdEvent.type !== "WORKSHOP") {
+      await notificationService.notifyNewEvent(
+        String((createdEvent as any)._id),
+        createdEvent.name,
+        createdEvent.type
+      );
+    }
+
+    return createdEvent;
   }
 
   /**
@@ -263,6 +276,18 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       if (data.filters.endDateTo && data.filters.endDateTo.length > 0) {
         filter.endDate = filter.endDate || {};
         filter.endDate.$lte = new Date(data.filters.endDateTo[0]);
+      }
+
+      // isArchived filter (only applies when includeArchived is true)
+      if (includeArchived && data.filters.isArchived && data.filters.isArchived.length > 0) {
+        // Convert string values to boolean: ["true"] -> true, ["false"] -> false, ["true", "false"] -> both
+        const archivedValues = data.filters.isArchived.map(v => v === "true");
+        if (archivedValues.length === 1) {
+          filter.isArchived = archivedValues[0];
+        } else {
+          // Both true and false selected means show all (no filter on isArchived)
+          delete filter.isArchived;
+        }
       }
     }
 
@@ -529,6 +554,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   /**
    * Get all upcoming events with search and filters
    * Business Rule: Only show non-archived events by default
+   * Requirement #50: Filter out whitelisted events for non-whitelisted users
    */
   async getEvents(params: {
     page?: number;
@@ -541,6 +567,8 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     maxPrice?: number;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
+    userId?: string;
+    userRole?: string;
   }): Promise<{
     events: any[];
     total: number;
@@ -552,7 +580,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const skip = (page - 1) * limit;
 
     // Use advanced search from repository
-    const { events, total } = await this.repository.advancedSearch({
+    const { events } = await this.repository.advancedSearch({
       query: params.search,
       type: params.type,
       location: params.location,
@@ -565,9 +593,47 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       limit,
     });
 
+    // Requirement #50: Filter out whitelisted events for non-whitelisted users
+    const filteredEvents = events.filter((event) => {
+      // If event has no whitelist, show to everyone
+      const hasUserWhitelist = event.whitelistedUsers && event.whitelistedUsers.length > 0;
+      const hasRoleWhitelist = event.whitelistedRoles && event.whitelistedRoles.length > 0;
+      
+      if (!hasUserWhitelist && !hasRoleWhitelist) {
+        return true;
+      }
+      
+      // Admin and Event Office can see all events
+      if (params.userRole === 'ADMIN' || params.userRole === 'EVENT_OFFICE') {
+        return true;
+      }
+      
+      // If user is not logged in, hide whitelisted events
+      if (!params.userId) {
+        return false;
+      }
+      
+      // Check if user is whitelisted by ID
+      if (hasUserWhitelist && event.whitelistedUsers) {
+        const isUserWhitelisted = event.whitelistedUsers.some(
+          (id: any) => id.toString() === params.userId
+        );
+        if (isUserWhitelisted) return true;
+      }
+      
+      // Check if user's role is whitelisted
+      if (hasRoleWhitelist && params.userRole && event.whitelistedRoles) {
+        if (event.whitelistedRoles.includes(params.userRole)) {
+          return true;
+        }
+      }
+      
+      return false;
+    });
+
     // Populate registeredCount and vendors (for bazaars) for each event
     const formattedEvents = await Promise.all(
-      events.map(async (event) => {
+      filteredEvents.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
         // For BAZAAR events, include approved vendor applications
         let vendors = [];
@@ -603,11 +669,13 @@ export class EventService extends BaseService<IEvent, EventRepository> {
       })
     );
 
+    // Note: total count might differ from filtered count due to whitelist filtering
+    // This is acceptable as the whitelist is a permission filter, not a search filter
     return {
       events: formattedEvents,
-      total,
+      total: filteredEvents.length,
       page,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(filteredEvents.length / limit),
     };
   }
 
@@ -932,8 +1000,13 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     // Requirement #44: Notify professor about workshop acceptance
     if (workshop.createdBy) {
+      // Handle both ObjectId and populated object cases
+      const professorId = typeof workshop.createdBy === 'object' && workshop.createdBy._id
+        ? String(workshop.createdBy._id)
+        : String(workshop.createdBy);
+      
       await notificationService.notifyWorkshopStatus(
-        String(workshop.createdBy),
+        professorId,
         workshopId,
         workshop.name,
         'ACCEPTED'
@@ -983,8 +1056,13 @@ export class EventService extends BaseService<IEvent, EventRepository> {
 
     // Requirement #44: Notify professor about workshop rejection
     if (workshop.createdBy) {
+      // Handle both ObjectId and populated object cases
+      const professorId = typeof workshop.createdBy === 'object' && workshop.createdBy._id
+        ? String(workshop.createdBy._id)
+        : String(workshop.createdBy);
+      
       await notificationService.notifyWorkshopStatus(
-        String(workshop.createdBy),
+        professorId,
         workshopId,
         workshop.name,
         'REJECTED',

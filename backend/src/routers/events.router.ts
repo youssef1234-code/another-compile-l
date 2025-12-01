@@ -51,7 +51,11 @@ const eventRoutes = {
    */
   getEvents: publicProcedure
     .input(EventFilterSchema)
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      // Pass user context for whitelist filtering (Requirement #50)
+      const userId = ctx.user?._id ? String(ctx.user._id) : undefined;
+      const userRole = ctx.user?.role;
+      
       return eventService.getEvents({
         page: input.page,
         limit: input.limit,
@@ -61,6 +65,8 @@ const eventRoutes = {
         startDate: input.startDate,
         endDate: input.endDate,
         maxPrice: input.maxPrice,
+        userId,
+        userRole,
       });
     }),
 
