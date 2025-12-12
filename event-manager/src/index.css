@@ -399,6 +399,12 @@
   }
 }
 
+/* Prevent MDEditor from blocking page scroll */
+body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 /* Custom elevation utilities */
 @layer utilities {
   .elevation-surface {

@@ -157,12 +157,13 @@ export function EventDetailsDialog({
               <Separator />
               <div>
                 <h4 className="font-semibold mb-2">Description</h4>
-                <div data-color-mode={colorMode} className="wmde-markdown-var">
+                <div data-color-mode={colorMode} className="wmde-markdown-var" style={{ overflow: 'visible' }}>
                   <MDEditor.Markdown 
                     source={event.description} 
                     style={{ 
                       padding: 0,
                       backgroundColor: 'transparent',
+                      overflow: 'visible',
                     }}
                   />
                 </div>

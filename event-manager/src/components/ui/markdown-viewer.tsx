@@ -27,12 +27,13 @@ export function MarkdownViewer({ content, className }: MarkdownViewerProps) {
   }
 
   return (
-    <div data-color-mode={colorMode} className={cn('wmde-markdown-var', className)}>
+    <div data-color-mode={colorMode} className={cn('wmde-markdown-var', className)} style={{ overflow: 'visible' }}>
       <MDEditor.Markdown 
         source={content} 
         style={{ 
           padding: 0,
           backgroundColor: 'transparent',
+          overflow: 'visible',
         }}
       />
     </div>
