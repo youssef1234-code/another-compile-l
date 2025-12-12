@@ -380,7 +380,7 @@ export function MarkdownEditor({
       </div>
 
       <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
-        <DialogContent className="max-w-[50vw] h-[80vh] flex flex-col p-0">
+        <DialogContent className="sm:max-w-4xl h-[80vh] flex flex-col p-0">
           <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle className="flex items-center gap-2">
               <Edit3 className="h-4 w-4" />
