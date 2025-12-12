@@ -125,7 +125,7 @@ export function CommentModerationPage() {
   }, [setPageMeta]);
 
   // Fetch unmoderated comments - using the same pattern as getAllUsers
-  const { data, isLoading, isFetching, refetch } = trpc.feedback.getUnmoderated.useQuery(
+  const { data, isLoading, isFetching } = trpc.feedback.getUnmoderated.useQuery(
     {
       page,
       perPage,

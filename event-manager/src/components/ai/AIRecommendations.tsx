@@ -14,7 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { 
   Sparkles, 
   RefreshCw, 
@@ -128,7 +127,6 @@ export function AIRecommendations({
   title = 'Recommended for You',
 }: AIRecommendationsProps) {
   const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [reasoning, setReasoning] = useState<string>('');
   const [factors, setFactors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -206,7 +204,6 @@ export function AIRecommendations({
 
       const response = await aiService.getRecommendations(request);
       setRecommendations(response.recommendations);
-      setReasoning(response.reasoning);
       setFactors(response.personalization_factors);
     } catch (err) {
       console.error('Failed to get recommendations:', err);

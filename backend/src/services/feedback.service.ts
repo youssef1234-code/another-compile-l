@@ -14,7 +14,7 @@
 
 import { FeedbackRepository, feedbackRepository } from '../repositories/feedback.repository';
 import { eventRepository } from '../repositories/event.repository';
-import { registrationRepository } from '../repositories/registration.repository';
+// import { registrationRepository } from '../repositories/registration.repository';
 import { BaseService } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IFeedback } from '../models/feedback.model';
@@ -74,7 +74,7 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
     // Requirement #15 & #16: Verify user is registered for the event
     // User must have a CONFIRMED registration to leave feedback
     // For Student/Staff/TA/Professor: registration = attendance
-    const registration = await registrationRepository.getByUserAndEvent(userId, input.eventId);
+    // const registration = await registrationRepository.getByUserAndEvent(userId, input.eventId);
     // if (!registration) {
     //   throw new TRPCError({
     //     code: 'FORBIDDEN',
@@ -135,7 +135,7 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
         });
         
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json() as { result?: any };
           moderationResult = data.result;
         }
       } catch (error) {
@@ -504,7 +504,7 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
 
     // Build query filter
     const query: any = {
-      comment: { $exists: true, $ne: null, $ne: '' },
+      comment: { $exists: true, $ne: null },
       isCommentHidden: { $ne: true },
     };
 
@@ -520,7 +520,8 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
     }
 
     // Get comments with populated user and event data
-    const comments = await this.repository.model
+    const Feedback = (this.repository as any).model;
+    const comments = await Feedback
       .find(query)
       .populate('user', 'firstName lastName email avatar')
       .populate('event', 'name type')
@@ -529,24 +530,25 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       .limit(limit)
       .lean();
 
-    const total = await this.repository.model.countDocuments(query);
+    const total = await Feedback.countDocuments(query);
 
     // Get stats
+    const baseStatsQuery = { comment: { $exists: true, $ne: null } };
     const [pendingCount, flaggedCount, approvedCount, removedCount] = await Promise.all([
-      this.repository.model.countDocuments({ 
-        comment: { $exists: true, $ne: null, $ne: '' },
+      Feedback.countDocuments({ 
+        ...baseStatsQuery,
         moderationStatus: 'pending' 
       }),
-      this.repository.model.countDocuments({ 
-        comment: { $exists: true, $ne: null, $ne: '' },
+      Feedback.countDocuments({ 
+        ...baseStatsQuery,
         moderationStatus: 'flagged' 
       }),
-      this.repository.model.countDocuments({ 
-        comment: { $exists: true, $ne: null, $ne: '' },
+      Feedback.countDocuments({ 
+        ...baseStatsQuery,
         moderationStatus: 'approved' 
       }),
-      this.repository.model.countDocuments({ 
-        comment: { $exists: true, $ne: null, $ne: '' },
+      Feedback.countDocuments({ 
+        ...baseStatsQuery,
         moderationStatus: 'removed' 
       }),
     ]);
@@ -666,16 +668,16 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
     byDay: { date: string; count: number }[];
   }> {
     const baseQuery = { 
-      comment: { $exists: true, $ne: null, $ne: '' } 
+      comment: { $exists: true, $ne: null }
     };
-
+    const Feedback = (this.repository as any).model;
     const [pending, flagged, approved, removed, total, highPriority] = await Promise.all([
-      this.repository.model.countDocuments({ ...baseQuery, moderationStatus: 'pending' }),
-      this.repository.model.countDocuments({ ...baseQuery, moderationStatus: 'flagged' }),
-      this.repository.model.countDocuments({ ...baseQuery, moderationStatus: 'approved' }),
-      this.repository.model.countDocuments({ ...baseQuery, moderationStatus: 'removed' }),
-      this.repository.model.countDocuments(baseQuery),
-      this.repository.model.countDocuments({ 
+      Feedback.countDocuments({ ...baseQuery, moderationStatus: 'pending' }),
+      Feedback.countDocuments({ ...baseQuery, moderationStatus: 'flagged' }),
+      Feedback.countDocuments({ ...baseQuery, moderationStatus: 'approved' }),
+      Feedback.countDocuments({ ...baseQuery, moderationStatus: 'removed' }),
+      Feedback.countDocuments(baseQuery),
+      Feedback.countDocuments({ 
         ...baseQuery, 
         moderationStatus: { $in: ['pending', 'flagged'] },
         moderationSeverity: { $in: ['high', 'critical'] }
@@ -683,7 +685,7 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
     ]);
 
     // Calculate average confidence
-    const confidenceAgg = await this.repository.model.aggregate([
+    const confidenceAgg = await Feedback.aggregate([
       { $match: { ...baseQuery, moderationConfidence: { $exists: true, $ne: null } } },
       { $group: { _id: null, avgConfidence: { $avg: '$moderationConfidence' } } }
     ]);
@@ -693,7 +695,7 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
-    const byDayAgg = await this.repository.model.aggregate([
+    const byDayAgg = await Feedback.aggregate([
       { 
         $match: { 
           ...baseQuery, 
@@ -742,7 +744,7 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
   }> {
     // Find comments that haven't been moderated (no flags, no severity set)
     const query = {
-      comment: { $exists: true, $ne: null, $ne: '' },
+      comment: { $exists: true, $ne: null },
       $or: [
         { moderationFlags: { $exists: false } },
         { moderationFlags: { $size: 0 } },
@@ -751,9 +753,10 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       ],
     };
 
-    const total = await this.repository.model.countDocuments(query);
+    const Feedback = (this.repository as any).model;
+    const total = await Feedback.countDocuments(query);
     
-    const feedbacks = await this.repository.model
+    const feedbacks = await Feedback
       .find(query)
       .populate('event', 'name type')
       .populate('user', 'firstName lastName email')
@@ -857,7 +860,7 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
 
     // Build query - get comments that need moderation
     const query: any = {
-      comment: { $exists: true, $ne: null, $ne: '' },
+      comment: { $exists: true, $ne: null },
       $or: [
         { moderationStatus: 'flagged' },
         { moderationStatus: 'pending' },
@@ -922,7 +925,6 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
         query.$and = filterConditions;
       }
     }
-
     // Build sort
     const sortObj: any = {};
     if (data.sort && data.sort.length > 0) {
@@ -940,9 +942,10 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       sortObj.createdAt = -1; // Default sort
     }
 
-    const total = await this.repository.model.countDocuments(query);
+    const Feedback = (this.repository as any).model;
+    const total = await Feedback.countDocuments(query);
     
-    const feedbacks = await this.repository.model
+    const feedbacks = await Feedback
       .find(query)
       .populate('event', 'name type')
       .populate('user', 'firstName lastName email')
@@ -973,7 +976,7 @@ export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> 
       const severitySort = data.sort.find(s => s.id === 'moderationSeverity');
       if (severitySort) {
         const severityOrder: Record<string, number> = { none: 0, low: 1, medium: 2, high: 3, critical: 4 };
-        comments.sort((a, b) => {
+        comments.sort((a: any, b: any) => {
           const aVal = severityOrder[a.moderationSeverity] || 0;
           const bVal = severityOrder[b.moderationSeverity] || 0;
           return severitySort.desc ? bVal - aVal : aVal - bVal;

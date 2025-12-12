@@ -198,7 +198,7 @@ export function CourtFormSheet({
                   lng: formData.coordinates.lng,
                   address: formData.location,
                 } : undefined}
-                onChange={(location: LocationData | undefined) => {
+                onChange={(location: LocationData | null) => {
                   if (location) {
                     setFormData({
                       ...formData,

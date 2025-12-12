@@ -132,7 +132,7 @@ export function NavUser({
               </DropdownMenuItem>
             )}
             <DropdownMenuItem asChild className="cursor-pointer">
-              <Link to={ROUTES.NOTIFICATIONS}>
+              <Link to="/notifications">
                 <Bell className="mr-2 size-4" />
                 Notifications
               </Link>

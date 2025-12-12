@@ -16,7 +16,6 @@ import { formatValidationErrors } from '@/lib/format-errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Card, CardContent } from '@/components/ui/card';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';

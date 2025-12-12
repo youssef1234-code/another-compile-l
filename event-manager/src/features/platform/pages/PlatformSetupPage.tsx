@@ -1116,7 +1116,7 @@ export function PlatformSetupPage() {
                   ) : (
                     <LocationPicker
                       value={undefined}
-                      onChange={(location: LocationData | undefined) => {
+                      onChange={(location: LocationData | null) => {
                         if (location) {
                           setPlatform({
                             ...platform,
