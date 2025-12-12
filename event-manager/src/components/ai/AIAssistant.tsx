@@ -17,31 +17,30 @@
  * - Voice input support
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  MessageCircle, 
-  Send, 
-  Bot, 
-  User, 
-  Loader2,
-  X,
-  Sparkles,
-  Minimize2,
-  Calendar,
-  Search,
-  HelpCircle,
-  TicketX,
-  ChevronRight,
-  Mic,
-  MicOff
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/store/authStore';
 import { MarkdownViewer } from '@/components/ui/markdown-viewer';
 import { trpc } from '@/lib/trpc';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Bot,
+  Calendar,
+  HelpCircle,
+  Loader2,
+  MessageCircle,
+  Mic,
+  MicOff,
+  Minimize2,
+  Search,
+  Send,
+  Sparkles,
+  TicketX,
+  User,
+  X
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
 // Web Speech API types
@@ -108,10 +107,10 @@ const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:
 
 // Quick action suggestions based on context
 const QUICK_ACTIONS: QuickAction[] = [
-  { label: 'Find events', action: 'What events are happening this week?', icon: 'search' },
-  { label: 'My registrations', action: 'Show me my upcoming events', icon: 'calendar' },
-  { label: 'Cancel booking', action: 'How do I cancel a registration?', icon: 'cancel' },
-  { label: 'Get help', action: 'What can you help me with?', icon: 'help' },
+  { label: '🔍 Find events', action: 'What events are happening soon?'},
+  { label: '📅 My events', action: 'Show my upcoming registrations'},
+  { label: '✨ Recommend', action: 'What events would you recommend for me?'},
+  { label: '❓ How it works', action: 'How do I register and pay for events?'},
 ];
 
 const ICON_MAP = {
@@ -225,7 +224,7 @@ export function AIAssistant() {
 
   // Fetch upcoming events accessible to user (filters out whitelisted events user can't access)
   const { data: accessibleEvents } = trpc.events.getAccessibleUpcoming.useQuery(
-    { limit: 15 },
+    { limit: 50 },
     { enabled: isOpen && !!user, staleTime: 60000 }
   );
   
@@ -300,6 +299,15 @@ export function AIAssistant() {
         isExclusive: e.isWhitelisted, // Let AI know if event is exclusive
       })) || [];
 
+      // Format user's registrations for context
+      const registeredEventsContext = userRegistrations?.registrations?.map((r: any) => ({
+        eventId: r.event?.id,
+        eventName: r.event?.name,
+        eventDate: r.event?.startDate,
+        registrationDate: r.createdAt,
+        status: r.status,
+      })).filter((r: any) => r.eventId) || [];
+
       // Call the general assistant endpoint
       const response = await fetch(`${AI_SERVICE_URL}/api/ai/assistant/chat`, {
         method: 'POST',
@@ -315,6 +323,8 @@ export function AIAssistant() {
             name: `${user.firstName} ${user.lastName}`,
             role: user.role,
             faculty: user.faculty,
+            interests: user.interests || [],
+            registered_events: registeredEventsContext,
           } : null,
           available_events: eventsContext,
           registered_event_ids: userRegistrations?.registrations
@@ -363,46 +373,82 @@ export function AIAssistant() {
     
     // Handle executable actions
     if (actionType === 'register' && eventId) {
+      // Check if it's a free event or needs payment
+      const event = accessibleEvents?.events?.find((e: any) => e.id === eventId);
+      const isFree = !event?.price || event.price === 0;
+      
+      // Add a processing message
+      const processingMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: isFree 
+          ? '⏳ Registering you now...' 
+          : `⏳ Securing your spot for **${event?.name || 'this event'}**...`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, processingMessage]);
+      
       try {
-        await registerMutation.mutateAsync({ eventId });
-        
-        // Check if it's a free event or needs payment
-        const event = accessibleEvents?.events?.find((e: any) => e.id === eventId);
-        const isFree = !event?.price || event.price === 0;
+        const result = await registerMutation.mutateAsync({ eventId });
+        const registrationId = (result.registration as { id: string })?.id;
         
         if (isFree) {
-          toast.success('Successfully registered for this free event!');
-          const confirmMessage: Message = {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: '✅ Done! You\'re registered for this event. You can view it in "My Events".',
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, confirmMessage]);
+          toast.success('Successfully registered! 🎉');
+          // Update the processing message with success
+          setMessages(prev => prev.map(m => 
+            m.id === processingMessage.id 
+              ? {
+                  ...m,
+                  content: `✅ **You're in!** Successfully registered for **${event?.name || 'the event'}**.\n\nYou'll receive a confirmation email shortly. Check "My Events" to see your QR code for check-in!`,
+                  quickActions: [
+                    { label: 'View My Events', action: 'navigate:my-events', icon: 'calendar', actionType: 'navigate' },
+                    { label: 'Find More Events', action: 'What other events do you recommend?', icon: 'search' }
+                  ]
+                }
+              : m
+          ));
         } else {
-          // Redirect to payment for paid events
-          toast.success('Seat held! Redirecting to payment...');
+          // Redirect to checkout for paid events
+          toast.success('Spot secured! Taking you to checkout...');
+          setMessages(prev => prev.map(m => 
+            m.id === processingMessage.id 
+              ? {
+                  ...m,
+                  content: `✅ **Spot secured!** Taking you to checkout for **${event?.name || 'the event'}** (EGP ${event?.price}).\n\n💳 You'll be redirected to our secure checkout page in a moment...`,
+                }
+              : m
+          ));
+          
+          // Build checkout URL with registration ID (correct route!)
           const params = new URLSearchParams({
             eventId: eventId,
             amountMinor: String((event?.price || 0) * 100),
-            currency: 'egp'
+            currency: 'EGP'
           });
           setTimeout(() => {
-            window.location.href = `/payment?${params.toString()}`;
-          }, 1000);
+            window.location.href = `/checkout/${registrationId}?${params.toString()}`;
+          }, 1500);
         }
         
         // Invalidate queries
         utils.events.isRegistered.invalidate({ eventId });
+        utils.events.getMyRegistrations.invalidate();
       } catch (error: any) {
-        toast.error(error.message || 'Failed to register');
-        const errorMessage: Message = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: `❌ Sorry, registration failed: ${error.message || 'Unknown error'}`,
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, errorMessage]);
+        const errorMsg = error.message || 'Unknown error';
+        toast.error(errorMsg);
+        // Update with error message
+        setMessages(prev => prev.map(m => 
+          m.id === processingMessage.id 
+            ? {
+                ...m,
+                content: `❌ **Registration failed**: ${errorMsg}\n\n${errorMsg.includes('capacity') ? 'The event might be full.' : 'Please try again or contact support.'}`,
+                quickActions: [
+                  { label: 'Try Again', action: `Register me for ${event?.name || 'the event'}`, icon: 'calendar' },
+                  { label: 'Browse Other Events', action: 'Show me similar events', icon: 'search' }
+                ]
+              }
+            : m
+        ));
       }
       return;
     }
@@ -416,34 +462,84 @@ export function AIAssistant() {
       
       if (!registration) {
         toast.error('Registration not found');
+        const notFoundMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: "❓ I couldn't find that registration. Would you like to see your current registrations?",
+          timestamp: new Date(),
+          quickActions: [
+            { label: 'View My Events', action: 'navigate:my-events', icon: 'calendar', actionType: 'navigate' }
+          ]
+        };
+        setMessages(prev => [...prev, notFoundMessage]);
         return;
       }
+      
+      // Add a processing message
+      const processingMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: '⏳ Cancelling your registration...',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, processingMessage]);
       
       try {
         await cancelMutation.mutateAsync({ registrationId: registration.id });
         toast.success('Registration cancelled');
-        const confirmMessage: Message = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: '✅ Registration cancelled. Refund will be processed if applicable.',
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, confirmMessage]);
+        
+        // Update with success
+        setMessages(prev => prev.map(m => 
+          m.id === processingMessage.id 
+            ? {
+                ...m,
+                content: `✅ **Cancelled!** Your registration has been cancelled.\n\n${registration.event?.price > 0 ? '💰 Your refund will be processed within 5-7 business days.' : ''}\n\nFeel free to browse other events!`,
+                quickActions: [
+                  { label: 'Find Events', action: 'What events are happening soon?', icon: 'search' }
+                ]
+              }
+            : m
+        ));
         
         // Refresh registrations
         utils.events.isRegistered.invalidate({ eventId });
+        utils.events.getMyRegistrations.invalidate();
       } catch (error: any) {
         toast.error(error.message || 'Failed to cancel');
+        setMessages(prev => prev.map(m => 
+          m.id === processingMessage.id 
+            ? {
+                ...m,
+                content: `❌ **Cancellation failed**: ${error.message || 'Unknown error'}\n\nPlease try again or contact support.`,
+              }
+            : m
+        ));
       }
       return;
     }
     
     if (actionType === 'navigate') {
-      if (action === 'navigate:events') {
-        window.location.href = '/events';
+      const routes: Record<string, string> = {
+        'navigate:events': '/events',
+        'navigate:my-events': '/dashboard',
+        'navigate:wallet': '/wallet',
+        'navigate:favorites': '/favorites',
+        'navigate:gym': '/gym',
+        'navigate:loyalty': '/vendors/loyalty',
+        'navigate:profile': '/profile',
+      };
+      
+      // Check for dynamic routes first (like navigate:event:123)
+      if (action.startsWith('navigate:event:')) {
+        const eventId = action.replace('navigate:event:', '');
+        window.location.href = `/events/${eventId}`;
         setIsOpen(false);
-      } else if (action === 'navigate:my-events') {
-        window.location.href = '/dashboard';
+        return;
+      }
+      
+      const route = routes[action];
+      if (route) {
+        window.location.href = route;
         setIsOpen(false);
       }
       return;
@@ -617,24 +713,32 @@ export function AIAssistant() {
                       {message.quickActions && message.quickActions.length > 0 && (
                         <div className="mt-3 ml-10 flex flex-wrap gap-2">
                           {message.quickActions.map((action, i) => {
-                            const IconComponent = action.icon ? ICON_MAP[action.icon] : ChevronRight;
+                            const IconComponent = action.icon ? ICON_MAP[action.icon] : null;
                             const isExecutable = action.actionType === 'register' || action.actionType === 'cancel';
+                            
+                            // Truncate long labels to prevent overflow
+                            const truncateLabel = (label: string, maxLength: number = 30) => {
+                              if (label.length <= maxLength) return label;
+                              return label.substring(0, maxLength - 3) + '...';
+                            };
+                            
                             return (
                               <Button
                                 key={i}
                                 variant={isExecutable ? "default" : "outline"}
                                 size="sm"
                                 className={cn(
-                                  "h-8 text-xs gap-1.5",
+                                  "h-8 text-xs gap-1.5 max-w-[200px]",
                                   isExecutable 
                                     ? "bg-primary hover:bg-primary/90" 
                                     : "hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                                 )}
                                 onClick={() => handleQuickAction(action)}
                                 disabled={registerMutation.isPending || cancelMutation.isPending}
+                                title={action.label} // Show full text on hover
                               >
-                                <IconComponent className="h-3.5 w-3.5" />
-                                {action.label}
+                                {IconComponent && <IconComponent className="h-3.5 w-3.5 shrink-0" />}
+                                <span className="truncate">{truncateLabel(action.label)}</span>
                               </Button>
                             );
                           })}

@@ -28,7 +28,7 @@ class RecommendationsService:
         registration_history: Optional[dict] = None,
         favorite_event_ids: Optional[list[str]] = None,
         available_events: list[dict] = None,
-        limit: int = 5,
+        limit: int = 10,
         exclude_registered: bool = True
     ) -> dict:
         """Generate personalized event recommendations"""
@@ -46,6 +46,7 @@ class RecommendationsService:
             registered_ids = set(registration_history["event_ids"])
         
         # Filter out registered events if requested
+        # Note: GYM_SESSION events are already filtered at the backend level
         candidate_events = available_events
         if exclude_registered:
             candidate_events = [
@@ -62,32 +63,137 @@ class RecommendationsService:
         
         # Build user context for AI
         user_context = self._build_user_context(user_profile, registration_history, favorite_event_ids)
-        events_context = self._build_events_context(candidate_events[:20])  # Limit for token efficiency
         
-        system_prompt = """You are an AI recommendation engine for GUC's event management platform.
-Your task is to recommend the most relevant events for a user based on their profile and history.
+        # Process ALL events in batches of 20 for better token efficiency
+        # This allows us to analyze hundreds of events while managing context size
+        batch_size = 20
+        all_recommendations = []
+        
+        print(f"[RECOMMENDATIONS] Processing {len(candidate_events)} events in batches of {batch_size}")
+        
+        # Process events in batches
+        for batch_start in range(0, len(candidate_events), batch_size):
+            batch_end = min(batch_start + batch_size, len(candidate_events))
+            batch_events = candidate_events[batch_start:batch_end]
+            
+            print(f"[RECOMMENDATIONS] Processing batch {batch_start//batch_size + 1}: events {batch_start} to {batch_end}")
+            
+            events_context = self._build_events_context(batch_events)
+            batch_recommendations = await self._get_batch_recommendations(
+                user_context=user_context,
+                events_context=events_context,
+                events_to_process=batch_events,
+                limit=limit,
+                batch_number=batch_start//batch_size + 1,
+                total_batches=(len(candidate_events) + batch_size - 1) // batch_size
+            )
+            
+            all_recommendations.extend(batch_recommendations)
+        
+        # Sort all recommendations by score and take top limit
+        all_recommendations.sort(key=lambda x: x.get("score", 0), reverse=True)
+        top_recommendations = all_recommendations[:limit]
+        
+        print(f"[RECOMMENDATIONS] Collected {len(all_recommendations)} recommendations across all batches, returning top {len(top_recommendations)}")
+        
+        # Enrich recommendations with full event data
+        enriched_recs = []
+        for rec in top_recommendations:
+            event_id = rec.get("event_id")
+            # Search in all candidate events
+            event_data = next((e for e in candidate_events if e.get("id") == event_id), None)
+            if event_data:
+                enriched_recs.append({
+                    **event_data,
+                    "recommendation_score": rec.get("score", 50),
+                    "recommendation_reasons": rec.get("reasons", [])
+                })
+        
+        print(f"[RECOMMENDATIONS] Returning {len(enriched_recs)} enriched recommendations")
+        
+        return {
+            "recommendations": enriched_recs,
+            "reasoning": f"Analyzed {len(candidate_events)} events and found {len(all_recommendations)} matches. Showing top {len(enriched_recs)} recommendations.",
+            "personalization_factors": ["interests", "past_behavior", "quality"]
+        }
+    
+    async def _get_batch_recommendations(
+        self,
+        user_context: str,
+        events_context: str,
+        events_to_process: list[dict],
+        limit: int,
+        batch_number: int,
+        total_batches: int
+    ) -> list[dict]:
+        """Process a single batch of events and return scored recommendations"""
+        
+        system_prompt = f"""You are an intelligent event recommendation engine for GUC's campus event platform.
+Processing batch {batch_number} of {total_batches}.
 
-Consider:
-1. User's faculty and role
-2. Past event types they attended
-3. Ratings they gave to events
-4. Their stated interests
-5. Event popularity and relevance
+Your PRIMARY goal: Match users with events that DIRECTLY relate to their stated interests.
 
-Return a JSON object with:
-- recommendations: array of {event_id, score, reasons} sorted by relevance (0-100 score)
-- personalization_factors: array of factors you considered
-- reasoning: brief explanation of your recommendation logic"""
+CRITICAL SCORING RULES:
+1. **Interest Match is KING** (0-50 points): 
+   - If user says interests are "fitness, basketball, sports" → ONLY recommend sports/fitness events
+   - If user says interests are "programming, AI" → ONLY recommend tech workshops/conferences
+   - If user says interests are "art, music, theater" → ONLY recommend creative/arts events
+   - DO NOT recommend random events that don't match interests
+   
+2. **Faculty Alignment** (0-20 points): Events from user's faculty get bonus
+3. **Event Quality** (0-15 points): High ratings, good attendance
+4. **Past Behavior** (0-15 points): Similar to past attended events
 
-        user_prompt = f"""Recommend events for this user:
+STRICT RULES:
+- If an event's description/name does NOT contain keywords related to user's interests → score it LOW (< 50)
+- A "Siwa trip" or "Music festival" should NOT be recommended to someone interested in "fitness, basketball, sports"
+- A "Nutrition Workshop" or "Basketball Tournament" SHOULD be recommended to fitness enthusiasts
+- Be VERY strict about interest matching - it's the most important factor
+- Only recommend events scoring >= 70 that truly match interests
+- Return ALL matching events from this batch (we'll sort globally later)
+
+INTEREST KEYWORD MATCHING:
+- Sports/Fitness interests → Look for: gym, fitness, basketball, football, tournament, sports, wellness, nutrition, health
+- Tech interests → Look for: programming, AI, machine learning, web, hackathon, coding, software, tech
+- Business interests → Look for: entrepreneurship, startup, business, marketing, finance, networking
+- Arts interests → Look for: art, design, photography, music, theater, creative, exhibition
+
+Return ONLY valid JSON (no markdown):
+{{
+  "recommendations": [
+    {{
+      "event_id": "string",
+      "score": 70-100,
+      "reasons": ["SPECIFIC reason why this matches their interests"]
+    }}
+  ]
+}}"""
+
+        user_prompt = f"""Analyze this user and find matching events from this batch:
 
 USER PROFILE:
 {user_context}
 
-AVAILABLE EVENTS:
+AVAILABLE EVENTS IN THIS BATCH ({len(events_to_process)} events):
 {events_context}
 
-Recommend up to {limit} events. Return JSON only."""
+TASK:
+1. Review ALL {len(events_to_process)} events in this batch
+2. Find events that relate to the user's stated interests
+3. Score each matching event (only include events scoring >= 70)
+4. Return ALL good matches from this batch
+
+Scoring guide:
+- Direct interest match (e.g., "basketball" event for "basketball" interest) → 90-100
+- Related interest match (e.g., "nutrition workshop" for "fitness" interest) → 75-89
+- Same category (e.g., any workshop for someone who likes learning) → 60-74
+
+IMPORTANT: 
+- This is batch {batch_number} of {total_batches}
+- Return ALL events from this batch that score >= 70
+- Don't limit results - we'll sort globally across all batches
+
+Return ONLY the JSON object (no markdown)."""
 
         try:
             response = await self.llm.ainvoke([
@@ -97,37 +203,20 @@ Recommend up to {limit} events. Return JSON only."""
             
             import json
             content = response.content.strip()
+            
             if content.startswith("```"):
                 content = content.split("```")[1]
                 if content.startswith("json"):
                     content = content[4:]
             
             result = json.loads(content)
-            
-            # Enrich recommendations with full event data
-            enriched_recs = []
-            for rec in result.get("recommendations", [])[:limit]:
-                event_id = rec.get("event_id")
-                event_data = next((e for e in candidate_events if e.get("id") == event_id), None)
-                if event_data:
-                    enriched_recs.append({
-                        **event_data,
-                        "recommendation_score": rec.get("score", 50),
-                        "recommendation_reasons": rec.get("reasons", [])
-                    })
-            
-            return {
-                "recommendations": enriched_recs,
-                "reasoning": result.get("reasoning", "Based on your profile and interests"),
-                "personalization_factors": result.get("personalization_factors", [])
-            }
+            return result.get("recommendations", [])
             
         except Exception as e:
-            print(f"Recommendation error: {e}")
-            # Fallback: simple rule-based recommendations
-            return self._fallback_recommendations(
-                user_profile, candidate_events, limit
-            )
+            print(f"[RECOMMENDATIONS] Batch {batch_number} error: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
     
     def _build_user_context(
         self,
@@ -135,17 +224,21 @@ Recommend up to {limit} events. Return JSON only."""
         history: Optional[dict],
         favorites: Optional[list[str]]
     ) -> str:
-        """Build context string for user"""
-        parts = [
-            f"Role: {profile.get('role', 'Unknown')}",
-            f"User ID: {profile.get('user_id', 'Unknown')}"
-        ]
+        """Build context string for user - interests first!"""
+        parts = []
+        
+        # PUT INTERESTS FIRST - most important for matching
+        if profile.get("interests") and len(profile["interests"]) > 0:
+            interests_str = ', '.join(profile['interests'])
+            parts.append(f"⭐ USER'S INTERESTS (MOST IMPORTANT): {interests_str}")
+            parts.append(f"   → Only recommend events related to these topics!")
+        else:
+            parts.append("⚠️ No specific interests provided - use faculty/role for matching")
+        
+        parts.append(f"Role: {profile.get('role', 'Unknown')}")
         
         if profile.get("faculty"):
             parts.append(f"Faculty: {profile['faculty']}")
-        
-        if profile.get("interests"):
-            parts.append(f"Interests: {', '.join(profile['interests'])}")
         
         if history:
             if history.get("event_types"):
@@ -161,67 +254,23 @@ Recommend up to {limit} events. Return JSON only."""
         return "\n".join(parts)
     
     def _build_events_context(self, events: list[dict]) -> str:
-        """Build context string for events"""
+        """Build context string for events with full descriptions for keyword matching"""
         event_strs = []
         for e in events:
+            # Include full description for better keyword matching
+            description = e.get('description', '')[:400]  # More description for better matching
             event_str = f"""
-ID: {e.get('id')}
+EVENT ID: {e.get('id')}
 Name: {e.get('name')}
 Type: {e.get('type')}
-Faculty: {e.get('faculty', 'All')}
+Faculty: {e.get('faculty', 'Open to all')}
 Date: {e.get('startDate', 'TBD')}
-Description: {e.get('description', '')[:200]}
+Full Description: {description}
 Rating: {e.get('averageRating', 'N/A')}
-"""
+---"""
             event_strs.append(event_str.strip())
         
-        return "\n---\n".join(event_strs)
-    
-    def _fallback_recommendations(
-        self,
-        user_profile: dict,
-        events: list[dict],
-        limit: int
-    ) -> dict:
-        """Simple fallback recommendations"""
-        scored_events = []
-        
-        for event in events:
-            score = 50  # Base score
-            reasons = []
-            
-            # Faculty match
-            if user_profile.get("faculty") and event.get("faculty") == user_profile["faculty"]:
-                score += 20
-                reasons.append("Matches your faculty")
-            
-            # Role match
-            if user_profile.get("role") == "PROFESSOR" and event.get("type") == "WORKSHOP":
-                score += 15
-                reasons.append("Workshops for professors")
-            elif user_profile.get("role") == "STUDENT" and event.get("type") in ["TRIP", "BAZAAR"]:
-                score += 10
-                reasons.append("Popular with students")
-            
-            # High rating
-            if event.get("averageRating") and event["averageRating"] >= 4:
-                score += 15
-                reasons.append("Highly rated")
-            
-            scored_events.append({
-                **event,
-                "recommendation_score": min(score, 100),
-                "recommendation_reasons": reasons
-            })
-        
-        # Sort by score
-        scored_events.sort(key=lambda x: x["recommendation_score"], reverse=True)
-        
-        return {
-            "recommendations": scored_events[:limit],
-            "reasoning": "Based on your faculty and role preferences",
-            "personalization_factors": ["faculty", "role", "event_ratings"]
-        }
+        return "\n".join(event_strs)
     
     async def get_similar_events(
         self,
@@ -233,6 +282,7 @@ Rating: {e.get('averageRating', 'N/A')}
         """Find events similar to a given event"""
         
         # Filter out the reference event
+        # Note: GYM_SESSION events are already filtered at the backend level
         candidates = [e for e in available_events if e.get("id") != event_id]
         
         if not candidates:
@@ -250,7 +300,10 @@ Consider:
 
 Return JSON: {similar_events: [{event_id, similarity_score, reasons}], similarity_factors: []}"""
 
-        events_context = self._build_events_context(candidates[:15])
+        # Process more candidates for better similarity matching (up to 50)
+        max_candidates = min(len(candidates), 50)
+        events_to_compare = candidates[:max_candidates]
+        events_context = self._build_events_context(events_to_compare)
         
         user_prompt = f"""Find events similar to this one:
 
@@ -260,10 +313,10 @@ Type: {event_data.get('type')}
 Faculty: {event_data.get('faculty', 'All')}
 Description: {event_data.get('description', '')[:300]}
 
-CANDIDATE EVENTS:
+CANDIDATE EVENTS ({len(events_to_compare)} events to compare):
 {events_context}
 
-Find up to {limit} similar events. Return JSON only."""
+Review ALL {len(events_to_compare)} candidate events and find up to {limit} most similar events. Return JSON only."""
 
         try:
             response = await self.llm.ainvoke([
@@ -298,12 +351,8 @@ Find up to {limit} similar events. Return JSON only."""
             
         except Exception as e:
             print(f"Similarity error: {e}")
-            # Simple fallback: same type
-            same_type = [e for e in candidates if e.get("type") == event_data.get("type")][:limit]
-            return {
-                "similar_events": same_type,
-                "similarity_factors": ["event_type"]
-            }
+            # No fallback - fail fast so AI issues are visible
+            raise Exception(f"AI similarity analysis failed: {str(e)}")
     
     async def analyze_trending(
         self,
@@ -313,6 +362,7 @@ Find up to {limit} similar events. Return JSON only."""
     ) -> dict:
         """Analyze trending events"""
         
+        # Note: GYM_SESSION events are already filtered at the backend level
         # Sort by registration count or engagement
         sorted_events = sorted(
             events,

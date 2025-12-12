@@ -39,7 +39,7 @@ class RecommendationRequest(BaseModel):
     registration_history: Optional[RegistrationHistory] = None
     favorite_event_ids: Optional[list[str]] = Field(None, description="User's favorite events")
     available_events: list[dict] = Field(..., description="List of available events to recommend from")
-    limit: int = Field(5, description="Max number of recommendations")
+    limit: int = Field(10, description="Max number of recommendations")
     exclude_registered: bool = Field(True, description="Exclude events user is already registered for")
 
 class RecommendationResponse(BaseModel):
@@ -75,6 +75,10 @@ async def get_personalized_recommendations(request: RecommendationRequest):
     - Discovery features
     """
     try:
+        print(f"[API] Received recommendation request for user: {request.user_profile.user_id}")
+        print(f"[API] User interests: {request.user_profile.interests}")
+        print(f"[API] Available events count: {len(request.available_events) if request.available_events else 0}")
+        
         result = await recommendations_service.get_personalized_recommendations(
             user_profile=request.user_profile.model_dump(),
             registration_history=request.registration_history.model_dump() if request.registration_history else None,
@@ -83,8 +87,13 @@ async def get_personalized_recommendations(request: RecommendationRequest):
             limit=request.limit,
             exclude_registered=request.exclude_registered
         )
+        
+        print(f"[API] Returning {len(result.get('recommendations', []))} recommendations")
         return result
     except Exception as e:
+        print(f"[API] Error: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/recommendations/similar")

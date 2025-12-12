@@ -9,6 +9,7 @@ import mongoose from 'mongoose';
 import { config } from './config/env';
 import { seedComprehensiveData } from './config/comprehensive-seed';
 import { seedAdminAccount } from './config/seed';
+import { seedInterestBasedData } from './config/interests-seed';
 
 async function runSeeder() {
   try {
@@ -22,8 +23,16 @@ async function runSeeder() {
     // Seed admin account first
     await seedAdminAccount();
 
-    // Seed comprehensive data
-    await seedComprehensiveData();
+    // Check if user wants interest-based seed
+    const seedInterests = process.argv.includes('--interests');
+    
+    if (seedInterests) {
+      // Seed interest-based data (users with interests + matching events)
+      await seedInterestBasedData();
+    } else {
+      // Seed comprehensive data
+      await seedComprehensiveData();
+    }
 
     console.log('\n✅ All seeding completed successfully!');
     console.log('\n💡 You can now login with any of the sample accounts.');

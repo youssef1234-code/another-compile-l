@@ -1133,12 +1133,15 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const limit = params.limit || 10;
     const skip = (page - 1) * limit;
 
+    const now = new Date();
+
     // Use advanced search from repository
+    // Filter at query level for efficiency and correct pagination
     const { events } = await this.repository.advancedSearch({
       query: params.search,
       type: params.type,
       location: params.location,
-      startDate: params.startDate,
+      startDate: params.startDate || now, // Only get upcoming events by default
       endDate: params.endDate,
       maxPrice: params.maxPrice,
       sortBy: params.sortBy,
@@ -1151,6 +1154,12 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     // Whitelist logic: If an event has ANY whitelist (users OR roles OR both),
     // only users who match at least one whitelist criterion can see/register for it.
     const filteredEvents = events.filter((event) => {
+      // Exclude GYM_SESSION events from general event listings
+      // GYM sessions have their own dedicated page at /gym
+      if (event.type === 'GYM_SESSION') {
+        return false;
+      }
+
       const hasUserWhitelist = event.whitelistedUsers && event.whitelistedUsers.length > 0;
       const hasRoleWhitelist = event.whitelistedRoles && event.whitelistedRoles.length > 0;
 
@@ -1353,6 +1362,7 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     options: {
       page?: number;
       limit?: number;
+      includeGymSessions?: boolean; // Optional flag to include GYM_SESSION events
     } = {}
   ): Promise<{
     events: any[];
@@ -1361,16 +1371,25 @@ export class EventService extends BaseService<IEvent, EventRepository> {
     const page = options.page || 1;
     const limit = options.limit || 10;
     const skip = (page - 1) * limit;
+    const includeGymSessions = options.includeGymSessions ?? false;
 
     const events = await this.repository.findUpcoming({ skip, limit });
+    
+    // Filter out GYM_SESSION events unless explicitly requested
+    // GYM_SESSION events have their own dedicated schedule page
+    const filteredEvents = includeGymSessions 
+      ? events 
+      : events.filter(e => e.type !== 'GYM_SESSION');
+    
     const total = await this.repository.count({
       isArchived: false,
       startDate: { $gte: new Date() },
+      ...(includeGymSessions ? {} : { type: { $ne: 'GYM_SESSION' } }),
     } as FilterQuery<IEvent>);
 
     // Populate registeredCount for each event
     const formattedEvents = await Promise.all(
-      events.map(async (event) => {
+      filteredEvents.map(async (event) => {
         const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
         const totalSales = registeredCount * (event.price || 0);
         return {
@@ -1399,12 +1418,19 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   }): Promise<{ events: any[] }> {
     const limit = options.limit || 15;
     
-    // Get more events than needed since we'll filter some out
-    const events = await this.repository.findUpcoming({ skip: 0, limit: limit * 2 });
+    // Get significantly more events than needed since we'll filter some out (GYM_SESSION + whitelist filtering)
+    // Fetch 3x the limit to ensure we have enough after filtering
+    const events = await this.repository.findUpcoming({ skip: 0, limit: limit * 3 });
     
-    // Filter events based on whitelist access
+    // Filter events based on whitelist access AND exclude GYM_SESSION
+    // GYM_SESSION events have their own dedicated schedule page and shouldn't appear in recommendations
     const accessibleEvents = [];
     for (const event of events) {
+      // Skip GYM_SESSION events - they are managed separately
+      if (event.type === 'GYM_SESSION') {
+        continue;
+      }
+      
       const hasUserWhitelist = event.whitelistedUsers && event.whitelistedUsers.length > 0;
       const hasRoleWhitelist = event.whitelistedRoles && event.whitelistedRoles.length > 0;
       

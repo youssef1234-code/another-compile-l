@@ -13,6 +13,7 @@
     "env:encrypt": "tsx scripts/encrypt-env.ts",
     "env:decrypt": "tsx scripts/decrypt-env.ts",
     "seed:comprehensive": "tsx src/seed-runner.ts",
+    "seed:interests": "tsx src/seed-runner.ts --interests",
     "seed:comments": "tsx src/config/seed-comments.ts"
   },
   "keywords": [

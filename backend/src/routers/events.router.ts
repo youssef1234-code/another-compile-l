@@ -86,7 +86,7 @@ const eventRoutes = {
     .input(
       z.object({
         page: z.number().min(1).optional().default(1),
-        limit: z.number().min(1).max(100).optional().default(10),
+        limit: z.number().min(1).max(1000).optional().default(10),
       })
     )
     .query(async ({ input }) => {

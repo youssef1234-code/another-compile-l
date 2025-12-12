@@ -122,7 +122,7 @@ export function AIRecommendations({
   userInterests: propsInterests,
   registrationHistory,
   favoriteEventIds,
-  limit = 5,
+  limit = 10,
   className,
   title = 'Recommended for You',
 }: AIRecommendationsProps) {
@@ -155,13 +155,16 @@ export function AIRecommendations({
     return Array.from(new Set([...statedInterests, ...derivedInterests]));
   }, [propsInterests, user?.interests, registrationHistory?.eventTypes]);
 
-  // Fetch available events from tRPC
-  const { data: eventsData } = trpc.events.getEvents.useQuery({
+  // Fetch ALL upcoming events by requesting a very high limit
+  // Backend filters out ended events by default (endDate >= now)
+  const { data: eventsData } = trpc.events.getUpcoming.useQuery({
     page: 1,
-    limit: 50,
+    limit: 500, // High limit to fetch ALL upcoming events
   });
 
   const availableEvents = eventsData?.events || [];
+  
+  console.log(`[AIRecommendations] Fetched ${availableEvents.length} upcoming events for recommendations`);
 
   const fetchRecommendations = async () => {
     if (!availableEvents.length) {
@@ -203,13 +206,14 @@ export function AIRecommendations({
       };
 
       const response = await aiService.getRecommendations(request);
+      console.log('[AIRecommendations] Response:', response);
       setRecommendations(response.recommendations);
       setFactors(response.personalization_factors);
     } catch (err) {
       console.error('Failed to get recommendations:', err);
       setError('Could not load recommendations');
-      // Fallback to first few events
-      setRecommendations(availableEvents.slice(0, limit));
+      // Don't fallback - show the error
+      setRecommendations([]);
     } finally {
       setIsLoading(false);
     }
