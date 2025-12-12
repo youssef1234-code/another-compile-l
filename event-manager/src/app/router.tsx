@@ -46,6 +46,7 @@ const DashboardPage = lazy(() => import("@/features/dashboard/pages/DashboardPag
 
 // Events
 const EventsPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.EventsPage })));
+const EventCalendarPage = lazy(() => import("@/features/events/pages/EventCalendarPage").then(m => ({ default: m.EventCalendarPage })));
 const EventDetailsPage = lazy(() => import("@/features/events/pages").then(m => ({ default: m.EventDetailsPage })));
 const MyEventsPage = lazy(() => import("@/features/events/pages/MyEventsPage").then(m => ({ default: m.MyEventsPage })));
 const EditBazaarPage = lazy(() => import("@/features/events/pages/EditBazaarPage").then(m => ({ default: m.EditBazaarPage })));
@@ -151,6 +152,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.EVENTS,
         element: withSuspense(EventsPage, "cards"),
+      },
+      {
+        path: ROUTES.EVENT_CALENDAR,
+        element: withSuspense(EventCalendarPage, "default"),
       },
       {
         path: ROUTES.EVENT_DETAILS,

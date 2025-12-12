@@ -11,6 +11,9 @@ import { z } from "zod";
 // Export avatar utilities
 export * from "./avatars";
 
+// Export event color system
+export * from "./event-colors";
+
 // ============================================================================
 // ENUMS
 // ============================================================================

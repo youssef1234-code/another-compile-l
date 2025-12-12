@@ -80,7 +80,7 @@ const navigationConfig: NavItem[] = [
   {
     title: "Browse Events",
     url: ROUTES.EVENTS,
-    icon: Calendar,
+    icon: LayoutGrid,
     roles: ["STUDENT", "STAFF","TA"],
   },
   {
@@ -91,8 +91,14 @@ const navigationConfig: NavItem[] = [
       {
         title: "Browse Events",
         url: ROUTES.EVENTS,
-        icon: Calendar,
+        icon: LayoutGrid,
         roles: ["PROFESSOR", "ADMIN", "EVENT_OFFICE"],
+      },
+      {
+        title: "Event Calendar",
+        url: ROUTES.EVENT_CALENDAR,
+        icon: Calendar,
+        roles: ["PROFESSOR", "ADMIN", "EVENT_OFFICE", "STUDENT", "STAFF", "TA", "VENDOR"],
       },
       {
         title: "Manage Events",

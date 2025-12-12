@@ -65,6 +65,17 @@ export interface EventReminderEmailData {
   eventDate: Date;
   eventLocation: string;
   eventUrl: string;
+  event?: any; // Full event object for ICS generation
+}
+
+export interface EventConfirmationEmailData {
+  name: string;
+  eventName: string;
+  eventDate: Date;
+  eventLocation: string;
+  eventUrl: string;
+  isFree: boolean;
+  event?: any; // Full event object for ICS generation
 }
 
 export interface PaymentReceiptEmailData {
@@ -74,6 +85,7 @@ export interface PaymentReceiptEmailData {
   currency: string;
   receiptId: string;
   paymentDate: Date;
+  event?: any; // Full event object for ICS generation
 }
 
 export interface CommentDeletedWarningEmailData {
@@ -266,11 +278,33 @@ export abstract class BaseMailService {
     
     this.saveEmailToLogs('event-reminder', email, subject, html);
     
-    await this.sendMail({
+    const emailOptions: EmailOptions = {
       to: email,
       subject,
       html,
-    });
+    };
+
+    // Add ICS calendar attachment if event is provided
+    if (data.event) {
+      try {
+        const { generateICSAttachment, getICSFilename } = await import('../utils/ics-generator.js');
+        const baseUrl = config.clientUrl || 'http://localhost:3000';
+        const icsBuffer = generateICSAttachment(data.event, baseUrl);
+        const icsFilename = getICSFilename(data.event);
+        
+        emailOptions.attachments = [
+          {
+            filename: icsFilename,
+            content: icsBuffer,
+            contentType: 'text/calendar; charset=utf-8; method=REQUEST',
+          },
+        ];
+      } catch (error) {
+        console.error('⚠️ Failed to generate ICS attachment:', error);
+      }
+    }
+    
+    await this.sendMail(emailOptions);
   }
 
   /**
@@ -286,11 +320,77 @@ export abstract class BaseMailService {
     
     this.saveEmailToLogs('payment-receipt', email, subject, html);
     
-    await this.sendMail({
+    const emailOptions: EmailOptions = {
       to: email,
       subject,
       html,
-    });
+    };
+
+    // Add ICS calendar attachment if event is provided
+    if (data.event) {
+      try {
+        const { generateICSAttachment, getICSFilename } = await import('../utils/ics-generator.js');
+        const baseUrl = config.clientUrl || 'http://localhost:3000';
+        const icsBuffer = generateICSAttachment(data.event, baseUrl);
+        const icsFilename = getICSFilename(data.event);
+        
+        emailOptions.attachments = [
+          {
+            filename: icsFilename,
+            content: icsBuffer,
+            contentType: 'text/calendar; charset=utf-8; method=REQUEST',
+          },
+        ];
+        console.log(`📅 Added calendar attachment: ${icsFilename}`);
+      } catch (error) {
+        console.error('⚠️ Failed to generate ICS attachment:', error);
+      }
+    }
+    
+    await this.sendMail(emailOptions);
+  }
+
+  /**
+   * Send event confirmation email (for free events)
+   */
+  async sendEventConfirmationEmail(
+    email: string,
+    data: EventConfirmationEmailData
+  ): Promise<void> {
+    console.log(`📧 Sending event confirmation email to: ${email}`);
+    const html = this.generateEventConfirmationEmailHTML(data);
+    const subject = `Event Confirmation - ${data.eventName}`;
+    
+    this.saveEmailToLogs('event-confirmation', email, subject, html);
+    
+    const emailOptions: EmailOptions = {
+      to: email,
+      subject,
+      html,
+    };
+
+    // Add ICS calendar attachment if event is provided
+    if (data.event) {
+      try {
+        const { generateICSAttachment, getICSFilename } = await import('../utils/ics-generator.js');
+        const baseUrl = config.clientUrl || 'http://localhost:3000';
+        const icsBuffer = generateICSAttachment(data.event, baseUrl);
+        const icsFilename = getICSFilename(data.event);
+        
+        emailOptions.attachments = [
+          {
+            filename: icsFilename,
+            content: icsBuffer,
+            contentType: 'text/calendar; charset=utf-8; method=REQUEST',
+          },
+        ];
+        console.log(`📅 Added calendar attachment: ${icsFilename}`);
+      } catch (error) {
+        console.error('⚠️ Failed to generate ICS attachment:', error);
+      }
+    }
+    
+    await this.sendMail(emailOptions);
   }
 
   /**
@@ -670,7 +770,7 @@ export abstract class BaseMailService {
                         </table>
                       </div>
                       
-                      <p style="margin: 24px 0 0; padding: 12px; background-color: #eff6ff; border-left: 3px solid #2456d3; border-radius: 4px; font-size: 14px; color: #1e40af;">Your registration is confirmed. You'll receive event details and reminders via email.</p>
+                      <p style="margin: 24px 0 0; padding: 12px; background-color: #eff6ff; border-left: 3px solid #2456d3; border-radius: 4px; font-size: 14px; color: #1e40af;">Your registration is confirmed. You'll receive event details and reminders via email. 📆 <strong>Add to Calendar:</strong> Open the attached calendar file (.ics) to add this event to your calendar!</p>
                     </td>
                   </tr>
                   
@@ -678,6 +778,81 @@ export abstract class BaseMailService {
                   <tr>
                     <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
                       <p style="margin: 0 0 8px; font-size: 13px; color: #a3a3a3;">Keep this email for your records.</p>
+                      <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+  }
+
+  protected generateEventConfirmationEmailHTML(data: EventConfirmationEmailData): string {
+    const { name, eventName, eventDate, eventLocation, eventUrl, isFree } = data;
+    const formattedDate = eventDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const formattedTime = eventDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px;">
+                  <tr>
+                    <td style="padding: 32px 32px 24px; border-bottom: 1px solid #e5e5e5;">
+                      <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #171717;">Event Confirmed! 🎉</h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 16px; font-size: 16px; line-height: 24px; color: #525252;">Hi ${name},</p>
+                      <p style="margin: 0 0 24px; font-size: 16px; line-height: 24px; color: #525252;">Your registration for <strong>${eventName}</strong> has been confirmed!${isFree ? '' : ' Your payment has been processed.'}</p>
+                      
+                      <div style="margin: 24px 0; padding: 20px; background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 14px; color: #0c4a6e; font-weight: 600;">📅 Date & Time</td>
+                            <td style="padding: 8px 0; font-size: 14px; color: #0c4a6e; text-align: right;">${formattedDate} at ${formattedTime}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 14px; color: #0c4a6e; font-weight: 600;">📍 Location</td>
+                            <td style="padding: 8px 0; font-size: 14px; color: #0c4a6e; text-align: right;">${eventLocation}</td>
+                          </tr>
+                        </table>
+                      </div>
+
+                      <p style="margin: 24px 0 16px; padding: 12px; background-color: #dcfce7; border-left: 3px solid #16a34a; border-radius: 4px; font-size: 14px; color: #166534;">📆 <strong>Add to Calendar:</strong> Open the attached calendar file (.ics) to add this event to your calendar app!</p>
+                      
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+                        <tr>
+                          <td align="center">
+                            <a href="${eventUrl}" style="display: inline-block; padding: 12px 32px; background-color: #2456d3; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">View Event Details</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
+                      <p style="margin: 0 0 8px; font-size: 13px; color: #a3a3a3;">Looking forward to seeing you there!</p>
                       <p style="margin: 0; font-size: 13px; color: #a3a3a3;">&copy; ${new Date().getFullYear()} Another Compile L</p>
                     </td>
                   </tr>

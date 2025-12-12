@@ -23,6 +23,7 @@ export const ROUTES = {
 
   // Events
   EVENTS: "/events",
+  EVENT_CALENDAR: "/events/calendar",
   EVENT_DETAILS: "/events/:id",
   MY_EVENTS: "/my-events",
   MY_REGISTRATIONS: "/events/registrations",
