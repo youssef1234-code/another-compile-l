@@ -6,7 +6,6 @@
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -28,6 +27,8 @@ import {
 import { cn } from '@/lib/utils';
 import { exportEventToICS } from '@/lib/ics-export';
 import { toast } from 'react-hot-toast';
+import MDEditor from '@uiw/react-md-editor';
+import { useTheme } from '@/hooks/useTheme';
 
 interface EventDetailsDialogProps {
   event: CalendarEvent | null;
@@ -47,6 +48,9 @@ export function EventDetailsDialog({
   readOnly = false,
 }: EventDetailsDialogProps) {
   if (!event) return null;
+
+  const { resolvedTheme } = useTheme();
+  const colorMode = resolvedTheme === 'dark' ? 'dark' : 'light';
 
   const colors = EVENT_TYPE_COLORS[event.type];
   const label = EVENT_TYPE_LABELS[event.type];
@@ -153,9 +157,15 @@ export function EventDetailsDialog({
               <Separator />
               <div>
                 <h4 className="font-semibold mb-2">Description</h4>
-                <DialogDescription className="text-sm whitespace-pre-wrap">
-                  {event.description}
-                </DialogDescription>
+                <div data-color-mode={colorMode} className="wmde-markdown-var">
+                  <MDEditor.Markdown 
+                    source={event.description} 
+                    style={{ 
+                      padding: 0,
+                      backgroundColor: 'transparent',
+                    }}
+                  />
+                </div>
               </div>
             </>
           )}

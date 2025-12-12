@@ -321,10 +321,20 @@ export function MarkdownEditor({
 
   const proseStyles = cn(
     'prose prose-sm dark:prose-invert max-w-none',
-    'prose-headings:font-semibold prose-headings:mb-3 prose-headings:mt-4 first:prose-headings:mt-0',
-    'prose-p:leading-relaxed prose-p:mb-3',
-    'prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded',
-    'prose-ul:my-3 prose-ol:my-3'
+    'prose-headings:font-semibold prose-headings:mb-4 prose-headings:mt-6 first:prose-headings:mt-0',
+    'prose-p:leading-relaxed prose-p:mb-4 prose-p:mt-0',
+    'prose-a:text-primary prose-a:no-underline hover:prose-a:underline',
+    'prose-strong:font-semibold prose-strong:text-foreground',
+    'prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm',
+    'prose-pre:bg-muted prose-pre:border prose-pre:rounded-lg',
+    'prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6',
+    'prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6',
+    'prose-li:my-2 prose-li:leading-relaxed',
+    'prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic',
+    'prose-hr:my-6 prose-hr:border-border',
+    'prose-table:my-4 prose-table:border-collapse',
+    'prose-th:border prose-th:p-2 prose-th:bg-muted',
+    'prose-td:border prose-td:p-2'
   );
 
   return (

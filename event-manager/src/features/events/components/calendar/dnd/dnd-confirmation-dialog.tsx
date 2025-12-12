@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
+import { TimePicker } from '@/components/ui/time-picker';
 import { Label } from '@/components/ui/label';
 import type { CalendarEvent } from '../types';
 import { EVENT_TYPE_LABELS } from '@event-manager/shared';
@@ -102,11 +102,10 @@ export function DnDConfirmationDialog({
 
                 <div className="pt-2">
                   <Label htmlFor="time" className="text-xs">Time:</Label>
-                  <Input
-                    id="time"
-                    type="time"
+                  <TimePicker
                     value={time}
-                    onChange={(e) => setTime(e.target.value)}
+                    onChange={setTime}
+                    placeholder="Select time"
                     className="mt-1"
                   />
                 </div>

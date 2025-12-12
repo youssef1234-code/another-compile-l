@@ -61,6 +61,7 @@ interface CreateEventSheetProps {
   onSuccess?: () => void;
   initialType?: EventType; // Pre-select event type (e.g., for professors)
   skipTypeSelection?: boolean; // Skip type selection step and go directly to details
+  initialDate?: Date; // Pre-fill start date when creating from calendar
 }
 
 const EVENT_TYPE_LABELS: Record<EventType, string> = {
@@ -78,7 +79,8 @@ export function CreateEventSheet({
   onOpenChange, 
   onSuccess,
   initialType,
-  skipTypeSelection = false
+  skipTypeSelection = false,
+  initialDate
 }: CreateEventSheetProps) {
   const { user } = useAuthStore();
   const [step, setStep] = useState<'type' | 'details'>('type');
@@ -93,6 +95,16 @@ export function CreateEventSheet({
       setStep('details');
     }
   }, [open, initialType, skipTypeSelection]);
+
+  // Auto-fill start date if initialDate is provided
+  useEffect(() => {
+    if (open && initialDate) {
+      setFormData(prev => ({
+        ...prev,
+        startDate: initialDate
+      }));
+    }
+  }, [open, initialDate]);
 
   const [formData, setFormData] = useState({
     name: '',

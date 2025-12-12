@@ -12,8 +12,6 @@ import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@event-manager/shared';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { CreateEventSheet } from '../components/CreateEventSheet';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 
 export function EventCalendarPage() {
   const { setPageMeta } = usePageMeta();
@@ -22,6 +20,7 @@ export function EventCalendarPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [createOpen, setCreateOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
   // Only Events Office and Admin can manage events
   const canManage = user?.role === UserRole.EVENT_OFFICE || user?.role === UserRole.ADMIN;
@@ -128,11 +127,12 @@ export function EventCalendarPage() {
     }
   }, [events, updateEventMutation, utils]);
 
-  const handleCreateEvent = useCallback(() => {
+  const handleCreateEvent = useCallback((date: Date) => {
     if (!canManage) {
       toast.error('You do not have permission to create events');
       return;
     }
+    setSelectedDate(date);
     setCreateOpen(true);
   }, [canManage]);
 
@@ -143,16 +143,6 @@ export function EventCalendarPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 h-full">
-      {/* Header with Create Button */}
-      {canManage && (
-        <div className="flex items-center justify-end">
-          <Button onClick={() => setCreateOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create Event
-          </Button>
-        </div>
-      )}
-
       {/* Calendar */}
       <div className="flex-1 min-h-0">
         <EventCalendar
@@ -170,8 +160,10 @@ export function EventCalendarPage() {
         <CreateEventSheet
           open={createOpen}
           onOpenChange={setCreateOpen}
+          initialDate={selectedDate}
           onSuccess={() => {
             setCreateOpen(false);
+            setSelectedDate(undefined);
             toast.success('Event created successfully');
             utils.events.getAllEvents.invalidate();
           }}

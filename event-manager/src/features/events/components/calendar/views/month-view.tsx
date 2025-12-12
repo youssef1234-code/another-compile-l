@@ -83,7 +83,7 @@ function DayCell({ cell, onEventClick, onCreateEvent, readOnly }: DayCellProps) 
       date={cell.date}
       disabled={readOnly}
       className={cn(
-        'min-h-[120px] border-r border-b p-2 overflow-hidden',
+        'group min-h-[120px] border-r border-b p-2 overflow-hidden',
         'hover:bg-accent/5 transition-colors',
         !cell.currentMonth && 'bg-muted/20'
       )}
@@ -102,14 +102,14 @@ function DayCell({ cell, onEventClick, onCreateEvent, readOnly }: DayCellProps) 
             {cell.day}
           </span>
           
-          {/* Create event button - only show on hover for current month */}
+          {/* Create event button - visible on cell hover */}
           {!readOnly && onCreateEvent && cell.currentMonth && (
             <button
               onClick={() => onCreateEvent(cell.date)}
-              className="opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+              className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
               title="Create event on this day"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-4 w-4" />
             </button>
           )}
         </div>
