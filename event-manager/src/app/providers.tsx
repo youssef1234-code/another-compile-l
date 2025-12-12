@@ -13,6 +13,7 @@ import { trpc, trpcClient } from '../lib/trpc';
 import { NuqsProvider } from '../components/providers/nuqs-provider';
 import { ThemeProvider, useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../store/authStore';
+import { AIAssistant } from '../components/ai/AIAssistant';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -105,6 +106,7 @@ function InnerProviders({ children }: { children: React.ReactNode }) {
       <QueryCacheInvalidator />
       {children}
       <ThemedToaster />
+      <AIAssistant />
     </>
   );
 }

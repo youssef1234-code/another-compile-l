@@ -22,6 +22,7 @@ import {
   MapPin,
   LayoutGrid,
   Settings,
+  MessageSquareWarning,
   type LucideIcon,
 } from "lucide-react";
 
@@ -180,6 +181,12 @@ const navigationConfig: NavItem[] = [
     title: "Manage Users",
     icon: Users,
     url: ROUTES.ADMIN_USERS,
+    roles: ["ADMIN"],
+  },
+  {
+    title: "Comment Moderation",
+    icon: MessageSquareWarning,
+    url: ROUTES.ADMIN_MODERATION,
     roles: ["ADMIN"],
   },
   {

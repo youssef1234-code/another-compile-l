@@ -253,6 +253,18 @@ This project follows industry-standard coding conventions to ensure readability,
 | **Postman** | API testing and documentation |
 | **VS Code Tasks** | Automated build and run tasks |
 
+### AI Service (Python)
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Python** | 3.11+ | Runtime for AI service |
+| **FastAPI** | 0.115.6 | Modern async web framework |
+| **LangChain** | 0.3.13 | LLM application framework |
+| **LangGraph** | 0.2.60 | Graph-based AI workflows |
+| **OpenAI** | 1.58.1 | GPT-4 integration |
+| **better-profanity** | 0.7.0 | Multi-language profanity detection |
+| **uvicorn** | 0.34.0 | ASGI server |
+| **Pydantic** | 2.10.3 | Data validation |
+
 ### Shared Package
 - **@event-manager/shared** - Shared TypeScript types and Zod schemas between frontend and backend
 
@@ -359,6 +371,14 @@ This project follows industry-standard coding conventions to ensure readability,
 - User engagement metrics
 - Vendor participation analytics
 - Customizable date range filters
+
+### 🤖 AI-Powered Features
+- **AI Description Generator** - Generate professional event descriptions using GPT-4
+- **Smart Content Editor** - Markdown editor with AI-assisted writing and tone adjustment
+- **Comment Moderation** - Multi-layer profanity and inappropriate content detection
+- **Personalized Recommendations** - AI-powered event recommendations based on user preferences
+- **Analytics Insights** - Natural language analytics and trend analysis for administrators
+- **Event Q&A Chatbot** - Interactive chatbot for event-related queries
 
 ### 🎓 Gym-Specific Features
 - Court booking system

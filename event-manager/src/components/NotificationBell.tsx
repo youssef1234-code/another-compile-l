@@ -108,15 +108,15 @@ export function NotificationBell() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-80 md:w-96 p-0">
           <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-sm">Notifications</h3>
+            <div className="flex items-center gap-2 min-w-0">
+              <h3 className="font-semibold text-sm truncate">Notifications</h3>
               {unreadCount > 0 && (
-                <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
                   {unreadCount}
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
@@ -126,7 +126,7 @@ export function NotificationBell() {
                   className="h-7 text-xs px-2"
                 >
                   <CheckCheck className="h-3 w-3 mr-1" />
-                  Mark all
+                  <span className="hidden sm:inline">Mark all</span>
                 </Button>
               )}
               <Button
@@ -139,7 +139,7 @@ export function NotificationBell() {
                 className="h-7 text-xs px-2"
               >
                 <Expand className="h-3 w-3 mr-1" />
-                Expand
+                <span className="hidden sm:inline">Expand</span>
               </Button>
             </div>
           </div>
@@ -212,11 +212,11 @@ export function NotificationBell() {
           )}
 
           {unreadNotifications.length > 8 && (
-            <div className="px-4 py-2 border-t bg-muted/30">
+            <div className="px-4 py-3 border-t bg-muted/30">
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full h-8 text-xs"
+                className="w-full h-9 text-xs font-medium whitespace-nowrap"
                 onClick={() => {
                   setOpen(false);
                   setExpandedOpen(true);

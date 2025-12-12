@@ -591,6 +591,32 @@ export class UserService extends BaseService<IUser, typeof userRepository> {
   }
 
   /**
+   * Update user interests for personalized recommendations
+   */
+  async updateInterests(data: {
+    userId: string;
+    interests: string[];
+  }): Promise<{ message: string; interests: string[] }> {
+    // Clean and dedupe interests
+    const cleanedInterests = [...new Set(
+      data.interests
+        .map(i => i.trim().toLowerCase())
+        .filter(i => i.length > 0)
+    )];
+
+    await this.update(data.userId, {
+      interests: cleanedInterests,
+    } as any);
+
+    console.log(`✓ Interests updated for user ${data.userId}: ${cleanedInterests.join(', ')}`);
+
+    return {
+      message: "Interests updated successfully!",
+      interests: cleanedInterests,
+    };
+  }
+
+  /**
    * Admin creates other admin or event office accounts
    * Business Rule: Only admins can create admin/event office accounts
    */

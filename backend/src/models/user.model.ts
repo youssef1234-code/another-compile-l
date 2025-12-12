@@ -46,6 +46,9 @@ export interface IUser extends IBaseDocument {
   
   // Favorites
   favoriteEvents?: mongoose.Types.ObjectId[];
+  
+  // Interests for personalized recommendations
+  interests?: string[];
 }
 
 const userSchema = createBaseSchema<IUser>(
@@ -148,6 +151,12 @@ const userSchema = createBaseSchema<IUser>(
     favoriteEvents: [{
       type: Schema.Types.ObjectId,
       ref: 'Event',
+    }],
+    
+    // Interests for personalized recommendations
+    interests: [{
+      type: String,
+      trim: true,
     }],
   },
   {

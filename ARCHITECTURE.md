@@ -34,6 +34,18 @@ We follow a **Clean Architecture** approach with clear separation of concerns:
 │                         Database                            │
 │                        (MongoDB)                            │
 └─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                     AI Service (Python)                     │
+│       (FastAPI, LangChain, LangGraph, OpenAI GPT-4)         │
+│                                                             │
+│  Features:                                                  │
+│  • AI Description Generator (GPT-4o-mini)                   │
+│  • Comment Moderation (profanity + LLM analysis)            │
+│  • Smart Recommendations (personalized events)              │
+│  • Analytics Insights (natural language analysis)           │
+│  • Event Q&A Chatbot (context-aware responses)              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Design Patterns Used

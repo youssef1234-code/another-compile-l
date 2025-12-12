@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import { AIRecommendations } from '@/components/ai';
 import { 
   Calendar, 
   Wallet, 
@@ -29,7 +30,6 @@ import {
   Sparkles,
   TrendingUp,
   Users,
-  Star,
   Zap,
   PartyPopper,
   GraduationCap,
@@ -54,12 +54,6 @@ export function StudentDashboard() {
   const { data: walletData, isLoading: walletLoading } = trpc.payments.myWallet.useQuery({
     page: 1,
     limit: 50,
-  });
-  
-  // Fetch upcoming events for recommendations
-  const { data: eventsData } = trpc.events.getEvents.useQuery({
-    page: 1,
-    limit: 10,
   });
 
   // Process registrations
@@ -124,16 +118,6 @@ export function StudentDashboard() {
   const firstName = user?.firstName || 'there';
 
   const isLoading = registrationsLoading || walletLoading;
-  
-  // Recommended events (not registered)
-  const recommendations = useMemo(() => {
-    const registeredIds = new Set(
-      (registrationsData?.registrations || []).map((r: any) => r.eventId)
-    );
-    return (eventsData?.events || [])
-      .filter((e: Event) => !registeredIds.has(e.id) && e.status === 'PUBLISHED')
-      .slice(0, 3);
-  }, [eventsData, registrationsData]);
 
   return (
     <div className="space-y-6">
@@ -378,44 +362,27 @@ export function StudentDashboard() {
             )}
           </div>
 
-          {/* Recommended For You */}
-          {recommendations.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold flex items-center gap-2">
-                  <Star className="h-4 w-4 text-[hsl(220,80%,60%)]" />
-                  Recommended For You
-                </h2>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => navigate(ROUTES.EVENTS)}
-                  className="text-xs"
-                >
-                  Browse all <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {recommendations.map((event: Event) => (
-                  <Card 
-                    key={event.id}
-                    className="p-3 cursor-pointer hover:shadow-md transition-all group"
-                    onClick={() => navigate(`/events/${event.id}`)}
-                  >
-                    <Badge variant="outline" className="text-[10px] mb-2">
-                      {event.type?.replace('_', ' ')}
-                    </Badge>
-                    <h4 className="font-medium text-sm mb-1 line-clamp-2 group-hover:text-[hsl(220,80%,50%)]">
-                      {event.name}
-                    </h4>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {event.startDate ? formatDate(event.startDate) : 'TBD'}
-                    </p>
-                  </Card>
-                ))}
-              </div>
-            </div>
+          {/* AI-Powered Recommendations */}
+          {user && registrationsData && (
+            <AIRecommendations
+              userId={user.id}
+              userRole={user.role}
+              userFaculty={user.faculty}
+              userInterests={user.interests}
+              registrationHistory={{
+                eventIds: registrationsData.registrations
+                  .filter(r => r.event?.id)
+                  .map(r => r.event!.id),
+                eventTypes: registrationsData.registrations
+                  .filter(r => r.event?.type)
+                  .map(r => r.event!.type),
+                ratedEvents: Object.fromEntries(
+                  registrationsData.registrations
+                    .filter(r => r.event?.id && r.rating)
+                    .map(r => [r.event!.id, r.rating!])
+                )
+              }}
+            />
           )}
         </div>
 

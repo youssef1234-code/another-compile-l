@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Card, CardContent } from '@/components/ui/card';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { designSystem } from '@/styles/design-system';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 
@@ -149,13 +150,18 @@ export function CreateTripPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Short Description</Label>
-                  <Textarea
-                    id="description"
+                  <Label htmlFor="description">Trip Description</Label>
+                  <MarkdownEditor
                     value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Brief overview of the trip..."
-                    rows={4}
+                    onChange={(value) => handleInputChange('description', value || '')}
+                    placeholder="Trip itinerary, what's included, what to bring... Use markdown for formatting."
+                    height={250}
+                    showAIAssist
+                    aiContext={{
+                      eventType: 'TRIP',
+                      eventName: formData.name,
+                      additionalInfo: `Destination: ${formData.location}, Price: ${formData.price} EGP`,
+                    }}
                   />
                 </div>
               </div>

@@ -23,6 +23,7 @@ import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageGallery } from '@/components/ui/image-gallery';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { designSystem } from '@/styles/design-system';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 
@@ -150,13 +151,19 @@ export function CreateWorkshopPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Short Description</Label>
-                  <Textarea
-                    id="description"
+                  <Label htmlFor="description">Description</Label>
+                  <MarkdownEditor
                     value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Brief overview of the workshop..."
-                    rows={3}
+                    onChange={(value) => handleInputChange('description', value || '')}
+                    placeholder="Write a compelling description for your workshop... Markdown formatting is supported!"
+                    height={200}
+                    showAIAssist
+                    aiContext={{
+                      eventType: 'WORKSHOP',
+                      eventName: formData.name,
+                      additionalInfo: `Location: ${formData.location}, Faculty: ${formData.faculty}`,
+                    }}
+                    label="Description"
                   />
                 </div>
               </div>
@@ -247,12 +254,17 @@ export function CreateWorkshopPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="fullAgenda">Full Agenda</Label>
-                  <Textarea
-                    id="fullAgenda"
+                  <MarkdownEditor
                     value={formData.fullAgenda}
-                    onChange={(e) => handleInputChange('fullAgenda', e.target.value)}
-                    placeholder="Detailed agenda with topics, speakers, timings..."
-                    rows={5}
+                    onChange={(value) => handleInputChange('fullAgenda', value || '')}
+                    placeholder="Detailed agenda with topics, speakers, timings... Use markdown for formatting."
+                    height={300}
+                    showAIAssist
+                    aiContext={{
+                      eventType: 'WORKSHOP',
+                      eventName: formData.name,
+                      additionalInfo: `Faculty: ${formData.faculty}, Location: ${formData.location}`,
+                    }}
                   />
                 </div>
 

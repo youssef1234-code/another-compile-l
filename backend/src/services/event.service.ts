@@ -1388,6 +1388,71 @@ export class EventService extends BaseService<IEvent, EventRepository> {
   }
 
   /**
+   * Get upcoming events accessible to a specific user
+   * Filters out events that have whitelists the user doesn't have access to
+   * Used by AI Assistant to recommend only events the user can register for
+   */
+  async getAccessibleUpcomingEvents(options: {
+    userId: string;
+    userRole: string;
+    limit?: number;
+  }): Promise<{ events: any[] }> {
+    const limit = options.limit || 15;
+    
+    // Get more events than needed since we'll filter some out
+    const events = await this.repository.findUpcoming({ skip: 0, limit: limit * 2 });
+    
+    // Filter events based on whitelist access
+    const accessibleEvents = [];
+    for (const event of events) {
+      const hasUserWhitelist = event.whitelistedUsers && event.whitelistedUsers.length > 0;
+      const hasRoleWhitelist = event.whitelistedRoles && event.whitelistedRoles.length > 0;
+      
+      // If no whitelist, event is accessible to everyone
+      if (!hasUserWhitelist && !hasRoleWhitelist) {
+        accessibleEvents.push(event);
+        continue;
+      }
+      
+      // Check if user is on user whitelist
+      let hasUserAccess = false;
+      if (hasUserWhitelist && event.whitelistedUsers) {
+        hasUserAccess = event.whitelistedUsers.some(
+          (id: any) => id.toString() === options.userId
+        );
+      }
+      
+      // Check if user's role is on role whitelist
+      let hasRoleAccess = false;
+      if (hasRoleWhitelist && event.whitelistedRoles) {
+        hasRoleAccess = event.whitelistedRoles.includes(options.userRole as any);
+      }
+      
+      // Include event if user has access through either whitelist
+      if (hasUserAccess || hasRoleAccess) {
+        accessibleEvents.push(event);
+      }
+      
+      // Stop once we have enough events
+      if (accessibleEvents.length >= limit) break;
+    }
+    
+    // Format and add registration count
+    const formattedEvents = await Promise.all(
+      accessibleEvents.slice(0, limit).map(async (event) => {
+        const registeredCount = await registrationRepository.countActiveForCapacity((event._id as any).toString());
+        return {
+          ...this.formatEvent(event),
+          registeredCount,
+          isWhitelisted: (event.whitelistedUsers?.length ?? 0) > 0 || (event.whitelistedRoles?.length ?? 0) > 0,
+        };
+      })
+    );
+    
+    return { events: formattedEvents };
+  }
+
+  /**
    * Archive event (soft delete alternative)
    * Business Rule: Only events that have already ended can be archived
    */

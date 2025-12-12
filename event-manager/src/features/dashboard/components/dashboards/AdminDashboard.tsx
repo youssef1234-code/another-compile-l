@@ -12,6 +12,7 @@ import { trpc } from '@/lib/trpc';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AIAnalyticsDashboard } from '@/components/ai';
 import { 
   Users, 
   Calendar, 
@@ -462,6 +463,9 @@ export function AdminDashboard() {
               </div>
             </div>
           </Card>
+
+          {/* AI Analytics Insights */}
+          <AIAnalyticsDashboard />
         </div>
 
         {/* Performance Sidebar */}

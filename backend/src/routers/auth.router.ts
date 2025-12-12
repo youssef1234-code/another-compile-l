@@ -318,6 +318,26 @@ const authRoutes = {
         avatarType: input.avatarType,
       });
     }),
+
+  /**
+   * Update user interests for personalized recommendations
+   */
+  updateInterests: protectedProcedure
+    .input(
+      z.object({
+        interests: z.array(z.string().min(1).max(50)).max(10),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+
+      return userService.updateInterests({
+        userId: (ctx.user._id as any).toString(),
+        interests: input.interests,
+      });
+    }),
 };
 
 // ==================== ADMIN USER MANAGEMENT ROUTES ====================
@@ -593,6 +613,7 @@ export const authRouter = router({
   resetPassword: authRoutes.resetPassword,
   changePassword: authRoutes.changePassword,
   updateAvatar: authRoutes.updateAvatar,
+  updateInterests: authRoutes.updateInterests,
   
   // Admin routes
   verifyRole: adminRoutes.verifyRole,

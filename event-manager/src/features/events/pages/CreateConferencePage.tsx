@@ -21,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { designSystem } from '@/styles/design-system';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 
@@ -110,13 +111,19 @@ export function CreateConferencePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Short Description</Label>
-                  <Textarea
-                    id="description"
+                  <Label htmlFor="description">Description</Label>
+                  <MarkdownEditor
                     value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Brief overview of the conference..."
-                    rows={3}
+                    onChange={(value) => handleInputChange('description', value || '')}
+                    placeholder="Write a compelling description for your conference... Markdown formatting is supported!"
+                    height={200}
+                    showAIAssist
+                    aiContext={{
+                      eventType: 'CONFERENCE',
+                      eventName: formData.name,
+                      additionalInfo: formData.websiteUrl ? `Website: ${formData.websiteUrl}` : '',
+                    }}
+                    label="Description"
                   />
                 </div>
 
@@ -162,12 +169,17 @@ export function CreateConferencePage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="fullAgenda">Full Agenda</Label>
-                  <Textarea
-                    id="fullAgenda"
+                  <MarkdownEditor
                     value={formData.fullAgenda}
-                    onChange={(e) => handleInputChange('fullAgenda', e.target.value)}
-                    placeholder="Detailed agenda with sessions, speakers, timings..."
-                    rows={6}
+                    onChange={(value) => handleInputChange('fullAgenda', value || '')}
+                    placeholder="Detailed agenda with sessions, speakers, timings... Use markdown for formatting."
+                    height={300}
+                    showAIAssist
+                    aiContext={{
+                      eventType: 'CONFERENCE',
+                      eventName: formData.name,
+                      additionalInfo: formData.description,
+                    }}
                   />
                 </div>
               </div>

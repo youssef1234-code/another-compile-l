@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ImageGallery } from '@/components/ui/image-gallery';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import {
   Select,
   SelectContent,
@@ -443,15 +444,30 @@ export function CreateEventSheet({
             </FormSheetField>
 
             <FormSheetField label="Description" required={selectedType !== 'GYM_SESSION'}>
-              <Textarea
-                required={selectedType !== 'GYM_SESSION'}
-                minLength={selectedType === 'GYM_SESSION' ? 0 : 20}
-                maxLength={2000}
-                value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder={selectedType === 'GYM_SESSION' ? 'Optional session description' : 'Describe the event experience'}
-                className="min-h-[110px]"
-              />
+              {selectedType === 'GYM_SESSION' ? (
+                <Textarea
+                  minLength={0}
+                  maxLength={2000}
+                  value={formData.description}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Optional session description"
+                  className="min-h-[110px]"
+                />
+              ) : (
+                <MarkdownEditor
+                  value={formData.description}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, description: value || '' }))}
+                  placeholder="Describe the event experience... Markdown formatting is supported!"
+                  height={200}
+                  showAIAssist
+                  aiContext={{
+                    eventType: selectedType || 'EVENT',
+                    eventName: formData.name,
+                    additionalInfo: `Location: ${formData.locationDetails}`,
+                  }}
+                  label="Description"
+                />
+              )}
             </FormSheetField>
           </FormSheetSection>
 

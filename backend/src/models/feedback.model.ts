@@ -21,6 +21,16 @@ export interface IFeedback extends IBaseDocument {
   isCommentHidden?: boolean; // Flag for admin-deleted comments (rating preserved)
   commentHiddenAt?: Date; // When the comment was hidden
   commentHiddenReason?: string; // Reason for hiding (optional)
+  // AI Moderation fields
+  moderationStatus?: 'pending' | 'approved' | 'flagged' | 'removed';
+  moderationFlags?: string[]; // e.g., ['profanity', 'harassment', 'toxicity']
+  moderationSeverity?: 'none' | 'low' | 'medium' | 'high' | 'critical';
+  moderationConfidence?: number; // AI confidence score 0-1
+  moderationAiSuggestion?: 'approve' | 'remove';
+  moderationAiReasoning?: string;
+  moderatedAt?: Date;
+  moderatedBy?: mongoose.Types.ObjectId;
+  moderationNote?: string;
 }
 
 const feedbackSchema = createBaseSchema<IFeedback>(
@@ -68,6 +78,44 @@ const feedbackSchema = createBaseSchema<IFeedback>(
     commentHiddenReason: {
       type: String,
       trim: true,
+      maxlength: 500,
+    },
+    // AI Moderation fields
+    moderationStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'flagged', 'removed'],
+      default: 'pending',
+    },
+    moderationFlags: [{
+      type: String,
+    }],
+    moderationSeverity: {
+      type: String,
+      enum: ['none', 'low', 'medium', 'high', 'critical'],
+      default: 'none',
+    },
+    moderationConfidence: {
+      type: Number,
+      min: 0,
+      max: 1,
+    },
+    moderationAiSuggestion: {
+      type: String,
+      enum: ['approve', 'remove'],
+    },
+    moderationAiReasoning: {
+      type: String,
+      maxlength: 500,
+    },
+    moderatedAt: {
+      type: Date,
+    },
+    moderatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    moderationNote: {
+      type: String,
       maxlength: 500,
     },
   },

@@ -78,6 +78,7 @@ const CourtManagementPage = lazy(() => import("@/features/gym/pages/CourtManagem
 
 // Admin
 const AdminUsersPage = lazy(() => import("@/features/admin/pages/AdminUsersPage").then(m => ({ default: m.AdminUsersPage })));
+const CommentModerationPage = lazy(() => import("@/features/admin/pages/CommentModerationPage").then(m => ({ default: m.CommentModerationPage })));
 
 // Events Office
 const BazaarManagementPage = lazy(() => import("@/features/events-office/pages/BazaarManagementPage").then(m => ({ default: m.BazaarManagementPage })));
@@ -343,6 +344,16 @@ export const router = createBrowserRouter([
           <AdminRoute>
             <Suspense fallback={<PageSkeleton variant="table" />}>
               <AdminUsersPage />
+            </Suspense>
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "/admin/moderation",
+        element: (
+          <AdminRoute>
+            <Suspense fallback={<PageSkeleton variant="table" />}>
+              <CommentModerationPage />
             </Suspense>
           </AdminRoute>
         ),

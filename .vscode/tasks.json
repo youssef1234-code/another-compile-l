@@ -58,7 +58,72 @@
       }
     },
     {
+      "label": "Setup AI Service Venv",
+      "type": "shell",
+      "command": "cd ai-service && python -m venv venv && venv\\Scripts\\activate && pip install -r requirements.txt",
+      "windows": {
+        "command": "cd ai-service && python -m venv venv && venv\\Scripts\\activate && pip install -r requirements.txt"
+      },
+      "linux": {
+        "command": "cd ai-service && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
+      },
+      "osx": {
+        "command": "cd ai-service && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Start AI Service",
+      "type": "shell",
+      "command": "cd ai-service && venv\\Scripts\\activate && python main.py",
+      "windows": {
+        "command": "cd ai-service && venv\\Scripts\\activate && python main.py"
+      },
+      "linux": {
+        "command": "cd ai-service && source venv/bin/activate && python main.py"
+      },
+      "osx": {
+        "command": "cd ai-service && source venv/bin/activate && python main.py"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*)$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*AI Service starting.*",
+          "endsPattern": "^.*Uvicorn running.*"
+        }
+      },
+      "presentation": {
+        "group": "dev",
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
       "label": "Start Full Stack",
+      "dependsOn": [
+        "Start Backend",
+        "Start Frontend",
+        "Start AI Service"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "presentation": {
+        "group": "dev"
+      }
+    },
+    {
+      "label": "Start Full Stack (No AI)",
       "dependsOn": [
         "Start Backend",
         "Start Frontend"
@@ -82,10 +147,26 @@
       "problemMatcher": []
     },
     {
+      "label": "Install AI Service Dependencies",
+      "type": "shell",
+      "command": "cd ai-service && venv\\Scripts\\activate && pip install -r requirements.txt",
+      "windows": {
+        "command": "cd ai-service && venv\\Scripts\\activate && pip install -r requirements.txt"
+      },
+      "linux": {
+        "command": "cd ai-service && source venv/bin/activate && pip install -r requirements.txt"
+      },
+      "osx": {
+        "command": "cd ai-service && source venv/bin/activate && pip install -r requirements.txt"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Install All Dependencies",
       "dependsOn": [
         "Install Backend Dependencies",
-        "Install Frontend Dependencies"
+        "Install Frontend Dependencies",
+        "Install AI Service Dependencies"
       ],
       "problemMatcher": []
     }

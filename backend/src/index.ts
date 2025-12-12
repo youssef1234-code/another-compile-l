@@ -15,6 +15,7 @@ import { runSeeders } from './config/seed';
 import { createContext } from './trpc/context';
 import { appRouter } from './routers/app.router';
 import { stripeWebhookExpressHandler } from './http/stripe-webhook';
+import { getUnmoderatedComments, batchUpdateModeration } from './http/feedback-api';
 import { initializeEventReminderScheduler } from './utils/event-reminder-scheduler.js';
 import { initializeCertificateWorkerScheduler } from './utils/certificate-worker-scheduler.js';
 
@@ -61,6 +62,13 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/health', (_req: express.Request, res: express.Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// ============================================================================
+// FEEDBACK API ENDPOINTS (for AI service polling)
+// ============================================================================
+
+app.get('/api/feedback/unmoderated', getUnmoderatedComments);
+app.post('/api/feedback/batch-moderation', batchUpdateModeration);
 
 // ============================================================================
 // tRPC MIDDLEWARE

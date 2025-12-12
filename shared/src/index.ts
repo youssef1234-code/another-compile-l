@@ -1264,6 +1264,8 @@ export interface User {
   phone?: string;
   avatar?: string;
   avatarType?: "upload" | "preset";
+  faculty?: string; // User's faculty for filtering/recommendations
+  interests?: string[]; // User interests for personalized recommendations
   createdAt: Date;
   updatedAt: Date;
 }

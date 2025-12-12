@@ -39,6 +39,7 @@ import { RegistrationCTA } from "@/components/RegistrationCTA";
 import { usePageMeta } from "@/components/layout/page-meta-context";
 import { VendorCard } from "@/features/events/components/VendorCard";
 import { FeedbackSection } from "@/features/events/components/feedback";
+import { MarkdownViewer } from "@/components/ui/markdown-viewer";
 
 import {
   AlertCircle,
@@ -530,9 +531,7 @@ export function EventDetailsPage() {
                 <CardTitle>About This Event</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                  {event.description}
-                </p>
+                <MarkdownViewer content={event.description || ''} />
               </CardContent>
             </Card>
 

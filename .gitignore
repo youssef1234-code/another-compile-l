@@ -1,3 +1,11 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+venv/
+.env
+
 # Logs
 logs
 *.log

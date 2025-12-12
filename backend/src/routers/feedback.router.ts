@@ -113,6 +113,115 @@ const feedbackRoutes = {
       await feedbackService.deleteFeedback(input.id, input.reason);
       return { success: true };
     }),
+
+  /**
+   * Get flagged comments for moderation (Admin only)
+   * Returns comments that need review based on AI moderation
+   */
+  getFlagged: adminProcedure
+    .input(z.object({
+      status: z.enum(['pending', 'flagged', 'approved', 'removed', 'all']).optional().default('flagged'),
+      severity: z.enum(['low', 'medium', 'high', 'critical', 'all']).optional().default('all'),
+      page: z.number().min(1).optional().default(1),
+      limit: z.number().min(1).max(100).optional().default(20),
+    }))
+    .query(async ({ input }) => {
+      return feedbackService.getFlaggedComments(input);
+    }),
+
+  /**
+   * Approve a flagged comment (Admin only)
+   * Marks the comment as approved after manual review
+   */
+  approveComment: adminProcedure
+    .input(z.object({
+      feedbackId: z.string(),
+      note: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const adminId = (ctx.user!._id as any).toString();
+      return feedbackService.moderateComment(input.feedbackId, 'approved', adminId, input.note);
+    }),
+
+  /**
+   * Remove a flagged comment (Admin only)
+   * Marks the comment as removed and hides it
+   */
+  removeComment: adminProcedure
+    .input(z.object({
+      feedbackId: z.string(),
+      note: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const adminId = (ctx.user!._id as any).toString();
+      return feedbackService.moderateComment(input.feedbackId, 'removed', adminId, input.note);
+    }),
+
+  /**
+   * Get moderation statistics (Admin only)
+   */
+  getModerationStats: adminProcedure
+    .query(async () => {
+      return feedbackService.getModerationStats();
+    }),
+
+  /**
+   * Get unmoderated comments with data table support (Admin only)
+   * Returns comments that need moderation with full filtering/sorting/pagination
+   */
+  getUnmoderated: adminProcedure
+    .input(z.object({
+      // Pagination
+      page: z.number().optional().default(1),
+      perPage: z.number().optional().default(10),
+      
+      // Global search
+      search: z.string().optional(),
+      
+      // Multi-field sorting
+      sort: z.array(z.object({
+        id: z.string(),
+        desc: z.boolean(),
+      })).optional(),
+      
+      // Simple faceted filters
+      filters: z.record(z.array(z.string())).optional(),
+      
+      // Extended filters with operators (for command mode)
+      extendedFilters: z.array(z.object({
+        id: z.string(),
+        value: z.union([z.string(), z.array(z.string())]),
+        operator: z.string(),
+        variant: z.string(),
+        filterId: z.string(),
+      })).optional(),
+      
+      // Join operator for extended filters
+      joinOperator: z.enum(['and', 'or']).optional().default('and'),
+    }))
+    .query(async ({ input }) => {
+      return feedbackService.getUnmoderatedCommentsWithFilters(input);
+    }),
+
+  /**
+   * Batch update moderation results from AI service
+   * Updates multiple comments with their moderation results
+   */
+  batchUpdateModeration: protectedProcedure
+    .input(z.object({
+      results: z.array(z.object({
+        feedbackId: z.string(),
+        isAppropriate: z.boolean(),
+        flags: z.array(z.string()),
+        severity: z.enum(['none', 'low', 'medium', 'high', 'critical']),
+        confidence: z.number(),
+        aiSuggestion: z.enum(['approve', 'remove']).optional(),
+        aiReasoning: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ input }) => {
+      return feedbackService.batchUpdateModeration(input.results);
+    }),
 };
 
 export const feedbackRouter = router(feedbackRoutes);

@@ -68,6 +68,7 @@ export const ROUTES = {
   ADMIN_USERS: '/admin/users',
   ADMIN_EVENTS: '/admin/events',
   ADMIN_LOYALTY: '/admin/loyalty',
+  ADMIN_MODERATION: '/admin/moderation',
 
   // Events Office
   WORKSHOP_APPROVALS: "/events-office/workshops",

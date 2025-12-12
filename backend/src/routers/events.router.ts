@@ -97,6 +97,26 @@ const eventRoutes = {
     }),
 
   /**
+   * Get upcoming events accessible to the current user (filters out whitelisted events user can't access)
+   * Used by AI Assistant to only recommend events the user can actually register for
+   */
+  getAccessibleUpcoming: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(50).optional().default(15),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      const userId = (ctx.user!._id as any).toString();
+      const userRole = ctx.user!.role;
+      return eventService.getAccessibleUpcomingEvents({
+        userId,
+        userRole,
+        limit: input.limit,
+      });
+    }),
+
+  /**
    * Search events by name or description (PUBLIC)
    */
   search: publicProcedure
