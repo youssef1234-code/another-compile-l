@@ -50,8 +50,40 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (_req, res) => {
+  await ensureDbConnected();
+  const dbName = (await import('mongoose')).default.connection.db?.databaseName;
+  const collections = await (await import('mongoose')).default.connection.db?.listCollections().toArray();
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    database: dbName,
+    collections: collections?.map(c => c.name) || []
+  });
+});
+
+// Debug endpoint to check DB and force seeding
+app.get('/debug/db-status', async (_req, res) => {
+  try {
+    await ensureDbConnected();
+    const mongoose = (await import('mongoose')).default;
+    const dbName = mongoose.connection.db?.databaseName;
+    const collections = await mongoose.connection.db?.listCollections().toArray();
+    const usersCount = await mongoose.connection.db?.collection('users').countDocuments();
+    const eventsCount = await mongoose.connection.db?.collection('events').countDocuments();
+    
+    res.json({ 
+      connected: mongoose.connection.readyState === 1,
+      database: dbName,
+      collections: collections?.map(c => c.name) || [],
+      counts: {
+        users: usersCount,
+        events: eventsCount
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message, stack: error.stack });
+  }
 });
 
 // Feedback API endpoints
