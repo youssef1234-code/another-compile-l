@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { createBaseSchema, type IBaseDocument } from "`./base.model.js";
+import { createBaseSchema, type IBaseDocument } from "./base.model.js";
 
 export interface ICourtReservation extends IBaseDocument {
   court: mongoose.Types.ObjectId;

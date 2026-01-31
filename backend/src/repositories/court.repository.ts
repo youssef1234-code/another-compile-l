@@ -1,5 +1,5 @@
-import { BaseRepository } from "`./base.repository.js";
-import { Court, type ICourt } from "`../models/court.model.js";
+import { BaseRepository } from "./base.repository.js";
+import { Court, type ICourt } from "../models/court.model.js";
 
 export class CourtRepository extends BaseRepository<ICourt> {
   constructor() { super(Court); }

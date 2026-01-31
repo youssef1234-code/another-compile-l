@@ -1,6 +1,6 @@
 import { CourtSport } from "../shared/index.js";
 import mongoose from "mongoose";
-import { createBaseSchema, type IBaseDocument } from "`./base.model.js";
+import { createBaseSchema, type IBaseDocument } from "./base.model.js";
 
 
 export interface ICourt extends IBaseDocument {

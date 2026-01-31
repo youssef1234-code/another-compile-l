@@ -1,7 +1,7 @@
-import { BaseService } from "`./base.service.js";
+import { BaseService } from "./base.service.js";
 import { TRPCError } from "@trpc/server";
-import { courtReservationRepository, CourtReservationRepository } from "`../repositories/court-reservation.repository.js";
-import type { ICourtReservation } from "`../models/court-reservation.model.js";
+import { courtReservationRepository, CourtReservationRepository } from "../repositories/court-reservation.repository.js";
+import type { ICourtReservation } from "../models/court-reservation.model.js";
 import mongoose from "mongoose";
 import { DateTime } from "luxon";
 const CAMPUS_TZ = "Africa/Cairo";

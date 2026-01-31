@@ -5,10 +5,10 @@
  * for better AI recommendation testing
  */
 
-import { User } from "`../models/user.model.js";
-import { Event } from "`../models/event.model.js";
-import { Registration } from "`../models/registration.model.js";
-import { hashPassword } from "`../utils/auth.util.js";
+import { User } from "../models/user.model.js";
+import { Event } from "../models/event.model.js";
+import { Registration } from "../models/registration.model.js";
+import { hashPassword } from "../utils/auth.util.js";
 
 export async function seedInterestBasedData(): Promise<void> {
   console.log('🎯 Seeding interest-based users and events...');

@@ -1,7 +1,7 @@
-import { BaseService } from "`./base.service.js";
-import { CourtRepository, courtRepository } from "`../repositories/court.repository.js";
-import type { ICourt } from "`../models/court.model.js";
-import { courtReservationRepository } from "`../repositories/court-reservation.repository.js";
+import { BaseService } from "./base.service.js";
+import { CourtRepository, courtRepository } from "../repositories/court.repository.js";
+import type { ICourt } from "../models/court.model.js";
+import { courtReservationRepository } from "../repositories/court-reservation.repository.js";
 import { DateTime } from "luxon";
 import type { CourtAvailabilityRow } from "../shared/index.js";
 

@@ -8,7 +8,7 @@
  */
 
 import mongoose, { Schema } from "mongoose";
-import { type IBaseDocument, createBaseSchema } from "`./base.model.js";
+import { type IBaseDocument, createBaseSchema } from "./base.model.js";
 
 // Individual booth placement on the platform
 export interface IBoothPlacement {
