@@ -20,6 +20,8 @@ import { CourtReservation } from "../models/court-reservation.model";
 import { Payment } from "../models/payment.model";
 import { hashPassword } from "../utils/auth.util";
 import { config } from "./env";
+import { seedInterestBasedData } from "./interests-seed";
+import { seedSampleComments } from "./seed-comments";
 
 /**
  * Sample user data for different roles
@@ -753,6 +755,24 @@ export async function seedComprehensiveData(): Promise<void> {
     }
 
     console.log(`  ✓ Created ${reservationCount} total court reservations across ${courts.length} courts`);
+
+    // 6. Seed Interest-Based Users and Events (for AI recommendations testing)
+    console.log("\n🎯 Seeding interest-based users and events...");
+    try {
+      await seedInterestBasedData();
+    } catch (error) {
+      console.error("  ⚠️  Interest-based seeding failed:", error);
+      // Continue anyway
+    }
+
+    // 7. Seed Sample Comments (for AI moderation testing)
+    console.log("\n💬 Seeding sample comments...");
+    try {
+      await seedSampleComments();
+    } catch (error) {
+      console.error("  ⚠️  Comment seeding failed:", error);
+      // Continue anyway
+    }
 
     console.log("\n✅ Comprehensive database seeding completed successfully!");
     console.log("\n📊 Summary:");

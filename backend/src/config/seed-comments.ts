@@ -136,37 +136,102 @@ const SAMPLE_COMMENTS = {
   ],
 };
 
-async function seedComments() {
-  try {
-    console.log('🔗 Connecting to database...');
-    await mongoose.connect(config.mongodbUri);
-    console.log('✅ Connected to MongoDB');
+/**
+ * Seed sample comments for AI moderation testing
+ * Can be called from other seeders or run standalone
+ */
+export async function seedSampleComments(): Promise<void> {
+  console.log('\n💬 Seeding sample comments for AI moderation testing...');
 
+  try {
     // Get sample users and events
     const users = await User.find({ role: 'STUDENT' }).limit(20).lean();
     const events = await Event.find({ status: 'PUBLISHED' }).limit(10).lean();
 
     if (users.length === 0 || events.length === 0) {
-      console.log('❌ No users or events found. Please run comprehensive seeder first.');
-      process.exit(1);
+      console.log('  ⚠️  No users or events found. Skipping comment seeding.');
+      return;
     }
 
-    console.log(`📝 Found ${users.length} users and ${events.length} events`);
-
-    // Delete existing test comments (optional - comment out to keep)
-    // await Feedback.deleteMany({ comment: { $regex: /test seed/i } });
+    console.log(`  📝 Found ${users.length} users and ${events.length} events`);
 
     let createdCount = 0;
     const categories = Object.keys(SAMPLE_COMMENTS) as Array<keyof typeof SAMPLE_COMMENTS>;
 
     for (const category of categories) {
       const comments = SAMPLE_COMMENTS[category];
-      console.log(`\n📂 Seeding ${category} comments (${comments.length})...`);
 
       for (const commentData of comments) {
         // Pick random user and event
         const user = users[Math.floor(Math.random() * users.length)];
         const event = events[Math.floor(Math.random() * events.length)];
+
+        try {
+          // Check if similar comment already exists
+          const existingComment = await Feedback.findOne({
+            user: user._id,
+            event: event._id,
+            comment: commentData.comment,
+          });
+
+          if (!existingComment) {
+            await Feedback.create({
+              user: user._id,
+              event: event._id,
+              type: 'both',
+              rating: commentData.rating,
+              comment: commentData.comment,
+              // Leave moderation fields empty for AI to fill
+              moderationStatus: null,
+              moderationFlags: [],
+              moderationSeverity: null,
+              moderationConfidence: null,
+            });
+            createdCount++;
+          }
+        } catch (err: any) {
+          // Skip duplicate errors silently
+          if (err.code !== 11000) {
+            console.error(`  ❌ Error creating comment: ${err.message}`);
+          }
+        }
+      }
+    }
+
+    console.log(`  ✅ Seeded ${createdCount} comments across ${categories.length} categories`);
+    console.log(`  📋 Categories: ${categories.join(', ')}`);
+    
+    // Show stats
+    const totalComments = await Feedback.countDocuments({ comment: { $exists: true, $ne: '' } });
+    const unmoderated = await Feedback.countDocuments({
+      comment: { $exists: true, $ne: '' },
+      $or: [
+        { moderationStatus: null },
+        { moderationStatus: { $exists: false } },
+        { moderationFlags: { $size: 0 } },
+      ],
+    });
+    
+    console.log(`  📊 Total comments in DB: ${totalComments}`);
+    console.log(`  🔍 Unmoderated: ${unmoderated}`);
+    console.log(`  🤖 AI service will moderate these on next poll cycle`);
+
+  } catch (error) {
+    console.error('  ❌ Comment seeding failed:', error);
+    // Don't throw - allow main seeding to continue
+  }
+}
+
+/**
+ * Standalone seeding script (when run directly)
+ */
+async function seedComments() {
+  try {
+    console.log('🔗 Connecting to database...');
+    await mongoose.connect(config.mongodbUri);
+    console.log('✅ Connected to MongoDB');
+
+    await seedSampleComments();
 
         try {
           // Check if feedback already exists
