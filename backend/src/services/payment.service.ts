@@ -357,7 +357,7 @@ export class PaymentService extends BaseService<IPayment, typeof paymentReposito
       purpose: "VENDOR_FEE",
       amountMinor: app.paymentAmount!,
       currency: app.paymentCurrency!,
-      vendorApplication: (app._id as string),
+      vendorApplication: String(app._id),
     });
 
     // create Stripe PI
