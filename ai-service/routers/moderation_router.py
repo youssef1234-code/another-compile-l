@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from services.moderation_service import ModerationService
+from utils.openai_key_check import require_openai_key
 
 router = APIRouter()
 moderation_service = ModerationService()
@@ -73,6 +74,7 @@ async def moderate_comment(request: ModerateCommentRequest):
     
     Returns detailed moderation result with confidence and severity.
     """
+    require_openai_key()  # Check if OpenAI key is configured
     try:
         result = await moderation_service.moderate_comment(
             comment=request.comment,

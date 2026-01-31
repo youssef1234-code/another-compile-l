@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from services.description_service import DescriptionService
+from utils.openai_key_check import require_openai_key
 
 router = APIRouter()
 description_service = DescriptionService()
@@ -69,6 +70,7 @@ async def generate_description(request: GenerateDescriptionRequest):
     with optional markdown formatting. Great for professors creating workshops
     or event office staff setting up new events.
     """
+    require_openai_key()  # Check if OpenAI key is configured
     try:
         result = await description_service.generate_description(
             event_name=request.event_name,
@@ -95,6 +97,7 @@ async def improve_description(request: ImproveDescriptionRequest):
     Enhances clarity, engagement, completeness, or formatting
     based on the specified focus area.
     """
+    require_openai_key()  # Check if OpenAI key is configured
     try:
         result = await description_service.improve_description(
             current_description=request.current_description,
@@ -115,6 +118,7 @@ async def generate_agenda(request: GenerateAgendaRequest):
     Creates a structured agenda with time allocations
     based on workshop duration and topics.
     """
+    require_openai_key()  # Check if OpenAI key is configured
     try:
         result = await description_service.generate_agenda(
             workshop_name=request.workshop_name,
@@ -133,6 +137,7 @@ async def get_description_suggestions(event_type: str, current_description: Opti
     
     Returns actionable tips based on the event type and current content.
     """
+    require_openai_key()  # Check if OpenAI key is configured
     try:
         suggestions = await description_service.get_suggestions(
             event_type=event_type,

@@ -56,17 +56,40 @@ export async function seedAdminAccount(): Promise<void> {
 
 /**
  * Run all seeders
+ * 
+ * On first run (when no admin exists), seeds everything:
+ * - Admin account
+ * - Comprehensive sample data (users, events, registrations, etc.)
  */
 export async function runSeeders(): Promise<void> {
   console.log('🌱 Running database seeders...');
   
   try {
+    // Check if this is first run (no admin exists)
+    const existingAdmin = await User.findOne({ role: 'ADMIN' });
+    const isFirstRun = !existingAdmin;
+    
+    if (isFirstRun) {
+      console.log('\n🎉 First run detected! Seeding all data...');
+      console.log('   This will create:');
+      console.log('   - Admin account');
+      console.log('   - Sample users (students, staff, professors, vendors)');
+      console.log('   - Sample events (workshops, trips, bazaars, conferences)');
+      console.log('   - Sample registrations, payments, and more\n');
+    }
+    
     await seedAdminAccount();
     
-    // Check if we should seed comprehensive data
-    // Set SEED_COMPREHENSIVE=true in .env to enable
-    if (process.env.SEED_COMPREHENSIVE === 'true') {
+    // On first run, seed everything automatically
+    // Can be overridden with SEED_COMPREHENSIVE=false
+    const shouldSeedAll = isFirstRun && process.env.SEED_COMPREHENSIVE !== 'false';
+    
+    if (shouldSeedAll) {
       console.log('\n🌱 Seeding comprehensive sample data...');
+      await seedComprehensiveData();
+      console.log('\n🎉 Database fully seeded! You can now explore the app with sample data.');
+    } else if (process.env.SEED_COMPREHENSIVE === 'true') {
+      console.log('\n🌱 Seeding comprehensive sample data (forced by env variable)...');
       await seedComprehensiveData();
     }
     

@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from services.analytics_service import AnalyticsService
+from utils.openai_key_check import require_openai_key
 
 router = APIRouter()
 analytics_service = AnalyticsService()

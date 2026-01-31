@@ -13,15 +13,17 @@ from typing import Optional, Literal
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 import json
+from utils.openai_key_check import require_openai_key, get_openai_key_or_none
 
 router = APIRouter()
 
-# Initialize LLM
+# Initialize LLM (will be None if key not configured)
+openai_key = get_openai_key_or_none()
 llm = ChatOpenAI(
     model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
     temperature=0.7,
-    api_key=os.getenv("OPENAI_API_KEY")
-)
+    api_key=openai_key
+) if openai_key else None
 
 class UserContext(BaseModel):
     """User context for personalization"""
