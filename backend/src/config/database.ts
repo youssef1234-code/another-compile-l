@@ -7,57 +7,25 @@
  */
 
 import mongoose from 'mongoose';
-import { seedComprehensiveData } from './comprehensive-seed.js';
+import { runSeeders } from './seed.js';
 
 // Track if seeding has been done this session
 let seedingCompleted = false;
 
 /**
- * Check if database is empty (first run) and seed if needed
+ * Run seeders on first connection (serverless-friendly)
  */
-const autoSeedIfEmpty = async (): Promise<void> => {
-  // Skip if AUTO_SEED is explicitly disabled or seeding already done
-  if (process.env.AUTO_SEED === 'false') {
-    console.log('🚫 Auto-seed disabled via AUTO_SEED=false');
-    return;
-  }
+const runSeedersOnce = async (): Promise<void> => {
   if (seedingCompleted) {
-    console.log('⏭️ Seeding already completed this session');
     return;
   }
 
   try {
-    // Check if any users exist
-    const db = mongoose.connection.db;
-    if (!db) {
-      console.log('⚠️ Database connection not ready for seeding check');
-      return;
-    }
-    
-    const collections = await db.listCollections().toArray();
-    console.log(`📋 Found ${collections.length} collections:`, collections.map(c => c.name).join(', ') || 'none');
-    
-    const hasCollections = collections && collections.length > 0;
-    
-    if (hasCollections) {
-      // Check if users collection has data
-      const usersCount = await db.collection('users').countDocuments();
-      console.log(`👥 Users count: ${usersCount}`);
-      if (usersCount && usersCount > 0) {
-        console.log('📊 Database already has data, skipping auto-seed');
-        seedingCompleted = true;
-        return;
-      }
-    }
-
-    console.log('🌱 First run detected - auto-seeding database...');
-    await seedComprehensiveData();
-    seedingCompleted = true;
-    console.log('✅ Auto-seeding completed!');
+    seedingCompleted = true; // Mark as in-progress to prevent concurrent runs
+    await runSeeders();
   } catch (error) {
-    console.error('⚠️ Auto-seed error (non-fatal):', error);
+    console.error('⚠️ Seeding error (non-fatal):', error);
     // Don't fail the app if seeding fails
-    seedingCompleted = true;
   }
 };
 
@@ -77,8 +45,8 @@ export const connectDatabase = async (): Promise<void> => {
     const dbName = mongoose.connection.db?.databaseName || 'unknown';
     console.log(`✅ MongoDB connected successfully to database: ${dbName}`);
     
-    // Auto-seed on first run
-    await autoSeedIfEmpty();
+    // Run seeders on first connection
+    await runSeedersOnce();
     
     mongoose.connection.on('error', (error) => {
       console.error('❌ MongoDB connection error:', error);
