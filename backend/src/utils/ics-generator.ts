@@ -3,7 +3,7 @@
  * Backend utility for generating .ics calendar files
  */
 
-import type { Event } from '@event-manager/shared';
+import type { Event } from '../shared/index.js';
 
 /**
  * Escape special characters for iCalendar format

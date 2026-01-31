@@ -18,7 +18,7 @@ import {
   SignupAcademicSchema,
   SignupVendorSchema,
   LoginSchema,
-} from '@event-manager/shared';
+} from '../shared/index.js';
 import { User } from '../models/user.model';
 import {
   comparePassword,

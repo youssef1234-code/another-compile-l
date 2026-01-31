@@ -14,9 +14,7 @@
     "env:decrypt": "tsx scripts/decrypt-env.ts",
     "seed:comprehensive": "tsx src/seed-runner.ts",
     "seed:interests": "tsx src/seed-runner.ts --interests",
-    "seed:comments": "tsx src/config/seed-comments.ts",
-    "postinstall": "cd ../shared && npm install && npm run build",
-    "vercel-build": "npm run build"
+    "seed:comments": "tsx src/config/seed-comments.ts"
   },
   "keywords": [
     "event-management",
@@ -27,7 +25,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@event-manager/shared": "file:../shared",
     "@trpc/server": "^11.5.1",
     "@types/pdfkit": "^0.17.3",
     "@types/qrcode": "^1.5.6",

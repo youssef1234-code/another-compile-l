@@ -7,7 +7,7 @@
  */
 
 import mongoose, { Schema } from 'mongoose';
-import { UserRole, UserStatus } from '@event-manager/shared';
+import { UserRole, UserStatus } from '../shared/index.js';
 import { type IBaseDocument, createBaseSchema } from './base.model';
 
 export interface IUser extends IBaseDocument {

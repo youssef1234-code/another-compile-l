@@ -7,7 +7,7 @@ import {
   RefundToWalletInput,
   vendorInitCardInput,
   WalletPaymentInput, WalletTopUpInitInput
-} from "@event-manager/shared";
+} from "../shared/index.js";
 import { TRPCError } from "@trpc/server";
 import { DateTime } from "luxon";
 import { z } from "zod";

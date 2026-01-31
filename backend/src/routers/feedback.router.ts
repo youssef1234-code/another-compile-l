@@ -27,7 +27,7 @@ import {
   CreateFeedbackSchema,
   UpdateFeedbackSchema,
   GetFeedbackByEventSchema,
-} from '@event-manager/shared';
+} from '../shared/index.js';
 import { z } from 'zod';
 
 const feedbackRoutes = {

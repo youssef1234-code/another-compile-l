@@ -18,7 +18,7 @@ import {
   VoteOnPollSchema,
   ResolvePollSchema,
   PollFilterSchema,
-} from '@event-manager/shared';
+} from '../shared/index.js';
 import { z } from 'zod';
 
 const pollRoutes = {

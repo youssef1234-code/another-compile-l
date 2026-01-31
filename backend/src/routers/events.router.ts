@@ -35,7 +35,7 @@ import {
   updateGymSessionSchema,
   CreateWorkshopSchema,
   UpdateWorkshopSchema
-} from "@event-manager/shared";
+} from "../shared/index.js";
 import { z } from "zod";
 import { userService } from "../services/user.service";
 

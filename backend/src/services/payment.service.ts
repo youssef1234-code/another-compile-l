@@ -3,14 +3,14 @@ import {
   PaymentMethod, PaymentStatus, WalletTxnType,
   CardPaymentInitInput, WalletPaymentInput, WalletTopUpInitInput, RefundToWalletInput,
   RegistrationStatus
-} from "@event-manager/shared";
-import type { PaymentSummary, WalletTxn } from "@event-manager/shared";
+} from "../shared/index.js";
+import type { PaymentSummary, WalletTxn } from "../shared/index.js";
 import { PaymentRepository, paymentRepository } from "../repositories/payment.repository";
 import { walletRepository } from "../repositories/wallet.repository";
 import { TRPCError } from "@trpc/server";
 import { BaseService } from "./base.service";
 import type { IPayment } from "../models/payment.model";
-import type { PaginatedResponse } from "@event-manager/shared";
+import type { PaginatedResponse } from "../shared/index.js";
 import { userRepository } from "../repositories/user.repository";
 import { mailService } from "./mail.service";
 import { eventRepository } from "../repositories/event.repository";

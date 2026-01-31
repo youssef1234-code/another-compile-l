@@ -11,7 +11,7 @@ import {
   BoothSize,
   ApplicationType,
   VendorApprovalStatus,
-} from "@event-manager/shared";
+} from "../shared/index.js";
 import { type IBaseDocument, createBaseSchema } from "./base.model";
 
 export interface IVendorApplication extends IBaseDocument {

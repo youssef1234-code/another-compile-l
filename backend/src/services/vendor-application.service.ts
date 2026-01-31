@@ -5,7 +5,7 @@ import {
 import { BaseService } from './base.service';
 import { ServiceError } from '../errors/errors';
 import { type IVendorApplication } from '../models/vendor-application.model';
-import { CreateApplicationSchema } from '@event-manager/shared';
+import { CreateApplicationSchema } from '../shared/index.js';
 import mongoose from 'mongoose';
 import { userRepository } from '../repositories/user.repository';
 import { mailService } from './mail.service';

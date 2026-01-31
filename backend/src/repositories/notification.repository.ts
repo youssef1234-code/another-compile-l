@@ -9,7 +9,7 @@
 import { BaseRepository } from './base.repository.js';
 import type { INotification } from '../models/notification.model.js';
 import { Notification } from '../models/notification.model.js';
-import type { UserRole } from '@event-manager/shared';
+import type { UserRole } from '../shared/index.js';
 import mongoose from 'mongoose';
 
 export class NotificationRepository extends BaseRepository<INotification> {

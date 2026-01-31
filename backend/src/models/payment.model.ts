@@ -1,6 +1,6 @@
 import { model} from "mongoose";
-import { PaymentMethod, PaymentStatus } from "@event-manager/shared";
-import type { Currency } from "@event-manager/shared";
+import { PaymentMethod, PaymentStatus } from "../shared/index.js";
+import type { Currency } from "../shared/index.js";
 import { createBaseSchema } from "./base.model";
 import type { IBaseDocument } from "./base.model";
 

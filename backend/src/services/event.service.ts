@@ -18,7 +18,7 @@ import {
   UpdateWorkshopSchema,
   UserRole,
   type UpdateWorkshopInput,
-} from "@event-manager/shared";
+} from "../shared/index.js";
 import { ServiceError } from "../errors/errors";
 import type { IUser } from "../models/user.model";
 

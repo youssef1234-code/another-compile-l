@@ -3,7 +3,7 @@ import { z } from "zod";
 import { courtService } from "../services/court.service";
 import { courtReservationService } from "../services/court-reservation.service";
 import { courtReservationRepository } from "../repositories/court-reservation.repository";
-import type { CourtSummary } from "@event-manager/shared";
+import type { CourtSummary } from "../shared/index.js";
 import { 
   CourtReservationCreateSchema, 
   CourtReservationCancelSchema, 
@@ -12,7 +12,7 @@ import {
   CourtSummarySchema,
   CreateCourtSchema,
   UpdateCourtSchema
-} from "@event-manager/shared";
+} from "../shared/index.js";
 
 export const courtsRouter = router({
    

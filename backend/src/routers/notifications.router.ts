@@ -13,7 +13,7 @@ import {
   GetNotificationsSchema,
   MarkNotificationReadSchema,
   DeleteNotificationSchema,
-} from '@event-manager/shared';
+} from '../shared/index.js';
 
 export const notificationsRouter = router({
   /**

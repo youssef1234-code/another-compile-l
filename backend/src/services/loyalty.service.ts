@@ -17,7 +17,7 @@ import { BaseService } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { ILoyaltyRequest } from '../models/loyalty-request.model';
 import type { ILoyaltyPartner } from '../models/loyalty-partner.model';
-import type { ApplyToLoyaltyInput } from '@event-manager/shared';
+import type { ApplyToLoyaltyInput } from '../shared/index.js';
 import { Types } from 'mongoose';
 
 export class LoyaltyService extends BaseService<ILoyaltyRequest, LoyaltyRequestRepository> {

@@ -23,7 +23,7 @@ import { loyaltyService } from '../services/loyalty.service';
 import {
   ApplyToLoyaltySchema,
   CancelLoyaltySchema,
-} from '@event-manager/shared';
+} from '../shared/index.js';
 import { TRPCError } from '@trpc/server';
 
 /**

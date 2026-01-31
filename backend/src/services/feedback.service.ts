@@ -18,7 +18,7 @@ import { eventRepository } from '../repositories/event.repository';
 import { BaseService } from './base.service';
 import { TRPCError } from '@trpc/server';
 import type { IFeedback } from '../models/feedback.model';
-import type { CreateFeedbackInput, UpdateFeedbackInput } from '@event-manager/shared';
+import type { CreateFeedbackInput, UpdateFeedbackInput } from '../shared/index.js';
 import { Types } from 'mongoose';
 import { mailService } from './mail.service';
 

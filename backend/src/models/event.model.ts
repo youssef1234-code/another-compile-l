@@ -7,7 +7,7 @@
  */
 
 import mongoose, { Schema } from 'mongoose';
-import { EventType, EventStatus, FundingSource, Faculty, GymSessionType } from '@event-manager/shared';
+import { EventType, EventStatus, FundingSource, Faculty, GymSessionType } from '../shared/index.js';
 import { type IBaseDocument, createBaseSchema } from './base.model';
 
 export interface IEvent extends IBaseDocument {

@@ -5,7 +5,7 @@
  */
 
 import mongoose, { Schema } from 'mongoose';
-import { NotificationType } from '@event-manager/shared';
+import { NotificationType } from '../shared/index.js';
 import type { IBaseDocument } from './base.model';
 import { createBaseSchema } from './base.model';
 

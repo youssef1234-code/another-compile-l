@@ -7,7 +7,7 @@
 import mongoose, { Schema } from 'mongoose';
 import type { IBaseDocument } from './base.model';
 import { createBaseSchema } from './base.model';
-import { PaymentStatus, RegistrationStatus } from '@event-manager/shared';
+import { PaymentStatus, RegistrationStatus } from '../shared/index.js';
 
 export interface IEventRegistration extends IBaseDocument {
   event: mongoose.Types.ObjectId;

@@ -11,8 +11,8 @@ import { userRepository } from "../repositories/user.repository";
 import { TRPCError } from "@trpc/server";
 import type { IEventRegistration } from "../models/registration.model";
 import mongoose from 'mongoose';
-import { PaymentStatus, RegistrationStatus } from '@event-manager/shared';
-import type { RegistrationForEventResponse } from '@event-manager/shared';
+import { PaymentStatus, RegistrationStatus } from '../shared/index.js';
+import type { RegistrationForEventResponse } from '../shared/index.js';
 import { paymentRepository } from '../repositories/payment.repository';
 import { paymentService } from './payment.service';
 

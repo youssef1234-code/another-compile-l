@@ -9,7 +9,7 @@
 import { BaseService } from './base.service.js';
 import { notificationRepository } from '../repositories/notification.repository.js';
 import type { INotification } from '../models/notification.model.js';
-import type { UserRole } from '@event-manager/shared';
+import type { UserRole } from '../shared/index.js';
 import { TRPCError } from '@trpc/server';
 
 export class NotificationService extends BaseService<
