@@ -86,11 +86,21 @@ export async function runSeeders(): Promise<void> {
     
     if (shouldSeedAll) {
       console.log('\n🌱 Seeding comprehensive sample data...');
-      await seedComprehensiveData();
-      console.log('\n🎉 Database fully seeded! You can now explore the app with sample data.');
+      try {
+        await seedComprehensiveData();
+        console.log('\n🎉 Database fully seeded! You can now explore the app with sample data.');
+      } catch (seedError) {
+        console.error('❌ Comprehensive seeding failed:', seedError);
+        throw seedError;
+      }
     } else if (process.env.SEED_COMPREHENSIVE === 'true') {
       console.log('\n🌱 Seeding comprehensive sample data (forced by env variable)...');
-      await seedComprehensiveData();
+      try {
+        await seedComprehensiveData();
+      } catch (seedError) {
+        console.error('❌ Comprehensive seeding failed:', seedError);
+        throw seedError;
+      }
     }
     
     console.log('✓ Database seeding completed');

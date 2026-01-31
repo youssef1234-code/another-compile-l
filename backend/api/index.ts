@@ -66,14 +66,36 @@ app.get('/health', async (_req, res) => {
 app.get('/debug/db-status', async (_req, res) => {
   try {
     await ensureDbConnected();
+    
+    // Wait a bit for connection to be ready
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const mongoose = (await import('mongoose')).default;
-    const dbName = mongoose.connection.db?.databaseName;
-    const collections = await mongoose.connection.db?.listCollections().toArray();
-    const usersCount = await mongoose.connection.db?.collection('users').countDocuments();
-    const eventsCount = await mongoose.connection.db?.collection('events').countDocuments();
+    
+    // Check if connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ 
+        connected: false,
+        readyState: mongoose.connection.readyState,
+        message: 'Database not connected'
+      });
+    }
+    
+    const db = mongoose.connection.db;
+    if (!db) {
+      return res.json({ 
+        connected: false,
+        message: 'Database object not available'
+      });
+    }
+    
+    const dbName = db.databaseName;
+    const collections = await db.listCollections().toArray();
+    const usersCount = await db.collection('users').countDocuments();
+    const eventsCount = await db.collection('events').countDocuments();
     
     res.json({ 
-      connected: mongoose.connection.readyState === 1,
+      connected: true,
       database: dbName,
       collections: collections?.map(c => c.name) || [],
       counts: {
@@ -83,6 +105,62 @@ app.get('/debug/db-status', async (_req, res) => {
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message, stack: error.stack });
+  }
+});
+
+// Force seed endpoint - manually trigger comprehensive seeding
+app.post('/debug/force-seed', async (_req, res) => {
+  const logs: string[] = [];
+  const originalLog = console.log;
+  const originalError = console.error;
+  
+  // Capture console output
+  console.log = (...args) => {
+    logs.push(args.join(' '));
+    originalLog(...args);
+  };
+  console.error = (...args) => {
+    logs.push('ERROR: ' + args.join(' '));
+    originalError(...args);
+  };
+  
+  try {
+    await ensureDbConnected();
+    logs.push('Database connected');
+    
+    const { seedComprehensiveData } = await import('../src/config/comprehensive-seed.js');
+    logs.push('Starting comprehensive seed...');
+    
+    await seedComprehensiveData();
+    
+    logs.push('Seed completed successfully');
+    
+    // Get final counts
+    const mongoose = (await import('mongoose')).default;
+    const db = mongoose.connection.db;
+    const usersCount = await db?.collection('users').countDocuments();
+    const eventsCount = await db?.collection('events').countDocuments();
+    
+    res.json({ 
+      success: true, 
+      logs,
+      counts: {
+        users: usersCount,
+        events: eventsCount
+      }
+    });
+  } catch (error: any) {
+    logs.push('ERROR: ' + error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message, 
+      stack: error.stack,
+      logs 
+    });
+  } finally {
+    // Restore console
+    console.log = originalLog;
+    console.error = originalError;
   }
 });
 
