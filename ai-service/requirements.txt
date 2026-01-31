@@ -30,3 +30,6 @@ cachetools==5.5.0
 
 # CORS
 python-multipart==0.0.19
+
+# Serverless deployment (Vercel)
+mangum==0.19.0
