@@ -109,22 +109,36 @@ export interface GymSessionUpdateEmailData {
 export abstract class BaseMailService {
   protected from: string;
   protected logsDir: string;
+  protected canWriteLogs: boolean;
 
   constructor(from?: string) {
     this.from = from || config.emailFrom;
     
-    // Setup logs directory
+    // Setup logs directory - skip in serverless/production environments (read-only filesystem)
     this.logsDir = path.join(__dirname, '../../logs/emails');
-    this.ensureLogsDirectory();
+    this.canWriteLogs = this.ensureLogsDirectory();
   }
 
   /**
-   * Ensure logs directory exists
+   * Ensure logs directory exists (skip in serverless environments)
+   * Returns true if logging is available, false otherwise
    */
-  private ensureLogsDirectory(): void {
-    if (!fs.existsSync(this.logsDir)) {
-      fs.mkdirSync(this.logsDir, { recursive: true });
-      console.log(`📁 Created email logs directory: ${this.logsDir}`);
+  private ensureLogsDirectory(): boolean {
+    // Skip in production/serverless (Vercel has read-only filesystem)
+    if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+      console.log('📧 Email file logging disabled in serverless environment');
+      return false;
+    }
+    
+    try {
+      if (!fs.existsSync(this.logsDir)) {
+        fs.mkdirSync(this.logsDir, { recursive: true });
+        console.log(`📁 Created email logs directory: ${this.logsDir}`);
+      }
+      return true;
+    } catch (error) {
+      console.warn('⚠️ Could not create email logs directory (read-only filesystem):', error);
+      return false;
     }
   }
 
@@ -137,6 +151,11 @@ export abstract class BaseMailService {
     subject: string,
     html: string
   ): void {
+    // Skip if logging is disabled (serverless environment)
+    if (!this.canWriteLogs) {
+      return;
+    }
+    
     try {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const sanitizedRecipient = recipient.replace(/[^a-z0-9]/gi, '_');
