@@ -14,7 +14,9 @@
     "env:decrypt": "tsx scripts/decrypt-env.ts",
     "seed:comprehensive": "tsx src/seed-runner.ts",
     "seed:interests": "tsx src/seed-runner.ts --interests",
-    "seed:comments": "tsx src/config/seed-comments.ts"
+    "seed:comments": "tsx src/config/seed-comments.ts",
+    "postinstall": "cd ../shared && npm install && npm run build",
+    "vercel-build": "npm run build"
   },
   "keywords": [
     "event-management",

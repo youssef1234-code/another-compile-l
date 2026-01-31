@@ -2,8 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "name": "event-manager-backend",
-  "buildCommand": "cd ../shared && npm install && npm run build && cd ../backend && npm install",
-  "installCommand": "npm install --legacy-peer-deps",
   "builds": [
     {
       "src": "api/index.ts",

@@ -68,7 +68,7 @@ app.post('/api/feedback/batch-moderation', async (req, res) => {
 // tRPC middleware
 app.use(
   '/trpc',
-  async (req, res, next) => {
+  async (_req, _res, next) => {
     await ensureDbConnected();
     next();
   },
