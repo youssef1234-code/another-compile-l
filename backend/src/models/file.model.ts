@@ -8,7 +8,7 @@
  */
 
 import mongoose, { Schema } from 'mongoose';
-import { type IBaseDocument, createBaseSchema } from './base.model';
+import { type IBaseDocument, createBaseSchema } from './base.model.js';
 
 export interface IFile extends IBaseDocument {
   filename: string;

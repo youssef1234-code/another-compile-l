@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react';
-import type { Feedback } from '@event-manager/shared';
+import type { Feedback } from '../../../../shared';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

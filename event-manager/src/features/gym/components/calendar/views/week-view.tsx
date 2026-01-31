@@ -9,7 +9,7 @@ import { useCalendar } from '../calendar-context';
 import { getWeekDates, formatTime, eventOverlapsWithSlot } from '../helpers';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { GYM_SESSION_TYPE_LABELS } from '@event-manager/shared';
+import { GYM_SESSION_TYPE_LABELS } from '../../../../../shared';
 import type { CalendarEvent } from '../types';
 
 export function WeekView() {

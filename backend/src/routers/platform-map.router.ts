@@ -2,8 +2,8 @@ import {
   eventsOfficeProcedure,
   protectedProcedure,
   router,
-} from "../trpc/trpc";
-import { platformMapService } from "../services/platform-map.service";
+} from "`../trpc/trpc.js";
+import { platformMapService } from "`../services/platform-map.service.js";
 import { z } from "zod";
 import mongoose from "mongoose";
 

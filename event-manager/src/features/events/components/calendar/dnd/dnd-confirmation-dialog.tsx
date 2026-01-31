@@ -17,7 +17,7 @@ import {
 import { TimePicker } from '@/components/ui/time-picker';
 import { Label } from '@/components/ui/label';
 import type { CalendarEvent } from '../types';
-import { EVENT_TYPE_LABELS } from '@event-manager/shared';
+import { EVENT_TYPE_LABELS } from '../../../../../shared';
 
 interface DnDConfirmationDialogProps {
   open: boolean;

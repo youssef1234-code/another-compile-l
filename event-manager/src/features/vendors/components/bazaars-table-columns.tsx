@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Calendar, MapPin, Clock, ShoppingBag, ChevronDown } from "lucide-react";
 import { formatDate } from "@/lib/design-system";
-import type { Event } from "@event-manager/shared";
+import type { Event } from "../../../shared";
 import { cn } from "@/lib/utils";
 
 interface GetBazaarsTableColumnsProps {

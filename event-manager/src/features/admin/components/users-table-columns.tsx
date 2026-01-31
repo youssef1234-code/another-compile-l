@@ -1,5 +1,5 @@
 
-import type { User } from "@event-manager/shared";
+import type { User } from "../../../shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Shield, Mail, MoreHorizontal, UserX, Trash2, UserCheck, Users, CheckCircle, XCircle, FileText, FileImage } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";

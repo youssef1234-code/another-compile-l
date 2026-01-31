@@ -14,7 +14,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import type { User as EventUser, Registration } from "@event-manager/shared";
+import type { User as EventUser, Registration } from "../../../shared";
 
 import { ROUTES } from "@/lib/constants";
 import { formatDate } from "@/lib/design-system";

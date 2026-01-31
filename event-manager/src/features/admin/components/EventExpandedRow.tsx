@@ -8,8 +8,8 @@
  * - Quick actions
  */
 
-import type { Event, User as EventUser, Registration } from '@event-manager/shared';
-import { UserRole } from '@event-manager/shared';
+import type { Event, User as EventUser, Registration } from '../../../shared';
+import { UserRole } from '../../../shared';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

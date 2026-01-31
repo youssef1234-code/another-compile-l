@@ -9,13 +9,13 @@
 import express from 'express';
 import cors from 'cors';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
-import { config } from './config/env';
-import { connectDatabase } from './config/database';
-import { runSeeders } from './config/seed';
-import { createContext } from './trpc/context';
-import { appRouter } from './routers/app.router';
-import { stripeWebhookExpressHandler } from './http/stripe-webhook';
-import { getUnmoderatedComments, batchUpdateModeration } from './http/feedback-api';
+import { config } from './config/env.js';
+import { connectDatabase } from './config/database.js';
+import { runSeeders } from './config/seed.js';
+import { createContext } from './trpc/context.js';
+import { appRouter } from './routers/app.router.js';
+import { stripeWebhookExpressHandler } from './http/stripe-webhook.js';
+import { getUnmoderatedComments, batchUpdateModeration } from './http/feedback-api.js';
 import { initializeEventReminderScheduler } from './utils/event-reminder-scheduler.js';
 import { initializeCertificateWorkerScheduler } from './utils/certificate-worker-scheduler.js';
 

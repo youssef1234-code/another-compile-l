@@ -3,7 +3,7 @@
  * Comprehensive calendar for all event types (except gym sessions)
  */
 
-import type { Event } from '@event-manager/shared';
+import type { Event } from '../../../../shared';
 
 export type CalendarView = 'day' | 'week' | 'month' | 'agenda';
 

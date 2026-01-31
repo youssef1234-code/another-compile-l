@@ -23,7 +23,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
-import type { CourtSport, Coordinates } from '@event-manager/shared';
+import type { CourtSport, Coordinates } from '../../../shared';
 import type { TRPCClientErrorLike } from '@trpc/client';
 import type { AppRouter } from '../../../../../backend/src/routers/app.router';
 import { CourtFormSheet } from '../components/CourtFormSheet';

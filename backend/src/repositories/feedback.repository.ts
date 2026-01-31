@@ -7,8 +7,8 @@
  * @module repositories/feedback.repository
  */
 
-import { Feedback, type IFeedback } from '../models/feedback.model';
-import { BaseRepository } from './base.repository';
+import { Feedback, type IFeedback } from '../models/feedback.model.js';
+import { BaseRepository } from './base.repository.js';
 import { Types } from 'mongoose';
 
 /**

@@ -5,10 +5,10 @@
  * @module repositories/registration.repository
  */
 
-import type { IEvent } from '../models/event.model';
-import { EventRegistration } from '../models/registration.model';
-import type { IEventRegistration } from '../models/registration.model';
-import { BaseRepository } from './base.repository';
+import type { IEvent } from '../models/event.model.js';
+import { EventRegistration } from '../models/registration.model.js';
+import type { IEventRegistration } from '../models/registration.model.js';
+import { BaseRepository } from './base.repository.js';
 import mongoose, { Types } from 'mongoose';
 
 /**

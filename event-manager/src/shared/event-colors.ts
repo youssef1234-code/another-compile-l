@@ -3,7 +3,7 @@
  * Consistent color scheme for all event types across the application
  */
 
-import { EventType } from './index.js';
+import { EventType } from './index';
 
 export const EVENT_TYPE_COLORS: Record<
   EventType,

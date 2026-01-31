@@ -4,7 +4,7 @@
  */
 
 import jsPDF from 'jspdf';
-import type { Event } from '@event-manager/shared';
+import type { Event } from '../../../shared';
 import { format } from 'date-fns';
 import { domToPng } from 'modern-screenshot';
 import * as XLSX from 'xlsx';

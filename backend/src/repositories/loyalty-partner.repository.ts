@@ -7,8 +7,8 @@
  * @module repositories/loyalty-partner.repository
  */
 
-import { LoyaltyPartner, type ILoyaltyPartner } from '../models/loyalty-partner.model';
-import { BaseRepository } from './base.repository';
+import { LoyaltyPartner, type ILoyaltyPartner } from '../models/loyalty-partner.model.js';
+import { BaseRepository } from './base.repository.js';
 import { Types } from 'mongoose';
 
 /**

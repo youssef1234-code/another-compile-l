@@ -3,7 +3,7 @@ import { ConfirmDialog } from '@/components/generic';
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from '@/store/authStore';
-import { UserRole } from '@event-manager/shared';
+import { UserRole } from '../../../shared';
 import { Calendar as CalendarIcon, List as ListIcon, Plus } from "lucide-react";
 import { parseAsArrayOf, parseAsInteger, parseAsJson, parseAsString, useQueryState } from 'nuqs';
 import { useCallback, useMemo, useState, useEffect } from "react";

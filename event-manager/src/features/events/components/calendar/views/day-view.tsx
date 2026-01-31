@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 import { useCalendar } from '../calendar-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '@event-manager/shared';
+import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '../../../../../shared';
 import type { CalendarEvent } from '../types';
 import { format } from 'date-fns';
 

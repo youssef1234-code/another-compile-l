@@ -8,7 +8,7 @@ import { useCalendar } from '../calendar-context';
 import { getWeekDates } from '../helpers';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '@event-manager/shared';
+import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '../../../../../shared';
 import type { CalendarEvent } from '../types';
 
 export function WeekView() {

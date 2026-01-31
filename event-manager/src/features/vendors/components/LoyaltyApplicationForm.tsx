@@ -6,7 +6,7 @@
  */
 
 import { GenericForm, type FormFieldConfig } from '@/components/generic/GenericForm';
-import { ApplyToLoyaltySchema, type ApplyToLoyaltyInput } from '@event-manager/shared';
+import { ApplyToLoyaltySchema, type ApplyToLoyaltyInput } from '../../../shared';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Percent, Tag, FileText, Send } from 'lucide-react';
 

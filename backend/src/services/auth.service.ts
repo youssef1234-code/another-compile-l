@@ -9,4 +9,4 @@
  * @module services/auth.service
  */
 
-export { userService as authService, UserService as AuthService } from './user.service';
+export { userService as authService, UserService as AuthService } from './user.service.js';

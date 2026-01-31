@@ -7,15 +7,15 @@
  * @module services/user.service
  */
 
-import { BaseService } from "./base.service";
-import { userRepository } from "../repositories/user.repository";
-import type { IUser } from "../models/user.model";
+import { BaseService } from "`./base.service.js";
+import { userRepository } from "`../repositories/user.repository.js";
+import type { IUser } from "`../models/user.model.js";
 import { TRPCError } from "@trpc/server";
-import { hashPassword } from "../utils/auth.util";
-import { mailService } from "./mail.service";
+import { hashPassword } from "`../utils/auth.util.js";
+import { mailService } from "`./mail.service.js";
 import mongoose from "mongoose";
 import crypto from "crypto";
-import { config } from "../config/env";
+import { config } from "`../config/env.js";
 
 export class UserService extends BaseService<IUser, typeof userRepository> {
   constructor() {

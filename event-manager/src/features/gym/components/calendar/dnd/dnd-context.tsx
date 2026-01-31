@@ -15,7 +15,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import type { CalendarEvent } from '../types';
-import { GYM_SESSION_TYPE_LABELS } from '@event-manager/shared';
+import { GYM_SESSION_TYPE_LABELS } from '../../../../../shared';
 import { cn } from '@/lib/utils';
 
 interface DragDropContextType {

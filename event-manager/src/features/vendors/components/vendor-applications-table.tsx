@@ -5,7 +5,7 @@
  * Follows EventsTable pattern with URL state sync
  */
 
-import type { VendorApplication } from "@event-manager/shared";
+import type { VendorApplication } from "../../../shared";
 import * as React from "react";
 import { useQueryState, parseAsBoolean, parseAsString } from "nuqs";
 import { DataTable } from "@/components/data-table/data-table";

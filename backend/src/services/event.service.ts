@@ -1,16 +1,16 @@
 import {
   EventRepository,
   eventRepository,
-} from "../repositories/event.repository";
-import { registrationRepository } from "../repositories/registration.repository";
-import { vendorApplicationRepository } from "../repositories/vendor-application.repository";
-import { userRepository } from "../repositories/user.repository";
+} from "`../repositories/event.repository.js";
+import { registrationRepository } from "`../repositories/registration.repository.js";
+import { vendorApplicationRepository } from "`../repositories/vendor-application.repository.js";
+import { userRepository } from "`../repositories/user.repository.js";
 import mongoose from "mongoose";
 import { notificationService } from "./notification.service.js";
-import { mailService } from "./mail.service";
-import { BaseService, type ServiceOptions } from "./base.service";
+import { mailService } from "`./mail.service.js";
+import { BaseService, type ServiceOptions } from "`./base.service.js";
 import { TRPCError } from "@trpc/server";
-import type { IEvent } from "../models/event.model";
+import type { IEvent } from "`../models/event.model.js";
 import type { FilterQuery } from "mongoose";
 import {
   EventStatus,
@@ -19,8 +19,8 @@ import {
   UserRole,
   type UpdateWorkshopInput,
 } from "../shared/index.js";
-import { ServiceError } from "../errors/errors";
-import type { IUser } from "../models/user.model";
+import { ServiceError } from "`../errors/errors.js";
+import type { IUser } from "`../models/user.model.js";
 
 /**
  * Service Layer for Events

@@ -13,11 +13,11 @@
  * @module services/certificate-worker.service
  */
 
-import { Event } from '../models/event.model';
-import { EventRegistration } from '../models/registration.model';
-import { certificateService } from './certificate.service';
-import { mailService } from './mail.service';
-import { ServiceError } from '../errors/errors';
+import { Event } from '../models/event.model.js';
+import { EventRegistration } from '../models/registration.model.js';
+import { certificateService } from './certificate.service.js';
+import { mailService } from './mail.service.js';
+import { ServiceError } from '../errors/errors.js';
 
 export interface CertificateJobResult {
   eventId: string;

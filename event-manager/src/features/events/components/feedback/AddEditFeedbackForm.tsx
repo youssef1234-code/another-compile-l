@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import type { Feedback } from '@event-manager/shared';
+import type { Feedback } from '../../../../shared';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';

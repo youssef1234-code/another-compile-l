@@ -11,7 +11,7 @@
  * - Inline editing
  */
 
-import type { Event } from "@event-manager/shared";
+import type { Event } from "../../../shared";
 import * as React from "react";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableAdvancedToolbar } from "@/components/data-table/data-table-advanced-toolbar";

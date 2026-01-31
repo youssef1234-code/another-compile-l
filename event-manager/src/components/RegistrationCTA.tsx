@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { RegistrationStatus } from "@event-manager/shared";
+import { RegistrationStatus } from "../shared";
 import { toast } from 'react-hot-toast';
 import {
   AlertDialog,

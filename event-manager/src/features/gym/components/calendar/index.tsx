@@ -12,7 +12,7 @@ import { CalendarBody } from './calendar-body';
 import { EventDetailsDialog } from './dialogs/event-details-dialog';
 import { DnDConfirmationDialog } from './dnd/dnd-confirmation-dialog';
 import type { CalendarEvent } from './types';
-import type { Event } from '@event-manager/shared';
+import type { Event } from '../../../../shared';
 import { toast } from 'react-hot-toast';
 import { exportCalendarToExcel, exportCalendarScreenshot } from '../../utils/export-calendar-pdf';
 

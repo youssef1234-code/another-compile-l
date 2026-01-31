@@ -15,10 +15,10 @@
  */
 
 import PDFDocument from 'pdfkit';
-import { ServiceError } from '../errors/errors';
-import { User } from '../models/user.model';
-import { EventRegistration } from '../models/registration.model';
-import { registrationService } from './registration.service';
+import { ServiceError } from '../errors/errors.js';
+import { User } from '../models/user.model.js';
+import { EventRegistration } from '../models/registration.model.js';
+import { registrationService } from './registration.service.js';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';

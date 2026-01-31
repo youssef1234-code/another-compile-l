@@ -10,7 +10,7 @@
  */
 
 
-import type { Event } from '@event-manager/shared';
+import type { Event } from '../../../shared';
 import { Calendar, CheckCircle2, Clock } from 'lucide-react';
 
 type ExtendedFilter = {

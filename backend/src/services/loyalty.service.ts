@@ -11,12 +11,12 @@
  * @module services/loyalty.service
  */
 
-import { LoyaltyRequestRepository, loyaltyRequestRepository } from '../repositories/loyalty-request.repository';
-import { LoyaltyPartnerRepository, loyaltyPartnerRepository } from '../repositories/loyalty-partner.repository';
-import { BaseService } from './base.service';
+import { LoyaltyRequestRepository, loyaltyRequestRepository } from '../repositories/loyalty-request.repository.js';
+import { LoyaltyPartnerRepository, loyaltyPartnerRepository } from '../repositories/loyalty-partner.repository.js';
+import { BaseService } from './base.service.js';
 import { TRPCError } from '@trpc/server';
-import type { ILoyaltyRequest } from '../models/loyalty-request.model';
-import type { ILoyaltyPartner } from '../models/loyalty-partner.model';
+import type { ILoyaltyRequest } from '../models/loyalty-request.model.js';
+import type { ILoyaltyPartner } from '../models/loyalty-partner.model.js';
 import type { ApplyToLoyaltyInput } from '../shared/index.js';
 import { Types } from 'mongoose';
 

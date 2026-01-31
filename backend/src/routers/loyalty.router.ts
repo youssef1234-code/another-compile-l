@@ -18,8 +18,8 @@
 import {
   protectedProcedure,
   router,
-} from '../trpc/trpc';
-import { loyaltyService } from '../services/loyalty.service';
+} from '../trpc/trpc.js';
+import { loyaltyService } from '../services/loyalty.service.js';
 import {
   ApplyToLoyaltySchema,
   CancelLoyaltySchema,

@@ -14,7 +14,7 @@
 import { DataTable } from "@/components/data-table/data-table";
 import { useDataTable } from "@/hooks/use-data-table";
 import type { QueryKeys } from "@/types/data-table";
-import type { Event } from "@event-manager/shared";
+import type { Event } from "../../../shared";
 import * as React from "react";
 import { getEventsTableColumns } from "./event-report-columns";
 

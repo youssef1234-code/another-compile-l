@@ -12,15 +12,15 @@
  * @module services/feedback.service
  */
 
-import { FeedbackRepository, feedbackRepository } from '../repositories/feedback.repository';
-import { eventRepository } from '../repositories/event.repository';
-// import { registrationRepository } from '../repositories/registration.repository';
-import { BaseService } from './base.service';
+import { FeedbackRepository, feedbackRepository } from '../repositories/feedback.repository.js';
+import { eventRepository } from '../repositories/event.repository.js';
+// import { registrationRepository } from '../repositories/registration.repository.js';
+import { BaseService } from './base.service.js';
 import { TRPCError } from '@trpc/server';
-import type { IFeedback } from '../models/feedback.model';
+import type { IFeedback } from '../models/feedback.model.js';
 import type { CreateFeedbackInput, UpdateFeedbackInput } from '../shared/index.js';
 import { Types } from 'mongoose';
-import { mailService } from './mail.service';
+import { mailService } from './mail.service.js';
 
 export class FeedbackService extends BaseService<IFeedback, FeedbackRepository> {
   constructor(repository: FeedbackRepository) {

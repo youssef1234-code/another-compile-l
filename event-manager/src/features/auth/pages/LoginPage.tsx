@@ -11,7 +11,7 @@ import { ROUTES } from '@/lib/constants';
 import { formatValidationErrors } from '@/lib/format-errors';
 import { trpc } from '@/lib/trpc';
 import { useAuthStore } from '@/store/authStore';
-import { LoginSchema, type LoginInput, type User } from '@event-manager/shared';
+import { LoginSchema, type LoginInput, type User } from '../../../shared';
 import { motion } from 'framer-motion';
 import { Calendar, CreditCard, Dumbbell, GraduationCap, Lock, Mail, Sparkles, Star, Store, Ticket, Trophy, Users } from 'lucide-react';
 import { useState } from 'react';

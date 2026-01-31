@@ -46,7 +46,7 @@ import {
   Loader2,
   IdCard,
 } from 'lucide-react';
-import type { CourtSport } from '@event-manager/shared';
+import type { CourtSport } from '../../../shared';
 
 const SPORTS = [
   { value: "BASKETBALL", label: "Basketball", icon: "🏀" },

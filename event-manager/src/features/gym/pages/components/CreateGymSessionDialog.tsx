@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 import { toast } from "react-hot-toast";
-import { GymSessionType, GYM_SESSION_TYPE_LABELS } from "@event-manager/shared";
+import { GymSessionType, GYM_SESSION_TYPE_LABELS } from "../../../../shared";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";

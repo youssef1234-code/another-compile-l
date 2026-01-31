@@ -1,15 +1,15 @@
 import {
   VendorApplicationRepository,
   vendorApplicationRepository,
-} from '../repositories/vendor-application.repository';
-import { BaseService } from './base.service';
-import { ServiceError } from '../errors/errors';
-import { type IVendorApplication } from '../models/vendor-application.model';
+} from '../repositories/vendor-application.repository.js';
+import { BaseService } from './base.service.js';
+import { ServiceError } from '../errors/errors.js';
+import { type IVendorApplication } from '../models/vendor-application.model.js';
 import { CreateApplicationSchema } from '../shared/index.js';
 import mongoose from 'mongoose';
-import { userRepository } from '../repositories/user.repository';
-import { mailService } from './mail.service';
-import { computeVendorFee } from './vendor-pricing.service';
+import { userRepository } from '../repositories/user.repository.js';
+import { mailService } from './mail.service.js';
+import { computeVendorFee } from './vendor-pricing.service.js';
 import { DateTime } from 'luxon';
 import { TRPCError } from '@trpc/server/unstable-core-do-not-import';
 

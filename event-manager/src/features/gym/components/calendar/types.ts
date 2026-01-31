@@ -3,7 +3,7 @@
  * Based on full-calendar implementation
  */
 
-import type { Event, GymSessionType } from '@event-manager/shared';
+import type { Event, GymSessionType } from '../../../../shared';
 
 export type CalendarView = 'day' | 'week' | 'month' | 'year' | 'agenda';
 

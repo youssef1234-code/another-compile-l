@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import { format, parseISO, isSameMonth } from 'date-fns';
 import { useCalendar } from '../calendar-context';
 import { cn } from '@/lib/utils';
-import { GYM_SESSION_TYPE_LABELS, GYM_SESSION_TYPE_COLORS } from '@event-manager/shared';
+import { GYM_SESSION_TYPE_LABELS, GYM_SESSION_TYPE_COLORS } from '../../../../../shared';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { CalendarEvent } from '../types';

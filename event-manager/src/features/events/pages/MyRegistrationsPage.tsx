@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Registration, Event } from '@event-manager/shared';
+import type { Registration, Event } from '../../../shared';
 import { trpc } from '@/lib/trpc';
 import { useAuthStore } from '@/store/authStore';
 import { ROUTES } from '@/lib/constants';

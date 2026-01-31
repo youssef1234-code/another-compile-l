@@ -21,8 +21,8 @@ import {
   protectedProcedure,
   adminProcedure,
   router,
-} from '../trpc/trpc';
-import { feedbackService } from '../services/feedback.service';
+} from '../trpc/trpc.js';
+import { feedbackService } from '../services/feedback.service.js';
 import {
   CreateFeedbackSchema,
   UpdateFeedbackSchema,

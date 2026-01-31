@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 import { useCalendar } from '../calendar-context';
 import { getCalendarCells, getEventsForDate, getWeekDays, isToday } from '../helpers';
 import { cn } from '@/lib/utils';
-import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '@event-manager/shared';
+import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '../../../../../shared';
 import type { CalendarEvent } from '../types';
 import { DroppableArea } from '../dnd/droppable-area';
 import { DraggableEvent } from '../dnd/draggable-event';

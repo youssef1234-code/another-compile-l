@@ -16,7 +16,7 @@ import { CourtExpandedRow } from "./court-expanded-row";
 import { useQueryState, parseAsString, parseAsBoolean } from "nuqs";
 import { Button } from "@/components/ui/button";
 import { Search, ListFilter } from "lucide-react";
-import type { CourtSport, Coordinates } from "@event-manager/shared";
+import type { CourtSport, Coordinates } from "../../../shared";
 import type { QueryKeys } from "@/types/data-table";
 
 interface Court {

@@ -1,10 +1,10 @@
 import {
   VendorApplication,
   type IVendorApplication,
-} from '../models/vendor-application.model';
-import { BaseRepository } from './base.repository';
+} from '../models/vendor-application.model.js';
+import { BaseRepository } from './base.repository.js';
 import type { ClientSession, FilterQuery } from 'mongoose';
-import { userRepository } from './user.repository';
+import { userRepository } from './user.repository.js';
 /**
  * Repository Pattern for Vendor Application entity
  * Extends BaseRepository for common CRUD operations

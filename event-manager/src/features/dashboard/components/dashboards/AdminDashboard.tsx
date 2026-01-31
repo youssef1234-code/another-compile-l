@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NumberFlow from '@number-flow/react';
-import type { Event, User } from '@event-manager/shared';
+import type { Event, User } from '../../../../shared';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   PieChart, Pie, Cell

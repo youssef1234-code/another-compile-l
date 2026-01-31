@@ -8,7 +8,7 @@
 
 import mongoose, { Schema } from 'mongoose';
 import { UserRole, UserStatus } from '../shared/index.js';
-import { type IBaseDocument, createBaseSchema } from './base.model';
+import { type IBaseDocument, createBaseSchema } from './base.model.js';
 
 export interface IUser extends IBaseDocument {
   email: string;

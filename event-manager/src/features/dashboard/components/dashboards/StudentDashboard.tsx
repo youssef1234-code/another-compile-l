@@ -38,7 +38,7 @@ import {
 import { formatDate } from '@/lib/design-system';
 import { cn } from '@/lib/utils';
 import NumberFlow from '@number-flow/react';
-import type { Event, Registration } from '@event-manager/shared';
+import type { Event, Registration } from '../../../../shared';
 
 export function StudentDashboard() {
   const navigate = useNavigate();

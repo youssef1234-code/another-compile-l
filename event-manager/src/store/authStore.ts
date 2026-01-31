@@ -8,7 +8,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User } from '@event-manager/shared';
+import type { User } from '../shared';
 
 interface AuthState {
   user: User | null;

@@ -10,7 +10,7 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/store/authStore";
-import { UserRole, PollStatus } from "@event-manager/shared";
+import { UserRole, PollStatus } from "../../../shared";
 import {
   Card,
   CardContent,

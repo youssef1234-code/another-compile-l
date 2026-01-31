@@ -29,7 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS, EventType } from '@event-manager/shared';
+import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS, EventType } from '../../../../shared';
 import { Badge } from '@/components/ui/badge';
 
 const VIEW_ICONS: Record<CalendarView, React.ReactNode> = {

@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 import { useCalendar } from '../calendar-context';
 import { getCalendarCells, getEventsForDate, getWeekDays, isToday } from '../helpers';
 import { cn } from '@/lib/utils';
-import { GYM_SESSION_TYPE_LABELS } from '@event-manager/shared';
+import { GYM_SESSION_TYPE_LABELS } from '../../../../../shared';
 import type { CalendarEvent } from '../types';
 import { DroppableArea } from '../dnd/droppable-area';
 import { DraggableEvent } from '../dnd/draggable-event';

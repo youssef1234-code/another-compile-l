@@ -16,10 +16,10 @@
 
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { config } from './env';
-import { User } from '../models/user.model';
-import { Event } from '../models/event.model';
-import { Feedback } from '../models/feedback.model';
+import { config } from './env.js';
+import { User } from '../models/user.model.js';
+import { Event } from '../models/event.model.js';
+import { Feedback } from '../models/feedback.model.js';
 
 // Sample comments by category
 const SAMPLE_COMMENTS = {

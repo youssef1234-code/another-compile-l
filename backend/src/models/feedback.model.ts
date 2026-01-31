@@ -8,8 +8,8 @@
  */
 
 import mongoose, { Schema } from 'mongoose';
-import type { IBaseDocument } from './base.model';
-import { createBaseSchema } from './base.model';
+import type { IBaseDocument } from './base.model.js';
+import { createBaseSchema } from './base.model.js';
 
 export interface IFeedback extends IBaseDocument {
   event: mongoose.Types.ObjectId;

@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'react-hot-toast';
-import { getAvatarSrc } from '@event-manager/shared';
+import { getAvatarSrc } from '../../../shared';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { formatValidationErrors } from '@/lib/format-errors';
 

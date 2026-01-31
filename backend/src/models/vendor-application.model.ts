@@ -12,7 +12,7 @@ import {
   ApplicationType,
   VendorApprovalStatus,
 } from "../shared/index.js";
-import { type IBaseDocument, createBaseSchema } from "./base.model";
+import { type IBaseDocument, createBaseSchema } from "`./base.model.js";
 
 export interface IVendorApplication extends IBaseDocument {
   companyName: string;

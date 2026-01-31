@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { format } from "date-fns";
 import { User, IdCard } from "lucide-react";
-import type { CourtSport } from "@event-manager/shared";
+import type { CourtSport } from "../../../shared";
 
 const SPORTS = [
   { value: "BASKETBALL", label: "Basketball", icon: "🏀" },

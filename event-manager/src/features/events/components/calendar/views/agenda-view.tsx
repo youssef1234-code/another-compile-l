@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import { format, parseISO, isSameMonth } from 'date-fns';
 import { useCalendar } from '../calendar-context';
 import { cn } from '@/lib/utils';
-import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '@event-manager/shared';
+import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '../../../../../shared';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';

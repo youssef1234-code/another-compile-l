@@ -13,7 +13,7 @@ import {
 import { formatDate } from "@/lib/design-system";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import type { WalletTxnType } from "@event-manager/shared";
+import type { WalletTxnType } from "../../../shared";
 import {
   ArrowDownRight,
   ArrowUpRight,

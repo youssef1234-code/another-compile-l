@@ -53,7 +53,7 @@ import { useAuthStore } from "@/store/authStore";
 import { trpc } from "@/lib/trpc";
 import { toast } from "react-hot-toast";
 import { ROUTES } from "@/lib/constants";
-import { getAvatarSrc } from "@event-manager/shared";
+import { getAvatarSrc } from "../shared";
 import {
   Collapsible,
   CollapsibleContent,

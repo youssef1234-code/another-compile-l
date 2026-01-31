@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import type { Request, Response } from "express";
-import { paymentService } from "../services/payment.service";
+import { paymentService } from "`../services/payment.service.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;

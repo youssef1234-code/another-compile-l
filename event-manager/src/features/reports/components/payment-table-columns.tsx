@@ -1,7 +1,7 @@
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDate } from "@/lib/design-system";
-import type { Payment } from "@event-manager/shared";
+import type { Payment } from "../../../shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
     Calendar,

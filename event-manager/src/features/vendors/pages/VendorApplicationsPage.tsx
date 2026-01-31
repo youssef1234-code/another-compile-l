@@ -15,7 +15,7 @@ import { useQueryState, parseAsInteger, parseAsString, parseAsArrayOf, parseAsJs
 import { trpc } from "@/lib/trpc";
 import { CheckCircle2, XCircle, Clock, Package } from "lucide-react";
 import { VendorApplicationsTable } from "../components/vendor-applications-table";
-import type { VendorApplication } from "@event-manager/shared";
+import type { VendorApplication } from "../../../shared";
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";

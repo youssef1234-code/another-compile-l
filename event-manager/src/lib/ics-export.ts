@@ -3,7 +3,7 @@
  * Generate .ics files for calendar import
  */
 
-import type { Event } from '@event-manager/shared';
+import type { Event } from '../shared';
 
 /**
  * Escape special characters for iCalendar format

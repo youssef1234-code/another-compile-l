@@ -42,7 +42,7 @@ import { Loader2, Plus, Trash2, ShoppingBag, Calendar, MapPin, Clock, Info, Sear
 import { toast } from 'react-hot-toast';
 import { getBazaarsTableColumns } from "../components/bazaars-table-columns";
 import { formatDate } from "@/lib/design-system";
-import type { Event } from "@event-manager/shared";
+import type { Event } from "../../../shared";
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { ImageUpload } from "@/components/ui/image-upload";
 

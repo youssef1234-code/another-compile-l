@@ -6,9 +6,9 @@
  */
 
 import ExcelJS from 'exceljs';
-import { registrationRepository } from '../repositories/registration.repository';
-import { Event } from '../models/event.model';
-import { ServiceError } from '../errors/errors';
+import { registrationRepository } from '../repositories/registration.repository.js';
+import { Event } from '../models/event.model.js';
+import { ServiceError } from '../errors/errors.js';
 
 export class ExportService {
   /**

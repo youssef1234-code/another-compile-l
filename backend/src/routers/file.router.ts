@@ -13,8 +13,8 @@
  */
 
 import { TRPCError } from '@trpc/server';
-import { publicProcedure, protectedProcedure, router } from '../trpc/trpc';
-import { fileService } from '../services/file.service';
+import { publicProcedure, protectedProcedure, router } from '../trpc/trpc.js';
+import { fileService } from '../services/file.service.js';
 import { z } from 'zod';
 import mongoose from 'mongoose';
 

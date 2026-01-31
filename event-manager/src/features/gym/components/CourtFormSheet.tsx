@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ImageGallery } from '@/components/ui/image-gallery';
 import { LocationPicker, type LocationData } from '@/components/ui/location-picker';
 import { Loader2 } from 'lucide-react';
-import type { CourtSport, Coordinates } from '@event-manager/shared';
+import type { CourtSport, Coordinates } from '../../../shared';
 
 const SPORTS = ['BASKETBALL', 'TENNIS', 'FOOTBALL'] as const;
 

@@ -1,8 +1,8 @@
 import { model} from "mongoose";
 import { PaymentMethod, PaymentStatus } from "../shared/index.js";
 import type { Currency } from "../shared/index.js";
-import { createBaseSchema } from "./base.model";
-import type { IBaseDocument } from "./base.model";
+import { createBaseSchema } from "`./base.model.js";
+import type { IBaseDocument } from "`./base.model.js";
 
 export interface IPayment extends IBaseDocument {
     

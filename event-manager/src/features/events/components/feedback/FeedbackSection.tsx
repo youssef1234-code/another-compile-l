@@ -15,7 +15,7 @@
 
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
-import type { Feedback } from '@event-manager/shared';
+import type { Feedback } from '../../../../shared';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';

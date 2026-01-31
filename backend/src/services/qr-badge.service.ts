@@ -8,12 +8,12 @@
 
 import QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
-import { vendorApplicationRepository } from '../repositories/vendor-application.repository';
-import { Event } from '../models/event.model';
-import { User } from '../models/user.model';
-import { EventRegistration } from '../models/registration.model';
-import { VendorApplication } from '../models/vendor-application.model';
-import { ServiceError } from '../errors/errors';
+import { vendorApplicationRepository } from '../repositories/vendor-application.repository.js';
+import { Event } from '../models/event.model.js';
+import { User } from '../models/user.model.js';
+import { EventRegistration } from '../models/registration.model.js';
+import { VendorApplication } from '../models/vendor-application.model.js';
+import { ServiceError } from '../errors/errors.js';
 
 export class QRBadgeService {
   /**

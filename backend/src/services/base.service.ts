@@ -6,7 +6,7 @@
  */
 
 import type { Document, FilterQuery } from 'mongoose';
-import type { BaseRepository, PaginationOptions, PaginatedResult } from '../repositories/base.repository';
+import type { BaseRepository, PaginationOptions, PaginatedResult } from '../repositories/base.repository.js';
 
 export interface ServiceOptions {
   userId?: string;

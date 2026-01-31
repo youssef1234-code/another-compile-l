@@ -1,7 +1,7 @@
 import { DataTable } from "@/components/data-table/data-table";
 import { useDataTable } from "@/hooks/use-data-table";
 import type { QueryKeys } from "@/types/data-table";
-import type { Payment } from "@event-manager/shared";
+import type { Payment } from "../../../shared";
 import { getPaymentsTableColumns } from "./payment-table-columns";
 import { useMemo } from "react";
 

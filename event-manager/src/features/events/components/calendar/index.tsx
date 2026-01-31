@@ -11,7 +11,7 @@ import { CalendarBody } from './calendar-body';
 import { EventDetailsDialog } from './dialogs/event-details-dialog';
 import { DnDConfirmationDialog } from './dnd/dnd-confirmation-dialog';
 import type { CalendarEvent } from './types';
-import type { Event, EventType } from '@event-manager/shared';
+import type { Event, EventType } from '../../../../shared';
 import { toast } from 'react-hot-toast';
 import { exportCalendarScreenshot, exportCalendarToExcel } from '../../utils/export-calendar';
 import { exportEventsToICS } from '@/lib/ics-export';

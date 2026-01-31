@@ -16,7 +16,7 @@ import {
 } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import type { Notification } from "@event-manager/shared";
+import type { Notification } from "../../../shared";
 
 export function NotificationsPage() {
   const [page, setPage] = useState(1)

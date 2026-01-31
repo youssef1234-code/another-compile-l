@@ -7,8 +7,8 @@
  * @module repositories/loyalty-request.repository
  */
 
-import { LoyaltyRequest, type ILoyaltyRequest } from '../models/loyalty-request.model';
-import { BaseRepository } from './base.repository';
+import { LoyaltyRequest, type ILoyaltyRequest } from '../models/loyalty-request.model.js';
+import { BaseRepository } from './base.repository.js';
 import { Types } from 'mongoose';
 
 /**

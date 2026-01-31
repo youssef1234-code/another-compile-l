@@ -5,17 +5,17 @@ import {
   RegistrationStatus
 } from "../shared/index.js";
 import type { PaymentSummary, WalletTxn } from "../shared/index.js";
-import { PaymentRepository, paymentRepository } from "../repositories/payment.repository";
-import { walletRepository } from "../repositories/wallet.repository";
+import { PaymentRepository, paymentRepository } from "`../repositories/payment.repository.js";
+import { walletRepository } from "`../repositories/wallet.repository.js";
 import { TRPCError } from "@trpc/server";
-import { BaseService } from "./base.service";
-import type { IPayment } from "../models/payment.model";
+import { BaseService } from "`./base.service.js";
+import type { IPayment } from "`../models/payment.model.js";
 import type { PaginatedResponse } from "../shared/index.js";
-import { userRepository } from "../repositories/user.repository";
-import { mailService } from "./mail.service";
-import { eventRepository } from "../repositories/event.repository";
-import { registrationRepository } from "../repositories/registration.repository";
-import { assertVendorAppPayable } from "../services/vendor-application.service";
+import { userRepository } from "`../repositories/user.repository.js";
+import { mailService } from "`./mail.service.js";
+import { eventRepository } from "`../repositories/event.repository.js";
+import { registrationRepository } from "`../repositories/registration.repository.js";
+import { assertVendorAppPayable } from "`../services/vendor-application.service.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
 const DEFAULT_CURRENCY = (process.env.CURRENCY ?? "EGP") as "EGP" | "USD";

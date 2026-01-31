@@ -1,10 +1,10 @@
 import {
   PlatformMapRepository,
   platformMapRepository,
-} from "../repositories/platform-map.repository";
-import { BaseService } from "./base.service";
-import { ServiceError } from "../errors/errors";
-import { type IPlatformMap, type IBoothPlacement, type ILandmark } from "../models/platform-map.model";
+} from "`../repositories/platform-map.repository.js";
+import { BaseService } from "`./base.service.js";
+import { ServiceError } from "`../errors/errors.js";
+import { type IPlatformMap, type IBoothPlacement, type ILandmark } from "`../models/platform-map.model.js";
 
 export class PlatformMapService extends BaseService<
   IPlatformMap,

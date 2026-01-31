@@ -11,8 +11,8 @@ import {
   eventsOfficeProcedure,
   router,
   protectedProcedure,
-} from '../trpc/trpc';
-import { vendorPollService } from '../services/vendor-poll.service';
+} from '../trpc/trpc.js';
+import { vendorPollService } from '../services/vendor-poll.service.js';
 import {
   CreateVendorPollSchema,
   VoteOnPollSchema,

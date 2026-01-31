@@ -6,8 +6,8 @@
 
 import mongoose, { Schema } from 'mongoose';
 import { NotificationType } from '../shared/index.js';
-import type { IBaseDocument } from './base.model';
-import { createBaseSchema } from './base.model';
+import type { IBaseDocument } from './base.model.js';
+import { createBaseSchema } from './base.model.js';
 
 export interface INotification extends IBaseDocument {
   user: mongoose.Types.ObjectId;

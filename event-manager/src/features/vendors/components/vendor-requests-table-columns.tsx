@@ -5,7 +5,7 @@
  * Follows EventsTable pattern with filters, sorting, and action buttons
  */
 
-import type { VendorApplication } from "@event-manager/shared";
+import type { VendorApplication } from "../../../shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import * as React from "react";
 import { 

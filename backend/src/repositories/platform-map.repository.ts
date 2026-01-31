@@ -1,5 +1,5 @@
-import { PlatformMap, type IPlatformMap } from "../models/platform-map.model";
-import { BaseRepository } from "./base.repository";
+import { PlatformMap, type IPlatformMap } from "`../models/platform-map.model.js";
+import { BaseRepository } from "`./base.repository.js";
 
 /**
  * Repository Pattern for Platform Map entity

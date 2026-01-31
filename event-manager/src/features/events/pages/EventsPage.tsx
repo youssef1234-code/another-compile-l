@@ -54,7 +54,7 @@ import {
   getEventStatus,
   EVENT_STATUS_COLORS,
 } from "@/lib/event-colors";
-import type { Event, Registration } from "@event-manager/shared";
+import type { Event, Registration } from "../../../shared";
 import { useAuthStore } from "@/store/authStore";
 import { usePageMeta } from "@/components/layout/page-meta-context";
 import toast from "react-hot-toast";

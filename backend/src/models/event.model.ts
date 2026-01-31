@@ -8,7 +8,7 @@
 
 import mongoose, { Schema } from 'mongoose';
 import { EventType, EventStatus, FundingSource, Faculty, GymSessionType } from '../shared/index.js';
-import { type IBaseDocument, createBaseSchema } from './base.model';
+import { type IBaseDocument, createBaseSchema } from './base.model.js';
 
 export interface IEvent extends IBaseDocument {
   name: string;

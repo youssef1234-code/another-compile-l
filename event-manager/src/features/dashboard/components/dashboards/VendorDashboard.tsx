@@ -37,7 +37,7 @@ import {
 import { formatDate } from '@/lib/design-system';
 import { cn } from '@/lib/utils';
 import NumberFlow from '@number-flow/react';
-import type { Event } from '@event-manager/shared';
+import type { Event } from '../../../../shared';
 
 export function VendorDashboard() {
   const navigate = useNavigate();

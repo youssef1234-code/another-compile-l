@@ -5,7 +5,7 @@
  * Follows the events table pattern with inline editing, filters, sorting
  */
 
-import type { Event } from "@event-manager/shared";
+import type { Event } from "../../../shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
   Calendar, 

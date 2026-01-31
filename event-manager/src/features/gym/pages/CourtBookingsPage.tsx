@@ -37,7 +37,7 @@ const SPORTS = [
 type SportValue = typeof SPORTS[number]["value"];
 
 // Import types from shared package
-import type { CourtAvailabilityRow, CourtBookedSlot, Coordinates } from "@event-manager/shared";
+import type { CourtAvailabilityRow, CourtBookedSlot, Coordinates } from "../../../shared";
 
 // Extend the booking type with student info
 interface Booking extends Omit<CourtBookedSlot, 'status'> {

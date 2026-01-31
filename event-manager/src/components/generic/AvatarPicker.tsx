@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { PRESET_AVATAR_IDS, getAvatarSrc, type PresetAvatarId } from '@event-manager/shared';
+import { PRESET_AVATAR_IDS, getAvatarSrc, type PresetAvatarId } from '../../shared';
 
 // Helper to create image preview from crop
 async function getCroppedImg(

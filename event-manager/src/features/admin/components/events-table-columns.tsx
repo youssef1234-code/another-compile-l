@@ -5,7 +5,7 @@
  * Follows AdminUsersPage pattern with inline editing, filters, sorting
  */
 
-import type { Event } from "@event-manager/shared";
+import type { Event } from "../../../shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
   Calendar, 
@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/tooltip";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
-import { UserRole } from "@event-manager/shared";
+import { UserRole } from "../../../shared";
 
 interface GetEventsTableColumnsProps {
   typeCounts: Record<string, number>;

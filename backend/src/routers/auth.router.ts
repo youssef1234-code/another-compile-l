@@ -12,20 +12,20 @@
  */
 
 import { TRPCError } from '@trpc/server';
-import { publicProcedure, protectedProcedure, adminProcedure, router } from '../trpc/trpc';
-import { userService } from '../services/user.service';
+import { publicProcedure, protectedProcedure, adminProcedure, router } from '../trpc/trpc.js';
+import { userService } from '../services/user.service.js';
 import {
   SignupAcademicSchema,
   SignupVendorSchema,
   LoginSchema,
 } from '../shared/index.js';
-import { User } from '../models/user.model';
+import { User } from '../models/user.model.js';
 import {
   comparePassword,
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
-} from '../utils/auth.util';
+} from '../utils/auth.util.js';
 import { z } from 'zod';
 
 // ==================== AUTHENTICATION ROUTES ====================

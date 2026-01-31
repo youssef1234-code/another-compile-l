@@ -13,7 +13,7 @@
  */
 
 
-import type { User } from '@event-manager/shared';
+import type { User } from '../../../shared';
 import { Users, UserCheck, UserX } from 'lucide-react';
 
 type ExtendedFilter = {

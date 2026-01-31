@@ -26,7 +26,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatDate } from "@/lib/design-system";
-import type { VendorApplication } from "@event-manager/shared";
+import type { VendorApplication } from "../../../shared";
 import { toast } from "react-hot-toast";
 import { formatValidationErrors } from "@/lib/format-errors";
 import { Button } from "@/components/ui/button";

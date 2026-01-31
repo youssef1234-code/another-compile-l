@@ -8,10 +8,10 @@
  * @module config/seed
  */
 
-import { User } from '../models/user.model';
-import { hashPassword } from '../utils/auth.util';
-import { config } from './env';
-import { seedComprehensiveData } from './comprehensive-seed';
+import { User } from '../models/user.model.js';
+import { hashPassword } from '../utils/auth.util.js';
+import { config } from './env.js';
+import { seedComprehensiveData } from './comprehensive-seed.js';
 
 /**
  * Seed default admin account

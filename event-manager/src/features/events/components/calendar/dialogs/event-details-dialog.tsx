@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import type { CalendarEvent } from '../types';
-import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '@event-manager/shared';
+import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '../../../../../shared';
 import { 
   Calendar,
   MapPin, 

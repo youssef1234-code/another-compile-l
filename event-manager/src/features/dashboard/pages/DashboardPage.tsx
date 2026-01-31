@@ -5,7 +5,7 @@
  */
 
 import { useAuthStore } from '@/store/authStore';
-import { UserRole } from '@event-manager/shared';
+import { UserRole } from '../../../shared';
 import { LoadingSpinner } from '@/components/generic/LoadingSpinner';
 import { usePageMeta } from '@/components/layout/page-meta-context';
 import { useEffect } from 'react';

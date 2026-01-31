@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import type { CourtSport, Coordinates } from "@event-manager/shared";
+import type { CourtSport, Coordinates } from "../../../shared";
 
 interface Court {
   id: string;

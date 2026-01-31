@@ -19,7 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { LoyaltyApplicationForm } from '../components/LoyaltyApplicationForm';
 import { VendorLoyaltyStatus } from '../components/VendorLoyaltyStatus';
-import type { ApplyToLoyaltyInput } from '@event-manager/shared';
+import type { ApplyToLoyaltyInput } from '../../../shared';
 
 interface LoyaltyRequest {
   id: string;

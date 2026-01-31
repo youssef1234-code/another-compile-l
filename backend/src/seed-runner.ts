@@ -6,10 +6,10 @@
  */
 
 import mongoose from 'mongoose';
-import { config } from './config/env';
-import { seedComprehensiveData } from './config/comprehensive-seed';
-import { seedAdminAccount } from './config/seed';
-import { seedInterestBasedData } from './config/interests-seed';
+import { config } from './config/env.js';
+import { seedComprehensiveData } from './config/comprehensive-seed.js';
+import { seedAdminAccount } from './config/seed.js';
+import { seedInterestBasedData } from './config/interests-seed.js';
 
 async function runSeeder() {
   try {

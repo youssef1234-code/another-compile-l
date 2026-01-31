@@ -29,7 +29,7 @@
  * ```
  */
 
-import type { EventFilterInput } from '@event-manager/shared';
+import type { EventFilterInput } from '../shared';
 
 export const queryKeys = {
   // ============================================================================

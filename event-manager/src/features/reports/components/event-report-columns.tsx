@@ -9,8 +9,8 @@ import { DataTableColumnHeader } from "@/components/data-table/data-table-column
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
-import type { Event } from "@event-manager/shared";
-import { UserRole } from "@event-manager/shared";
+import type { Event } from "../../../shared";
+import { UserRole } from "../../../shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
     Calendar,

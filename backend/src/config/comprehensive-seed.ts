@@ -12,16 +12,16 @@
  * @module config/comprehensive-seed
  */
 
-import { User } from "../models/user.model";
-import { Event } from "../models/event.model";
-import { Registration } from "../models/registration.model";
-import { Court } from "../models/court.model";
-import { CourtReservation } from "../models/court-reservation.model";
-import { Payment } from "../models/payment.model";
-import { hashPassword } from "../utils/auth.util";
-import { config } from "./env";
-import { seedInterestBasedData } from "./interests-seed";
-import { seedSampleComments } from "./seed-comments";
+import { User } from "`../models/user.model.js";
+import { Event } from "`../models/event.model.js";
+import { Registration } from "`../models/registration.model.js";
+import { Court } from "`../models/court.model.js";
+import { CourtReservation } from "`../models/court-reservation.model.js";
+import { Payment } from "`../models/payment.model.js";
+import { hashPassword } from "`../utils/auth.util.js";
+import { config } from "`./env.js";
+import { seedInterestBasedData } from "`./interests-seed.js";
+import { seedSampleComments } from "`./seed-comments.js";
 
 /**
  * Sample user data for different roles

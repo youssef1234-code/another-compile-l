@@ -5,8 +5,8 @@
  */
 
 import mongoose, { Schema } from 'mongoose';
-import type { IBaseDocument } from './base.model';
-import { createBaseSchema } from './base.model';
+import type { IBaseDocument } from './base.model.js';
+import { createBaseSchema } from './base.model.js';
 import { PaymentStatus, RegistrationStatus } from '../shared/index.js';
 
 export interface IEventRegistration extends IBaseDocument {

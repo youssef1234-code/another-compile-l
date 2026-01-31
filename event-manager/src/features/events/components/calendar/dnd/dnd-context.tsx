@@ -13,7 +13,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import type { CalendarEvent } from '../types';
-import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS } from '@event-manager/shared';
+import { EVENT_TYPE_COLORS, EVENT_TYPE_LABELS } from '../../../../../shared';
 import { cn } from '@/lib/utils';
 
 interface DragDropContextType {

@@ -29,7 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GYM_SESSION_TYPE_LABELS, GYM_SESSION_TYPE_COLORS } from '@event-manager/shared';
+import { GYM_SESSION_TYPE_LABELS, GYM_SESSION_TYPE_COLORS } from '../../../../shared';
 import { ColorLegend } from './color-legend';
 
 const VIEW_ICONS: Record<CalendarView, React.ReactNode> = {

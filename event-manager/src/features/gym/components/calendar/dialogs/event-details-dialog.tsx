@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { GYM_SESSION_TYPE_LABELS, UserRole } from '@event-manager/shared';
+import { GYM_SESSION_TYPE_LABELS, UserRole } from '../../../../../shared';
 import { Calendar, Clock, MapPin, Users, User, Trash2, Edit, CheckCircle, Loader2 } from 'lucide-react';
 import type { CalendarEvent } from '../types';
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog';

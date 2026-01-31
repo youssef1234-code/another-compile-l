@@ -3,7 +3,7 @@
  * Displays color coding for different gym session types
  */
 
-import { GYM_SESSION_TYPE_LABELS, GYM_SESSION_TYPE_COLORS, GymSessionType } from '@event-manager/shared';
+import { GYM_SESSION_TYPE_LABELS, GYM_SESSION_TYPE_COLORS, GymSessionType } from '../../../../shared';
 import { Info } from 'lucide-react';
 import {
   Popover,
