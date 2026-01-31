@@ -27,6 +27,14 @@ const ensureDbConnected = async () => {
   return dbConnectionPromise;
 };
 
+// CORS - must be before other routes
+app.use(
+  cors({
+    origin: config.clientUrl,
+    credentials: true,
+  })
+);
+
 // Stripe webhook must be before other middleware (needs raw body)
 app.post(
   "/webhooks/stripe",
@@ -35,14 +43,6 @@ app.post(
     await ensureDbConnected();
     return stripeWebhookExpressHandler(req, res);
   }
-);
-
-// CORS
-app.use(
-  cors({
-    origin: config.clientUrl,
-    credentials: true,
-  })
 );
 
 // Body parsing
