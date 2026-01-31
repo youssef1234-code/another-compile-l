@@ -29,11 +29,8 @@ JWT_SECRET=CHANGE_THIS_TO_RANDOM_32_CHAR_STRING
 JWT_EXPIRES_IN=7d
 JWT_REFRESH_SECRET=CHANGE_THIS_TO_DIFFERENT_32_CHAR_STRING
 JWT_REFRESH_EXPIRES_IN=30d
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-gmail-app-password
+MAILGUN_API_KEY=your-mailgun-api-key
+MAILGUN_DOMAIN=mg.yourdomain.com
 EMAIL_FROM=noreply@yourdomain.com
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
@@ -52,11 +49,12 @@ ADMIN_PASSWORD=Admin123!@#SecurePassword
 3. **MONGODB_URI** - Get from MongoDB Atlas
 4. **JWT_SECRET** - Generate random string (32+ chars)
 5. **JWT_REFRESH_SECRET** - Generate different random string (32+ chars)
-6. **SMTP_USER** & **SMTP_PASSWORD** - Your Gmail credentials (use App Password)
-7. **STRIPE_SECRET_KEY** - From Stripe Dashboard
-8. **STRIPE_PUBLISHABLE_KEY** - From Stripe Dashboard
-9. **STRIPE_WEBHOOK_SECRET** - Leave empty for now, add after webhook setup
-10. **ADMIN_EMAIL** & **ADMIN_PASSWORD** - Change these to your preferred admin credentials
+6. **MAILGUN_API_KEY** - From Mailgun Dashboard (see setup below)
+7. **MAILGUN_DOMAIN** - Your Mailgun domain (e.g., `mg.yourdomain.com`)
+8. **STRIPE_SECRET_KEY** - From Stripe Dashboard
+9. **STRIPE_PUBLISHABLE_KEY** - From Stripe Dashboard
+10. **STRIPE_WEBHOOK_SECRET** - Leave empty for now, add after webhook setup
+11. **ADMIN_EMAIL** & **ADMIN_PASSWORD** - Change these to your preferred admin credentials
 
 ---
 
@@ -108,17 +106,47 @@ openssl rand -base64 32
 
 ---
 
-## 📧 Gmail SMTP Setup (for email verification)
+## 📧 Mailgun Email Setup (for email verification)
 
-1. **Enable 2FA** on your Gmail account
-2. **Generate App Password**:
-   - Go to: https://myaccount.google.com/apppasswords
-   - App: "Mail"
-   - Device: "Other (Custom name)" → "Vercel Backend"
-   - Copy the 16-character password
-3. **Use in Vercel**:
-   - `SMTP_USER`: your-email@gmail.com
-   - `SMTP_PASSWORD`: the 16-char app password (no spaces)
+Mailgun is already integrated in the backend and is the recommended email service.
+
+1. **Sign up for Mailgun**: https://signup.mailgun.com/
+2. **Choose a plan**:
+   - Free tier: 5,000 emails/month (perfect for testing)
+   - Pay as you go for production
+3. **Get your API key**:
+   - Go to: https://app.mailgun.com/app/account/security/api_keys
+   - Copy your **Private API key** (starts with `key-`)
+4. **Set up your domain**:
+   - **Option A: Use Mailgun's sandbox domain** (for testing):
+     - Go to: https://app.mailgun.com/app/sending/domains
+     - Use the sandbox domain (e.g., `sandboxXXX.mailgun.org`)
+     - **Note**: Sandbox only sends to authorized recipients
+   - **Option B: Add your own domain** (for production):
+     - Go to: https://app.mailgun.com/app/sending/domains
+     - Click "Add New Domain"
+     - Enter: `mg.yourdomain.com`
+     - Follow DNS setup instructions
+     - Verify domain
+5. **Configure in Vercel**:
+   ```
+   MAILGUN_API_KEY=key-your-mailgun-private-api-key
+   MAILGUN_DOMAIN=sandboxXXX.mailgun.org (or mg.yourdomain.com)
+   EMAIL_FROM=noreply@yourdomain.com
+   ```
+
+### Mailgun Sandbox Testing
+
+If using sandbox domain, you need to add authorized recipients:
+1. Go to: https://app.mailgun.com/app/sending/domains/[your-sandbox]/recipients
+2. Add email addresses that can receive test emails
+3. They'll receive a confirmation email
+
+### For Production:
+- Add your own domain (`mg.yourdomain.com`)
+- Update DNS records as instructed
+- No recipient restrictions
+- Can send to any email address
 
 ---
 
