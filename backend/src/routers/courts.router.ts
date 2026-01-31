@@ -1,8 +1,8 @@
-import { router, publicProcedure, protectedProcedure, adminOrEventOfficeProcedure } from "`../trpc/trpc.js";
+import { router, publicProcedure, protectedProcedure, adminOrEventOfficeProcedure } from "../trpc/trpc.js";
 import { z } from "zod";
-import { courtService } from "`../services/court.service.js";
-import { courtReservationService } from "`../services/court-reservation.service.js";
-import { courtReservationRepository } from "`../repositories/court-reservation.repository.js";
+import { courtService } from "../services/court.service.js";
+import { courtReservationService } from "../services/court-reservation.service.js";
+import { courtReservationRepository } from "../repositories/court-reservation.repository.js";
 import type { CourtSummary } from "../shared/index.js";
 import { 
   CourtReservationCreateSchema, 

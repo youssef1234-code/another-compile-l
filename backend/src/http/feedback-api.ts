@@ -8,7 +8,7 @@
  */
 
 import type { Request, Response } from "express";
-import { feedbackService } from "`../services/feedback.service.js";
+import { feedbackService } from "../services/feedback.service.js";
 
 /**
  * GET /api/feedback/unmoderated

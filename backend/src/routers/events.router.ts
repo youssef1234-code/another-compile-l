@@ -19,13 +19,13 @@ import {
   router,
   professorProcedure,
   eventsOfficeOnlyProcedure,
-} from "`../trpc/trpc.js";
+} from "../trpc/trpc.js";
 import { TRPCError } from "@trpc/server";
-import { createSearchSchema } from "`./base.router.js";
-import { eventService } from "`../services/event.service.js";
-import { registrationService } from "`../services/registration.service.js";
-import { exportService } from "`../services/export.service.js";
-import { notificationService } from "`../services/notification.service.js";
+import { createSearchSchema } from "./base.router.js";
+import { eventService } from "../services/event.service.js";
+import { registrationService } from "../services/registration.service.js";
+import { exportService } from "../services/export.service.js";
+import { notificationService } from "../services/notification.service.js";
 import {
   CreateEventSchema,
   UpdateEventSchema,
@@ -37,7 +37,7 @@ import {
   UpdateWorkshopSchema
 } from "../shared/index.js";
 import { z } from "zod";
-import { userService } from "`../services/user.service.js";
+import { userService } from "../services/user.service.js";
 
 function omitUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
   return Object.fromEntries(

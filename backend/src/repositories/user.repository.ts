@@ -1,7 +1,7 @@
-import { User, type IUser } from "`../models/user.model.js";
-import { BaseRepository } from "`./base.repository.js";
+import { User, type IUser } from "../models/user.model.js";
+import { BaseRepository } from "./base.repository.js";
 import mongoose, { type FilterQuery } from "mongoose";
-import { eventRepository } from "`./event.repository.js";
+import { eventRepository } from "./event.repository.js";
 
 /**
  * Repository Pattern for User entity

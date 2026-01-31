@@ -17,7 +17,7 @@ import { TRPCError } from '@trpc/server';
 import { File, type IFile } from '../models/file.model.js';
 import crypto from 'crypto';
 import sharp from 'sharp';
-import { userRepository } from "`../repositories/user.repository.js";
+import { userRepository } from "../repositories/user.repository.js";
 
 /**
  * Allowed file types with MIME types

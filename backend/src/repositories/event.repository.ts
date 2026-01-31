@@ -1,7 +1,7 @@
 import type { FilterQuery } from "mongoose";
 import { Types } from "mongoose";
-import { Event, type IEvent } from "`../models/event.model.js";
-import { BaseRepository } from "`./base.repository.js";
+import { Event, type IEvent } from "../models/event.model.js";
+import { BaseRepository } from "./base.repository.js";
 
 /**
  * Repository Pattern for Event entity

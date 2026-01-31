@@ -3,9 +3,9 @@ import {
   vendorProcedure,
   router,
   protectedProcedure,
-} from "`../trpc/trpc.js";
-import { vendorApplicationService } from "`../services/vendor-application.service.js";
-import { qrBadgeService } from "`../services/qr-badge.service.js";
+} from "../trpc/trpc.js";
+import { vendorApplicationService } from "../services/vendor-application.service.js";
+import { qrBadgeService } from "../services/qr-badge.service.js";
 import {
   ApplicationFilterSchema,
   CreateApplicationSchema,

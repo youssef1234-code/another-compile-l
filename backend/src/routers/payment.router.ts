@@ -1,4 +1,4 @@
-import { eventsOfficeProcedure, protectedProcedure, router } from "`../trpc/trpc.js";
+import { eventsOfficeProcedure, protectedProcedure, router } from "../trpc/trpc.js";
 
 import {
   CardPaymentInitInput,
@@ -11,9 +11,9 @@ import {
 import { TRPCError } from "@trpc/server";
 import { DateTime } from "luxon";
 import { z } from "zod";
-import { eventRepository } from "`../repositories/event.repository.js";
-import { paymentRepository } from "`../repositories/payment.repository.js";
-import { paymentService } from "`../services/payment.service.js";
+import { eventRepository } from "../repositories/event.repository.js";
+import { paymentRepository } from "../repositories/payment.repository.js";
+import { paymentService } from "../services/payment.service.js";
 
 // Policy: refunds allowed only if >= 14 days before event start
 async function assertRefundWindow(eventId: string) {

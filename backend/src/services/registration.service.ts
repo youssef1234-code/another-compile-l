@@ -5,11 +5,11 @@
  * @module services/registration.service
  */
 
-import { registrationRepository } from "`../repositories/registration.repository.js";
-import { eventService } from "`./event.service.js";
-import { userRepository } from "`../repositories/user.repository.js";
+import { registrationRepository } from "../repositories/registration.repository.js";
+import { eventService } from "./event.service.js";
+import { userRepository } from "../repositories/user.repository.js";
 import { TRPCError } from "@trpc/server";
-import type { IEventRegistration } from "`../models/registration.model.js";
+import type { IEventRegistration } from "../models/registration.model.js";
 import mongoose from 'mongoose';
 import { PaymentStatus, RegistrationStatus } from '../shared/index.js';
 import type { RegistrationForEventResponse } from '../shared/index.js';

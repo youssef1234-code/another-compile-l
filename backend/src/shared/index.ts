@@ -9,10 +9,10 @@
 import { z } from "zod";
 
 // Export avatar utilities
-export * from "`./avatars.js";
+export * from "./avatars.js";
 
 // Export event color system
-export * from "`./event-colors.js";
+export * from "./event-colors.js";
 
 // ============================================================================
 // ENUMS

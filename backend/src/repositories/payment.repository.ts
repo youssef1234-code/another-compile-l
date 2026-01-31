@@ -1,9 +1,9 @@
 import { Types } from "mongoose";
 import type { ClientSession, FilterQuery } from "mongoose";
-import { Payment } from "`../models/payment.model.js";
-import type { IPayment } from "`../models/payment.model.js";
+import { Payment } from "../models/payment.model.js";
+import type { IPayment } from "../models/payment.model.js";
 
-import { BaseRepository } from "`./base.repository.js";
+import { BaseRepository } from "./base.repository.js";
 
 export class PaymentRepository extends BaseRepository<IPayment> {
   constructor() {
