@@ -17,18 +17,32 @@ let seedingCompleted = false;
  */
 const autoSeedIfEmpty = async (): Promise<void> => {
   // Skip if AUTO_SEED is explicitly disabled or seeding already done
-  if (process.env.AUTO_SEED === 'false' || seedingCompleted) {
+  if (process.env.AUTO_SEED === 'false') {
+    console.log('🚫 Auto-seed disabled via AUTO_SEED=false');
+    return;
+  }
+  if (seedingCompleted) {
+    console.log('⏭️ Seeding already completed this session');
     return;
   }
 
   try {
     // Check if any users exist
-    const collections = await mongoose.connection.db?.listCollections().toArray();
+    const db = mongoose.connection.db;
+    if (!db) {
+      console.log('⚠️ Database connection not ready for seeding check');
+      return;
+    }
+    
+    const collections = await db.listCollections().toArray();
+    console.log(`📋 Found ${collections.length} collections:`, collections.map(c => c.name).join(', ') || 'none');
+    
     const hasCollections = collections && collections.length > 0;
     
     if (hasCollections) {
       // Check if users collection has data
-      const usersCount = await mongoose.connection.db?.collection('users').countDocuments();
+      const usersCount = await db.collection('users').countDocuments();
+      console.log(`👥 Users count: ${usersCount}`);
       if (usersCount && usersCount > 0) {
         console.log('📊 Database already has data, skipping auto-seed');
         seedingCompleted = true;
@@ -54,9 +68,14 @@ export const connectDatabase = async (): Promise<void> => {
   try {
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/event-manager';
     
+    // Log connection attempt (hide password)
+    const safeUri = mongoUri.replace(/:([^@]+)@/, ':***@');
+    console.log('🔗 Connecting to MongoDB:', safeUri);
+    
     await mongoose.connect(mongoUri);
     
-    console.log('✅ MongoDB connected successfully');
+    const dbName = mongoose.connection.db?.databaseName || 'unknown';
+    console.log(`✅ MongoDB connected successfully to database: ${dbName}`);
     
     // Auto-seed on first run
     await autoSeedIfEmpty();
