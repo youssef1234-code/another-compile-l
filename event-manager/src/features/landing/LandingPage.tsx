@@ -503,12 +503,12 @@ export function LandingPage() {
                 {/* Dashboard screenshots with theme support */}
                 <div className="bg-gradient-to-br from-muted/50 to-background">
                   <img 
-                    src="/src/assets/dashboard-light.png" 
+                    src="/dashboard-light.png" 
                     alt="Dashboard Preview" 
                     className="w-full h-auto dark:hidden"
                   />
                   <img 
-                    src="/src/assets/dasboard-dark.png" 
+                    src="/dasboard-dark.png" 
                     alt="Dashboard Preview" 
                     className="w-full h-auto hidden dark:block"
                   />
@@ -547,8 +547,8 @@ export function LandingPage() {
           {/* First Feature with 3D Image */}
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16 mb-32">
             <Image3D
-              srcLight="/src/assets/events-page-light.png"
-              srcDark="/src/assets/events-page-dark.png"
+              srcLight="/events-page-light.png"
+              srcDark="/events-page-dark.png"
               alt="Events Management Dashboard"
               direction="left"
             />
@@ -622,8 +622,8 @@ export function LandingPage() {
             </div>
 
             <Image3D
-              srcLight="/src/assets/users-table-light.png"
-              srcDark="/src/assets/users-table-dark.png"
+              srcLight="/users-table-light.png"
+              srcDark="/users-table-dark.png"
               alt="User Management"
               direction="right"
             />

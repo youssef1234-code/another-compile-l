@@ -32,5 +32,6 @@
     }
 
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["../backend", "../ai-service"]
 }
