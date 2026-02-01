@@ -243,4 +243,6 @@ async function seedComments() {
 }
 
 // Run if executed directly
-seedComments();
+if (import.meta.url === `file://${process.argv[1]}`) {
+  seedComments();
+}
