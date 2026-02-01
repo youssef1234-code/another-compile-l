@@ -1080,10 +1080,16 @@ export class MailgunService extends BaseMailService {
     }
 
     const mg = new Mailgun(formData);
+    
+    // Determine API URL based on region
+    const apiUrl = config.mailgun.region === 'us' 
+      ? 'https://api.mailgun.net'
+      : 'https://api.eu.mailgun.net';
+    
     this.mailgun = mg.client({
       username: 'api',
       key: config.mailgun.apiKey,
-      url: 'https://api.eu.mailgun.net'
+      url: apiUrl
     });
     
     this.domain = config.mailgun.domain;

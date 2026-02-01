@@ -30,6 +30,7 @@ export const config = {
   mailgun: {
     apiKey: process.env.MAILGUN_API_KEY || '',
     domain: process.env.MAILGUN_DOMAIN || '',
+    region: process.env.MAILGUN_REGION || 'eu', // 'eu' or 'us'
   },
   emailFrom: process.env.EMAIL_FROM || 'Event Manager <noreply@eventmanager.com>',
   
