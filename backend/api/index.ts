@@ -63,7 +63,7 @@ app.get('/health', async (_req, res) => {
 });
 
 // Debug endpoint to check DB and force seeding
-app.get('/debug/db-status', async (_req, res) => {
+app.get('/debug/db-status', async (_req, res): Promise<void> => {
   try {
     await ensureDbConnected();
     
@@ -74,19 +74,21 @@ app.get('/debug/db-status', async (_req, res) => {
     
     // Check if connected
     if (mongoose.connection.readyState !== 1) {
-      return res.json({ 
+      res.json({ 
         connected: false,
         readyState: mongoose.connection.readyState,
         message: 'Database not connected'
       });
+      return;
     }
     
     const db = mongoose.connection.db;
     if (!db) {
-      return res.json({ 
+      res.json({ 
         connected: false,
         message: 'Database object not available'
       });
+      return;
     }
     
     const dbName = db.databaseName;
