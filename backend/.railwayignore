@@ -1,0 +1,43 @@
+# Railway ignore file - excludes files from deployment
+
+# Development files
+*.md
+!RAILWAY_DEPLOYMENT.md
+.env.example
+.env.encrypted
+.env.vercel-template
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+jest.config.json
+
+# Documentation
+README.md
+collections/
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Build artifacts (will be rebuilt)
+dist/
+node_modules/
+
+# Scripts (not needed in production)
+scripts/
+
+# Static files (if not needed)
+static/

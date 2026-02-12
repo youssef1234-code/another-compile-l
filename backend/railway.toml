@@ -1,0 +1,17 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm install && npm run build"
+
+[deploy]
+startCommand = "npm start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[env]
+# The PORT will be automatically set by Railway
+# NODE_ENV should be set to production in Railway dashboard
+NODE_ENV = "production"
+
+[healthcheck]
+path = "/health"
+timeout = 30
