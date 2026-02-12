@@ -6,22 +6,49 @@
 
 import { GenericForm } from '@/components/generic';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { ROUTES } from '@/lib/constants';
 import { formatValidationErrors } from '@/lib/format-errors';
 import { trpc } from '@/lib/trpc';
 import { useAuthStore } from '@/store/authStore';
 import { LoginSchema, type LoginInput, type User } from '../../../shared';
 import { motion } from 'framer-motion';
-import { Calendar, CreditCard, Dumbbell, GraduationCap, Lock, Mail, Sparkles, Star, Store, Ticket, Trophy, Users } from 'lucide-react';
+import { Calendar, Copy, CreditCard, Dumbbell, GraduationCap, Lock, Mail, Play, Sparkles, Star, Store, Ticket, Trophy, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+
+const DEMO_ACCOUNTS = [
+  { role: 'Admin', email: 'admin@guc.edu.eg', password: 'admin', color: 'bg-red-500/10 text-red-600 border-red-200 dark:text-red-400 dark:border-red-800' },
+  { role: 'Event Office', email: 'events.office@guc.edu.eg', password: 'Password123!', color: 'bg-purple-500/10 text-purple-600 border-purple-200 dark:text-purple-400 dark:border-purple-800' },
+  { role: 'Professor', email: 'prof.brown@prof.guc.edu.eg', password: 'Password123!', color: 'bg-blue-500/10 text-blue-600 border-blue-200 dark:text-blue-400 dark:border-blue-800' },
+  { role: 'Staff', email: 'sarah.johnson@staff.guc.edu.eg', password: 'Password123!', color: 'bg-teal-500/10 text-teal-600 border-teal-200 dark:text-teal-400 dark:border-teal-800' },
+  { role: 'TA', email: 'david.wilson@ta.guc.edu.eg', password: 'Password123!', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-200 dark:text-cyan-400 dark:border-cyan-800' },
+  { role: 'Student', email: 'john.doe@student.guc.edu.eg', password: 'Password123!', color: 'bg-green-500/10 text-green-600 border-green-200 dark:text-green-400 dark:border-green-800' },
+  { role: 'Vendor', email: 'vendor@techcompany.com', password: 'Password123!', color: 'bg-orange-500/10 text-orange-600 border-orange-200 dark:text-orange-400 dark:border-orange-800' },
+];
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
   const [currentEmail, setCurrentEmail] = useState(''); // Store email for error handling
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [autoLoginAccount, setAutoLoginAccount] = useState<{ email: string; password: string } | null>(null);
+
+  const handleDemoLogin = (email: string, password: string) => {
+    setAutoLoginAccount({ email, password });
+    setDemoOpen(false);
+    loginMutation.mutate({ email, password });
+  };
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
@@ -345,6 +372,77 @@ export function LoginPage() {
           animate={true}
           footerActions={
             <>
+              {/* Demo Accounts Button */}
+              <Dialog open={demoOpen} onOpenChange={setDemoOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full gap-2 mb-2 bg-primary/5 hover:bg-primary/10 border border-primary/20 hover:border-primary/40 transition-all"
+                  >
+                    <Play className="h-4 w-4" />
+                    Try Demo Accounts
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-primary" />
+                      Demo Accounts
+                    </DialogTitle>
+                    <DialogDescription>
+                      Click any account to log in instantly and explore the platform.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                    {DEMO_ACCOUNTS.map((account) => (
+                      <button
+                        key={account.email}
+                        type="button"
+                        onClick={() => handleDemoLogin(account.email, account.password)}
+                        className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-border/60 hover:border-primary/40 hover:bg-accent/50 transition-all text-left group"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="outline" className={`text-xs font-semibold ${account.color}`}>
+                              {account.role}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{account.email}</p>
+                          <p className="text-xs text-muted-foreground/60 mt-0.5">
+                            Password: <span className="font-mono">{account.password}</span>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(account.email);
+                              toast.success('Email copied!', { duration: 1500 });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(account.email);
+                                toast.success('Email copied!', { duration: 1500 });
+                              }
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                          </span>
+                          <span className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                            Login →
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
