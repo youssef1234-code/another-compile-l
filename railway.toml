@@ -1,0 +1,16 @@
+# Railway Configuration for Monorepo - Backend Service
+
+[build]
+builder = "nixpacks"
+watchPatterns = ["backend/**"]
+
+[deploy]
+startCommand = "cd backend && npm start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[deploy.healthcheckPath]
+path = "/health"
+
+[deploy.healthcheckTimeout]
+timeout = 100

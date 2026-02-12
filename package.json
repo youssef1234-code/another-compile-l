@@ -1,0 +1,27 @@
+{
+  "name": "another-compile-l",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Event Management System - Monorepo",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd event-manager && npm run dev",
+    "dev:ai": "cd ai-service && uvicorn main:app --reload",
+    "build": "cd backend && npm install && npm run build",
+    "start": "cd backend && npm start",
+    "install:all": "cd backend && npm install && cd ../event-manager && npm install && cd ../shared && npm install"
+  },
+  "keywords": [
+    "event-management",
+    "monorepo"
+  ],
+  "workspaces": [
+    "backend",
+    "event-manager",
+    "shared"
+  ],
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  }
+}
