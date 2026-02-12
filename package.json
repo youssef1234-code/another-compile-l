@@ -15,11 +15,6 @@
     "event-management",
     "monorepo"
   ],
-  "workspaces": [
-    "backend",
-    "event-manager",
-    "shared"
-  ],
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=9.0.0"
